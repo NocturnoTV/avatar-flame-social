@@ -6,34 +6,41 @@ Thème noir ou blanc au choix, avec le logo correspondant (blanc sur noir, noir 
 ## Ce que l'utilisateur obtient
 
 **Inscription / connexion**
+
 - Compte par e-mail + mot de passe, et bouton « Continuer avec Google ».
-- Étapes d'inscription : nom d'utilisateur Bloxspark, pseudo Roblox, langue, date de naissance.
+- Étapes d'inscription : nom d'utilisateur Bloxspark, pseudo Roblox, langue avec menu déroulat et émojis des pays tel que la France, Anglais (US), espagnol, coréen bref plein de langues qui traduit tout le contenu du site/app et, date de naissance.
 - Âge minimum 13 ans. Entre 13 et 17 ans : case d'accord parental obligatoire (nom et e-mail du parent enregistrés). Moins de 13 ans : inscription refusée avec explication.
 - Choix du thème (noir/blanc) dès l'inscription, modifiable ensuite dans les paramètres.
 
 **Sparks (swipe)**
+
 - Pile de cartes de profils : avatar Roblox, pseudo, âge, langue, bio, décorations.
 - Swipe gauche/droite (et boutons), « super spark » limité, match quand c'est réciproque, animation de match menant à la conversation.
 - Filtres : langue, tranche d'âge.
 
 **Messages**
+
 - Liste de conversations style TikTok, discussions privées et groupes.
 - Texte, émojis, photos, messages vocaux enregistrés directement dans le chat.
 - Accusés de lecture, indicateur « en train d'écrire », arrivée des messages en direct.
 
 **Profil**
+
 - Ses photos d'avatar Roblox, bio, badges, décorations (bannière, cadre, couleur d'accent, stickers).
 - Icône engrenage vers les paramètres : thème, langue, notifications, blocages, confidentialité, suppression du compte.
 - Changement de pseudo limité à une fois tous les 7 jours, avec compte à rebours affiché.
 
 **Notifications**
+
 - Page listant matchs, messages, likes, mentions ; marquage lu / tout lu ; pastille de compteur.
 
 **Pages légales**
+
 - Conditions d'utilisation et Politique de confidentialité longues et professionnelles (données collectées, âge, mineurs et accord parental, modération, signalement, suppression, contact), plus règles de la communauté.
 - Mention « non affilié à Roblox Corporation » en pied de page et à l'inscription.
 
 **Navigation**
+
 - Barre fixe en bas sur mobile : Sparks, Messages, Notifications, Profil.
 - Sécurité : signalement et blocage d'un profil ou d'un message, masquage immédiat.
 
