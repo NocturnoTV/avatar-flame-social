@@ -9,6 +9,7 @@ import {
   Gamepad2,
   ImagePlus,
   Plus,
+  Save,
   Settings,
   ShieldCheck,
   Trash2,
