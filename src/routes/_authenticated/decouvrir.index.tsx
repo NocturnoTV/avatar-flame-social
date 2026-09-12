@@ -352,12 +352,22 @@ function VideoSlide({
       )}
 
       {/* bottom info */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 to-transparent p-4 pb-6 pr-20">
-        <p className="text-base font-bold text-white">@{username}</p>
-        {video.caption ? <p className="mt-1 text-sm text-white/90">{video.caption}</p> : null}
-        <p className="mt-2 flex items-center gap-2 text-xs text-white/80">
-          <Music2 className="h-3.5 w-3.5" /> {video.sound_name || "Son original"}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-4 pb-6 pr-24">
+        <p className="text-[15px] font-extrabold text-white drop-shadow">@{username}</p>
+        {video.caption ? (
+          <p className="mt-1 line-clamp-3 text-sm text-white/95 drop-shadow">{video.caption}</p>
+        ) : null}
+        <p className="mt-2 flex items-center gap-2 overflow-hidden text-xs font-medium text-white/90">
+          <Music2 className="h-3.5 w-3.5 shrink-0 animate-pulse" />
+          <span className="truncate">{video.sound_name || `Son original — @${username}`}</span>
         </p>
+      </div>
+
+      {/* disque vinyle du son */}
+      <div className="pointer-events-none absolute bottom-6 right-3 z-20 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-neutral-700 to-black bx-spin">
+        <div className="h-7 w-7 overflow-hidden rounded-full border border-white/30">
+          <StoredImage path={avatar} alt="" className="h-full w-full" fallback="🎵" />
+        </div>
       </div>
 
       {/* action rail */}
