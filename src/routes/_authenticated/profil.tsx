@@ -1,3 +1,4 @@
+import { Flag } from "@/components/Flag";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
@@ -7,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button, Input, Label, Select, Textarea } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
 import { uploadFile } from "@/lib/media";
-import { LANGUAGES, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { ACCENTS, BANNERS, FRAMES, STICKERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
@@ -116,9 +117,10 @@ function ProfilePage() {
           {p?.username}
           {p?.sticker ? <span>{p.sticker}</span> : null}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          🎮 {p?.roblox_username} · {age ? `${age} ${t("years")}` : ""}{" "}
-          {LANGUAGES.find((l) => l.code === p?.language)?.flag}
+        <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <span>🎮 {p?.roblox_username}</span>
+          {age ? <span>· {age} {t("years")}</span> : null}
+          <Flag code={p?.language ?? ""} />
         </p>
       </div>
 
