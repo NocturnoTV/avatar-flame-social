@@ -183,12 +183,13 @@ function ProfilePage() {
     void games.refetch();
   }
 
-  const p = profile.data;
+  // Aperçu = données enregistrées + brouillon non encore enregistré
+  const p = profile.data ? ({ ...profile.data, ...draft } as typeof profile.data) : profile.data;
   const age = ageFrom(p?.birth_date ?? null);
   const gameList = games.data ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-xl px-4 pt-5">
+    <div className="mx-auto w-full max-w-xl px-4 pt-5 pb-40 lg:pb-28">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("profile")}</h1>
         <div className="flex items-center gap-2">
