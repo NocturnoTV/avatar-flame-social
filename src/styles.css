@@ -129,3 +129,46 @@
 @utility no-scrollbar {
   scrollbar-width: none;
 }
+
+@keyframes bx-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes bx-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bx-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@utility bx-float {
+  animation: bx-float 6s ease-in-out infinite;
+}
+
+@utility bx-rise {
+  animation: bx-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility bx-glow {
+  animation: bx-glow 5s ease-in-out infinite;
+}
