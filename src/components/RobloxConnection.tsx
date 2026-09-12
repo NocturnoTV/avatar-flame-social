@@ -2,6 +2,7 @@ import { CheckCircle2, Gamepad2, RefreshCw, Unlink } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui-kit";
+import { useI18n } from "@/lib/i18n";
 import {
   beginRobloxOAuth,
   disconnectRobloxAccount,
@@ -16,6 +17,18 @@ export type RobloxConnectionProfile = {
   roblox_synced_at?: string | null;
 };
 
+function RobloxLogo({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 32 32" className={className} fill="currentColor">
+      <path
+        fillRule="evenodd"
+        d="M7.2 2 30 7.2 24.8 30 2 24.8 7.2 2Zm6.6 10.1-1.9 8.1 8.2 1.9 1.9-8.2-8.2-1.8Z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 export function RobloxConnection({
   profile,
   returnTo,
@@ -27,6 +40,7 @@ export function RobloxConnection({
   manage?: boolean;
   onChanged?: () => void;
 }) {
+  const { t } = useI18n();
   const [busy, setBusy] = useState<"connect" | "sync" | "disconnect" | null>(null);
   const connected = Boolean(profile?.roblox_user_id);
 
@@ -36,7 +50,8 @@ export function RobloxConnection({
       const result = await beginRobloxOAuth({ data: { returnTo } });
       window.location.assign(result.url);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Connexion Roblox indisponible.");
+      console.error("Roblox OAuth start failed", error);
+      toast.error(t("robloxConnectUnavailable"));
       setBusy(null);
     }
   }
@@ -45,24 +60,26 @@ export function RobloxConnection({
     setBusy("sync");
     try {
       await syncRobloxAccount();
-      toast.success("Compte Roblox resynchronisé.");
+      toast.success(t("robloxSyncSuccess"));
       onChanged?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Synchronisation impossible.");
+      console.error("Roblox sync failed", error);
+      toast.error(t("robloxSyncUnavailable"));
     } finally {
       setBusy(null);
     }
   }
 
   async function disconnect() {
-    if (!window.confirm("Déconnecter ce compte Roblox de BloxSpark ?")) return;
+    if (!window.confirm(t("robloxDisconnectConfirm"))) return;
     setBusy("disconnect");
     try {
       await disconnectRobloxAccount();
-      toast.success("Compte Roblox déconnecté.");
+      toast.success(t("robloxDisconnectSuccess"));
       onChanged?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Déconnexion impossible.");
+      console.error("Roblox disconnect failed", error);
+      toast.error(t("robloxDisconnectUnavailable"));
     } finally {
       setBusy(null);
     }
@@ -70,28 +87,26 @@ export function RobloxConnection({
 
   if (!connected) {
     return (
-      <div className="rounded-2xl border border-border bg-surface p-4">
-        <p className="text-sm font-semibold">
-          Récupère automatiquement ton pseudo, ton avatar et tes jeux.
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          BloxSpark demande uniquement ton identité publique Roblox.
-        </p>
+      <div className="rounded-2xl border border-primary/25 bg-surface p-4 shadow-sm shadow-primary/10">
+        <p className="text-sm font-semibold">{t("robloxConnectLead")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("robloxConnectPrivacy")}</p>
         <Button className="mt-3 w-full" onClick={connect} disabled={busy !== null}>
-          <Gamepad2 className="h-4 w-4" />
-          {busy === "connect" ? "Redirection vers Roblox…" : "Connecter mon compte Roblox"}
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-white text-black shadow-sm dark:bg-black dark:text-white">
+            <RobloxLogo />
+          </span>
+          {busy === "connect" ? t("robloxRedirecting") : t("robloxConnect")}
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-emerald-500/35 bg-emerald-500/10 p-4">
+    <div className="rounded-2xl border border-primary/35 bg-primary/10 p-4">
       <div className="flex items-center gap-3">
         {profile?.roblox_avatar_url ? (
           <img
             src={profile.roblox_avatar_url}
-            alt="Avatar Roblox"
+            alt={t("robloxAvatarAlt")}
             className="h-12 w-12 rounded-xl object-cover"
           />
         ) : (
@@ -100,8 +115,8 @@ export function RobloxConnection({
           </span>
         )}
         <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-sm font-bold text-emerald-500">
-            <CheckCircle2 className="h-4 w-4" /> Compte Roblox connecté
+          <p className="flex items-center gap-1.5 text-sm font-bold text-primary">
+            <CheckCircle2 className="h-4 w-4" /> {t("robloxConnected")}
           </p>
           <p className="truncate text-sm">
             {profile?.roblox_display_name ?? profile?.roblox_username}
@@ -113,10 +128,10 @@ export function RobloxConnection({
         <div className="mt-3 flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={sync} disabled={busy !== null}>
             <RefreshCw className={`h-4 w-4 ${busy === "sync" ? "animate-spin" : ""}`} />
-            Resynchroniser
+            {t("robloxSync")}
           </Button>
           <Button size="sm" variant="ghost" onClick={disconnect} disabled={busy !== null}>
-            <Unlink className="h-4 w-4" /> Déconnecter
+            <Unlink className="h-4 w-4" /> {t("robloxDisconnect")}
           </Button>
         </div>
       ) : null}

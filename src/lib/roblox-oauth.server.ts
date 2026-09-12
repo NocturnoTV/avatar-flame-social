@@ -39,6 +39,8 @@ export async function getRobloxOAuthSession() {
   });
 }
 
+export type RobloxOAuthSessionHandle = Awaited<ReturnType<typeof getRobloxOAuthSession>>;
+
 export function randomUrlSafe(bytes = 32) {
   return randomBytes(bytes).toString("base64url");
 }

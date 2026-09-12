@@ -17,7 +17,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = window.localStorage.getItem("bloxspark-theme") as ThemeName | null;
-    const next = stored === "light" || stored === "dark" ? stored : "dark";
+    const systemTheme: ThemeName = window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+    const next = stored === "light" || stored === "dark" ? stored : systemTheme;
     setThemeState(next);
     apply(next);
   }, []);

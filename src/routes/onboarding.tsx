@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { Button, Input, Label, Textarea } from "@/components/ui-kit";
-import { LANGUAGES, useI18n, type LangCode } from "@/lib/i18n";
+import { LANGUAGES, robloxOAuthErrorKey, useI18n, type LangCode } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { ageFrom } from "@/lib/decorations";
@@ -52,9 +52,9 @@ function Onboarding() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("roblox") === "connected") toast.success("Compte Roblox connecté.");
-    if (params.has("roblox_error")) toast.error("La connexion Roblox a échoué. Réessaie.");
-  }, []);
+    if (params.get("roblox") === "connected") toast.success(t("robloxConnected"));
+    if (params.has("roblox_error")) toast.error(t(robloxOAuthErrorKey(params.get("roblox_error"))));
+  }, [t]);
 
   const robloxProfile = useQuery({
     queryKey: ["onboarding-roblox", user?.id],

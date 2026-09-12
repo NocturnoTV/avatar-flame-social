@@ -112,6 +112,27 @@ const en: Dict = {
   selectFriends: "Pick people to add",
   usernameTaken: "This username is already taken.",
   required: "Required field",
+  robloxConnectLead: "Automatically import your username, avatar and games.",
+  robloxConnectPrivacy: "BloxSpark only requests your public Roblox identity.",
+  robloxConnect: "Connect my Roblox account",
+  robloxRedirecting: "Redirecting to Roblox…",
+  robloxConnected: "Roblox account connected",
+  robloxSync: "Sync again",
+  robloxDisconnect: "Disconnect",
+  robloxDisconnectConfirm: "Disconnect this Roblox account from BloxSpark?",
+  robloxSyncSuccess: "Roblox account synced.",
+  robloxDisconnectSuccess: "Roblox account disconnected.",
+  robloxConnectUnavailable: "Roblox sign-in is unavailable.",
+  robloxSyncUnavailable: "Unable to sync the Roblox account.",
+  robloxDisconnectUnavailable: "Unable to disconnect the Roblox account.",
+  robloxAvatarAlt: "Roblox avatar",
+  robloxErrorAuthorizationDenied: "Roblox authorization was cancelled.",
+  robloxErrorInvalidState: "This Roblox sign-in request is invalid. Please try again.",
+  robloxErrorExpiredSession: "The Roblox sign-in request expired. Please try again.",
+  robloxErrorTokenExchange: "Roblox could not complete sign-in. Please try again.",
+  robloxErrorAlreadyLinked: "This Roblox account is already linked to another BloxSpark account.",
+  robloxErrorServerConfiguration: "Roblox sign-in is temporarily unavailable.",
+  robloxErrorSyncFailed: "The Roblox account could not be linked. Please try again.",
 };
 
 const fr: Dict = {
@@ -121,8 +142,7 @@ const fr: Dict = {
   getStarted: "Créer mon compte",
   signIn: "Se connecter",
   signUp: "S'inscrire",
-  notAffiliated:
-    "Bloxspark n'est ni affilié, ni approuvé, ni sponsorisé par Roblox Corporation.",
+  notAffiliated: "Bloxspark n'est ni affilié, ni approuvé, ni sponsorisé par Roblox Corporation.",
   email: "E-mail",
   password: "Mot de passe",
   continueGoogle: "Continuer avec Google",
@@ -214,6 +234,27 @@ const fr: Dict = {
   selectFriends: "Choisis les personnes à ajouter",
   usernameTaken: "Ce pseudo est déjà pris.",
   required: "Champ obligatoire",
+  robloxConnectLead: "Récupère automatiquement ton pseudo, ton avatar et tes jeux.",
+  robloxConnectPrivacy: "BloxSpark demande uniquement ton identité publique Roblox.",
+  robloxConnect: "Connecter mon compte Roblox",
+  robloxRedirecting: "Redirection vers Roblox…",
+  robloxConnected: "Compte Roblox connecté",
+  robloxSync: "Resynchroniser",
+  robloxDisconnect: "Déconnecter",
+  robloxDisconnectConfirm: "Déconnecter ce compte Roblox de BloxSpark ?",
+  robloxSyncSuccess: "Compte Roblox resynchronisé.",
+  robloxDisconnectSuccess: "Compte Roblox déconnecté.",
+  robloxConnectUnavailable: "Connexion Roblox indisponible.",
+  robloxSyncUnavailable: "Synchronisation du compte Roblox impossible.",
+  robloxDisconnectUnavailable: "Déconnexion du compte Roblox impossible.",
+  robloxAvatarAlt: "Avatar Roblox",
+  robloxErrorAuthorizationDenied: "L’autorisation Roblox a été annulée.",
+  robloxErrorInvalidState: "Cette demande de connexion Roblox est invalide. Réessaie.",
+  robloxErrorExpiredSession: "La demande de connexion Roblox a expiré. Réessaie.",
+  robloxErrorTokenExchange: "Roblox n’a pas pu terminer la connexion. Réessaie.",
+  robloxErrorAlreadyLinked: "Ce compte Roblox est déjà associé à un autre compte BloxSpark.",
+  robloxErrorServerConfiguration: "La connexion Roblox est temporairement indisponible.",
+  robloxErrorSyncFailed: "Le compte Roblox n’a pas pu être associé. Réessaie.",
 };
 
 const es: Dict = {
@@ -315,6 +356,28 @@ const es: Dict = {
   selectFriends: "Elige a quién añadir",
   usernameTaken: "Ese usuario ya existe.",
   required: "Campo obligatorio",
+  robloxConnectLead: "Importa automáticamente tu usuario, avatar y juegos.",
+  robloxConnectPrivacy: "BloxSpark solo solicita tu identidad pública de Roblox.",
+  robloxConnect: "Conectar mi cuenta de Roblox",
+  robloxRedirecting: "Redirigiendo a Roblox…",
+  robloxConnected: "Cuenta de Roblox conectada",
+  robloxSync: "Sincronizar de nuevo",
+  robloxDisconnect: "Desconectar",
+  robloxDisconnectConfirm: "¿Desconectar esta cuenta de Roblox de BloxSpark?",
+  robloxSyncSuccess: "Cuenta de Roblox sincronizada.",
+  robloxDisconnectSuccess: "Cuenta de Roblox desconectada.",
+  robloxConnectUnavailable: "El inicio de sesión con Roblox no está disponible.",
+  robloxSyncUnavailable: "No se pudo sincronizar la cuenta de Roblox.",
+  robloxDisconnectUnavailable: "No se pudo desconectar la cuenta de Roblox.",
+  robloxAvatarAlt: "Avatar de Roblox",
+  robloxErrorAuthorizationDenied: "Se canceló la autorización de Roblox.",
+  robloxErrorInvalidState:
+    "Esta solicitud de conexión con Roblox no es válida. Inténtalo de nuevo.",
+  robloxErrorExpiredSession: "La solicitud de conexión con Roblox caducó. Inténtalo de nuevo.",
+  robloxErrorTokenExchange: "Roblox no pudo completar la conexión. Inténtalo de nuevo.",
+  robloxErrorAlreadyLinked: "Esta cuenta de Roblox ya está vinculada a otra cuenta de BloxSpark.",
+  robloxErrorServerConfiguration: "La conexión con Roblox no está disponible temporalmente.",
+  robloxErrorSyncFailed: "No se pudo vincular la cuenta de Roblox. Inténtalo de nuevo.",
 };
 
 const pt: Dict = {
@@ -416,6 +479,27 @@ const pt: Dict = {
   selectFriends: "Escolha quem adicionar",
   usernameTaken: "Esse nome já existe.",
   required: "Campo obrigatório",
+  robloxConnectLead: "Importe automaticamente seu usuário, avatar e jogos.",
+  robloxConnectPrivacy: "O BloxSpark solicita apenas sua identidade pública do Roblox.",
+  robloxConnect: "Conectar minha conta Roblox",
+  robloxRedirecting: "Redirecionando para o Roblox…",
+  robloxConnected: "Conta Roblox conectada",
+  robloxSync: "Sincronizar novamente",
+  robloxDisconnect: "Desconectar",
+  robloxDisconnectConfirm: "Desconectar esta conta Roblox do BloxSpark?",
+  robloxSyncSuccess: "Conta Roblox sincronizada.",
+  robloxDisconnectSuccess: "Conta Roblox desconectada.",
+  robloxConnectUnavailable: "O login com Roblox está indisponível.",
+  robloxSyncUnavailable: "Não foi possível sincronizar a conta Roblox.",
+  robloxDisconnectUnavailable: "Não foi possível desconectar a conta Roblox.",
+  robloxAvatarAlt: "Avatar do Roblox",
+  robloxErrorAuthorizationDenied: "A autorização do Roblox foi cancelada.",
+  robloxErrorInvalidState: "Esta solicitação de login do Roblox é inválida. Tente novamente.",
+  robloxErrorExpiredSession: "A solicitação de login do Roblox expirou. Tente novamente.",
+  robloxErrorTokenExchange: "O Roblox não conseguiu concluir o login. Tente novamente.",
+  robloxErrorAlreadyLinked: "Esta conta Roblox já está vinculada a outra conta BloxSpark.",
+  robloxErrorServerConfiguration: "O login com Roblox está temporariamente indisponível.",
+  robloxErrorSyncFailed: "Não foi possível vincular a conta Roblox. Tente novamente.",
 };
 
 const de: Dict = {
@@ -518,6 +602,30 @@ const de: Dict = {
   selectFriends: "Personen auswählen",
   usernameTaken: "Dieser Name ist vergeben.",
   required: "Pflichtfeld",
+  robloxConnectLead: "Importiere automatisch deinen Namen, Avatar und deine Spiele.",
+  robloxConnectPrivacy: "BloxSpark fragt nur deine öffentliche Roblox-Identität ab.",
+  robloxConnect: "Roblox-Konto verbinden",
+  robloxRedirecting: "Weiterleitung zu Roblox…",
+  robloxConnected: "Roblox-Konto verbunden",
+  robloxSync: "Erneut synchronisieren",
+  robloxDisconnect: "Trennen",
+  robloxDisconnectConfirm: "Dieses Roblox-Konto von BloxSpark trennen?",
+  robloxSyncSuccess: "Roblox-Konto synchronisiert.",
+  robloxDisconnectSuccess: "Roblox-Konto getrennt.",
+  robloxConnectUnavailable: "Die Roblox-Anmeldung ist nicht verfügbar.",
+  robloxSyncUnavailable: "Das Roblox-Konto konnte nicht synchronisiert werden.",
+  robloxDisconnectUnavailable: "Das Roblox-Konto konnte nicht getrennt werden.",
+  robloxAvatarAlt: "Roblox-Avatar",
+  robloxErrorAuthorizationDenied: "Die Roblox-Autorisierung wurde abgebrochen.",
+  robloxErrorInvalidState: "Diese Roblox-Anfrage ist ungültig. Bitte versuche es erneut.",
+  robloxErrorExpiredSession: "Die Roblox-Anfrage ist abgelaufen. Bitte versuche es erneut.",
+  robloxErrorTokenExchange:
+    "Roblox konnte die Anmeldung nicht abschließen. Bitte versuche es erneut.",
+  robloxErrorAlreadyLinked:
+    "Dieses Roblox-Konto ist bereits mit einem anderen BloxSpark-Konto verbunden.",
+  robloxErrorServerConfiguration: "Die Roblox-Anmeldung ist vorübergehend nicht verfügbar.",
+  robloxErrorSyncFailed:
+    "Das Roblox-Konto konnte nicht verbunden werden. Bitte versuche es erneut.",
 };
 
 const ko: Dict = {
@@ -618,9 +726,47 @@ const ko: Dict = {
   selectFriends: "추가할 사람 선택",
   usernameTaken: "이미 사용 중인 이름입니다.",
   required: "필수 항목",
+  robloxConnectLead: "사용자 이름, 아바타와 게임을 자동으로 가져옵니다.",
+  robloxConnectPrivacy: "BloxSpark는 공개 Roblox 신원 정보만 요청합니다.",
+  robloxConnect: "Roblox 계정 연결",
+  robloxRedirecting: "Roblox로 이동 중…",
+  robloxConnected: "Roblox 계정 연결됨",
+  robloxSync: "다시 동기화",
+  robloxDisconnect: "연결 해제",
+  robloxDisconnectConfirm: "이 Roblox 계정을 BloxSpark에서 연결 해제할까요?",
+  robloxSyncSuccess: "Roblox 계정을 동기화했습니다.",
+  robloxDisconnectSuccess: "Roblox 계정 연결을 해제했습니다.",
+  robloxConnectUnavailable: "Roblox 로그인을 사용할 수 없습니다.",
+  robloxSyncUnavailable: "Roblox 계정을 동기화할 수 없습니다.",
+  robloxDisconnectUnavailable: "Roblox 계정 연결을 해제할 수 없습니다.",
+  robloxAvatarAlt: "Roblox 아바타",
+  robloxErrorAuthorizationDenied: "Roblox 인증이 취소되었습니다.",
+  robloxErrorInvalidState: "Roblox 로그인 요청이 올바르지 않습니다. 다시 시도해 주세요.",
+  robloxErrorExpiredSession: "Roblox 로그인 요청이 만료되었습니다. 다시 시도해 주세요.",
+  robloxErrorTokenExchange: "Roblox에서 로그인을 완료하지 못했습니다. 다시 시도해 주세요.",
+  robloxErrorAlreadyLinked: "이 Roblox 계정은 이미 다른 BloxSpark 계정에 연결되어 있습니다.",
+  robloxErrorServerConfiguration: "Roblox 로그인을 일시적으로 사용할 수 없습니다.",
+  robloxErrorSyncFailed: "Roblox 계정을 연결하지 못했습니다. 다시 시도해 주세요.",
 };
 
 const DICTS: Record<LangCode, Dict> = { en, fr, es, pt, de, ko };
+
+const ROBLOX_OAUTH_ERROR_KEYS = {
+  authorization_denied: "robloxErrorAuthorizationDenied",
+  invalid_state: "robloxErrorInvalidState",
+  expired_session: "robloxErrorExpiredSession",
+  token_exchange_failed: "robloxErrorTokenExchange",
+  already_linked: "robloxErrorAlreadyLinked",
+  server_configuration: "robloxErrorServerConfiguration",
+  sync_failed: "robloxErrorSyncFailed",
+} as const;
+
+export function robloxOAuthErrorKey(code: string | null): keyof typeof en {
+  if (!code) return "robloxErrorSyncFailed";
+  return (
+    ROBLOX_OAUTH_ERROR_KEYS[code as keyof typeof ROBLOX_OAUTH_ERROR_KEYS] ?? "robloxErrorSyncFailed"
+  );
+}
 
 type I18nValue = {
   lang: LangCode;

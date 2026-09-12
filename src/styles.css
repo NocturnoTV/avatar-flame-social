@@ -41,57 +41,57 @@
 
 :root {
   --radius: 1rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.16 0.01 260);
-  --card: oklch(0.985 0.002 260);
-  --card-foreground: oklch(0.16 0.01 260);
+  --background: oklch(0.985 0.012 250);
+  --foreground: oklch(0.19 0.045 255);
+  --card: oklch(0.995 0.006 250);
+  --card-foreground: oklch(0.19 0.045 255);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.01 260);
-  --primary: oklch(0.62 0.24 18);
+  --popover-foreground: oklch(0.19 0.045 255);
+  --primary: oklch(0.56 0.22 255);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.955 0.005 260);
-  --secondary-foreground: oklch(0.2 0.01 260);
-  --muted: oklch(0.96 0.004 260);
-  --muted-foreground: oklch(0.5 0.015 260);
-  --accent: oklch(0.94 0.02 300);
-  --accent-foreground: oklch(0.2 0.01 260);
+  --secondary: oklch(0.94 0.035 250);
+  --secondary-foreground: oklch(0.24 0.08 255);
+  --muted: oklch(0.95 0.02 250);
+  --muted-foreground: oklch(0.48 0.045 255);
+  --accent: oklch(0.91 0.18 96);
+  --accent-foreground: oklch(0.22 0.055 255);
   --destructive: oklch(0.58 0.23 25);
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.62 0.16 155);
-  --spark: oklch(0.66 0.24 18);
-  --spark-2: oklch(0.62 0.22 305);
-  --border: oklch(0.9 0.006 260);
-  --input: oklch(0.93 0.006 260);
-  --ring: oklch(0.66 0.24 18);
-  --surface: oklch(0.985 0.002 260);
-  --surface-2: oklch(0.96 0.004 260);
+  --spark: oklch(0.55 0.23 255);
+  --spark-2: oklch(0.88 0.19 94);
+  --border: oklch(0.87 0.035 250);
+  --input: oklch(0.91 0.03 250);
+  --ring: oklch(0.58 0.22 255);
+  --surface: oklch(0.98 0.012 250);
+  --surface-2: oklch(0.93 0.045 250);
 }
 
 .dark {
-  --background: oklch(0.13 0.008 265);
-  --foreground: oklch(0.97 0.002 260);
-  --card: oklch(0.18 0.01 265);
-  --card-foreground: oklch(0.97 0.002 260);
-  --popover: oklch(0.18 0.01 265);
-  --popover-foreground: oklch(0.97 0.002 260);
-  --primary: oklch(0.7 0.23 20);
-  --primary-foreground: oklch(0.13 0.008 265);
-  --secondary: oklch(0.24 0.012 265);
-  --secondary-foreground: oklch(0.97 0.002 260);
-  --muted: oklch(0.24 0.012 265);
-  --muted-foreground: oklch(0.68 0.015 265);
-  --accent: oklch(0.28 0.04 305);
-  --accent-foreground: oklch(0.97 0.002 260);
+  --background: oklch(0.14 0.04 255);
+  --foreground: oklch(0.97 0.012 250);
+  --card: oklch(0.19 0.055 255);
+  --card-foreground: oklch(0.97 0.012 250);
+  --popover: oklch(0.19 0.055 255);
+  --popover-foreground: oklch(0.97 0.012 250);
+  --primary: oklch(0.69 0.2 250);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.25 0.065 255);
+  --secondary-foreground: oklch(0.97 0.012 250);
+  --muted: oklch(0.24 0.045 255);
+  --muted-foreground: oklch(0.73 0.035 250);
+  --accent: oklch(0.82 0.17 92);
+  --accent-foreground: oklch(0.17 0.045 255);
   --destructive: oklch(0.65 0.21 25);
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.72 0.16 155);
-  --spark: oklch(0.72 0.23 20);
-  --spark-2: oklch(0.68 0.2 305);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.72 0.23 20);
-  --surface: oklch(0.18 0.01 265);
-  --surface-2: oklch(0.22 0.012 265);
+  --spark: oklch(0.65 0.22 252);
+  --spark-2: oklch(0.84 0.18 92);
+  --border: oklch(0.72 0.08 250 / 24%);
+  --input: oklch(0.72 0.08 250 / 28%);
+  --ring: oklch(0.7 0.2 250);
+  --surface: oklch(0.19 0.055 255);
+  --surface-2: oklch(0.24 0.075 255);
 }
 
 @layer base {
@@ -102,6 +102,18 @@
   html,
   body {
     background-color: var(--color-background);
+    background-image:
+      radial-gradient(
+        circle at 8% 0%,
+        color-mix(in oklab, var(--spark) 12%, transparent) 0,
+        transparent 32rem
+      ),
+      radial-gradient(
+        circle at 92% 8%,
+        color-mix(in oklab, var(--spark-2) 11%, transparent) 0,
+        transparent 28rem
+      );
+    background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
@@ -117,7 +129,12 @@
 }
 
 @utility spark-gradient {
-  background-image: linear-gradient(135deg, var(--spark), var(--spark-2));
+  background-image: linear-gradient(
+    120deg,
+    var(--spark) 0%,
+    var(--primary) 68%,
+    var(--spark-2) 100%
+  );
 }
 
 @utility spark-text {
