@@ -400,6 +400,7 @@ function SparkCard({
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-5 pt-16 text-white">
           <div className="flex items-center gap-2">
             <h2 className="text-2xl font-bold">{profile.username}</h2>
+            {profile.verified ? <Verified className="h-5 w-5" /> : null}
             {age ? (
               <span className="text-lg">
                 {age} {t("years")}
