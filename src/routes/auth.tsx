@@ -39,7 +39,7 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (session) navigate({ to: "/sparks", replace: true });
+    if (session) navigate({ to: "/accueil", replace: true });
   }, [session, navigate]);
 
   async function submit(e: React.FormEvent) {
@@ -58,7 +58,7 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/sparks" });
+        navigate({ to: "/accueil" });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("errorGeneric"));
@@ -76,7 +76,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/sparks" });
+    navigate({ to: "/accueil" });
   }
 
   return (
