@@ -16,6 +16,7 @@ import { Route as ConditionsRouteImport } from './routes/conditions'
 import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as ReglesRouteImport } from './routes/regles'
+import { Route as AuthenticatedAccueilRouteImport } from './routes/_authenticated/accueil'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedParametresRouteImport } from './routes/_authenticated/parametres'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
@@ -58,6 +59,11 @@ const ReglesRoute = ReglesRouteImport.update({
   id: '/regles',
   path: '/regles',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAccueilRoute = AuthenticatedAccueilRouteImport.update({
+  id: '/accueil',
+  path: '/accueil',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNotificationsRoute =
   AuthenticatedNotificationsRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/confidentialite': typeof ConfidentialiteRoute
   '/onboarding': typeof OnboardingRoute
   '/regles': typeof ReglesRoute
+  '/accueil': typeof AuthenticatedAccueilRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/parametres': typeof AuthenticatedParametresRoute
   '/profil': typeof AuthenticatedProfilRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/confidentialite': typeof ConfidentialiteRoute
   '/onboarding': typeof OnboardingRoute
   '/regles': typeof ReglesRoute
+  '/accueil': typeof AuthenticatedAccueilRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/parametres': typeof AuthenticatedParametresRoute
   '/profil': typeof AuthenticatedProfilRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/confidentialite': typeof ConfidentialiteRoute
   '/onboarding': typeof OnboardingRoute
   '/regles': typeof ReglesRoute
+  '/_authenticated/accueil': typeof AuthenticatedAccueilRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/parametres': typeof AuthenticatedParametresRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/confidentialite'
     | '/onboarding'
     | '/regles'
+    | '/accueil'
     | '/notifications'
     | '/parametres'
     | '/profil'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/confidentialite'
     | '/onboarding'
     | '/regles'
+    | '/accueil'
     | '/notifications'
     | '/parametres'
     | '/profil'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/confidentialite'
     | '/onboarding'
     | '/regles'
+    | '/_authenticated/accueil'
     | '/_authenticated/notifications'
     | '/_authenticated/parametres'
     | '/_authenticated/profil'
@@ -267,6 +279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReglesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/accueil': {
+      id: '/_authenticated/accueil'
+      path: '/accueil'
+      fullPath: '/accueil'
+      preLoaderRoute: typeof AuthenticatedAccueilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/notifications': {
       id: '/_authenticated/notifications'
       path: '/notifications'
@@ -327,6 +346,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccueilRoute: typeof AuthenticatedAccueilRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedParametresRoute: typeof AuthenticatedParametresRoute
   AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
@@ -338,6 +358,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccueilRoute: AuthenticatedAccueilRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedParametresRoute: AuthenticatedParametresRoute,
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
