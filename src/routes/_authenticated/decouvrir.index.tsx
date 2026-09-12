@@ -330,8 +330,9 @@ function VideoSlide({
   return (
     <div
       ref={containerRef}
-      className="relative flex h-full w-full snap-start snap-always items-center justify-center bg-black"
+      className="flex h-full w-full snap-start snap-always items-center justify-center bg-black"
     >
+      <div className="relative aspect-[9/16] h-full max-h-full w-full max-w-full overflow-hidden bg-black lg:w-auto lg:rounded-2xl lg:shadow-2xl lg:shadow-black/60 lg:ring-1 lg:ring-white/10">
       {url ? (
         <video
           ref={ref}
@@ -416,6 +417,7 @@ function VideoSlide({
           label="Republier"
         />
         <RailButton icon={Send} count={video.shares_count} onClick={share} label="Partager" />
+      </div>
       </div>
     </div>
   );

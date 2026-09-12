@@ -58,16 +58,22 @@ function Conversation() {
         .select("user_id")
         .eq("conversation_id", id);
       const otherIds = (members ?? []).map((m) => m.user_id).filter((uid) => uid !== user?.id);
+      const allIds = [...new Set([...(members ?? []).map((m) => m.user_id), user?.id].filter(Boolean))] as string[];
       const { data: people } = await supabase
         .from("profiles")
-        .select("id,username")
-        .in("id", otherIds.length > 0 ? otherIds : ["00000000-0000-0000-0000-000000000000"]);
-      const others = (people ?? []).map((p) => p.username);
+        .select("id,username,avatar_url")
+        .in("id", allIds.length > 0 ? allIds : ["00000000-0000-0000-0000-000000000000"]);
+      const byId: Record<string, { username: string; avatar_url: string | null }> = {};
+      for (const p of (people ?? []) as { id: string; username: string; avatar_url: string | null }[]) {
+        byId[p.id] = { username: p.username, avatar_url: p.avatar_url };
+      }
+      const others = otherIds.map((uid) => byId[uid]?.username ?? "?");
 
       return {
         title: convo?.is_group ? convo.name : (others[0] ?? "?"),
         isGroup: !!convo?.is_group,
         members: others.length + 1,
+        people: byId,
       };
     },
   });
@@ -191,20 +197,47 @@ function Conversation() {
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {(messages.data ?? []).map((m) => {
           const mine = m.sender_id === user?.id;
+          const sender = header.data?.people?.[m.sender_id];
           return (
-            <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+            <div
+              key={m.id}
+              className={cn("flex items-end gap-2", mine ? "justify-end" : "justify-start")}
+            >
+              {!mine ? (
+                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border bg-surface-2">
+                  <StoredImage
+                    path={sender?.avatar_url ?? null}
+                    alt={sender?.username ?? ""}
+                    className="h-full w-full"
+                    fallback="🎮"
+                  />
+                </div>
+              ) : null}
               <div
                 className={cn(
                   "max-w-[78%] rounded-3xl px-4 py-2.5 text-sm",
                   mine ? "spark-gradient text-white" : "bg-surface-2 text-foreground",
                 )}
               >
+                {!mine && header.data?.isGroup ? (
+                  <p className="mb-0.5 text-xs font-bold text-muted-foreground">{sender?.username ?? "?"}</p>
+                ) : null}
                 {m.kind === "text" ? <p className="whitespace-pre-wrap break-words">{m.content}</p> : null}
                 {m.kind === "image" ? (
                   <StoredImage path={m.media_url} alt="" className="h-48 w-48 rounded-2xl" />
                 ) : null}
                 {m.kind === "voice" ? <StoredAudio path={m.media_url} /> : null}
               </div>
+              {mine ? (
+                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border bg-surface-2">
+                  <StoredImage
+                    path={sender?.avatar_url ?? null}
+                    alt=""
+                    className="h-full w-full"
+                    fallback="🙂"
+                  />
+                </div>
+              ) : null}
             </div>
           );
         })}
