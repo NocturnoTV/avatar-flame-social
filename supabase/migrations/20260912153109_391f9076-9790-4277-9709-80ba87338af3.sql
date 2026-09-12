@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.is_blocked(UUID, UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.is_member(UUID, UUID) FROM anon;
