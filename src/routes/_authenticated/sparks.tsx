@@ -195,7 +195,11 @@ function SparksPage() {
               }}
               className="absolute inset-0 touch-none"
             >
-              <SparkCard profile={current} photos={photos[current.id] ?? []} />
+              <SparkCard
+                profile={current}
+                photos={photos[current.id] ?? []}
+                games={deckGames[current.id] ?? []}
+              />
             </div>
           </>
         )}
