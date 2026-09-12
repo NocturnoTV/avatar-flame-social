@@ -1,3 +1,4 @@
+import { Flag } from "@/components/Flag";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
