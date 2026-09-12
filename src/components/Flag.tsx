@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 type Props = { code: string; className?: string };
 
-function Svg({ children, className }: { children: React.ReactNode; className?: string }) {
+function Svg({ children, className }: { children: React.ReactNode; className?: string | undefined }) {
   return (
     <svg
       viewBox="0 0 24 16"
