@@ -437,10 +437,18 @@ function RailButton({
   label: string;
 }) {
   return (
-    <button onClick={onClick} aria-label={label} className="flex flex-col items-center gap-1 active:scale-90">
-      <span className="grid h-11 w-11 place-items-center rounded-full bg-black/30 backdrop-blur">
-        <Icon className={cn("h-7 w-7 text-white transition", active && activeClass)} />
-      </span>
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className="flex flex-col items-center gap-1 transition active:scale-90"
+    >
+      <Icon
+        className={cn(
+          "h-8 w-8 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.5)] transition-transform duration-200",
+          active && activeClass,
+          active && "scale-110",
+        )}
+      />
       <span className="text-xs font-bold text-white drop-shadow">{formatCount(count)}</span>
     </button>
   );
