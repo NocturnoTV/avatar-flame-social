@@ -22,13 +22,14 @@ import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Button } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/decouvrir/")({
+export const Route = createFileRoute("/_authenticated/discover/")({
   head: () => ({
     meta: [
       { title: "Découvrir — Bloxspark" },
       {
         name: "description",
-        content: "Le feed vidéo des joueurs Roblox : likes, favoris, abonnements et republications.",
+        content:
+          "Le feed vidéo des joueurs Roblox : likes, favoris, abonnements et republications.",
       },
       { property: "og:title", content: "Découvrir — Bloxspark" },
       { property: "og:description", content: "Des vidéos Roblox en boucle, façon feed vertical." },
@@ -156,14 +157,14 @@ function DiscoverPage() {
 
         <div className="pointer-events-auto flex w-20 items-center justify-end gap-1">
           <Link
-            to="/decouvrir/studio"
+            to="/discover/studio"
             className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
             aria-label="Studio créateur"
           >
             <BarChart3 className="h-5 w-5" />
           </Link>
           <Link
-            to="/decouvrir/studio"
+            to="/discover/studio"
             className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
             aria-label="Publier une vidéo"
           >
@@ -183,7 +184,7 @@ function DiscoverPage() {
                 ? "Aucune vidéo de tes abonnements pour l'instant."
                 : "Aucune vidéo pour le moment. Sois le premier à publier !"}
             </p>
-            <Link to="/decouvrir/studio">
+            <Link to="/discover/studio">
               <Button>Publier une vidéo</Button>
             </Link>
           </div>
@@ -235,7 +236,12 @@ function VideoSlide({
     enabled: !!user,
     queryFn: async () => {
       const [liked, faved, reposted, follow] = await Promise.all([
-        supabase.from("video_likes").select("video_id").eq("video_id", video.id).eq("user_id", user!.id).maybeSingle(),
+        supabase
+          .from("video_likes")
+          .select("video_id")
+          .eq("video_id", video.id)
+          .eq("user_id", user!.id)
+          .maybeSingle(),
         supabase
           .from("video_favorites")
           .select("video_id")
@@ -267,9 +273,12 @@ function VideoSlide({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const obs = new IntersectionObserver((entries) => setVisible((entries[0]?.intersectionRatio ?? 0) > 0.6), {
-      threshold: [0, 0.6, 1],
-    });
+    const obs = new IntersectionObserver(
+      (entries) => setVisible((entries[0]?.intersectionRatio ?? 0) > 0.6),
+      {
+        threshold: [0, 0.6, 1],
+      },
+    );
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
@@ -302,7 +311,11 @@ function VideoSlide({
   async function toggleFollow() {
     if (!user || isMine) return;
     if (state.data?.following) {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", video.user_id);
+      await supabase
+        .from("follows")
+        .delete()
+        .eq("follower_id", user.id)
+        .eq("following_id", video.user_id);
     } else {
       await supabase.from("follows").insert({ follower_id: user.id, following_id: video.user_id });
     }
@@ -333,91 +346,98 @@ function VideoSlide({
       className="flex h-full w-full snap-start snap-always items-center justify-center bg-black"
     >
       <div className="relative aspect-[9/16] h-full max-h-full w-full max-w-full overflow-hidden bg-black lg:w-auto lg:rounded-2xl lg:shadow-2xl lg:shadow-black/60 lg:ring-1 lg:ring-white/10">
-      {url ? (
-        <video
-          ref={ref}
-          src={url}
-          loop
-          playsInline
-          muted={muted}
-          onClick={() => {
-            const el = ref.current;
-            if (!el) return;
-            if (el.paused) void el.play();
-            else el.pause();
-          }}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="grid h-full w-full place-items-center text-white/50">Chargement de la vidéo…</div>
-      )}
-
-      {/* bottom info */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-4 pb-6 pr-24">
-        <p className="text-[15px] font-extrabold text-white drop-shadow">@{username}</p>
-        {video.caption ? (
-          <p className="mt-1 line-clamp-3 text-sm text-white/95 drop-shadow">{video.caption}</p>
-        ) : null}
-        <p className="mt-2 flex items-center gap-2 overflow-hidden text-xs font-medium text-white/90">
-          <Music2 className="h-3.5 w-3.5 shrink-0 animate-pulse" />
-          <span className="truncate">{video.sound_name || `Son original — @${username}`}</span>
-        </p>
-      </div>
-
-      {/* disque vinyle du son */}
-      <div className="pointer-events-none absolute bottom-6 right-3 z-20 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-neutral-700 to-black bx-spin">
-        <div className="h-7 w-7 overflow-hidden rounded-full border border-white/30">
-          <StoredImage path={avatar} alt="" className="h-full w-full" fallback="🎵" />
-        </div>
-      </div>
-
-      {/* action rail */}
-      <div className="absolute bottom-24 right-2 z-20 flex flex-col items-center gap-5">
-        <div className="relative">
-          <div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white">
-            <StoredImage path={avatar} alt={username} className="h-full w-full" fallback="🎮" />
+        {url ? (
+          <video
+            ref={ref}
+            src={url}
+            loop
+            playsInline
+            muted={muted}
+            onClick={() => {
+              const el = ref.current;
+              if (!el) return;
+              if (el.paused) void el.play();
+              else el.pause();
+            }}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-white/50">
+            Chargement de la vidéo…
           </div>
-          {!isMine ? (
-            <button
-              onClick={toggleFollow}
-              aria-label="S'abonner"
-              className={cn(
-                "absolute -bottom-2 left-1/2 grid h-6 w-6 -translate-x-1/2 place-items-center rounded-full text-white transition",
-                state.data?.following ? "bg-surface-2 text-foreground" : "spark-gradient",
-              )}
-            >
-              {state.data?.following ? "✓" : <Plus className="h-4 w-4" />}
-            </button>
+        )}
+
+        {/* bottom info */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-4 pb-6 pr-24">
+          <p className="text-[15px] font-extrabold text-white drop-shadow">@{username}</p>
+          {video.caption ? (
+            <p className="mt-1 line-clamp-3 text-sm text-white/95 drop-shadow">{video.caption}</p>
           ) : null}
+          <p className="mt-2 flex items-center gap-2 overflow-hidden text-xs font-medium text-white/90">
+            <Music2 className="h-3.5 w-3.5 shrink-0 animate-pulse" />
+            <span className="truncate">{video.sound_name || `Son original — @${username}`}</span>
+          </p>
         </div>
 
-        <RailButton
-          icon={Heart}
-          active={state.data?.liked}
-          activeClass="fill-primary text-primary"
-          count={video.likes_count}
-          onClick={() => toggle("video_likes", !!state.data?.liked)}
-          label="J'aime"
-        />
-        <RailButton icon={MessageCircle} count={video.comments_count} onClick={onComments} label="Commentaires" />
-        <RailButton
-          icon={Bookmark}
-          active={state.data?.faved}
-          activeClass="fill-yellow-400 text-yellow-400"
-          count={video.favorites_count}
-          onClick={() => toggle("video_favorites", !!state.data?.faved)}
-          label="Favoris"
-        />
-        <RailButton
-          icon={Repeat2}
-          active={state.data?.reposted}
-          activeClass="text-emerald-400"
-          count={video.reposts_count}
-          onClick={() => toggle("video_reposts", !!state.data?.reposted)}
-          label="Republier"
-        />
-        <RailButton icon={Send} count={video.shares_count} onClick={share} label="Partager" />
-      </div>
+        {/* disque vinyle du son */}
+        <div className="pointer-events-none absolute bottom-6 right-3 z-20 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-neutral-700 to-black bx-spin">
+          <div className="h-7 w-7 overflow-hidden rounded-full border border-white/30">
+            <StoredImage path={avatar} alt="" className="h-full w-full" fallback="🎵" />
+          </div>
+        </div>
+
+        {/* action rail */}
+        <div className="absolute bottom-24 right-2 z-20 flex flex-col items-center gap-5">
+          <div className="relative">
+            <div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white">
+              <StoredImage path={avatar} alt={username} className="h-full w-full" fallback="🎮" />
+            </div>
+            {!isMine ? (
+              <button
+                onClick={toggleFollow}
+                aria-label="S'abonner"
+                className={cn(
+                  "absolute -bottom-2 left-1/2 grid h-6 w-6 -translate-x-1/2 place-items-center rounded-full text-white transition",
+                  state.data?.following ? "bg-surface-2 text-foreground" : "spark-gradient",
+                )}
+              >
+                {state.data?.following ? "✓" : <Plus className="h-4 w-4" />}
+              </button>
+            ) : null}
+          </div>
+
+          <RailButton
+            icon={Heart}
+            active={state.data?.liked}
+            activeClass="fill-primary text-primary"
+            count={video.likes_count}
+            onClick={() => toggle("video_likes", !!state.data?.liked)}
+            label="J'aime"
+          />
+          <RailButton
+            icon={MessageCircle}
+            count={video.comments_count}
+            onClick={onComments}
+            label="Commentaires"
+          />
+          <RailButton
+            icon={Bookmark}
+            active={state.data?.faved}
+            activeClass="fill-yellow-400 text-yellow-400"
+            count={video.favorites_count}
+            onClick={() => toggle("video_favorites", !!state.data?.faved)}
+            label="Favoris"
+          />
+          <RailButton
+            icon={Repeat2}
+            active={state.data?.reposted}
+            activeClass="text-emerald-400"
+            count={video.reposts_count}
+            onClick={() => toggle("video_reposts", !!state.data?.reposted)}
+            label="Republier"
+          />
+          <RailButton icon={Send} count={video.shares_count} onClick={share} label="Partager" />
+        </div>
       </div>
     </div>
   );
@@ -503,7 +523,9 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
-          <span className="text-sm font-bold">{total} commentaire{total > 1 ? "s" : ""}</span>
+          <span className="text-sm font-bold">
+            {total} commentaire{total > 1 ? "s" : ""}
+          </span>
           <button onClick={onClose} aria-label="Fermer">
             <X className="h-5 w-5 text-muted-foreground" />
           </button>
@@ -512,7 +534,9 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
           {comments.data?.length ? (
             comments.data.map((c) => (
               <div key={c.id} className="flex gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-2 text-sm">🎮</div>
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-2 text-sm">
+                  🎮
+                </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-muted-foreground">@{c.username}</p>
                   <p className="text-sm text-foreground">{c.content}</p>
@@ -520,7 +544,9 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
               </div>
             ))
           ) : (
-            <p className="py-10 text-center text-sm text-muted-foreground">Sois le premier à commenter ✨</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              Sois le premier à commenter ✨
+            </p>
           )}
         </div>
         <div className="flex items-center gap-2 border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

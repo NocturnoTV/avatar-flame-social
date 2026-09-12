@@ -1,0 +1,15 @@
+{
+  "name": "BloxSpark Connect",
+  "short_name": "BloxSpark",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#07070a",
+  "theme_color": "#ff5f6d",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ]
+}

@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Gamepad2,
   ImagePlus,
-  Plus,
   Save,
   Settings,
   ShieldCheck,
@@ -17,7 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button, Input, Label, Select, Textarea } from "@/components/ui-kit";
+import { Button, Label, Select, Textarea } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { uploadFile } from "@/lib/media";
@@ -27,11 +26,14 @@ import { useRoles } from "@/lib/roles";
 import { ACCENTS, BANNERS, FRAMES, STICKERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/profil")({
+export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
       { title: "Mon profil — Bloxspark" },
-      { name: "description", content: "Personnalise ton profil Bloxspark : avatar, photos, bio, jeux Roblox préférés." },
+      {
+        name: "description",
+        content: "Personnalise ton profil Bloxspark : avatar, photos, bio, jeux Roblox préférés.",
+      },
       { property: "og:title", content: "Mon profil — Bloxspark" },
       { property: "og:description", content: "Décore ton profil de joueur Roblox." },
     ],
@@ -51,8 +53,6 @@ function ProfilePage() {
   const photoRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [gameName, setGameName] = useState("");
-  const [gameUrl, setGameUrl] = useState("");
   const [draft, setDraft] = useState<Record<string, unknown>>({});
 
   const profile = useQuery({
@@ -87,7 +87,7 @@ function ProfilePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("roblox_games")
-        .select("id,name,url,position")
+        .select("id,name,url,position,thumbnail_url,source")
         .eq("user_id", user?.id ?? "")
         .order("position");
       return data ?? [];
@@ -105,7 +105,10 @@ function ProfilePage() {
   async function saveChanges() {
     if (!user || !dirty) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update(draft as never).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update(draft as never)
+      .eq("id", user.id);
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -163,27 +166,6 @@ function ProfilePage() {
     void photos.refetch();
   }
 
-  async function addGame() {
-    if (!user || !gameName.trim()) return;
-    if ((games.data?.length ?? 0) >= MAX_GAMES) {
-      toast.error(`Maximum ${MAX_GAMES} jeux.`);
-      return;
-    }
-    const { error } = await supabase.from("roblox_games").insert({
-      user_id: user.id,
-      name: gameName.trim().slice(0, 60),
-      url: gameUrl.trim() ? gameUrl.trim().slice(0, 300) : null,
-      position: games.data?.length ?? 0,
-    });
-    if (error) {
-      toast.error(error.message.includes("max_five_games") ? `Maximum ${MAX_GAMES} jeux.` : t("errorGeneric"));
-      return;
-    }
-    setGameName("");
-    setGameUrl("");
-    void games.refetch();
-  }
-
   // Aperçu = données enregistrées + brouillon non encore enregistré
   const p = profile.data ? ({ ...profile.data, ...draft } as typeof profile.data) : profile.data;
   const age = ageFrom(p?.birth_date ?? null);
@@ -195,11 +177,15 @@ function ProfilePage() {
         <h1 className="text-2xl font-bold">{t("profile")}</h1>
         <div className="flex items-center gap-2">
           {isAdmin ? (
-            <Link to="/admin" aria-label="Administration" className="text-muted-foreground hover:text-foreground">
+            <Link
+              to="/admin"
+              aria-label="Administration"
+              className="text-muted-foreground hover:text-foreground"
+            >
               <ShieldCheck className="h-6 w-6" />
             </Link>
           ) : null}
-          <Link to="/parametres" aria-label={t("settings")}>
+          <Link to="/settings" aria-label={t("settings")}>
             <Settings className="h-6 w-6" />
           </Link>
         </div>
@@ -285,7 +271,11 @@ function ProfilePage() {
           <span className="inline-flex items-center gap-1">
             <Gamepad2 className="h-4 w-4" /> {p?.roblox_username}
           </span>
-          {age ? <span>· {age} {t("years")}</span> : null}
+          {age ? (
+            <span>
+              · {age} {t("years")}
+            </span>
+          ) : null}
           <Flag code={p?.language ?? ""} />
         </p>
         {p?.bio ? <p className="mt-2 whitespace-pre-line text-sm">{p.bio}</p> : null}
@@ -395,51 +385,35 @@ function ProfilePage() {
         </div>
 
         <div>
-          <Label>Mes jeux Roblox préférés ({gameList.length}/{MAX_GAMES})</Label>
+          <Label>
+            Jeux Roblox synchronisés ({gameList.length}/{MAX_GAMES})
+          </Label>
           <div className="space-y-2">
             {gameList.map((g) => (
-              <div key={g.id} className="flex items-center justify-between rounded-2xl bg-surface px-3 py-2 text-sm">
-                <span className="truncate">{g.name}</span>
-                <button
-                  onClick={async () => {
-                    await supabase.from("roblox_games").delete().eq("id", g.id);
-                    void games.refetch();
-                  }}
-                  aria-label={t("delete")}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+              <a
+                key={g.id}
+                href={g.url ?? undefined}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm hover:ring-1 hover:ring-primary"
+              >
+                {g.thumbnail_url ? (
+                  <img src={g.thumbnail_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                ) : (
+                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-surface-2">
+                    <Gamepad2 className="h-4 w-4" />
+                  </span>
+                )}
+                <span className="truncate font-semibold">{g.name}</span>
+              </a>
             ))}
-            {gameList.length < MAX_GAMES ? (
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  value={gameName}
-                  onChange={(e) => setGameName(e.target.value)}
-                  placeholder="Nom du jeu (ex : Blox Fruits)"
-                  maxLength={60}
-                />
-                <Input
-                  value={gameUrl}
-                  onChange={(e) => setGameUrl(e.target.value)}
-                  placeholder="Lien (facultatif)"
-                  maxLength={300}
-                />
-                <Button size="md" onClick={addGame} disabled={!gameName.trim()} className="shrink-0">
-                  <Plus className="h-4 w-4" /> Ajouter
-                </Button>
-              </div>
+            {gameList.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Aucun jeu public créé sur ce compte Roblox. Tu peux resynchroniser depuis les
+                paramètres.
+              </p>
             ) : null}
           </div>
-        </div>
-
-        <div>
-          <Label>{t("robloxUsername")}</Label>
-          <Input
-            defaultValue={p?.roblox_username ?? ""}
-            onBlur={(e) => patch({ roblox_username: e.target.value })}
-          />
         </div>
         <div>
           <Label>{t("banner")}</Label>
@@ -450,7 +424,9 @@ function ProfilePage() {
                 onClick={() => patch({ banner_style: key, banner_url: null })}
                 className={cn(
                   "h-10 w-16 rounded-xl border-2",
-                  p?.banner_style === key && !p?.banner_url ? "border-primary" : "border-transparent",
+                  p?.banner_style === key && !p?.banner_url
+                    ? "border-primary"
+                    : "border-transparent",
                 )}
                 style={{ backgroundImage: value }}
               />
@@ -507,7 +483,7 @@ function ProfilePage() {
       </section>
 
       <Link
-        to="/parametres"
+        to="/settings"
         className="mt-6 flex h-11 w-full items-center justify-center rounded-2xl border border-border text-sm font-semibold"
       >
         {t("settings")}

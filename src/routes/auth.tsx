@@ -39,7 +39,7 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (session) navigate({ to: "/accueil", replace: true });
+    if (session) navigate({ to: "/home", replace: true });
   }, [session, navigate]);
 
   async function submit(e: React.FormEvent) {
@@ -58,7 +58,7 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/accueil" });
+        navigate({ to: "/home" });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("errorGeneric"));
@@ -76,7 +76,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/accueil" });
+    navigate({ to: "/home" });
   }
 
   return (
@@ -136,11 +136,11 @@ function AuthPage() {
 
       <p className="mt-8 max-w-sm text-center text-xs text-muted-foreground">
         {t("notAffiliated")}{" "}
-        <Link to="/conditions" className="underline">
+        <Link to="/terms" className="underline">
           {t("terms")}
         </Link>{" "}
         ·{" "}
-        <Link to="/confidentialite" className="underline">
+        <Link to="/privacy" className="underline">
           {t("privacy")}
         </Link>
       </p>

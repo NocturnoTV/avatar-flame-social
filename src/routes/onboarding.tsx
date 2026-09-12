@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,7 @@ import { useSession } from "@/lib/session";
 import { ageFrom } from "@/lib/decorations";
 import { Flag } from "@/components/Flag";
 import heroAsset from "@/assets/onboarding-hero.png.asset.json";
+import { RobloxConnection } from "@/components/RobloxConnection";
 
 export const Route = createFileRoute("/onboarding")({
   ssr: false,
@@ -36,7 +38,6 @@ function Onboarding() {
   const [intro, setIntro] = useState(true);
   const [step, setStep] = useState(0);
   const [username, setUsername] = useState("");
-  const [roblox, setRoblox] = useState("");
   const [birth, setBirth] = useState("");
   const [bio, setBio] = useState("");
   const [parentName, setParentName] = useState("");
@@ -49,14 +50,40 @@ function Onboarding() {
     if (!loading && !user) navigate({ to: "/auth", replace: true });
   }, [loading, user, navigate]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("roblox") === "connected") toast.success("Compte Roblox connecté.");
+    if (params.has("roblox_error")) toast.error("La connexion Roblox a échoué. Réessaie.");
+  }, []);
+
+  const robloxProfile = useQuery({
+    queryKey: ["onboarding-roblox", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(
+          "roblox_user_id,roblox_username,roblox_display_name,roblox_avatar_url,roblox_synced_at",
+        )
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const age = ageFrom(birth);
   const minor = age !== null && age < 18;
   const tooYoung = age !== null && age < 13;
 
   async function finish() {
     if (!user) return;
-    if (!username.trim() || !roblox.trim() || !birth) {
+    if (!username.trim() || !birth) {
       toast.error(t("required"));
+      return;
+    }
+    if (!robloxProfile.data?.roblox_user_id) {
+      toast.error("Connecte ton compte Roblox pour continuer.");
       return;
     }
     if (tooYoung) {
@@ -76,7 +103,6 @@ function Onboarding() {
       .from("profiles")
       .update({
         username: username.trim(),
-        roblox_username: roblox.trim(),
         language: lang,
         birth_date: birth,
         bio: bio.trim(),
@@ -92,7 +118,7 @@ function Onboarding() {
       toast.error(error.message.includes("duplicate") ? t("usernameTaken") : error.message);
       return;
     }
-    navigate({ to: "/accueil", replace: true });
+    navigate({ to: "/home", replace: true });
   }
 
   const steps = [t("username"), t("birthDate"), t("profile")];
@@ -122,14 +148,18 @@ function Onboarding() {
             Bienvenue sur <span className="spark-text">Bloxspark</span>
           </h1>
           <p className="bx-rise bx-delay-2 mx-auto mt-3 max-w-sm text-center text-sm text-muted-foreground">
-            Rencontre des joueurs Roblox, partage tes vidéos et fais briller ton profil. Trois petites
-            étapes et c'est parti.
+            Rencontre des joueurs Roblox, partage tes vidéos et fais briller ton profil. Trois
+            petites étapes et c'est parti.
           </p>
 
           <div className="mt-7 grid gap-3">
             {[
               { icon: "✨", title: "Sparks", text: "Swipe et matche avec des joueurs comme toi" },
-              { icon: "🎬", title: "Découvrir", text: "Des vidéos Roblox en boucle, à toi de briller" },
+              {
+                icon: "🎬",
+                title: "Découvrir",
+                text: "Des vidéos Roblox en boucle, à toi de briller",
+              },
               { icon: "💬", title: "Messages", text: "Groupes, vocaux et émojis avec tes matchs" },
             ].map((f, i) => (
               <div
@@ -186,7 +216,6 @@ function Onboarding() {
           {steps[step]} · {step + 1}/3
         </p>
 
-
         <div className="mt-5 flex gap-2">
           {[0, 1, 2].map((i) => (
             <span
@@ -206,12 +235,17 @@ function Onboarding() {
             <>
               <div>
                 <Label>{t("username")}</Label>
-                <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="sparky" />
+                <Input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="sparky"
+                />
               </div>
-              <div>
-                <Label>{t("robloxUsername")}</Label>
-                <Input value={roblox} onChange={(e) => setRoblox(e.target.value)} placeholder="Builderman" />
-              </div>
+              <RobloxConnection
+                profile={robloxProfile.data}
+                returnTo="/onboarding"
+                onChanged={() => void robloxProfile.refetch()}
+              />
               <div>
                 <Label>{t("language")}</Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -232,7 +266,12 @@ function Onboarding() {
                   ))}
                 </div>
               </div>
-              <Button className="w-full" size="lg" onClick={() => setStep(1)}>
+              <Button
+                className="w-full"
+                size="lg"
+                disabled={!robloxProfile.data?.roblox_user_id}
+                onClick={() => setStep(1)}
+              >
                 {t("continue")}
               </Button>
             </>

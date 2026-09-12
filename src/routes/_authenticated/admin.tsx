@@ -41,7 +41,7 @@ function AdminPage() {
   const [tab, setTab] = useState<Tab>("overview");
 
   useEffect(() => {
-    if (!loading && !isStaff) navigate({ to: "/accueil", replace: true });
+    if (!loading && !isStaff) navigate({ to: "/home", replace: true });
   }, [loading, isStaff, navigate]);
 
   async function log(action: string, targetUserId?: string, details?: string) {

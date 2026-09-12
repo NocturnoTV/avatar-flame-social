@@ -6,6 +6,7 @@ import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
+import { BrandIcon } from "@/components/BrandIcon";
 
 function useUnread() {
   const { user } = useSession();
@@ -27,11 +28,11 @@ function useUnread() {
 function useItems() {
   const { t } = useI18n();
   return [
-    { to: "/accueil", icon: Home, label: t("home") },
-    { to: "/decouvrir", icon: Compass, label: t("discover") },
+    { to: "/home", icon: Home, label: t("home") },
+    { to: "/discover", icon: Compass, label: t("discover") },
     { to: "/sparks", icon: Flame, label: t("sparks") },
     { to: "/messages", icon: Send, label: t("messages") },
-    { to: "/profil", icon: User, label: t("profile") },
+    { to: "/profile", icon: User, label: t("profile") },
   ];
 }
 
@@ -48,10 +49,11 @@ export function SideNav() {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-background/80 backdrop-blur-xl lg:flex">
-      <div className="px-6 py-6">
-        <Link to="/accueil" aria-label="Bloxspark">
+      <div className="flex items-center justify-between gap-3 px-6 py-6">
+        <Link to="/home" aria-label="Bloxspark">
           <Logo className="h-10 w-auto" />
         </Link>
+        <BrandIcon className="h-9 w-9" />
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {items.map((item) => {
@@ -92,7 +94,7 @@ export function SideNav() {
           <span className="truncate">{t("notifications")}</span>
         </Link>
         <Link
-          to="/parametres"
+          to="/settings"
           className="group flex items-center gap-4 rounded-2xl px-4 py-3 text-[15px] font-semibold text-muted-foreground transition-all hover:bg-surface hover:text-foreground"
         >
           <Settings className="h-6 w-6 shrink-0" />

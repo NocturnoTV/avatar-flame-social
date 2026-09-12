@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Flame, Mic, Users, Sparkles } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
+import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,10 +27,14 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const { t } = useI18n();
+  const { session } = useSession();
+  const navigate = useNavigate();
 
-  const features = [
-    { icon: Flame, title: "Sparks", text: t("heroSub").slice(0, 0) || "" },
-  ];
+  useEffect(() => {
+    if (session) navigate({ to: "/home", replace: true });
+  }, [session, navigate]);
+
+  const features = [{ icon: Flame, title: "Sparks", text: t("heroSub").slice(0, 0) || "" }];
   void features;
 
   return (
@@ -84,13 +90,13 @@ function Landing() {
 
         <footer className="mt-12 space-y-3 text-center text-xs text-muted-foreground">
           <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/conditions" className="hover:text-foreground">
+            <Link to="/terms" className="hover:text-foreground">
               {t("terms")}
             </Link>
-            <Link to="/confidentialite" className="hover:text-foreground">
+            <Link to="/privacy" className="hover:text-foreground">
               {t("privacy")}
             </Link>
-            <Link to="/regles" className="hover:text-foreground">
+            <Link to="/community-guidelines" className="hover:text-foreground">
               {t("rules")}
             </Link>
           </div>

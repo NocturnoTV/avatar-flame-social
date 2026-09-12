@@ -367,9 +367,14 @@ export type Database = {
           onboarding_completed: boolean
           parent_email: string | null
           parent_name: string | null
-          parental_consent: boolean
-          privacy_prefs: Json
-          roblox_username: string | null
+            parental_consent: boolean
+            privacy_prefs: Json
+            roblox_avatar_url: string | null
+            roblox_connected_at: string | null
+            roblox_display_name: string | null
+            roblox_synced_at: string | null
+            roblox_user_id: string | null
+            roblox_username: string | null
           sticker: string | null
           theme: string
           updated_at: string
@@ -395,9 +400,14 @@ export type Database = {
           onboarding_completed?: boolean
           parent_email?: string | null
           parent_name?: string | null
-          parental_consent?: boolean
-          privacy_prefs?: Json
-          roblox_username?: string | null
+            parental_consent?: boolean
+            privacy_prefs?: Json
+            roblox_avatar_url?: string | null
+            roblox_connected_at?: string | null
+            roblox_display_name?: string | null
+            roblox_synced_at?: string | null
+            roblox_user_id?: string | null
+            roblox_username?: string | null
           sticker?: string | null
           theme?: string
           updated_at?: string
@@ -423,9 +433,14 @@ export type Database = {
           onboarding_completed?: boolean
           parent_email?: string | null
           parent_name?: string | null
-          parental_consent?: boolean
-          privacy_prefs?: Json
-          roblox_username?: string | null
+            parental_consent?: boolean
+            privacy_prefs?: Json
+            roblox_avatar_url?: string | null
+            roblox_connected_at?: string | null
+            roblox_display_name?: string | null
+            roblox_synced_at?: string | null
+            roblox_user_id?: string | null
+            roblox_username?: string | null
           sticker?: string | null
           theme?: string
           updated_at?: string
@@ -490,25 +505,37 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          name: string
-          position: number
-          url: string | null
+            name: string
+            position: number
+            roblox_universe_id: string | null
+            source: string
+            synced_at: string | null
+            thumbnail_url: string | null
+            url: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          name: string
-          position?: number
-          url?: string | null
+            name: string
+            position?: number
+            roblox_universe_id?: string | null
+            source?: string
+            synced_at?: string | null
+            thumbnail_url?: string | null
+            url?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          name?: string
-          position?: number
-          url?: string | null
+            name?: string
+            position?: number
+            roblox_universe_id?: string | null
+            source?: string
+            synced_at?: string | null
+            thumbnail_url?: string | null
+            url?: string | null
           user_id?: string
         }
         Relationships: []
@@ -807,9 +834,14 @@ export type Database = {
           onboarding_completed: boolean
           parent_email: string | null
           parent_name: string | null
-          parental_consent: boolean
-          privacy_prefs: Json
-          roblox_username: string | null
+            parental_consent: boolean
+            privacy_prefs: Json
+            roblox_avatar_url: string | null
+            roblox_connected_at: string | null
+            roblox_display_name: string | null
+            roblox_synced_at: string | null
+            roblox_user_id: string | null
+            roblox_username: string | null
           sticker: string | null
           theme: string
           updated_at: string

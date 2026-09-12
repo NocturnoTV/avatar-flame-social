@@ -11,21 +11,30 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AccueilRouteImport } from './routes/accueil'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
 import { Route as ConditionsRouteImport } from './routes/conditions'
 import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ParametresRouteImport } from './routes/parametres'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as ReglesRouteImport } from './routes/regles'
-import { Route as AuthenticatedAccueilRouteImport } from './routes/_authenticated/accueil'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
-import { Route as AuthenticatedParametresRouteImport } from './routes/_authenticated/parametres'
-import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
-import { Route as AuthenticatedDecouvrirIndexRouteImport } from './routes/_authenticated/decouvrir.index'
-import { Route as AuthenticatedDecouvrirStudioRouteImport } from './routes/_authenticated/decouvrir.studio'
+import { Route as DecouvrirIndexRouteImport } from './routes/decouvrir.index'
+import { Route as DecouvrirStudioRouteImport } from './routes/decouvrir.studio'
+import { Route as AuthenticatedDiscoverIndexRouteImport } from './routes/_authenticated/discover.index'
+import { Route as AuthenticatedDiscoverStudioRouteImport } from './routes/_authenticated/discover.studio'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
+import { Route as AuthRobloxCallbackRouteImport } from './routes/auth.roblox.callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -36,9 +45,19 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccueilRoute = AccueilRouteImport.update({
+  id: '/accueil',
+  path: '/accueil',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunityGuidelinesRoute = CommunityGuidelinesRouteImport.update({
+  id: '/community-guidelines',
+  path: '/community-guidelines',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConditionsRoute = ConditionsRouteImport.update({
@@ -56,19 +75,39 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ParametresRoute = ParametresRouteImport.update({
+  id: '/parametres',
+  path: '/parametres',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfilRoute = ProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReglesRoute = ReglesRouteImport.update({
   id: '/regles',
   path: '/regles',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAccueilRoute = AuthenticatedAccueilRouteImport.update({
-  id: '/accueil',
-  path: '/accueil',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNotificationsRoute =
@@ -77,14 +116,14 @@ const AuthenticatedNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedParametresRoute = AuthenticatedParametresRouteImport.update({
-  id: '/parametres',
-  path: '/parametres',
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
-  id: '/profil',
-  path: '/profil',
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSparksRoute = AuthenticatedSparksRouteImport.update({
@@ -92,16 +131,26 @@ const AuthenticatedSparksRoute = AuthenticatedSparksRouteImport.update({
   path: '/sparks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedDecouvrirIndexRoute =
-  AuthenticatedDecouvrirIndexRouteImport.update({
-    id: '/decouvrir/',
-    path: '/decouvrir/',
+const DecouvrirIndexRoute = DecouvrirIndexRouteImport.update({
+  id: '/decouvrir/',
+  path: '/decouvrir/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DecouvrirStudioRoute = DecouvrirStudioRouteImport.update({
+  id: '/decouvrir/studio',
+  path: '/decouvrir/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedDiscoverIndexRoute =
+  AuthenticatedDiscoverIndexRouteImport.update({
+    id: '/discover/',
+    path: '/discover/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedDecouvrirStudioRoute =
-  AuthenticatedDecouvrirStudioRouteImport.update({
-    id: '/decouvrir/studio',
-    path: '/decouvrir/studio',
+const AuthenticatedDiscoverStudioRoute =
+  AuthenticatedDiscoverStudioRouteImport.update({
+    id: '/discover/studio',
+    path: '/discover/studio',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMessagesIndexRoute =
@@ -115,129 +164,196 @@ const AuthenticatedMessagesIdRoute = AuthenticatedMessagesIdRouteImport.update({
   path: '/messages/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthRobloxCallbackRoute = AuthRobloxCallbackRouteImport.update({
+  id: '/roblox/callback',
+  path: '/roblox/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/accueil': typeof AccueilRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/community-guidelines': typeof CommunityGuidelinesRoute
   '/conditions': typeof ConditionsRoute
   '/confidentialite': typeof ConfidentialiteRoute
   '/onboarding': typeof OnboardingRoute
+  '/parametres': typeof ParametresRoute
+  '/privacy': typeof PrivacyRoute
+  '/profil': typeof ProfilRoute
   '/regles': typeof ReglesRoute
-  '/accueil': typeof AuthenticatedAccueilRoute
+  '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
-  '/parametres': typeof AuthenticatedParametresRoute
-  '/profil': typeof AuthenticatedProfilRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/sparks': typeof AuthenticatedSparksRoute
-  '/decouvrir/studio': typeof AuthenticatedDecouvrirStudioRoute
+  '/decouvrir/studio': typeof DecouvrirStudioRoute
+  '/decouvrir/': typeof DecouvrirIndexRoute
+  '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
-  '/decouvrir/': typeof AuthenticatedDecouvrirIndexRoute
+  '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
+  '/discover/': typeof AuthenticatedDiscoverIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/accueil': typeof AccueilRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/community-guidelines': typeof CommunityGuidelinesRoute
   '/conditions': typeof ConditionsRoute
   '/confidentialite': typeof ConfidentialiteRoute
   '/onboarding': typeof OnboardingRoute
+  '/parametres': typeof ParametresRoute
+  '/privacy': typeof PrivacyRoute
+  '/profil': typeof ProfilRoute
   '/regles': typeof ReglesRoute
-  '/accueil': typeof AuthenticatedAccueilRoute
+  '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
-  '/parametres': typeof AuthenticatedParametresRoute
-  '/profil': typeof AuthenticatedProfilRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/sparks': typeof AuthenticatedSparksRoute
-  '/decouvrir/studio': typeof AuthenticatedDecouvrirStudioRoute
+  '/decouvrir/studio': typeof DecouvrirStudioRoute
+  '/decouvrir': typeof DecouvrirIndexRoute
+  '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
-  '/decouvrir': typeof AuthenticatedDecouvrirIndexRoute
+  '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
+  '/discover': typeof AuthenticatedDiscoverIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
+  '/accueil': typeof AccueilRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/community-guidelines': typeof CommunityGuidelinesRoute
   '/conditions': typeof ConditionsRoute
   '/confidentialite': typeof ConfidentialiteRoute
   '/onboarding': typeof OnboardingRoute
+  '/parametres': typeof ParametresRoute
+  '/privacy': typeof PrivacyRoute
+  '/profil': typeof ProfilRoute
   '/regles': typeof ReglesRoute
-  '/_authenticated/accueil': typeof AuthenticatedAccueilRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
-  '/_authenticated/parametres': typeof AuthenticatedParametresRoute
-  '/_authenticated/profil': typeof AuthenticatedProfilRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
-  '/_authenticated/decouvrir/studio': typeof AuthenticatedDecouvrirStudioRoute
+  '/decouvrir/studio': typeof DecouvrirStudioRoute
+  '/decouvrir/': typeof DecouvrirIndexRoute
+  '/_authenticated/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
-  '/_authenticated/decouvrir/': typeof AuthenticatedDecouvrirIndexRoute
+  '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
+  '/_authenticated/discover/': typeof AuthenticatedDiscoverIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accueil'
     | '/auth'
+    | '/community-guidelines'
     | '/conditions'
     | '/confidentialite'
     | '/onboarding'
-    | '/regles'
-    | '/accueil'
-    | '/admin'
-    | '/notifications'
     | '/parametres'
+    | '/privacy'
     | '/profil'
+    | '/regles'
+    | '/terms'
+    | '/admin'
+    | '/home'
+    | '/notifications'
+    | '/profile'
+    | '/settings'
     | '/sparks'
     | '/decouvrir/studio'
-    | '/messages/$id'
     | '/decouvrir/'
+    | '/discover/studio'
+    | '/messages/$id'
+    | '/auth/roblox/callback'
+    | '/discover/'
     | '/messages/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/accueil'
     | '/auth'
+    | '/community-guidelines'
     | '/conditions'
     | '/confidentialite'
     | '/onboarding'
-    | '/regles'
-    | '/accueil'
-    | '/admin'
-    | '/notifications'
     | '/parametres'
+    | '/privacy'
     | '/profil'
+    | '/regles'
+    | '/terms'
+    | '/admin'
+    | '/home'
+    | '/notifications'
+    | '/profile'
+    | '/settings'
     | '/sparks'
     | '/decouvrir/studio'
-    | '/messages/$id'
     | '/decouvrir'
+    | '/discover/studio'
+    | '/messages/$id'
+    | '/auth/roblox/callback'
+    | '/discover'
     | '/messages'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/accueil'
     | '/auth'
+    | '/community-guidelines'
     | '/conditions'
     | '/confidentialite'
     | '/onboarding'
+    | '/parametres'
+    | '/privacy'
+    | '/profil'
     | '/regles'
-    | '/_authenticated/accueil'
+    | '/terms'
     | '/_authenticated/admin'
+    | '/_authenticated/home'
     | '/_authenticated/notifications'
-    | '/_authenticated/parametres'
-    | '/_authenticated/profil'
+    | '/_authenticated/profile'
+    | '/_authenticated/settings'
     | '/_authenticated/sparks'
-    | '/_authenticated/decouvrir/studio'
+    | '/decouvrir/studio'
+    | '/decouvrir/'
+    | '/_authenticated/discover/studio'
     | '/_authenticated/messages/$id'
-    | '/_authenticated/decouvrir/'
+    | '/auth/roblox/callback'
+    | '/_authenticated/discover/'
     | '/_authenticated/messages/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
+  AccueilRoute: typeof AccueilRoute
+  AuthRoute: typeof AuthRouteWithChildren
+  CommunityGuidelinesRoute: typeof CommunityGuidelinesRoute
   ConditionsRoute: typeof ConditionsRoute
   ConfidentialiteRoute: typeof ConfidentialiteRoute
   OnboardingRoute: typeof OnboardingRoute
+  ParametresRoute: typeof ParametresRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ProfilRoute: typeof ProfilRoute
   ReglesRoute: typeof ReglesRoute
+  TermsRoute: typeof TermsRoute
+  DecouvrirStudioRoute: typeof DecouvrirStudioRoute
+  DecouvrirIndexRoute: typeof DecouvrirIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -256,11 +372,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/accueil': {
+      id: '/accueil'
+      path: '/accueil'
+      fullPath: '/accueil'
+      preLoaderRoute: typeof AccueilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/community-guidelines': {
+      id: '/community-guidelines'
+      path: '/community-guidelines'
+      fullPath: '/community-guidelines'
+      preLoaderRoute: typeof CommunityGuidelinesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conditions': {
@@ -284,6 +414,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/parametres': {
+      id: '/parametres'
+      path: '/parametres'
+      fullPath: '/parametres'
+      preLoaderRoute: typeof ParametresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profil': {
+      id: '/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof ProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/regles': {
       id: '/regles'
       path: '/regles'
@@ -291,18 +442,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReglesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/accueil': {
-      id: '/_authenticated/accueil'
-      path: '/accueil'
-      fullPath: '/accueil'
-      preLoaderRoute: typeof AuthenticatedAccueilRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/notifications': {
@@ -312,18 +470,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/parametres': {
-      id: '/_authenticated/parametres'
-      path: '/parametres'
-      fullPath: '/parametres'
-      preLoaderRoute: typeof AuthenticatedParametresRouteImport
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/profil': {
-      id: '/_authenticated/profil'
-      path: '/profil'
-      fullPath: '/profil'
-      preLoaderRoute: typeof AuthenticatedProfilRouteImport
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sparks': {
@@ -333,18 +491,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSparksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/decouvrir/': {
-      id: '/_authenticated/decouvrir/'
+    '/decouvrir/': {
+      id: '/decouvrir/'
       path: '/decouvrir'
       fullPath: '/decouvrir/'
-      preLoaderRoute: typeof AuthenticatedDecouvrirIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof DecouvrirIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/decouvrir/studio': {
-      id: '/_authenticated/decouvrir/studio'
+    '/decouvrir/studio': {
+      id: '/decouvrir/studio'
       path: '/decouvrir/studio'
       fullPath: '/decouvrir/studio'
-      preLoaderRoute: typeof AuthenticatedDecouvrirStudioRouteImport
+      preLoaderRoute: typeof DecouvrirStudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/discover/': {
+      id: '/_authenticated/discover/'
+      path: '/discover'
+      fullPath: '/discover/'
+      preLoaderRoute: typeof AuthenticatedDiscoverIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/discover/studio': {
+      id: '/_authenticated/discover/studio'
+      path: '/discover/studio'
+      fullPath: '/discover/studio'
+      preLoaderRoute: typeof AuthenticatedDiscoverStudioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/messages/': {
@@ -361,46 +533,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessagesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/auth/roblox/callback': {
+      id: '/auth/roblox/callback'
+      path: '/roblox/callback'
+      fullPath: '/auth/roblox/callback'
+      preLoaderRoute: typeof AuthRobloxCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAccueilRoute: typeof AuthenticatedAccueilRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
-  AuthenticatedParametresRoute: typeof AuthenticatedParametresRoute
-  AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
-  AuthenticatedDecouvrirStudioRoute: typeof AuthenticatedDecouvrirStudioRoute
+  AuthenticatedDiscoverStudioRoute: typeof AuthenticatedDiscoverStudioRoute
   AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
-  AuthenticatedDecouvrirIndexRoute: typeof AuthenticatedDecouvrirIndexRoute
+  AuthenticatedDiscoverIndexRoute: typeof AuthenticatedDiscoverIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAccueilRoute: AuthenticatedAccueilRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
-  AuthenticatedParametresRoute: AuthenticatedParametresRoute,
-  AuthenticatedProfilRoute: AuthenticatedProfilRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
-  AuthenticatedDecouvrirStudioRoute: AuthenticatedDecouvrirStudioRoute,
+  AuthenticatedDiscoverStudioRoute: AuthenticatedDiscoverStudioRoute,
   AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
-  AuthenticatedDecouvrirIndexRoute: AuthenticatedDecouvrirIndexRoute,
+  AuthenticatedDiscoverIndexRoute: AuthenticatedDiscoverIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AuthRouteChildren {
+  AuthRobloxCallbackRoute: typeof AuthRobloxCallbackRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthRobloxCallbackRoute: AuthRobloxCallbackRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
+  AccueilRoute: AccueilRoute,
+  AuthRoute: AuthRouteWithChildren,
+  CommunityGuidelinesRoute: CommunityGuidelinesRoute,
   ConditionsRoute: ConditionsRoute,
   ConfidentialiteRoute: ConfidentialiteRoute,
   OnboardingRoute: OnboardingRoute,
+  ParametresRoute: ParametresRoute,
+  PrivacyRoute: PrivacyRoute,
+  ProfilRoute: ProfilRoute,
   ReglesRoute: ReglesRoute,
+  TermsRoute: TermsRoute,
+  DecouvrirStudioRoute: DecouvrirStudioRoute,
+  DecouvrirIndexRoute: DecouvrirIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Bell,
@@ -21,12 +21,16 @@ import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { useRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
+import { RobloxConnection } from "@/components/RobloxConnection";
 
-export const Route = createFileRoute("/_authenticated/parametres")({
+export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
       { title: "Paramètres — Bloxspark" },
-      { name: "description", content: "Compte, notifications, confidentialité, sécurité et gestion de tes données." },
+      {
+        name: "description",
+        content: "Compte, notifications, confidentialité, sécurité et gestion de tes données.",
+      },
       { property: "og:title", content: "Paramètres — Bloxspark" },
       { property: "og:description", content: "Gère ton compte Bloxspark." },
     ],
@@ -133,7 +137,6 @@ function SettingsPage() {
   const { isStaff } = useRoles();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
-  const [robloxName, setRobloxName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [exporting, setExporting] = useState(false);
@@ -144,16 +147,21 @@ function SettingsPage() {
       const { data } = await supabase
         .from("profiles")
         .select(
-          "username,roblox_username,username_changed_at,language,theme,notification_prefs,privacy_prefs,deletion_requested_at,verified",
+          "username,roblox_username,roblox_user_id,roblox_display_name,roblox_avatar_url,roblox_connected_at,roblox_synced_at,username_changed_at,language,theme,notification_prefs,privacy_prefs,deletion_requested_at,verified",
         )
         .eq("id", user?.id ?? "")
         .maybeSingle();
       if (data?.username) setUsername(data.username);
-      if (data?.roblox_username) setRobloxName(data.roblox_username);
       return data;
     },
     enabled: !!user,
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("roblox") === "connected") toast.success("Compte Roblox connecté.");
+    if (params.has("roblox_error")) toast.error("La connexion Roblox a échoué. Réessaie.");
+  }, []);
 
   const requests = useQuery({
     queryKey: ["data-requests"],
@@ -173,7 +181,10 @@ function SettingsPage() {
       const { data } = await supabase.from("blocks").select("blocked_id");
       const ids = (data ?? []).map((b) => b.blocked_id);
       if (ids.length === 0) return [];
-      const { data: profiles } = await supabase.from("profiles").select("id,username").in("id", ids);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id,username")
+        .in("id", ids);
       return profiles ?? [];
     },
     enabled: !!user,
@@ -186,11 +197,16 @@ function SettingsPage() {
     ? new Date(profile.data.username_changed_at).getTime()
     : 0;
   const daysLeft = Math.max(0, Math.ceil((changedAt + 7 * DAY - Date.now()) / DAY));
-  const pendingDeletion = requests.data?.find((r) => r.kind === "deletion" && r.status === "pending");
+  const pendingDeletion = requests.data?.find(
+    (r) => r.kind === "deletion" && r.status === "pending",
+  );
 
   async function patch(values: Record<string, unknown>) {
     if (!user) return;
-    const { error } = await supabase.from("profiles").update(values as never).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update(values as never)
+      .eq("id", user.id);
     if (error) {
       toast.error(error.message);
       return;
@@ -275,7 +291,9 @@ function SettingsPage() {
       a.download = `bloxspark-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      await supabase.from("data_requests").insert({ user_id: user.id, kind: "export", status: "completed" });
+      await supabase
+        .from("data_requests")
+        .insert({ user_id: user.id, kind: "export", status: "completed" });
       void requests.refetch();
       toast.success("Export téléchargé.");
     } catch {
@@ -287,7 +305,10 @@ function SettingsPage() {
 
   async function requestDeletion() {
     if (!user) return;
-    if (!confirm("Demander la suppression définitive de ton compte et de tes données dans 30 jours ?")) return;
+    if (
+      !confirm("Demander la suppression définitive de ton compte et de tes données dans 30 jours ?")
+    )
+      return;
     const scheduled = new Date(Date.now() + 30 * DAY).toISOString();
     const { error } = await supabase
       .from("data_requests")
@@ -303,7 +324,10 @@ function SettingsPage() {
 
   async function cancelDeletion() {
     if (!pendingDeletion) return;
-    await supabase.from("data_requests").update({ status: "cancelled" }).eq("id", pendingDeletion.id);
+    await supabase
+      .from("data_requests")
+      .update({ status: "cancelled" })
+      .eq("id", pendingDeletion.id);
     await patch({ deletion_requested_at: null });
     void requests.refetch();
     toast.success("Demande annulée.");
@@ -343,7 +367,7 @@ function SettingsPage() {
   return (
     <div className="mx-auto w-full max-w-xl px-4 pt-5 pb-10">
       <header className="flex items-center gap-3">
-        <Link to="/profil" aria-label={t("back")}>
+        <Link to="/profile" aria-label={t("back")}>
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-2xl font-bold">{t("settings")}</h1>
@@ -385,14 +409,12 @@ function SettingsPage() {
             {t("save")}
           </Button>
         </div>
-        <div>
-          <Label>{t("robloxUsername")}</Label>
-          <Input
-            value={robloxName}
-            onChange={(e) => setRobloxName(e.target.value)}
-            onBlur={() => patch({ roblox_username: robloxName.trim() })}
-          />
-        </div>
+        <RobloxConnection
+          profile={profile.data}
+          returnTo="/settings"
+          manage
+          onChanged={() => void profile.refetch()}
+        />
         <div>
           <Label>Adresse e-mail</Label>
           <Input value={user?.email ?? ""} readOnly className="opacity-70" />
@@ -429,7 +451,8 @@ function SettingsPage() {
                 key={option}
                 onClick={async () => {
                   setTheme(option);
-                  if (user) await supabase.from("profiles").update({ theme: option }).eq("id", user.id);
+                  if (user)
+                    await supabase.from("profiles").update({ theme: option }).eq("id", user.id);
                 }}
                 className={`flex-1 rounded-2xl border p-3 text-sm font-semibold ${
                   theme === option ? "border-primary ring-2 ring-primary/30" : "border-border"
@@ -447,7 +470,8 @@ function SettingsPage() {
             onChange={async (e) => {
               const value = e.target.value as LangCode;
               setLang(value);
-              if (user) await supabase.from("profiles").update({ language: value }).eq("id", user.id);
+              if (user)
+                await supabase.from("profiles").update({ language: value }).eq("id", user.id);
             }}
           >
             {LANGUAGES.map((l) => (
@@ -545,11 +569,13 @@ function SettingsPage() {
         description="RGPD (UE), UK GDPR, CCPA et lois équivalentes"
       >
         <p className="text-sm text-muted-foreground">
-          Tu disposes d'un droit d'accès, de rectification, d'effacement, de portabilité, de limitation et
-          d'opposition sur tes données. Les demandes sont traitées sous 30 jours maximum.
+          Tu disposes d'un droit d'accès, de rectification, d'effacement, de portabilité, de
+          limitation et d'opposition sur tes données. Les demandes sont traitées sous 30 jours
+          maximum.
         </p>
         <Button variant="outline" className="w-full" onClick={downloadData} disabled={exporting}>
-          <Download className="h-4 w-4" /> {exporting ? "Préparation…" : "Télécharger toutes mes données (JSON)"}
+          <Download className="h-4 w-4" />{" "}
+          {exporting ? "Préparation…" : "Télécharger toutes mes données (JSON)"}
         </Button>
         <Button
           variant="ghost"
@@ -573,13 +599,13 @@ function SettingsPage() {
 
       <Section icon={ShieldCheck} title="À propos">
         <div className="space-y-2 text-sm">
-          <Link to="/conditions" className="block py-1.5">
+          <Link to="/terms" className="block py-1.5">
             {t("terms")}
           </Link>
-          <Link to="/confidentialite" className="block py-1.5">
+          <Link to="/privacy" className="block py-1.5">
             {t("privacy")}
           </Link>
-          <Link to="/regles" className="block py-1.5">
+          <Link to="/community-guidelines" className="block py-1.5">
             {t("communityRules")}
           </Link>
           <p className="pt-2 text-xs text-muted-foreground">Bloxspark · version 1.0</p>

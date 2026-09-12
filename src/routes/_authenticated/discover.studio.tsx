@@ -21,19 +21,23 @@ import { useSession } from "@/lib/session";
 import { Button, Card, Input, Label, Textarea } from "@/components/ui-kit";
 import { uploadFile } from "@/lib/media";
 import { useSignedUrl } from "@/components/Media";
-import { formatCount } from "./decouvrir.index";
+import { formatCount } from "./discover.index";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/decouvrir/studio")({
+export const Route = createFileRoute("/_authenticated/discover/studio")({
   head: () => ({
     meta: [
       { title: "Studio créateur — Bloxspark" },
       {
         name: "description",
-        content: "Publie tes vidéos Roblox et suis tes vues, likes, favoris et abonnés en un coup d'œil.",
+        content:
+          "Publie tes vidéos Roblox et suis tes vues, likes, favoris et abonnés en un coup d'œil.",
       },
       { property: "og:title", content: "Studio créateur — Bloxspark" },
-      { property: "og:description", content: "Tableau de bord complet pour les créateurs Bloxspark." },
+      {
+        property: "og:description",
+        content: "Tableau de bord complet pour les créateurs Bloxspark.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -75,12 +79,21 @@ function StudioPage() {
   });
 
   const rows = videos.data ?? [];
-  const sum = (k: "views_count" | "likes_count" | "comments_count" | "favorites_count" | "reposts_count" | "shares_count") =>
-    rows.reduce((a, v) => a + (v[k] ?? 0), 0);
+  const sum = (
+    k:
+      | "views_count"
+      | "likes_count"
+      | "comments_count"
+      | "favorites_count"
+      | "reposts_count"
+      | "shares_count",
+  ) => rows.reduce((a, v) => a + (v[k] ?? 0), 0);
 
   const totalViews = sum("views_count");
   const totalLikes = sum("likes_count");
-  const engagement = totalViews ? ((totalLikes + sum("comments_count") + sum("favorites_count")) / totalViews) * 100 : 0;
+  const engagement = totalViews
+    ? ((totalLikes + sum("comments_count") + sum("favorites_count")) / totalViews) * 100
+    : 0;
   const best = [...rows].sort((a, b) => b.views_count - a.views_count)[0];
 
   const stats = [
@@ -100,7 +113,7 @@ function StudioPage() {
     <div className="mx-auto max-w-3xl px-4 pb-28 pt-6 lg:pb-12">
       <div className="mb-6 flex items-center gap-3">
         <Link
-          to="/decouvrir"
+          to="/discover"
           aria-label="Retour"
           className="grid h-10 w-10 place-items-center rounded-full border border-border"
         >
@@ -152,11 +165,17 @@ function StudioPage() {
             </p>
             <p className="text-3xl font-black">{engagement.toFixed(1)}%</p>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-2">
-              <div className="h-full spark-gradient" style={{ width: `${Math.min(100, engagement)}%` }} />
+              <div
+                className="h-full spark-gradient"
+                style={{ width: `${Math.min(100, engagement)}%` }}
+              />
             </div>
             {best ? (
               <p className="mt-4 text-sm text-muted-foreground">
-                Meilleure vidéo : <span className="font-semibold text-foreground">{best.caption || "Sans titre"}</span>{" "}
+                Meilleure vidéo :{" "}
+                <span className="font-semibold text-foreground">
+                  {best.caption || "Sans titre"}
+                </span>{" "}
                 — {formatCount(best.views_count)} vues
               </p>
             ) : null}
@@ -167,13 +186,17 @@ function StudioPage() {
               Vues par vidéo
             </p>
             {rows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Publie ta première vidéo pour voir tes stats.</p>
+              <p className="text-sm text-muted-foreground">
+                Publie ta première vidéo pour voir tes stats.
+              </p>
             ) : (
               <div className="space-y-3">
                 {rows.slice(0, 8).map((v) => (
                   <div key={v.id} className="space-y-1">
                     <div className="flex justify-between gap-3 text-xs">
-                      <span className="truncate text-muted-foreground">{v.caption || "Sans titre"}</span>
+                      <span className="truncate text-muted-foreground">
+                        {v.caption || "Sans titre"}
+                      </span>
                       <span className="shrink-0 font-bold">{formatCount(v.views_count)}</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-surface-2">
@@ -228,7 +251,13 @@ function MyVideoCard({
   video,
   onDeleted,
 }: {
-  video: { id: string; storage_path: string; caption: string | null; views_count: number; likes_count: number };
+  video: {
+    id: string;
+    storage_path: string;
+    caption: string | null;
+    views_count: number;
+    likes_count: number;
+  };
   onDeleted: () => void;
 }) {
   const url = useSignedUrl(video.storage_path);
@@ -318,7 +347,12 @@ function UploadForm({ onDone }: { onDone: () => void }) {
         onChange={(e) => setFile(e.target.files?.[0] ?? null)}
       />
       {preview ? (
-        <video src={preview} controls playsInline className="mx-auto max-h-80 rounded-2xl bg-black" />
+        <video
+          src={preview}
+          controls
+          playsInline
+          className="mx-auto max-h-80 rounded-2xl bg-black"
+        />
       ) : (
         <button
           onClick={() => inputRef.current?.click()}
@@ -346,7 +380,11 @@ function UploadForm({ onDone }: { onDone: () => void }) {
       </div>
       <div>
         <Label>Son</Label>
-        <Input value={sound} onChange={(e) => setSound(e.target.value)} placeholder="Son original" />
+        <Input
+          value={sound}
+          onChange={(e) => setSound(e.target.value)}
+          placeholder="Son original"
+        />
       </div>
       <div>
         <Label>Visibilité</Label>
@@ -362,7 +400,9 @@ function UploadForm({ onDone }: { onDone: () => void }) {
               onClick={() => setVisibility(value)}
               className={cn(
                 "flex-1 rounded-2xl border py-3 text-sm font-bold transition",
-                visibility === value ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground",
+                visibility === value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground",
               )}
             >
               {label}
@@ -374,8 +414,8 @@ function UploadForm({ onDone }: { onDone: () => void }) {
         {busy ? "Publication…" : "Publier"}
       </Button>
       <p className="text-center text-[11px] text-muted-foreground">
-        En publiant, tu confirmes respecter les règles de la communauté. Bloxspark n'est pas affilié à Roblox
-        Corporation.
+        En publiant, tu confirmes respecter les règles de la communauté. Bloxspark n'est pas affilié
+        à Roblox Corporation.
       </p>
     </Card>
   );

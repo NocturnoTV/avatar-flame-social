@@ -1,17 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowUpRight, Bell, Compass, Flame, MessageCircle, Play, Sparkles, Users } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bell,
+  Compass,
+  Flame,
+  MessageCircle,
+  Play,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Card } from "@/components/ui-kit";
 import { Logo } from "@/components/Logo";
+import { BrandIcon } from "@/components/BrandIcon";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { cn } from "@/lib/utils";
 import heroAsset from "@/assets/onboarding-hero.png.asset.json";
 
-export const Route = createFileRoute("/_authenticated/accueil")({
+export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
     meta: [
       { title: "Accueil — Bloxspark" },
@@ -84,7 +94,9 @@ function NewsSection() {
                 className="block w-full text-left"
               >
                 <p className="pr-6 font-bold leading-snug">{n.title}</p>
-                {n.subtitle ? <p className="mt-1 text-xs text-muted-foreground">{n.subtitle}</p> : null}
+                {n.subtitle ? (
+                  <p className="mt-1 text-xs text-muted-foreground">{n.subtitle}</p>
+                ) : null}
               </button>
               {open && n.body ? (
                 <p className="bx-rise mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
@@ -139,8 +151,14 @@ function HomePage() {
     refetchInterval: 30000,
     queryFn: async () => {
       const [notif, followers, matches] = await Promise.all([
-        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("read", false),
-        supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", user!.id),
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("read", false),
+        supabase
+          .from("follows")
+          .select("follower_id", { count: "exact", head: true })
+          .eq("following_id", user!.id),
         supabase.from("matches").select("conversation_id", { count: "exact", head: true }),
       ]);
       return {
@@ -204,25 +222,30 @@ function HomePage() {
         <div className="absolute inset-0 flex flex-col justify-between p-4">
           <div className="flex items-start justify-between">
             <Logo className="h-8 w-auto bx-float" forceVariant="dark" />
-            <Link
-              to="/notifications"
-              aria-label="Notifications"
-              className="relative grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90"
-            >
-              <Bell className="h-5 w-5" />
-              {counters.data?.unread ? (
-                <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
-                  {counters.data.unread > 9 ? "9+" : counters.data.unread}
-                </span>
-              ) : null}
-            </Link>
+            <div className="flex items-center gap-2">
+              <BrandIcon className="h-10 w-10 ring-1 ring-white/25" />
+              <Link
+                to="/notifications"
+                aria-label="Notifications"
+                className="relative grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90"
+              >
+                <Bell className="h-5 w-5" />
+                {counters.data?.unread ? (
+                  <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                    {counters.data.unread > 9 ? "9+" : counters.data.unread}
+                  </span>
+                ) : null}
+              </Link>
+            </div>
           </div>
           <div>
             <p className="text-sm font-semibold text-white/80">
               {hello.emoji} {hello.text}
             </p>
             <h1 className="flex items-center gap-2 text-2xl font-black text-white drop-shadow sm:text-3xl">
-              <span className="truncate">{me.data?.username ? `@${me.data.username}` : "joueur"}</span>
+              <span className="truncate">
+                {me.data?.username ? `@${me.data.username}` : "joueur"}
+              </span>
               {me.data?.verified ? <Verified className="h-5 w-5" /> : null}
             </h1>
             <p className="text-xs text-white/75">Voici ce qui bouge sur Bloxspark aujourd'hui.</p>
@@ -239,7 +262,10 @@ function HomePage() {
         ].map((s, i) => (
           <Card
             key={s.label}
-            className={cn("bx-rise p-4 text-center transition hover:-translate-y-0.5", `bx-delay-${i + 1}`)}
+            className={cn(
+              "bx-rise p-4 text-center transition hover:-translate-y-0.5",
+              `bx-delay-${i + 1}`,
+            )}
           >
             <s.icon className="mx-auto mb-1.5 h-5 w-5 text-primary" />
             <p className="text-xl font-black">{s.value}</p>
@@ -299,15 +325,20 @@ function HomePage() {
       {/* Raccourcis */}
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <QuickLink to="/sparks" icon={Flame} title="Sparks" sub="Swipe et trouve ton match" />
-        <QuickLink to="/decouvrir" icon={Compass} title="Découvrir" sub="Le feed vidéo Roblox" />
-        <QuickLink to="/messages" icon={MessageCircle} title="Messages" sub="Vocaux, groupes et emojis" />
+        <QuickLink to="/discover" icon={Compass} title="Découvrir" sub="Le feed vidéo Roblox" />
+        <QuickLink
+          to="/messages"
+          icon={MessageCircle}
+          title="Messages"
+          sub="Vocaux, groupes et emojis"
+        />
       </div>
 
       {/* Vidéos du moment */}
       <section className="mt-7">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-black">Vidéos du moment</h2>
-          <Link to="/decouvrir" className="text-sm font-semibold text-primary">
+          <Link to="/discover" className="text-sm font-semibold text-primary">
             Tout voir
           </Link>
         </div>
@@ -320,7 +351,7 @@ function HomePage() {
         ) : (
           <Card className="text-center text-sm text-muted-foreground">
             Pas encore de vidéo.{" "}
-            <Link to="/decouvrir" className="font-semibold text-primary">
+            <Link to="/discover" className="font-semibold text-primary">
               Publie la première !
             </Link>
           </Card>
@@ -329,7 +360,6 @@ function HomePage() {
 
       {/* Actus Roblox gérées depuis l'administration */}
       <NewsSection />
-
 
       <p className="mt-8 text-center text-[11px] text-muted-foreground">
         Bloxspark n'est ni affilié, ni approuvé, ni sponsorisé par Roblox Corporation.
@@ -344,7 +374,7 @@ function QuickLink({
   title,
   sub,
 }: {
-  to: "/sparks" | "/decouvrir" | "/messages";
+  to: "/sparks" | "/discover" | "/messages";
   icon: typeof Flame;
   title: string;
   sub: string;
@@ -369,7 +399,7 @@ function VideoThumb({ path, views }: { path: string; views: number }) {
   const url = useSignedUrl(path);
   return (
     <Link
-      to="/decouvrir"
+      to="/discover"
       className="group relative overflow-hidden rounded-2xl bg-black transition hover:-translate-y-0.5"
     >
       {url ? (
