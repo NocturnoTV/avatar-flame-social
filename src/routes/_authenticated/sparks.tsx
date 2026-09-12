@@ -86,6 +86,24 @@ function SparksPage() {
     },
   });
 
+  const { data: deckGames = {} } = useQuery({
+    queryKey: ["deck-games", deck.map((d) => d.id).join(",")],
+    enabled: deck.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("roblox_games")
+        .select("user_id,name,position")
+        .in(
+          "user_id",
+          deck.map((d) => d.id),
+        )
+        .order("position");
+      const map: Record<string, string[]> = {};
+      for (const row of data ?? []) (map[row.user_id] ??= []).push(row.name);
+      return map;
+    },
+  });
+
   const current = deck[index];
   const next = deck[index + 1];
 
