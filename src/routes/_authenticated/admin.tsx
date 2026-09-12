@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "overview" | "members" | "reports" | "conversations" | "audit";
+type Tab = "overview" | "members" | "reports" | "conversations" | "news" | "audit";
 
 function AdminPage() {
   const { user } = useSession();
