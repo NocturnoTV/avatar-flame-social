@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
-import { Button, Input, Label, Select, Textarea } from "@/components/ui-kit";
+import { Button, Input, Label, Textarea } from "@/components/ui-kit";
 import { LANGUAGES, useI18n, type LangCode } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
@@ -94,7 +94,7 @@ function Onboarding() {
     navigate({ to: "/sparks", replace: true });
   }
 
-  const steps = [t("username"), t("birthDate"), t("profile") || "Profil"];
+  const steps = [t("username"), t("birthDate"), t("profile")];
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-5 pb-14 pt-6">
