@@ -525,7 +525,7 @@ function ProfilePage() {
           )}
         >
           <Save className="h-4.5 w-4.5" />
-          {saving ? t("loading") : dirty ? "Enregistrer les modifications" : t("saved")}
+          {saving ? t("loading") : "Enregistrer"}
         </button>
       </div>
     </div>
