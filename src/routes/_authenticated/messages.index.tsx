@@ -25,7 +25,7 @@ type Row = {
   is_group: boolean;
   name: string | null;
   last_message_at: string | null;
-  others: { id: string; username: string | null }[];
+  others: { id: string; username: string | null; verified?: boolean | null }[];
   preview: string;
 };
 
@@ -59,7 +59,7 @@ function MessagesPage() {
       );
       const { data: people } = await supabase
         .from("profiles")
-        .select("id,username")
+        .select("id,username,verified")
         .in("id", otherIds.length > 0 ? otherIds : ["00000000-0000-0000-0000-000000000000"]);
       const { data: lastMessages } = await supabase
         .from("messages")
@@ -73,6 +73,7 @@ function MessagesPage() {
           .map((m) => ({
             id: m.user_id,
             username: (people ?? []).find((p) => p.id === m.user_id)?.username ?? null,
+            verified: (people ?? []).find((p) => p.id === m.user_id)?.verified ?? false,
           }));
 
         const last = (lastMessages ?? []).find((m) => m.conversation_id === c.id);
