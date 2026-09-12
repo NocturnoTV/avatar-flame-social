@@ -148,13 +148,23 @@ function Onboarding() {
               </div>
               <div>
                 <Label>{t("language")}</Label>
-                <Select value={lang} onChange={(e) => setLang(e.target.value as LangCode)}>
+                <div className="grid grid-cols-2 gap-2">
                   {LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.flag} {l.label}
-                    </option>
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => setLang(l.code as LangCode)}
+                      className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${
+                        lang === l.code
+                          ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                          : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <Flag code={l.code} />
+                      <span className="truncate">{l.label}</span>
+                    </button>
                   ))}
-                </Select>
+                </div>
               </div>
               <Button className="w-full" size="lg" onClick={() => setStep(1)}>
                 {t("continue")}
