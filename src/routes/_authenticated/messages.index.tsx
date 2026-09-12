@@ -158,7 +158,10 @@ function MessagesPage() {
                 {c.is_group ? "👥" : (name?.[0]?.toUpperCase() ?? "?")}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{name}</p>
+                <p className="flex items-center gap-1.5 font-semibold">
+                  <span className="truncate">{name}</span>
+                  {!c.is_group && c.others[0]?.verified ? <Verified /> : null}
+                </p>
                 <p className="truncate text-sm text-muted-foreground">{c.preview || "—"}</p>
               </div>
             </Link>
