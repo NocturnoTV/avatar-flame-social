@@ -64,7 +64,9 @@ function Conversation() {
         .select("id,username,avatar_url")
         .in("id", allIds.length > 0 ? allIds : ["00000000-0000-0000-0000-000000000000"]);
       const byId: Record<string, { username: string; avatar_url: string | null }> = {};
-      for (const p of people ?? []) byId[p.id] = { username: p.username, avatar_url: p.avatar_url };
+      for (const p of (people ?? []) as { id: string; username: string; avatar_url: string | null }[]) {
+        byId[p.id] = { username: p.username, avatar_url: p.avatar_url };
+      }
       const others = otherIds.map((uid) => byId[uid]?.username ?? "?");
 
       return {
