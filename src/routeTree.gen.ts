@@ -17,6 +17,8 @@ import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as ReglesRouteImport } from './routes/regles'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedParametresRouteImport } from './routes/_authenticated/parametres'
+import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
@@ -61,6 +63,16 @@ const AuthenticatedNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedParametresRoute = AuthenticatedParametresRouteImport.update({
+  id: '/parametres',
+  path: '/parametres',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSparksRoute = AuthenticatedSparksRouteImport.update({
   id: '/sparks',
   path: '/sparks',
@@ -86,6 +98,8 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/regles': typeof ReglesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/parametres': typeof AuthenticatedParametresRoute
+  '/profil': typeof AuthenticatedProfilRoute
   '/sparks': typeof AuthenticatedSparksRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -98,6 +112,8 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/regles': typeof ReglesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/parametres': typeof AuthenticatedParametresRoute
+  '/profil': typeof AuthenticatedProfilRoute
   '/sparks': typeof AuthenticatedSparksRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
@@ -112,6 +128,8 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/regles': typeof ReglesRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/parametres': typeof AuthenticatedParametresRoute
+  '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -126,6 +144,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/regles'
     | '/notifications'
+    | '/parametres'
+    | '/profil'
     | '/sparks'
     | '/messages/$id'
     | '/messages/'
@@ -138,6 +158,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/regles'
     | '/notifications'
+    | '/parametres'
+    | '/profil'
     | '/sparks'
     | '/messages/$id'
     | '/messages'
@@ -151,6 +173,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/regles'
     | '/_authenticated/notifications'
+    | '/_authenticated/parametres'
+    | '/_authenticated/profil'
     | '/_authenticated/sparks'
     | '/_authenticated/messages/$id'
     | '/_authenticated/messages/'
@@ -224,6 +248,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/parametres': {
+      id: '/_authenticated/parametres'
+      path: '/parametres'
+      fullPath: '/parametres'
+      preLoaderRoute: typeof AuthenticatedParametresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profil': {
+      id: '/_authenticated/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof AuthenticatedProfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/sparks': {
       id: '/_authenticated/sparks'
       path: '/sparks'
@@ -250,6 +288,8 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedParametresRoute: typeof AuthenticatedParametresRoute
+  AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
   AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
@@ -257,6 +297,8 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedParametresRoute: AuthenticatedParametresRoute,
+  AuthenticatedProfilRoute: AuthenticatedProfilRoute,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
   AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,

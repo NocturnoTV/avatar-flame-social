@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/messages/")({
 type Row = {
   id: string;
   is_group: boolean;
-  title: string | null;
+  name: string | null;
   last_message_at: string | null;
   others: { id: string; username: string | null }[];
   preview: string;
@@ -47,13 +47,20 @@ function MessagesPage() {
       if (ids.length === 0) return [];
       const { data: convos } = await supabase
         .from("conversations")
-        .select("id,is_group,title,last_message_at")
+        .select("id,is_group,name,last_message_at")
         .in("id", ids)
         .order("last_message_at", { ascending: false, nullsFirst: false });
       const { data: members } = await supabase
         .from("conversation_participants")
-        .select("conversation_id,user_id,profiles!inner(id,username)")
+        .select("conversation_id,user_id")
         .in("conversation_id", ids);
+      const otherIds = [...new Set((members ?? []).map((m) => m.user_id))].filter(
+        (id) => id !== user?.id,
+      );
+      const { data: people } = await supabase
+        .from("profiles")
+        .select("id,username")
+        .in("id", otherIds.length > 0 ? otherIds : ["00000000-0000-0000-0000-000000000000"]);
       const { data: lastMessages } = await supabase
         .from("messages")
         .select("conversation_id,content,kind,created_at")
@@ -64,9 +71,10 @@ function MessagesPage() {
         const others = (members ?? [])
           .filter((m) => m.conversation_id === c.id && m.user_id !== user?.id)
           .map((m) => ({
-            id: (m.profiles as unknown as { id: string }).id,
-            username: (m.profiles as unknown as { username: string | null }).username,
+            id: m.user_id,
+            username: (people ?? []).find((p) => p.id === m.user_id)?.username ?? null,
           }));
+
         const last = (lastMessages ?? []).find((m) => m.conversation_id === c.id);
         const preview =
           last?.kind === "voice"
@@ -110,7 +118,7 @@ function MessagesPage() {
   async function createGroup() {
     if (!groupTitle.trim() || selected.length === 0) return;
     const { error } = await supabase.rpc("create_group", {
-      _title: groupTitle.trim(),
+      _name: groupTitle.trim(),
       _members: selected,
     });
     if (error) {
@@ -137,7 +145,7 @@ function MessagesPage() {
           <p className="py-16 text-center text-sm text-muted-foreground">{t("noConversations")}</p>
         ) : null}
         {(conversations.data ?? []).map((c) => {
-          const name = c.is_group ? c.title : (c.others[0]?.username ?? "?");
+          const name = c.is_group ? c.name : (c.others[0]?.username ?? "?");
           return (
             <Link
               key={c.id}

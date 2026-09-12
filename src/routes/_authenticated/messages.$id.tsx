@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
 import { StoredAudio, StoredImage } from "@/components/Media";
-import { uploadToBucket } from "@/lib/media";
+import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -50,18 +50,22 @@ function Conversation() {
     queryFn: async () => {
       const { data: convo } = await supabase
         .from("conversations")
-        .select("id,is_group,title")
+        .select("id,is_group,name")
         .eq("id", id)
         .maybeSingle();
       const { data: members } = await supabase
         .from("conversation_participants")
-        .select("user_id,profiles!inner(id,username)")
+        .select("user_id")
         .eq("conversation_id", id);
-      const others = (members ?? [])
-        .filter((m) => m.user_id !== user?.id)
-        .map((m) => (m.profiles as unknown as { username: string | null }).username);
+      const otherIds = (members ?? []).map((m) => m.user_id).filter((uid) => uid !== user?.id);
+      const { data: people } = await supabase
+        .from("profiles")
+        .select("id,username")
+        .in("id", otherIds.length > 0 ? otherIds : ["00000000-0000-0000-0000-000000000000"]);
+      const others = (people ?? []).map((p) => p.username);
+
       return {
-        title: convo?.is_group ? convo.title : (others[0] ?? "?"),
+        title: convo?.is_group ? convo.name : (others[0] ?? "?"),
         isGroup: !!convo?.is_group,
         members: others.length + 1,
       };
@@ -131,7 +135,7 @@ function Conversation() {
   async function pickImage(file: File) {
     if (!user) return;
     try {
-      const path = await uploadToBucket("profile-photos", user.id, file);
+      const path = await uploadFile("profile-photos", user.id, file, file.name.split(".").pop() ?? "jpg");
       await send("image", path);
     } catch {
       toast.error(t("errorGeneric"));
@@ -154,7 +158,7 @@ function Conversation() {
         const blob = new Blob(chunks, { type: "audio/webm" });
         if (!user) return;
         const file = new File([blob], "voice.webm", { type: "audio/webm" });
-        const path = await uploadToBucket("voice-messages", user.id, file);
+        const path = await uploadFile("voice-messages", user.id, file, "webm");
         await send("voice", path);
       };
       recorder.start();

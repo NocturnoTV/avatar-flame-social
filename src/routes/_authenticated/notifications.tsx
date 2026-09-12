@@ -34,7 +34,7 @@ function NotificationsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("notifications")
-        .select("id,kind,body,read_at,created_at")
+        .select("id,kind,body,read,created_at")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -59,9 +59,9 @@ function NotificationsPage() {
     if (!user) return;
     await supabase
       .from("notifications")
-      .update({ read_at: new Date().toISOString() })
+      .update({ read: true })
       .eq("user_id", user.id)
-      .is("read_at", null);
+      .eq("read", false);
     void notifications.refetch();
   }
 
@@ -82,7 +82,7 @@ function NotificationsPage() {
           <div
             key={n.id}
             className={`flex items-start gap-3 rounded-2xl border p-3 ${
-              n.read_at ? "border-border bg-card" : "border-primary/40 bg-surface-2"
+              n.read ? "border-border bg-card" : "border-primary/40 bg-surface-2"
             }`}
           >
             <span className="text-xl">{ICONS[n.kind] ?? "🔔"}</span>
