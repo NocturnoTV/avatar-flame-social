@@ -57,10 +57,10 @@ function ProfilePage() {
     enabled: !!user,
   });
 
-  async function patch(values: Record<string, unknown>) {
+  async function patch(values: Partial<Record<string, string | null>>) {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update(values).eq("id", user.id);
+    const { error } = await supabase.from("profiles").update(values as never).eq("id", user.id);
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -242,9 +242,12 @@ function ProfilePage() {
         {saving ? <p className="text-xs text-muted-foreground">{t("loading")}</p> : null}
       </section>
 
-      <Button asChild variant="outline" className="mt-6 w-full">
-        <Link to="/parametres">{t("settings")}</Link>
-      </Button>
+      <Link
+        to="/parametres"
+        className="mt-6 flex h-11 w-full items-center justify-center rounded-2xl border border-border text-sm font-semibold"
+      >
+        {t("settings")}
+      </Link>
     </div>
   );
 }
