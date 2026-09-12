@@ -58,16 +58,20 @@ function Conversation() {
         .select("user_id")
         .eq("conversation_id", id);
       const otherIds = (members ?? []).map((m) => m.user_id).filter((uid) => uid !== user?.id);
+      const allIds = [...new Set([...(members ?? []).map((m) => m.user_id), user?.id].filter(Boolean))] as string[];
       const { data: people } = await supabase
         .from("profiles")
-        .select("id,username")
-        .in("id", otherIds.length > 0 ? otherIds : ["00000000-0000-0000-0000-000000000000"]);
-      const others = (people ?? []).map((p) => p.username);
+        .select("id,username,avatar_url")
+        .in("id", allIds.length > 0 ? allIds : ["00000000-0000-0000-0000-000000000000"]);
+      const byId: Record<string, { username: string; avatar_url: string | null }> = {};
+      for (const p of people ?? []) byId[p.id] = { username: p.username, avatar_url: p.avatar_url };
+      const others = otherIds.map((uid) => byId[uid]?.username ?? "?");
 
       return {
         title: convo?.is_group ? convo.name : (others[0] ?? "?"),
         isGroup: !!convo?.is_group,
         members: others.length + 1,
+        people: byId,
       };
     },
   });
