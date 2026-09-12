@@ -279,13 +279,97 @@ function SparksPage() {
   );
 }
 
+function MatchesTab() {
+  const { user } = useSession();
+
+  const matches = useQuery({
+    queryKey: ["my-matches", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: rows, error } = await supabase
+        .from("matches")
+        .select("id,user_a,user_b,conversation_id,created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const others = (rows ?? []).map((m) => (m.user_a === user?.id ? m.user_b : m.user_a));
+      if (others.length === 0) return [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,verified,language")
+        .in("id", others);
+      const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+      return (rows ?? []).map((m) => ({
+        ...m,
+        other: byId.get(m.user_a === user?.id ? m.user_b : m.user_a),
+      }));
+    },
+  });
+
+  const likes = useQuery({
+    queryKey: ["likes-received", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .in("kind", ["like", "super"]);
+      return count ?? 0;
+    },
+  });
+
+  const list = matches.data ?? [];
+
+  return (
+    <div className="mt-4 space-y-3 pb-4">
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <p className="text-sm text-muted-foreground">J'aime reçus</p>
+        <p className="spark-text text-3xl font-bold">{likes.data ?? 0}</p>
+      </div>
+      {list.length === 0 ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          Pas encore de match. Continue à swiper !
+        </p>
+      ) : (
+        list.map((m) =>
+          m.conversation_id ? (
+            <Link
+              key={m.id}
+              to="/messages/$id"
+              params={{ id: m.conversation_id }}
+              className="flex items-center gap-3 rounded-3xl border border-border bg-card p-3"
+            >
+              <StoredImage
+                path={m.other?.avatar_url}
+                alt={m.other?.username ?? ""}
+                className="h-14 w-14 shrink-0 rounded-2xl"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <span className="truncate">{m.other?.username ?? "Membre"}</span>
+                  {m.other?.verified ? <Verified /> : null}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  Match du {new Date(m.created_at).toLocaleDateString("fr-FR")}
+                </span>
+              </span>
+              <Heart className="h-5 w-5 shrink-0 text-primary" fill="currentColor" />
+            </Link>
+          ) : null,
+        )
+      )}
+    </div>
+  );
+}
+
 function SparkCard({
   profile,
   photos,
+  games = [],
   className,
 }: {
   profile: DeckProfile;
   photos: string[];
+  games?: string[];
   className?: string;
 }) {
   const { t } = useI18n();
