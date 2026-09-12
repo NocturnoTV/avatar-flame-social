@@ -98,6 +98,7 @@ function AdminPage() {
         {tab === "members" ? <Members isAdmin={isAdmin} log={log} /> : null}
         {tab === "reports" ? <Reports log={log} /> : null}
         {tab === "conversations" ? <Conversations log={log} /> : null}
+        {tab === "news" ? <NewsAdmin log={log} /> : null}
         {tab === "audit" ? <Audit /> : null}
       </div>
     </div>
