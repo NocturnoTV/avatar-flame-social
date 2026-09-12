@@ -33,6 +33,7 @@ function Onboarding() {
   const { user, loading } = useSession();
   const navigate = useNavigate();
 
+  const [intro, setIntro] = useState(true);
   const [step, setStep] = useState(0);
   const [username, setUsername] = useState("");
   const [roblox, setRoblox] = useState("");
