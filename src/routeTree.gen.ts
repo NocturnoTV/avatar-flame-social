@@ -10,33 +10,160 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ConditionsRouteImport } from './routes/conditions'
+import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ReglesRouteImport } from './routes/regles'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
+import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
+import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConditionsRoute = ConditionsRouteImport.update({
+  id: '/conditions',
+  path: '/conditions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
+  id: '/confidentialite',
+  path: '/confidentialite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReglesRoute = ReglesRouteImport.update({
+  id: '/regles',
+  path: '/regles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSparksRoute = AuthenticatedSparksRouteImport.update({
+  id: '/sparks',
+  path: '/sparks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMessagesIndexRoute =
+  AuthenticatedMessagesIndexRouteImport.update({
+    id: '/messages/',
+    path: '/messages/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMessagesIdRoute = AuthenticatedMessagesIdRouteImport.update({
+  id: '/messages/$id',
+  path: '/messages/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/conditions': typeof ConditionsRoute
+  '/confidentialite': typeof ConfidentialiteRoute
+  '/onboarding': typeof OnboardingRoute
+  '/regles': typeof ReglesRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/sparks': typeof AuthenticatedSparksRoute
+  '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/messages/': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/conditions': typeof ConditionsRoute
+  '/confidentialite': typeof ConfidentialiteRoute
+  '/onboarding': typeof OnboardingRoute
+  '/regles': typeof ReglesRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/sparks': typeof AuthenticatedSparksRoute
+  '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/messages': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/conditions': typeof ConditionsRoute
+  '/confidentialite': typeof ConfidentialiteRoute
+  '/onboarding': typeof OnboardingRoute
+  '/regles': typeof ReglesRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/sparks': typeof AuthenticatedSparksRoute
+  '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/conditions'
+    | '/confidentialite'
+    | '/onboarding'
+    | '/regles'
+    | '/notifications'
+    | '/sparks'
+    | '/messages/$id'
+    | '/messages/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/conditions'
+    | '/confidentialite'
+    | '/onboarding'
+    | '/regles'
+    | '/notifications'
+    | '/sparks'
+    | '/messages/$id'
+    | '/messages'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/conditions'
+    | '/confidentialite'
+    | '/onboarding'
+    | '/regles'
+    | '/_authenticated/notifications'
+    | '/_authenticated/sparks'
+    | '/_authenticated/messages/$id'
+    | '/_authenticated/messages/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  ConditionsRoute: typeof ConditionsRoute
+  ConfidentialiteRoute: typeof ConfidentialiteRoute
+  OnboardingRoute: typeof OnboardingRoute
+  ReglesRoute: typeof ReglesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +175,104 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conditions': {
+      id: '/conditions'
+      path: '/conditions'
+      fullPath: '/conditions'
+      preLoaderRoute: typeof ConditionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confidentialite': {
+      id: '/confidentialite'
+      path: '/confidentialite'
+      fullPath: '/confidentialite'
+      preLoaderRoute: typeof ConfidentialiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regles': {
+      id: '/regles'
+      path: '/regles'
+      fullPath: '/regles'
+      preLoaderRoute: typeof ReglesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sparks': {
+      id: '/_authenticated/sparks'
+      path: '/sparks'
+      fullPath: '/sparks'
+      preLoaderRoute: typeof AuthenticatedSparksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/messages/': {
+      id: '/_authenticated/messages/'
+      path: '/messages'
+      fullPath: '/messages/'
+      preLoaderRoute: typeof AuthenticatedMessagesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/messages/$id': {
+      id: '/_authenticated/messages/$id'
+      path: '/messages/$id'
+      fullPath: '/messages/$id'
+      preLoaderRoute: typeof AuthenticatedMessagesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
+  AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
+  AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedSparksRoute: AuthenticatedSparksRoute,
+  AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
+  AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ConditionsRoute: ConditionsRoute,
+  ConfidentialiteRoute: ConfidentialiteRoute,
+  OnboardingRoute: OnboardingRoute,
+  ReglesRoute: ReglesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,0 +1,149 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
+import { Logo } from "@/components/Logo";
+import { Button, Input, Label } from "@/components/ui-kit";
+import { useI18n } from "@/lib/i18n";
+import { useSession } from "@/lib/session";
+
+type Search = { mode?: "signup" | "signin" };
+
+export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): Search => ({
+    mode: search["mode"] === "signup" ? "signup" : undefined,
+  }),
+  head: () => ({
+    meta: [
+      { title: "Connexion — Bloxspark" },
+      {
+        name: "description",
+        content: "Connecte-toi ou crée ton compte Bloxspark pour rejoindre la communauté Roblox.",
+      },
+      { property: "og:title", content: "Connexion — Bloxspark" },
+      { property: "og:description", content: "Rejoins Bloxspark en quelques secondes." },
+    ],
+  }),
+  component: AuthPage,
+});
+
+function AuthPage() {
+  const { t } = useI18n();
+  const { mode } = Route.useSearch();
+  const navigate = useNavigate();
+  const { session } = useSession();
+  const [isSignup, setIsSignup] = useState(mode === "signup");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (session) navigate({ to: "/sparks", replace: true });
+  }, [session, navigate]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      if (isSignup) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        });
+        if (error) throw error;
+        toast.success(t("checkEmail"));
+        setIsSignup(false);
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        navigate({ to: "/sparks" });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errorGeneric"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function google() {
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      toast.error(t("errorGeneric"));
+      return;
+    }
+    if (result.redirected) return;
+    navigate({ to: "/sparks" });
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-5 py-10">
+      <Link to="/" className="mb-8">
+        <Logo className="h-9" />
+      </Link>
+
+      <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-6">
+        <h1 className="text-2xl font-bold">{isSignup ? t("signUp") : t("signIn")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("tagline")}</p>
+
+        <Button className="mt-6 w-full" variant="outline" onClick={google}>
+          <span className="text-base">🇬</span> {t("continueGoogle")}
+        </Button>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          {t("orEmail")}
+          <span className="h-px flex-1 bg-border" />
+        </div>
+
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <Label>{t("email")}</Label>
+            <Input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="toi@exemple.com"
+            />
+          </div>
+          <div>
+            <Label>{t("password")}</Label>
+            <Input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+          <Button className="w-full" size="lg" type="submit" disabled={busy}>
+            {isSignup ? t("signUp") : t("signIn")}
+          </Button>
+        </form>
+
+        <button
+          className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground"
+          onClick={() => setIsSignup((v) => !v)}
+        >
+          {isSignup ? t("haveAccount") : t("noAccount")}
+        </button>
+      </div>
+
+      <p className="mt-8 max-w-sm text-center text-xs text-muted-foreground">
+        {t("notAffiliated")}{" "}
+        <Link to="/conditions" className="underline">
+          {t("terms")}
+        </Link>{" "}
+        ·{" "}
+        <Link to="/confidentialite" className="underline">
+          {t("privacy")}
+        </Link>
+      </p>
+    </div>
+  );
+}
