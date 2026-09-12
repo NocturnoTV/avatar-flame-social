@@ -50,9 +50,9 @@ function SparksPage() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("spark_deck", {
         _limit: 30,
-        _lang: filters.lang || undefined,
         _min_age: filters.min,
         _max_age: filters.max,
+        ...(filters.lang ? { _lang: filters.lang } : {}),
       });
       if (error) throw error;
       setIndex(0);
