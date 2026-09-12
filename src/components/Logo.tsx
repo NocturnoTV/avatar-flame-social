@@ -9,7 +9,8 @@ export function Logo({ className }: { className?: string }) {
     <img
       src={theme === "dark" ? logoWhite.url : logoBlack.url}
       alt="Bloxspark"
-      className={cn("h-8 w-auto object-contain", className)}
+      className={cn("h-12 w-auto select-none object-contain", className)}
+      draggable={false}
     />
   );
 }

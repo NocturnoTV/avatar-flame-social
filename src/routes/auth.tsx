@@ -81,11 +81,11 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-5 py-10">
-      <Link to="/" className="mb-8">
-        <Logo className="h-9" />
+      <Link to="/" className="mb-10">
+        <Logo className="h-24 drop-shadow-[0_0_40px_rgba(255,90,140,0.25)] sm:h-28" />
       </Link>
 
-      <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-6">
+      <div className="w-full max-w-sm rounded-[2rem] border border-border bg-card p-7 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]">
         <h1 className="text-2xl font-bold">{isSignup ? t("signUp") : t("signIn")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("tagline")}</p>
 

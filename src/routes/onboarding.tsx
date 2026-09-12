@@ -95,7 +95,7 @@ function Onboarding() {
   return (
     <div className="min-h-screen bg-background px-5 py-8">
       <div className="mx-auto w-full max-w-md">
-        <Logo className="mx-auto h-8" />
+        <Logo className="mx-auto h-20 drop-shadow-[0_0_36px_rgba(255,90,140,0.22)] sm:h-24" />
         <h1 className="mt-8 text-2xl font-bold">{t("onboarding")}</h1>
         <div className="mt-4 flex gap-2">
           {[0, 1, 2].map((i) => (
