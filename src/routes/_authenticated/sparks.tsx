@@ -244,7 +244,7 @@ function SparkCard({
 }) {
   const { t } = useI18n();
   const age = ageFrom(profile.birth_date);
-  const flag = LANGUAGES.find((l) => l.code === profile.language)?.flag ?? "🌍";
+  
   const accent = ACCENTS[profile.accent_color] ?? ACCENTS["spark"];
 
   return (
@@ -271,7 +271,7 @@ function SparkCard({
                 {age} {t("years")}
               </span>
             ) : null}
-            <span>{flag}</span>
+            <Flag code={profile.language ?? ""} className="h-4 w-6" />
             {profile.sticker && STICKERS.includes(profile.sticker) ? (
               <span className="text-xl">{profile.sticker}</span>
             ) : null}

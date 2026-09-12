@@ -116,9 +116,10 @@ function ProfilePage() {
           {p?.username}
           {p?.sticker ? <span>{p.sticker}</span> : null}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          🎮 {p?.roblox_username} · {age ? `${age} ${t("years")}` : ""}{" "}
-          {LANGUAGES.find((l) => l.code === p?.language)?.flag}
+        <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <span>🎮 {p?.roblox_username}</span>
+          {age ? <span>· {age} {t("years")}</span> : null}
+          <Flag code={p?.language ?? ""} />
         </p>
       </div>
 
