@@ -242,6 +242,48 @@ export type Database = {
           },
         ]
       }
+      news: {
+        Row: {
+          author_id: string | null
+          body: string | null
+          created_at: string
+          id: string
+          position: number
+          published: boolean
+          subtitle: string | null
+          title: string
+          tone: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          position?: number
+          published?: boolean
+          subtitle?: string | null
+          title: string
+          tone?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          position?: number
+          published?: boolean
+          subtitle?: string | null
+          title?: string
+          tone?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           actor_id: string | null
