@@ -19,7 +19,7 @@ export async function signedUrl(stored: string | null | undefined): Promise<stri
 export async function uploadFile(bucket: string, userId: string, file: Blob, ext: string) {
   const path = `${userId}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    contentType: file.type || undefined,
+    contentType: file.type || "application/octet-stream",
     upsert: false,
   });
   if (error) throw error;
