@@ -326,29 +326,9 @@ function HomePage() {
         )}
       </section>
 
-      {/* Actus Roblox */}
-      <section className="mt-7">
-        <h2 className="mb-3 text-lg font-black">Actus Roblox</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {NEWS.map((n, i) => (
-            <a
-              key={n.title}
-              href={n.url}
-              target="_blank"
-              rel="noreferrer noopener"
-              className={cn(
-                "bx-rise group relative overflow-hidden rounded-3xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:border-primary",
-                `bx-delay-${i + 1}`,
-              )}
-            >
-              <span className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", n.tone)} />
-              <p className="pr-6 font-bold leading-snug">{n.title}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{n.sub}</p>
-              <ArrowUpRight className="absolute right-3 top-4 h-4 w-4 text-muted-foreground transition group-hover:text-primary" />
-            </a>
-          ))}
-        </div>
-      </section>
+      {/* Actus Roblox gérées depuis l'administration */}
+      <NewsSection />
+
 
       <p className="mt-8 text-center text-[11px] text-muted-foreground">
         Bloxspark n'est ni affilié, ni approuvé, ni sponsorisé par Roblox Corporation.
