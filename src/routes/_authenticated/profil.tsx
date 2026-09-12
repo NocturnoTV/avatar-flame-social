@@ -246,13 +246,13 @@ function ProfilePage() {
       <div className="-mt-12 px-1">
         <div className="relative inline-block">
           <div
-            className={cn("inline-block rounded-3xl p-1", FRAMES[p?.frame_style ?? "none"] ?? "")}
+            className={cn("inline-block rounded-full p-1", FRAMES[p?.frame_style ?? "none"] ?? "")}
             style={{ boxShadow: `0 0 0 3px ${ACCENTS[p?.accent_color ?? "spark"] ?? "#ff5f6d"}` }}
           >
             <StoredImage
               path={p?.avatar_url ?? photos.data?.[0]?.url}
               alt={p?.username ?? ""}
-              className="h-24 w-24 rounded-[1.3rem]"
+              className="h-24 w-24 rounded-full"
             />
           </div>
           <button
