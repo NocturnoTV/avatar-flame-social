@@ -20,6 +20,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedParametresRouteImport } from './routes/_authenticated/parametres'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
+import { Route as AuthenticatedDecouvrirIndexRouteImport } from './routes/_authenticated/decouvrir.index'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
 
@@ -78,6 +79,12 @@ const AuthenticatedSparksRoute = AuthenticatedSparksRouteImport.update({
   path: '/sparks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDecouvrirIndexRoute =
+  AuthenticatedDecouvrirIndexRouteImport.update({
+    id: '/decouvrir/',
+    path: '/decouvrir/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMessagesIndexRoute =
   AuthenticatedMessagesIndexRouteImport.update({
     id: '/messages/',
@@ -102,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/profil': typeof AuthenticatedProfilRoute
   '/sparks': typeof AuthenticatedSparksRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/decouvrir/': typeof AuthenticatedDecouvrirIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -116,6 +124,7 @@ export interface FileRoutesByTo {
   '/profil': typeof AuthenticatedProfilRoute
   '/sparks': typeof AuthenticatedSparksRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/decouvrir': typeof AuthenticatedDecouvrirIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRoutesById {
@@ -132,6 +141,7 @@ export interface FileRoutesById {
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/_authenticated/decouvrir/': typeof AuthenticatedDecouvrirIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRouteTypes {
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/profil'
     | '/sparks'
     | '/messages/$id'
+    | '/decouvrir/'
     | '/messages/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/profil'
     | '/sparks'
     | '/messages/$id'
+    | '/decouvrir'
     | '/messages'
   id:
     | '__root__'
@@ -177,6 +189,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profil'
     | '/_authenticated/sparks'
     | '/_authenticated/messages/$id'
+    | '/_authenticated/decouvrir/'
     | '/_authenticated/messages/'
   fileRoutesById: FileRoutesById
 }
@@ -269,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSparksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/decouvrir/': {
+      id: '/_authenticated/decouvrir/'
+      path: '/decouvrir'
+      fullPath: '/decouvrir/'
+      preLoaderRoute: typeof AuthenticatedDecouvrirIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/messages/': {
       id: '/_authenticated/messages/'
       path: '/messages'
@@ -292,6 +312,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
   AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
+  AuthenticatedDecouvrirIndexRoute: typeof AuthenticatedDecouvrirIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
 }
 
@@ -301,6 +322,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
   AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
+  AuthenticatedDecouvrirIndexRoute: AuthenticatedDecouvrirIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
 }
 

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
   BarChart3,
   Bookmark,
@@ -154,7 +154,6 @@ function DiscoverPage() {
           </Link>
           <Link
             to="/decouvrir/studio"
-            search={{ tab: "publier" }}
             className="flex h-10 items-center gap-1.5 rounded-full spark-gradient px-4 text-sm font-bold text-white shadow-lg shadow-primary/30"
           >
             <Plus className="h-4 w-4" /> Publier
@@ -173,7 +172,7 @@ function DiscoverPage() {
                 ? "Aucune vidéo de tes abonnements pour l'instant."
                 : "Aucune vidéo pour le moment. Sois le premier à publier !"}
             </p>
-            <Link to="/decouvrir/studio" search={{ tab: "publier" }}>
+            <Link to="/decouvrir/studio">
               <Button>Publier une vidéo</Button>
             </Link>
           </div>
@@ -257,7 +256,7 @@ function VideoSlide({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => setVisible(entry.intersectionRatio > 0.6), {
+    const obs = new IntersectionObserver((entries) => setVisible((entries[0]?.intersectionRatio ?? 0) > 0.6), {
       threshold: [0, 0.6, 1],
     });
     obs.observe(el);
@@ -409,7 +408,7 @@ function RailButton({
   activeClass,
   label,
 }: {
-  icon: typeof Heart;
+  icon: ComponentType<{ className?: string }>;
   count: number;
   onClick: () => void;
   active?: boolean;
@@ -509,5 +508,3 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     </div>
   );
 }
-
-export const _unused = useMemo;
