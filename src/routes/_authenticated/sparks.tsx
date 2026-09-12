@@ -1,7 +1,7 @@
 import { Flag } from "@/components/Flag";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { Gamepad2, Heart, SlidersHorizontal, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,8 +41,38 @@ type DeckProfile = {
   verified: boolean | null;
 };
 
+/** Met à jour en direct les profils affichés (avatar, bannière, pseudo…) sans recharger la page. */
+function useLiveProfiles() {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("sparks-profiles-live")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        (payload) => {
+          const updated = payload.new as Partial<DeckProfile> & { id?: string };
+          if (!updated?.id) return;
+          // Mise à jour sur place du deck pour ne pas perdre la position du swipe
+          queryClient.setQueriesData<DeckProfile[]>({ queryKey: ["deck"] }, (old) =>
+            Array.isArray(old)
+              ? old.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+              : old,
+          );
+          void queryClient.invalidateQueries({ queryKey: ["my-matches"] });
+          void queryClient.invalidateQueries({ queryKey: ["deck-photos"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+}
+
 function SparksPage() {
   const { t } = useI18n();
+  useLiveProfiles();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"deck" | "matches">("deck");
   const [filters, setFilters] = useState({ lang: "", min: 13, max: 99 });

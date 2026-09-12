@@ -9,6 +9,7 @@ import {
   Gamepad2,
   ImagePlus,
   Plus,
+  Save,
   Settings,
   ShieldCheck,
   Trash2,
@@ -52,6 +53,7 @@ function ProfilePage() {
   const [busy, setBusy] = useState(false);
   const [gameName, setGameName] = useState("");
   const [gameUrl, setGameUrl] = useState("");
+  const [draft, setDraft] = useState<Record<string, unknown>>({});
 
   const profile = useQuery({
     queryKey: ["my-profile"],
@@ -93,15 +95,23 @@ function ProfilePage() {
     enabled: !!user,
   });
 
-  async function patch(values: Record<string, unknown>) {
-    if (!user) return;
+  // Les modifications sont mises en brouillon et enregistrées uniquement au clic sur "Enregistrer".
+  function patch(values: Record<string, unknown>) {
+    setDraft((d) => ({ ...d, ...values }));
+  }
+
+  const dirty = Object.keys(draft).length > 0;
+
+  async function saveChanges() {
+    if (!user || !dirty) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update(values as never).eq("id", user.id);
+    const { error } = await supabase.from("profiles").update(draft as never).eq("id", user.id);
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
+    setDraft({});
     toast.success(t("saved"));
     void profile.refetch();
   }
@@ -112,7 +122,7 @@ function ProfilePage() {
     try {
       const ext = file.name.split(".").pop() ?? "jpg";
       const path = await uploadFile("profile-photos", user.id, file, ext);
-      await patch(kind === "avatar" ? { avatar_url: path } : { banner_url: path });
+      patch(kind === "avatar" ? { avatar_url: path } : { banner_url: path });
     } catch {
       toast.error(t("errorGeneric"));
     } finally {
@@ -174,12 +184,13 @@ function ProfilePage() {
     void games.refetch();
   }
 
-  const p = profile.data;
+  // Aperçu = données enregistrées + brouillon non encore enregistré
+  const p = profile.data ? ({ ...profile.data, ...draft } as typeof profile.data) : profile.data;
   const age = ageFrom(p?.birth_date ?? null);
   const gameList = games.data ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-xl px-4 pt-5">
+    <div className="mx-auto w-full max-w-xl px-4 pt-5 pb-40 lg:pb-28">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("profile")}</h1>
         <div className="flex items-center gap-2">
@@ -236,13 +247,13 @@ function ProfilePage() {
       <div className="-mt-12 px-1">
         <div className="relative inline-block">
           <div
-            className={cn("inline-block rounded-3xl p-1", FRAMES[p?.frame_style ?? "none"] ?? "")}
+            className={cn("inline-block rounded-full p-1", FRAMES[p?.frame_style ?? "none"] ?? "")}
             style={{ boxShadow: `0 0 0 3px ${ACCENTS[p?.accent_color ?? "spark"] ?? "#ff5f6d"}` }}
           >
             <StoredImage
               path={p?.avatar_url ?? photos.data?.[0]?.url}
               alt={p?.username ?? ""}
-              className="h-24 w-24 rounded-[1.3rem]"
+              className="h-24 w-24 rounded-full"
             />
           </div>
           <button
@@ -501,6 +512,22 @@ function ProfilePage() {
       >
         {t("settings")}
       </Link>
+
+      {/* Bouton Enregistrer fixe, au-dessus de la navbar mobile */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-40 flex justify-center px-4 lg:bottom-6">
+        <button
+          onClick={saveChanges}
+          disabled={!dirty || saving || busy}
+          className={cn(
+            "pointer-events-auto flex h-12 items-center gap-2 rounded-full px-7 text-sm font-bold text-white shadow-xl transition",
+            dirty ? "spark-gradient bx-pop" : "bg-muted-foreground/40",
+            (!dirty || saving || busy) && "cursor-not-allowed opacity-70",
+          )}
+        >
+          <Save className="h-4.5 w-4.5" />
+          {saving ? t("loading") : "Enregistrer"}
+        </button>
+      </div>
     </div>
   );
 }
