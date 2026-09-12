@@ -91,7 +91,7 @@ function Onboarding() {
       toast.error(error.message.includes("duplicate") ? t("usernameTaken") : error.message);
       return;
     }
-    navigate({ to: "/sparks", replace: true });
+    navigate({ to: "/accueil", replace: true });
   }
 
   const steps = [t("username"), t("birthDate"), t("profile")];
