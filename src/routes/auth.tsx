@@ -6,6 +6,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { Logo } from "@/components/Logo";
 import { Button, Input, Label } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 
 type Search = { mode?: "signup" | "signin" | undefined };
@@ -29,7 +30,8 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const { t } = useI18n();
+  const { t, setLang } = useI18n();
+  const { setTheme } = useTheme();
   const { mode } = Route.useSearch();
   const navigate = useNavigate();
   const { session } = useSession();
@@ -77,6 +79,14 @@ function AuthPage() {
     }
     if (result.redirected) return;
     navigate({ to: "/home" });
+  }
+
+  function continueAsGuest() {
+    window.localStorage.setItem("bloxspark-guest", "true");
+    window.localStorage.removeItem("bloxspark-guest-gate-seen");
+    setLang("en");
+    setTheme("dark");
+    navigate({ to: "/guest" });
   }
 
   return (
@@ -132,6 +142,16 @@ function AuthPage() {
         >
           {isSignup ? t("haveAccount") : t("noAccount")}
         </button>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          {t("or")}
+          <span className="h-px flex-1 bg-border" />
+        </div>
+        <Button className="w-full" variant="ghost" onClick={continueAsGuest}>
+          {t("continueAsGuest")}
+        </Button>
+        <p className="mt-2 text-center text-xs text-muted-foreground">{t("guestAccessHint")}</p>
       </div>
 
       <p className="mt-8 max-w-sm text-center text-xs text-muted-foreground">

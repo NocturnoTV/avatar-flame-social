@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 import {
   beginRobloxOAuth,
   disconnectRobloxAccount,
@@ -17,18 +18,6 @@ export type RobloxConnectionProfile = {
   roblox_synced_at?: string | null;
 };
 
-function RobloxLogo({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 32 32" className={className} fill="currentColor">
-      <path
-        fillRule="evenodd"
-        d="M7.2 2 30 7.2 24.8 30 2 24.8 7.2 2Zm6.6 10.1-1.9 8.1 8.2 1.9 1.9-8.2-8.2-1.8Z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
-}
-
 export function RobloxConnection({
   profile,
   returnTo,
@@ -41,6 +30,7 @@ export function RobloxConnection({
   onChanged?: () => void;
 }) {
   const { t } = useI18n();
+  const { theme } = useTheme();
   const [busy, setBusy] = useState<"connect" | "sync" | "disconnect" | null>(null);
   const connected = Boolean(profile?.roblox_user_id);
 
@@ -91,9 +81,12 @@ export function RobloxConnection({
         <p className="text-sm font-semibold">{t("robloxConnectLead")}</p>
         <p className="mt-1 text-xs text-muted-foreground">{t("robloxConnectPrivacy")}</p>
         <Button className="mt-3 w-full" onClick={connect} disabled={busy !== null}>
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-white text-black shadow-sm dark:bg-black dark:text-white">
-            <RobloxLogo />
-          </span>
+          <img
+            src={theme === "dark" ? "/roblox-logo-white.png" : "/roblox-logo-black.png"}
+            alt=""
+            aria-hidden="true"
+            className="h-5 w-5 object-contain"
+          />
           {busy === "connect" ? t("robloxRedirecting") : t("robloxConnect")}
         </Button>
       </div>

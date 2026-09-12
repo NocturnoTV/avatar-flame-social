@@ -133,6 +133,19 @@ const en: Dict = {
   robloxErrorAlreadyLinked: "This Roblox account is already linked to another BloxSpark account.",
   robloxErrorServerConfiguration: "Roblox sign-in is temporarily unavailable.",
   robloxErrorSyncFailed: "The Roblox account could not be linked. Please try again.",
+  or: "or",
+  continueAsGuest: "Continue as guest",
+  guestAccessHint: "Browse freely. Messaging requires an account.",
+  guestBadge: "Guest",
+  guestTitle: "Explore BloxSpark",
+  guestSubtitle: "Discover the community before creating your profile.",
+  guestSettings: "Guest settings",
+  guestMessagesLocked: "Messages are only available with a BloxSpark account.",
+  guestGateTitle: "Enjoying BloxSpark?",
+  guestGateBody: "Create your free account to keep exploring, match and chat with players.",
+  createAccount: "Create my account",
+  continueBrowsing: "Not now",
+  noGuestProfiles: "The community is getting ready. Come back soon!",
 };
 
 const fr: Dict = {
@@ -255,6 +268,19 @@ const fr: Dict = {
   robloxErrorAlreadyLinked: "Ce compte Roblox est déjà associé à un autre compte BloxSpark.",
   robloxErrorServerConfiguration: "La connexion Roblox est temporairement indisponible.",
   robloxErrorSyncFailed: "Le compte Roblox n’a pas pu être associé. Réessaie.",
+  or: "ou",
+  continueAsGuest: "Continuer en tant qu’invité",
+  guestAccessHint: "Explore librement. Un compte est requis pour les messages.",
+  guestBadge: "Invité",
+  guestTitle: "Explore BloxSpark",
+  guestSubtitle: "Découvre la communauté avant de créer ton profil.",
+  guestSettings: "Réglages invité",
+  guestMessagesLocked: "Les messages sont disponibles uniquement avec un compte BloxSpark.",
+  guestGateTitle: "BloxSpark te plaît ?",
+  guestGateBody: "Crée ton compte gratuit pour continuer, matcher et discuter avec les joueurs.",
+  createAccount: "Créer mon compte",
+  continueBrowsing: "Pas maintenant",
+  noGuestProfiles: "La communauté se prépare. Reviens bientôt !",
 };
 
 const es: Dict = {
@@ -378,6 +404,19 @@ const es: Dict = {
   robloxErrorAlreadyLinked: "Esta cuenta de Roblox ya está vinculada a otra cuenta de BloxSpark.",
   robloxErrorServerConfiguration: "La conexión con Roblox no está disponible temporalmente.",
   robloxErrorSyncFailed: "No se pudo vincular la cuenta de Roblox. Inténtalo de nuevo.",
+  or: "o",
+  continueAsGuest: "Continuar como invitado",
+  guestAccessHint: "Explora libremente. Los mensajes requieren una cuenta.",
+  guestBadge: "Invitado",
+  guestTitle: "Explora BloxSpark",
+  guestSubtitle: "Descubre la comunidad antes de crear tu perfil.",
+  guestSettings: "Ajustes de invitado",
+  guestMessagesLocked: "Los mensajes solo están disponibles con una cuenta de BloxSpark.",
+  guestGateTitle: "¿Te gusta BloxSpark?",
+  guestGateBody: "Crea tu cuenta gratis para seguir explorando, hacer match y chatear.",
+  createAccount: "Crear mi cuenta",
+  continueBrowsing: "Ahora no",
+  noGuestProfiles: "La comunidad se está preparando. ¡Vuelve pronto!",
 };
 
 const pt: Dict = {
@@ -500,6 +539,19 @@ const pt: Dict = {
   robloxErrorAlreadyLinked: "Esta conta Roblox já está vinculada a outra conta BloxSpark.",
   robloxErrorServerConfiguration: "O login com Roblox está temporariamente indisponível.",
   robloxErrorSyncFailed: "Não foi possível vincular a conta Roblox. Tente novamente.",
+  or: "ou",
+  continueAsGuest: "Continuar como convidado",
+  guestAccessHint: "Explore livremente. As mensagens exigem uma conta.",
+  guestBadge: "Convidado",
+  guestTitle: "Explore o BloxSpark",
+  guestSubtitle: "Conheça a comunidade antes de criar seu perfil.",
+  guestSettings: "Configurações de convidado",
+  guestMessagesLocked: "As mensagens estão disponíveis apenas com uma conta BloxSpark.",
+  guestGateTitle: "Gostando do BloxSpark?",
+  guestGateBody: "Crie sua conta grátis para continuar, dar match e conversar.",
+  createAccount: "Criar minha conta",
+  continueBrowsing: "Agora não",
+  noGuestProfiles: "A comunidade está se preparando. Volte em breve!",
 };
 
 const de: Dict = {
@@ -626,6 +678,19 @@ const de: Dict = {
   robloxErrorServerConfiguration: "Die Roblox-Anmeldung ist vorübergehend nicht verfügbar.",
   robloxErrorSyncFailed:
     "Das Roblox-Konto konnte nicht verbunden werden. Bitte versuche es erneut.",
+  or: "oder",
+  continueAsGuest: "Als Gast fortfahren",
+  guestAccessHint: "Frei entdecken. Nachrichten erfordern ein Konto.",
+  guestBadge: "Gast",
+  guestTitle: "BloxSpark entdecken",
+  guestSubtitle: "Entdecke die Community, bevor du dein Profil erstellst.",
+  guestSettings: "Gasteinstellungen",
+  guestMessagesLocked: "Nachrichten sind nur mit einem BloxSpark-Konto verfügbar.",
+  guestGateTitle: "Gefällt dir BloxSpark?",
+  guestGateBody: "Erstelle dein kostenloses Konto, um weiterzusuchen, zu matchen und zu chatten.",
+  createAccount: "Konto erstellen",
+  continueBrowsing: "Nicht jetzt",
+  noGuestProfiles: "Die Community macht sich bereit. Schau bald wieder vorbei!",
 };
 
 const ko: Dict = {
@@ -747,6 +812,19 @@ const ko: Dict = {
   robloxErrorAlreadyLinked: "이 Roblox 계정은 이미 다른 BloxSpark 계정에 연결되어 있습니다.",
   robloxErrorServerConfiguration: "Roblox 로그인을 일시적으로 사용할 수 없습니다.",
   robloxErrorSyncFailed: "Roblox 계정을 연결하지 못했습니다. 다시 시도해 주세요.",
+  or: "또는",
+  continueAsGuest: "게스트로 계속하기",
+  guestAccessHint: "자유롭게 둘러보세요. 메시지는 계정이 필요합니다.",
+  guestBadge: "게스트",
+  guestTitle: "BloxSpark 둘러보기",
+  guestSubtitle: "프로필을 만들기 전에 커뮤니티를 만나보세요.",
+  guestSettings: "게스트 설정",
+  guestMessagesLocked: "메시지는 BloxSpark 계정에서만 사용할 수 있습니다.",
+  guestGateTitle: "BloxSpark가 마음에 드나요?",
+  guestGateBody: "무료 계정을 만들고 계속 둘러보고 매치하고 대화하세요.",
+  createAccount: "계정 만들기",
+  continueBrowsing: "나중에",
+  noGuestProfiles: "커뮤니티를 준비 중입니다. 곧 다시 방문해 주세요!",
 };
 
 const DICTS: Record<LangCode, Dict> = { en, fr, es, pt, de, ko };

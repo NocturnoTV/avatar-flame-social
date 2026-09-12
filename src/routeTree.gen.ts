@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
 import { Route as ConditionsRouteImport } from './routes/conditions'
 import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
+import { Route as GuestRouteImport } from './routes/guest'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as ParametresRouteImport } from './routes/parametres'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -68,6 +69,11 @@ const ConditionsRoute = ConditionsRouteImport.update({
 const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
   id: '/confidentialite',
   path: '/confidentialite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuestRoute = GuestRouteImport.update({
+  id: '/guest',
+  path: '/guest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/conditions': typeof ConditionsRoute
   '/confidentialite': typeof ConfidentialiteRoute
+  '/guest': typeof GuestRoute
   '/onboarding': typeof OnboardingRoute
   '/parametres': typeof ParametresRoute
   '/privacy': typeof PrivacyRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/conditions': typeof ConditionsRoute
   '/confidentialite': typeof ConfidentialiteRoute
+  '/guest': typeof GuestRoute
   '/onboarding': typeof OnboardingRoute
   '/parametres': typeof ParametresRoute
   '/privacy': typeof PrivacyRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/conditions': typeof ConditionsRoute
   '/confidentialite': typeof ConfidentialiteRoute
+  '/guest': typeof GuestRoute
   '/onboarding': typeof OnboardingRoute
   '/parametres': typeof ParametresRoute
   '/privacy': typeof PrivacyRoute
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/community-guidelines'
     | '/conditions'
     | '/confidentialite'
+    | '/guest'
     | '/onboarding'
     | '/parametres'
     | '/privacy'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/community-guidelines'
     | '/conditions'
     | '/confidentialite'
+    | '/guest'
     | '/onboarding'
     | '/parametres'
     | '/privacy'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/community-guidelines'
     | '/conditions'
     | '/confidentialite'
+    | '/guest'
     | '/onboarding'
     | '/parametres'
     | '/privacy'
@@ -346,6 +358,7 @@ export interface RootRouteChildren {
   CommunityGuidelinesRoute: typeof CommunityGuidelinesRoute
   ConditionsRoute: typeof ConditionsRoute
   ConfidentialiteRoute: typeof ConfidentialiteRoute
+  GuestRoute: typeof GuestRoute
   OnboardingRoute: typeof OnboardingRoute
   ParametresRoute: typeof ParametresRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -405,6 +418,13 @@ declare module '@tanstack/react-router' {
       path: '/confidentialite'
       fullPath: '/confidentialite'
       preLoaderRoute: typeof ConfidentialiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guest': {
+      id: '/guest'
+      path: '/guest'
+      fullPath: '/guest'
+      preLoaderRoute: typeof GuestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -590,6 +610,7 @@ const rootRouteChildren: RootRouteChildren = {
   CommunityGuidelinesRoute: CommunityGuidelinesRoute,
   ConditionsRoute: ConditionsRoute,
   ConfidentialiteRoute: ConfidentialiteRoute,
+  GuestRoute: GuestRoute,
   OnboardingRoute: OnboardingRoute,
   ParametresRoute: ParametresRoute,
   PrivacyRoute: PrivacyRoute,
