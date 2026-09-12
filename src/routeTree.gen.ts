@@ -21,6 +21,7 @@ import { Route as AuthenticatedParametresRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
 import { Route as AuthenticatedDecouvrirIndexRouteImport } from './routes/_authenticated/decouvrir.index'
+import { Route as AuthenticatedDecouvrirStudioRouteImport } from './routes/_authenticated/decouvrir.studio'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
 
@@ -85,6 +86,12 @@ const AuthenticatedDecouvrirIndexRoute =
     path: '/decouvrir/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDecouvrirStudioRoute =
+  AuthenticatedDecouvrirStudioRouteImport.update({
+    id: '/decouvrir/studio',
+    path: '/decouvrir/studio',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMessagesIndexRoute =
   AuthenticatedMessagesIndexRouteImport.update({
     id: '/messages/',
@@ -108,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/parametres': typeof AuthenticatedParametresRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/sparks': typeof AuthenticatedSparksRoute
+  '/decouvrir/studio': typeof AuthenticatedDecouvrirStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/decouvrir/': typeof AuthenticatedDecouvrirIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -123,6 +131,7 @@ export interface FileRoutesByTo {
   '/parametres': typeof AuthenticatedParametresRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/sparks': typeof AuthenticatedSparksRoute
+  '/decouvrir/studio': typeof AuthenticatedDecouvrirStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/decouvrir': typeof AuthenticatedDecouvrirIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
@@ -140,6 +149,7 @@ export interface FileRoutesById {
   '/_authenticated/parametres': typeof AuthenticatedParametresRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
+  '/_authenticated/decouvrir/studio': typeof AuthenticatedDecouvrirStudioRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/_authenticated/decouvrir/': typeof AuthenticatedDecouvrirIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/parametres'
     | '/profil'
     | '/sparks'
+    | '/decouvrir/studio'
     | '/messages/$id'
     | '/decouvrir/'
     | '/messages/'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/parametres'
     | '/profil'
     | '/sparks'
+    | '/decouvrir/studio'
     | '/messages/$id'
     | '/decouvrir'
     | '/messages'
@@ -188,6 +200,7 @@ export interface FileRouteTypes {
     | '/_authenticated/parametres'
     | '/_authenticated/profil'
     | '/_authenticated/sparks'
+    | '/_authenticated/decouvrir/studio'
     | '/_authenticated/messages/$id'
     | '/_authenticated/decouvrir/'
     | '/_authenticated/messages/'
@@ -289,6 +302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDecouvrirIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/decouvrir/studio': {
+      id: '/_authenticated/decouvrir/studio'
+      path: '/decouvrir/studio'
+      fullPath: '/decouvrir/studio'
+      preLoaderRoute: typeof AuthenticatedDecouvrirStudioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/messages/': {
       id: '/_authenticated/messages/'
       path: '/messages'
@@ -311,6 +331,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedParametresRoute: typeof AuthenticatedParametresRoute
   AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
+  AuthenticatedDecouvrirStudioRoute: typeof AuthenticatedDecouvrirStudioRoute
   AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
   AuthenticatedDecouvrirIndexRoute: typeof AuthenticatedDecouvrirIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
@@ -321,6 +342,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedParametresRoute: AuthenticatedParametresRoute,
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
+  AuthenticatedDecouvrirStudioRoute: AuthenticatedDecouvrirStudioRoute,
   AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
   AuthenticatedDecouvrirIndexRoute: AuthenticatedDecouvrirIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,

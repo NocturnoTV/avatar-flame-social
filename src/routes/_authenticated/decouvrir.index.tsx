@@ -411,8 +411,8 @@ function RailButton({
   icon: ComponentType<{ className?: string }>;
   count: number;
   onClick: () => void;
-  active?: boolean;
-  activeClass?: string;
+  active?: boolean | undefined;
+  activeClass?: string | undefined;
   label: string;
 }) {
   return (
