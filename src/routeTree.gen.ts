@@ -13,7 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConditionsRouteImport } from './routes/conditions'
+import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ReglesRouteImport } from './routes/regles'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
@@ -38,9 +40,19 @@ const ConditionsRoute = ConditionsRouteImport.update({
   path: '/conditions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
+  id: '/confidentialite',
+  path: '/confidentialite',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReglesRoute = ReglesRouteImport.update({
+  id: '/regles',
+  path: '/regles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedNotificationsRoute =
@@ -70,7 +82,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/conditions': typeof ConditionsRoute
+  '/confidentialite': typeof ConfidentialiteRoute
   '/onboarding': typeof OnboardingRoute
+  '/regles': typeof ReglesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/sparks': typeof AuthenticatedSparksRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
@@ -80,7 +94,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/conditions': typeof ConditionsRoute
+  '/confidentialite': typeof ConfidentialiteRoute
   '/onboarding': typeof OnboardingRoute
+  '/regles': typeof ReglesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/sparks': typeof AuthenticatedSparksRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
@@ -92,7 +108,9 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/conditions': typeof ConditionsRoute
+  '/confidentialite': typeof ConfidentialiteRoute
   '/onboarding': typeof OnboardingRoute
+  '/regles': typeof ReglesRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
@@ -104,7 +122,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/conditions'
+    | '/confidentialite'
     | '/onboarding'
+    | '/regles'
     | '/notifications'
     | '/sparks'
     | '/messages/$id'
@@ -114,7 +134,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/conditions'
+    | '/confidentialite'
     | '/onboarding'
+    | '/regles'
     | '/notifications'
     | '/sparks'
     | '/messages/$id'
@@ -125,7 +147,9 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/conditions'
+    | '/confidentialite'
     | '/onboarding'
+    | '/regles'
     | '/_authenticated/notifications'
     | '/_authenticated/sparks'
     | '/_authenticated/messages/$id'
@@ -137,7 +161,9 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ConditionsRoute: typeof ConditionsRoute
+  ConfidentialiteRoute: typeof ConfidentialiteRoute
   OnboardingRoute: typeof OnboardingRoute
+  ReglesRoute: typeof ReglesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -170,11 +196,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConditionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/confidentialite': {
+      id: '/confidentialite'
+      path: '/confidentialite'
+      fullPath: '/confidentialite'
+      preLoaderRoute: typeof ConfidentialiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regles': {
+      id: '/regles'
+      path: '/regles'
+      fullPath: '/regles'
+      preLoaderRoute: typeof ReglesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/notifications': {
@@ -230,7 +270,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ConditionsRoute: ConditionsRoute,
+  ConfidentialiteRoute: ConfidentialiteRoute,
   OnboardingRoute: OnboardingRoute,
+  ReglesRoute: ReglesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
