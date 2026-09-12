@@ -214,6 +214,7 @@ function SparksPage() {
           <Heart className="h-8 w-8" fill="currentColor" />
         </button>
       </div>
+      </div>
 
       <Sheet open={showFilters} onClose={() => setShowFilters(false)} title={t("filters")}>
         <div className="space-y-4">
