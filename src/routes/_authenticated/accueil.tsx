@@ -34,26 +34,85 @@ function greeting(h: number) {
   return { text: "Bonne nuit", emoji: "🌙" };
 }
 
-const NEWS = [
-  {
-    title: "Les nouveautés de la plateforme Roblox",
-    sub: "Mises à jour moteur, avatars et créateurs",
-    url: "https://blog.roblox.com/",
-    tone: "from-blue-500 to-cyan-400",
-  },
-  {
-    title: "Les jeux les plus joués du moment",
-    sub: "Le top des expériences Roblox",
-    url: "https://www.roblox.com/charts",
-    tone: "from-amber-400 to-yellow-300",
-  },
-  {
-    title: "Événements et items limités",
-    sub: "Ne rate pas les drops de la semaine",
-    url: "https://www.roblox.com/catalog",
-    tone: "from-fuchsia-500 to-pink-400",
-  },
-];
+type NewsItem = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  body: string | null;
+  url: string | null;
+  tone: string;
+};
+
+function NewsSection() {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const news = useQuery({
+    queryKey: ["home-news"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("news")
+        .select("id,title,subtitle,body,url,tone")
+        .eq("published", true)
+        .order("position")
+        .order("created_at", { ascending: false })
+        .limit(6);
+      return (data ?? []) as NewsItem[];
+    },
+  });
+
+  const items = news.data ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <section className="mt-7">
+      <h2 className="mb-3 text-lg font-black">Actus Roblox</h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {items.map((n, i) => {
+          const open = openId === n.id;
+          return (
+            <article
+              key={n.id}
+              className={cn(
+                "bx-rise group relative overflow-hidden rounded-3xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:border-primary",
+                `bx-delay-${(i % 4) + 1}`,
+                open && "sm:col-span-3",
+              )}
+            >
+              <span className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", n.tone)} />
+              <button
+                onClick={() => setOpenId(open ? null : n.id)}
+                className="block w-full text-left"
+              >
+                <p className="pr-6 font-bold leading-snug">{n.title}</p>
+                {n.subtitle ? <p className="mt-1 text-xs text-muted-foreground">{n.subtitle}</p> : null}
+              </button>
+              {open && n.body ? (
+                <p className="bx-rise mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                  {n.body}
+                </p>
+              ) : null}
+              {open && n.url ? (
+                <a
+                  href={n.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary"
+                >
+                  Ouvrir la source <ArrowUpRight className="h-4 w-4" />
+                </a>
+              ) : null}
+              <ArrowUpRight
+                className={cn(
+                  "pointer-events-none absolute right-3 top-4 h-4 w-4 text-muted-foreground transition group-hover:text-primary",
+                  open && "rotate-90",
+                )}
+              />
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 function HomePage() {
   const { user } = useSession();
