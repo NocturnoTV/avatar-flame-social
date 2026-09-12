@@ -14,16 +14,407 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          joined_at: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          joined_at?: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          joined_at?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_group: boolean
+          last_message_at: string
+          name: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_group?: boolean
+          last_message_at?: string
+          name?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_group?: boolean
+          last_message_at?: string
+          name?: string | null
+        }
+        Relationships: []
+      }
+      matches: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          id: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string | null
+          conversation_id: string
+          created_at: string
+          duration_ms: number | null
+          id: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          media_url: string | null
+          sender_id: string
+        }
+        Insert: {
+          content?: string | null
+          conversation_id: string
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          kind?: Database["public"]["Enums"]["message_kind"]
+          media_url?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string | null
+          conversation_id?: string
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          kind?: Database["public"]["Enums"]["message_kind"]
+          media_url?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          body: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          read: boolean
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          body?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          read?: boolean
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["notification_kind"]
+          read?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_photos: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          accent_color: string
+          banner_style: string
+          bio: string | null
+          birth_date: string | null
+          created_at: string
+          frame_style: string
+          id: string
+          language: string
+          last_active_at: string
+          onboarding_completed: boolean
+          parent_email: string | null
+          parent_name: string | null
+          parental_consent: boolean
+          roblox_username: string | null
+          sticker: string | null
+          theme: string
+          updated_at: string
+          username: string | null
+          username_changed_at: string | null
+        }
+        Insert: {
+          accent_color?: string
+          banner_style?: string
+          bio?: string | null
+          birth_date?: string | null
+          created_at?: string
+          frame_style?: string
+          id: string
+          language?: string
+          last_active_at?: string
+          onboarding_completed?: boolean
+          parent_email?: string | null
+          parent_name?: string | null
+          parental_consent?: boolean
+          roblox_username?: string | null
+          sticker?: string | null
+          theme?: string
+          updated_at?: string
+          username?: string | null
+          username_changed_at?: string | null
+        }
+        Update: {
+          accent_color?: string
+          banner_style?: string
+          bio?: string | null
+          birth_date?: string | null
+          created_at?: string
+          frame_style?: string
+          id?: string
+          language?: string
+          last_active_at?: string
+          onboarding_completed?: boolean
+          parent_email?: string | null
+          parent_name?: string | null
+          parental_consent?: boolean
+          roblox_username?: string | null
+          sticker?: string | null
+          theme?: string
+          updated_at?: string
+          username?: string | null
+          username_changed_at?: string | null
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          message_id: string | null
+          reason: string
+          reporter_id: string
+          target_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          message_id?: string | null
+          reason: string
+          reporter_id: string
+          target_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          message_id?: string | null
+          reason?: string
+          reporter_id?: string
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swipes: {
+        Row: {
+          action: Database["public"]["Enums"]["swipe_action"]
+          created_at: string
+          id: string
+          swiper_id: string
+          target_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["swipe_action"]
+          created_at?: string
+          id?: string
+          swiper_id: string
+          target_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["swipe_action"]
+          created_at?: string
+          id?: string
+          swiper_id?: string
+          target_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_group: {
+        Args: { _members: string[]; _name: string }
+        Returns: string
+      }
+      is_blocked: { Args: { _a: string; _b: string }; Returns: boolean }
+      is_member: {
+        Args: { _conversation: string; _user: string }
+        Returns: boolean
+      }
+      perform_swipe: {
+        Args: {
+          _action: Database["public"]["Enums"]["swipe_action"]
+          _target: string
+        }
+        Returns: Json
+      }
+      spark_deck: {
+        Args: {
+          _lang?: string
+          _limit?: number
+          _max_age?: number
+          _min_age?: number
+        }
+        Returns: {
+          accent_color: string
+          banner_style: string
+          bio: string | null
+          birth_date: string | null
+          created_at: string
+          frame_style: string
+          id: string
+          language: string
+          last_active_at: string
+          onboarding_completed: boolean
+          parent_email: string | null
+          parent_name: string | null
+          parental_consent: boolean
+          roblox_username: string | null
+          sticker: string | null
+          theme: string
+          updated_at: string
+          username: string | null
+          username_changed_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
-      [_ in never]: never
+      message_kind: "text" | "image" | "voice" | "system"
+      notification_kind: "match" | "message" | "like" | "super" | "system"
+      swipe_action: "like" | "pass" | "super"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +541,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      message_kind: ["text", "image", "voice", "system"],
+      notification_kind: ["match", "message", "like", "super", "system"],
+      swipe_action: ["like", "pass", "super"],
+    },
   },
 } as const
