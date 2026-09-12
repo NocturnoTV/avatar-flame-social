@@ -37,11 +37,14 @@ type DeckProfile = {
   frame_style: string;
   accent_color: string;
   sticker: string | null;
+  avatar_url: string | null;
+  verified: boolean | null;
 };
 
 function SparksPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const [tab, setTab] = useState<"deck" | "matches">("deck");
   const [filters, setFilters] = useState({ lang: "", min: 13, max: 99 });
   const [showFilters, setShowFilters] = useState(false);
   const [index, setIndex] = useState(0);
