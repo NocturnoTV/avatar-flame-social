@@ -371,7 +371,7 @@ function VideoSlide({
       </div>
 
       {/* action rail */}
-      <div className="absolute bottom-8 right-2 z-20 flex flex-col items-center gap-5">
+      <div className="absolute bottom-24 right-2 z-20 flex flex-col items-center gap-5">
         <div className="relative">
           <div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white">
             <StoredImage path={avatar} alt={username} className="h-full w-full" fallback="🎮" />
