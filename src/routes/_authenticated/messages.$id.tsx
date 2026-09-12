@@ -197,20 +197,47 @@ function Conversation() {
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {(messages.data ?? []).map((m) => {
           const mine = m.sender_id === user?.id;
+          const sender = header.data?.people?.[m.sender_id];
           return (
-            <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+            <div
+              key={m.id}
+              className={cn("flex items-end gap-2", mine ? "justify-end" : "justify-start")}
+            >
+              {!mine ? (
+                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border bg-surface-2">
+                  <StoredImage
+                    path={sender?.avatar_url ?? null}
+                    alt={sender?.username ?? ""}
+                    className="h-full w-full"
+                    fallback="🎮"
+                  />
+                </div>
+              ) : null}
               <div
                 className={cn(
                   "max-w-[78%] rounded-3xl px-4 py-2.5 text-sm",
                   mine ? "spark-gradient text-white" : "bg-surface-2 text-foreground",
                 )}
               >
+                {!mine && header.data?.isGroup ? (
+                  <p className="mb-0.5 text-xs font-bold text-muted-foreground">{sender?.username ?? "?"}</p>
+                ) : null}
                 {m.kind === "text" ? <p className="whitespace-pre-wrap break-words">{m.content}</p> : null}
                 {m.kind === "image" ? (
                   <StoredImage path={m.media_url} alt="" className="h-48 w-48 rounded-2xl" />
                 ) : null}
                 {m.kind === "voice" ? <StoredAudio path={m.media_url} /> : null}
               </div>
+              {mine ? (
+                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border bg-surface-2">
+                  <StoredImage
+                    path={sender?.avatar_url ?? null}
+                    alt=""
+                    className="h-full w-full"
+                    fallback="🙂"
+                  />
+                </div>
+              ) : null}
             </div>
           );
         })}
