@@ -1,10 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { AlertTriangle, BadgeCheck, Eye, MessagesSquare, Search, ShieldCheck, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Eye,
+  MessagesSquare,
+  Newspaper,
+  Plus,
+  Search,
+  ShieldCheck,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button, Input, Sheet } from "@/components/ui-kit";
+import { Button, Input, Label, Sheet, Select, Textarea } from "@/components/ui-kit";
 import { Verified } from "@/components/Verified";
 import { useSession } from "@/lib/session";
 import { useRoles, type AppRole } from "@/lib/roles";
@@ -21,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "overview" | "members" | "reports" | "conversations" | "audit";
+type Tab = "overview" | "members" | "reports" | "conversations" | "news" | "audit";
 
 function AdminPage() {
   const { user } = useSession();
@@ -51,6 +62,7 @@ function AdminPage() {
     { id: "members", label: "Membres" },
     { id: "reports", label: "Signalements" },
     { id: "conversations", label: "Conversations" },
+    { id: "news", label: "Actualités" },
     { id: "audit", label: "Journal" },
   ];
 
@@ -86,6 +98,7 @@ function AdminPage() {
         {tab === "members" ? <Members isAdmin={isAdmin} log={log} /> : null}
         {tab === "reports" ? <Reports log={log} /> : null}
         {tab === "conversations" ? <Conversations log={log} /> : null}
+        {tab === "news" ? <NewsAdmin log={log} /> : null}
         {tab === "audit" ? <Audit /> : null}
       </div>
     </div>
@@ -410,6 +423,208 @@ function Audit() {
           </p>
         </div>
       ))}
+    </div>
+  );
+}
+
+const TONES = [
+  { value: "from-blue-500 to-cyan-400", label: "Bleu" },
+  { value: "from-fuchsia-500 to-pink-400", label: "Rose" },
+  { value: "from-amber-400 to-yellow-300", label: "Or" },
+  { value: "from-emerald-500 to-lime-400", label: "Vert" },
+  { value: "from-violet-500 to-indigo-400", label: "Violet" },
+];
+
+type NewsRow = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  body: string | null;
+  url: string | null;
+  tone: string;
+  position: number;
+  published: boolean;
+};
+
+function NewsAdmin({ log }: { log: (a: string, u?: string, d?: string) => Promise<void> }) {
+  const empty = {
+    title: "",
+    subtitle: "",
+    body: "",
+    url: "",
+    tone: TONES[0]!.value,
+    position: 0,
+    published: true,
+  };
+  const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+  const [busy, setBusy] = useState(false);
+
+  const list = useQuery({
+    queryKey: ["admin-news"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("news")
+        .select("id,title,subtitle,body,url,tone,position,published")
+        .order("position")
+        .order("created_at", { ascending: false });
+      return (data ?? []) as NewsRow[];
+    },
+  });
+
+  async function save() {
+    if (!form.title.trim()) {
+      toast.error("Le titre est obligatoire");
+      return;
+    }
+    setBusy(true);
+    const payload = {
+      title: form.title.trim(),
+      subtitle: form.subtitle.trim() || null,
+      body: form.body.trim() || null,
+      url: form.url.trim() || null,
+      tone: form.tone,
+      position: Number(form.position) || 0,
+      published: form.published,
+    };
+    const { error } = form.id
+      ? await supabase.from("news").update(payload).eq("id", form.id)
+      : await supabase.from("news").insert(payload);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await log(form.id ? "news_update" : "news_create", undefined, payload.title);
+    toast.success("Actualité enregistrée");
+    setForm(empty);
+    void list.refetch();
+  }
+
+  async function remove(row: NewsRow) {
+    const { error } = await supabase.from("news").delete().eq("id", row.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await log("news_delete", undefined, row.title);
+    if (form.id === row.id) setForm(empty);
+    toast.success("Actualité supprimée");
+    void list.refetch();
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-3 rounded-3xl border border-border bg-card p-4">
+        <div className="flex items-center gap-2">
+          <Newspaper className="h-5 w-5 text-primary" />
+          <p className="font-bold">{form.id ? "Modifier l'actualité" : "Nouvelle actualité"}</p>
+        </div>
+        <div>
+          <Label>Titre</Label>
+          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        </div>
+        <div>
+          <Label>Sous-titre</Label>
+          <Input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} />
+        </div>
+        <div>
+          <Label>Article</Label>
+          <Textarea
+            rows={6}
+            value={form.body}
+            onChange={(e) => setForm({ ...form, body: e.target.value })}
+            placeholder="Contenu complet de l'article…"
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <Label>Lien (optionnel)</Label>
+            <Input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
+          </div>
+          <div>
+            <Label>Couleur</Label>
+            <Select value={form.tone} onChange={(e) => setForm({ ...form, tone: e.target.value })}>
+              {TONES.map((x) => (
+                <option key={x.value} value={x.value}>
+                  {x.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label>Ordre</Label>
+            <Input
+              type="number"
+              value={String(form.position)}
+              onChange={(e) => setForm({ ...form, position: Number(e.target.value) })}
+            />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-[var(--spark)]"
+            checked={form.published}
+            onChange={(e) => setForm({ ...form, published: e.target.checked })}
+          />
+          Publiée sur la page d'accueil
+        </label>
+        <div className="flex gap-3">
+          <Button onClick={save} disabled={busy}>
+            <Plus className="mr-1 h-4 w-4" />
+            {form.id ? "Enregistrer" : "Publier"}
+          </Button>
+          {form.id ? (
+            <Button variant="outline" onClick={() => setForm(empty)}>
+              Annuler
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {(list.data ?? []).map((n) => (
+          <div key={n.id} className="rounded-3xl border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-bold">{n.title}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {n.subtitle ?? "—"} · {n.published ? "publiée" : "brouillon"} · ordre {n.position}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setForm({
+                      id: n.id,
+                      title: n.title,
+                      subtitle: n.subtitle ?? "",
+                      body: n.body ?? "",
+                      url: n.url ?? "",
+                      tone: n.tone,
+                      position: n.position,
+                      published: n.published,
+                    })
+                  }
+                >
+                  Modifier
+                </Button>
+                <button
+                  onClick={() => void remove(n)}
+                  className="rounded-full border border-border p-2 text-destructive"
+                  aria-label="Supprimer"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {list.data && list.data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucune actualité pour le moment.</p>
+        ) : null}
+      </div>
     </div>
   );
 }
