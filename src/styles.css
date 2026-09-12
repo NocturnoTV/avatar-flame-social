@@ -172,3 +172,58 @@
 @utility bx-glow {
   animation: bx-glow 5s ease-in-out infinite;
 }
+
+@keyframes bx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bx-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes bx-pop {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@utility bx-spin {
+  animation: bx-spin 9s linear infinite;
+}
+
+@utility bx-pop {
+  animation: bx-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility bx-shimmer {
+  background-size: 200% 100%;
+  animation: bx-shimmer 2.2s linear infinite;
+}
+
+@utility bx-delay-1 {
+  animation-delay: 0.06s;
+}
+@utility bx-delay-2 {
+  animation-delay: 0.12s;
+}
+@utility bx-delay-3 {
+  animation-delay: 0.18s;
+}
+@utility bx-delay-4 {
+  animation-delay: 0.24s;
+}
