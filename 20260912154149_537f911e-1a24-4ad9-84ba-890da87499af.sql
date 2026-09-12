@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.video_counter() FROM PUBLIC, anon, authenticated;
