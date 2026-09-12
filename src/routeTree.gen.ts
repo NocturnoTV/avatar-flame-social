@@ -14,6 +14,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
+import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
+import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +41,33 @@ const AuthenticatedSparksRoute = AuthenticatedSparksRouteImport.update({
   path: '/sparks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMessagesIndexRoute =
+  AuthenticatedMessagesIndexRouteImport.update({
+    id: '/messages/',
+    path: '/messages/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMessagesIdRoute = AuthenticatedMessagesIdRouteImport.update({
+  id: '/messages/$id',
+  path: '/messages/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/sparks': typeof AuthenticatedSparksRoute
+  '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/messages/': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/sparks': typeof AuthenticatedSparksRoute
+  '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/messages': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +76,15 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
+  '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/onboarding' | '/sparks'
+  fullPaths:
+    '/' | '/auth' | '/onboarding' | '/sparks' | '/messages/$id' | '/messages/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/onboarding' | '/sparks'
+  to: '/' | '/auth' | '/onboarding' | '/sparks' | '/messages/$id' | '/messages'
   id:
     | '__root__'
     | '/'
@@ -72,6 +92,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/_authenticated/sparks'
+    | '/_authenticated/messages/$id'
+    | '/_authenticated/messages/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,15 +140,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSparksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/messages/': {
+      id: '/_authenticated/messages/'
+      path: '/messages'
+      fullPath: '/messages/'
+      preLoaderRoute: typeof AuthenticatedMessagesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/messages/$id': {
+      id: '/_authenticated/messages/$id'
+      path: '/messages/$id'
+      fullPath: '/messages/$id'
+      preLoaderRoute: typeof AuthenticatedMessagesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
+  AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
+  AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
+  AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
+  AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
