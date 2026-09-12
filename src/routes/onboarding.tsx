@@ -8,6 +8,8 @@ import { LANGUAGES, useI18n, type LangCode } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { ageFrom } from "@/lib/decorations";
+import { Flag } from "@/components/Flag";
+import heroAsset from "@/assets/onboarding-hero.png.asset.json";
 
 export const Route = createFileRoute("/onboarding")({
   ssr: false,
