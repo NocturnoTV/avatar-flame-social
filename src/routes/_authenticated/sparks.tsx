@@ -413,6 +413,18 @@ function SparkCard({
           </div>
           <p className="mt-1 text-sm opacity-90">🎮 {profile.roblox_username}</p>
           {profile.bio ? <p className="mt-2 line-clamp-3 text-sm opacity-90">{profile.bio}</p> : null}
+          {games.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {games.slice(0, 5).map((g) => (
+                <span
+                  key={g}
+                  className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
+                >
+                  <Gamepad2 className="h-3 w-3" /> {g}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <span
             className={cn("mt-3 inline-block h-1.5 w-16 rounded-full", FRAMES[profile.frame_style] ? "" : "")}
             style={{ backgroundColor: accent }}
