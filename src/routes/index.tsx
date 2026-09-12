@@ -34,7 +34,7 @@ function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
-        <Logo className="h-7" />
+        <Logo className="h-12" />
         <Link to="/auth">
           <Button variant="outline" size="sm">
             {t("signIn")}
@@ -47,7 +47,8 @@ function Landing() {
           <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-24 -right-16 h-72 w-72 rounded-full bg-spark-2/25 blur-3xl" />
           <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground">
+            <Logo className="mx-auto mb-7 h-28 drop-shadow-[0_0_50px_rgba(255,90,140,0.3)] sm:h-40" />
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1 text-xs font-semibold tracking-[0.2em] text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5" /> BLOXSPARK
             </span>
             <h1 className="mx-auto mt-6 max-w-2xl text-4xl font-bold leading-tight sm:text-6xl">

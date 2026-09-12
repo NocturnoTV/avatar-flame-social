@@ -19,7 +19,7 @@ export function LegalPage({
           <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground">
             <ArrowLeft className="h-4 w-4" /> Bloxspark
           </Link>
-          <Logo className="h-6" />
+          <Logo className="h-10" />
         </div>
 
         <h1 className="mt-8 text-3xl font-bold tracking-tight">{title}</h1>

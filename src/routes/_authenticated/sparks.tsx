@@ -113,7 +113,7 @@ function SparksPage() {
   return (
     <div className="mx-auto w-full max-w-md px-4 pt-4">
       <header className="flex items-center justify-between">
-        <Logo className="h-7" />
+        <Logo className="h-11" />
         <Button variant="ghost" size="icon" onClick={() => setShowFilters(true)} aria-label={t("filters")}>
           <SlidersHorizontal className="h-5 w-5" />
         </Button>
