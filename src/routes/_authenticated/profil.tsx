@@ -52,6 +52,7 @@ function ProfilePage() {
   const [busy, setBusy] = useState(false);
   const [gameName, setGameName] = useState("");
   const [gameUrl, setGameUrl] = useState("");
+  const [draft, setDraft] = useState<Record<string, unknown>>({});
 
   const profile = useQuery({
     queryKey: ["my-profile"],
