@@ -1,10 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { AlertTriangle, BadgeCheck, Eye, MessagesSquare, Search, ShieldCheck, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Eye,
+  MessagesSquare,
+  Newspaper,
+  Plus,
+  Search,
+  ShieldCheck,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button, Input, Sheet } from "@/components/ui-kit";
+import { Button, Input, Label, Sheet, Select, Textarea } from "@/components/ui-kit";
 import { Verified } from "@/components/Verified";
 import { useSession } from "@/lib/session";
 import { useRoles, type AppRole } from "@/lib/roles";
