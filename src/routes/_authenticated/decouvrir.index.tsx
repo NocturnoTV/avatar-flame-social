@@ -116,12 +116,22 @@ function DiscoverPage() {
 
   return (
     <div className="relative h-[calc(100dvh-4.5rem)] w-full overflow-hidden bg-black lg:h-dvh">
-      {/* top bar */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 bg-gradient-to-b from-black/70 to-transparent p-4">
-        <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-black/40 p-1 backdrop-blur">
+      {/* top bar — style TikTok : onglets centrés, actions à droite */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 via-black/25 to-transparent px-3 pb-8 pt-3">
+        <div className="pointer-events-auto flex w-20 items-center gap-1">
+          <button
+            onClick={() => setMuted((m) => !m)}
+            className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
+            aria-label={muted ? "Activer le son" : "Couper le son"}
+          >
+            {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </button>
+        </div>
+
+        <div className="pointer-events-auto flex items-center gap-5">
           {(
             [
-              ["following", "Abonnements"],
+              ["following", "Suivis"],
               ["foryou", "Pour toi"],
             ] as const
           ).map(([value, label]) => (
@@ -129,34 +139,35 @@ function DiscoverPage() {
               key={value}
               onClick={() => setTab(value)}
               className={cn(
-                "rounded-full px-4 py-1.5 text-sm font-bold transition",
-                tab === value ? "bg-white text-black" : "text-white/70 hover:text-white",
+                "relative pb-1.5 text-[15px] transition",
+                tab === value ? "font-extrabold text-white" : "font-semibold text-white/60",
               )}
             >
               {label}
+              <span
+                className={cn(
+                  "absolute inset-x-0 -bottom-0.5 mx-auto h-[3px] rounded-full bg-white transition-all duration-300",
+                  tab === value ? "w-7 opacity-100" : "w-0 opacity-0",
+                )}
+              />
             </button>
           ))}
         </div>
-        <div className="pointer-events-auto flex items-center gap-2">
-          <button
-            onClick={() => setMuted((m) => !m)}
-            className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
-            aria-label={muted ? "Activer le son" : "Couper le son"}
-          >
-            {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          </button>
+
+        <div className="pointer-events-auto flex w-20 items-center justify-end gap-1">
           <Link
             to="/decouvrir/studio"
-            className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
+            className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
             aria-label="Studio créateur"
           >
             <BarChart3 className="h-5 w-5" />
           </Link>
           <Link
             to="/decouvrir/studio"
-            className="flex h-10 items-center gap-1.5 rounded-full spark-gradient px-4 text-sm font-bold text-white shadow-lg shadow-primary/30"
+            className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
+            aria-label="Publier une vidéo"
           >
-            <Plus className="h-4 w-4" /> Publier
+            <Plus className="h-6 w-6" />
           </Link>
         </div>
       </div>
