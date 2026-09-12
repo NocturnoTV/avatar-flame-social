@@ -174,7 +174,14 @@ function SparksPage() {
           </div>
         ) : (
           <>
-            {next ? <SparkCard profile={next} photos={photos[next.id] ?? []} className="scale-95 opacity-60" /> : null}
+            {next ? (
+              <SparkCard
+                profile={next}
+                photos={photos[next.id] ?? []}
+                games={deckGames[next.id] ?? []}
+                className="scale-95 opacity-60"
+              />
+            ) : null}
             <div
               style={cardStyle}
               onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
