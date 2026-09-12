@@ -511,6 +511,22 @@ function ProfilePage() {
       >
         {t("settings")}
       </Link>
+
+      {/* Bouton Enregistrer fixe, au-dessus de la navbar mobile */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-40 flex justify-center px-4 lg:bottom-6">
+        <button
+          onClick={saveChanges}
+          disabled={!dirty || saving || busy}
+          className={cn(
+            "pointer-events-auto flex h-12 items-center gap-2 rounded-full px-7 text-sm font-bold text-white shadow-xl transition",
+            dirty ? "spark-gradient bx-pop" : "bg-muted-foreground/40",
+            (!dirty || saving || busy) && "cursor-not-allowed opacity-70",
+          )}
+        >
+          <Save className="h-4.5 w-4.5" />
+          {saving ? t("loading") : dirty ? "Enregistrer les modifications" : t("saved")}
+        </button>
+      </div>
     </div>
   );
 }
