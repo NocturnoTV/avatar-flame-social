@@ -8,12 +8,12 @@ import { Button, Input, Label } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
-type Search = { mode?: "signup" | "signin" };
+type Search = { mode?: "signup" | "signin" | undefined };
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>): Search => ({
-    mode: search["mode"] === "signup" ? "signup" : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): Search =>
+    search["mode"] === "signup" ? { mode: "signup" } : {},
+
   head: () => ({
     meta: [
       { title: "Connexion — Bloxspark" },

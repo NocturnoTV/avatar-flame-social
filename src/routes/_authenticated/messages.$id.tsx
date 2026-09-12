@@ -55,11 +55,15 @@ function Conversation() {
         .maybeSingle();
       const { data: members } = await supabase
         .from("conversation_participants")
-        .select("user_id,profiles!inner(id,username)")
+        .select("user_id")
         .eq("conversation_id", id);
-      const others = (members ?? [])
-        .filter((m) => m.user_id !== user?.id)
-        .map((m) => (m.profiles as unknown as { username: string | null }).username);
+      const otherIds = (members ?? []).map((m) => m.user_id).filter((uid) => uid !== user?.id);
+      const { data: people } = await supabase
+        .from("profiles")
+        .select("id,username")
+        .in("id", otherIds.length > 0 ? otherIds : ["00000000-0000-0000-0000-000000000000"]);
+      const others = (people ?? []).map((p) => p.username);
+
       return {
         title: convo?.is_group ? convo.name : (others[0] ?? "?"),
         isGroup: !!convo?.is_group,
