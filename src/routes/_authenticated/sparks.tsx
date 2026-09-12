@@ -385,8 +385,12 @@ function SparkCard({
       )}
     >
       <div className="relative h-full">
-        {photos[0] ? (
-          <StoredImage path={photos[0]} alt={profile.username ?? ""} className="h-full w-full" />
+        {profile.avatar_url || photos[0] ? (
+          <StoredImage
+            path={profile.avatar_url ?? photos[0]}
+            alt={profile.username ?? ""}
+            className="h-full w-full"
+          />
         ) : (
           <div
             className="h-full w-full"
