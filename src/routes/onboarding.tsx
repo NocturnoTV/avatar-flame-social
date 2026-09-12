@@ -92,21 +92,48 @@ function Onboarding() {
     navigate({ to: "/sparks", replace: true });
   }
 
+  const steps = [t("username"), t("birthDate"), t("profile") || "Profil"];
+
   return (
-    <div className="min-h-screen bg-background px-5 py-8">
-      <div className="mx-auto w-full max-w-md">
-        <Logo className="mx-auto h-20 drop-shadow-[0_0_36px_rgba(255,90,140,0.22)] sm:h-24" />
-        <h1 className="mt-8 text-2xl font-bold">{t("onboarding")}</h1>
-        <div className="mt-4 flex gap-2">
+    <div className="relative min-h-screen overflow-hidden bg-background px-5 pb-14 pt-6">
+      <div className="pointer-events-none absolute -left-32 top-20 h-72 w-72 rounded-full bg-primary/25 blur-3xl bx-glow" />
+      <div className="pointer-events-none absolute -right-24 top-1/2 h-72 w-72 rounded-full bg-spark-2/25 blur-3xl bx-glow" />
+
+      <div className="relative mx-auto w-full max-w-md">
+        <div className="overflow-hidden rounded-[2rem] border border-border shadow-[0_30px_70px_-40px_rgba(0,0,0,0.7)]">
+          <div className="relative">
+            <img
+              src={heroAsset.url}
+              alt="Avatars Roblox colorés en pleine action"
+              className="h-40 w-full object-cover sm:h-48"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+            <Logo className="absolute bottom-4 left-1/2 h-16 -translate-x-1/2 bx-float drop-shadow-[0_0_36px_rgba(0,0,0,0.5)] sm:h-20" />
+          </div>
+        </div>
+
+        <h1 className="mt-7 text-center text-3xl font-bold">
+          <span className="spark-text">{t("onboarding")}</span>
+        </h1>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          {steps[step]} · {step + 1}/3
+        </p>
+
+        <div className="mt-5 flex gap-2">
           {[0, 1, 2].map((i) => (
             <span
               key={i}
-              className={`h-1.5 flex-1 rounded-full ${i <= step ? "spark-gradient" : "bg-muted"}`}
+              className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
+                i <= step ? "spark-gradient" : "bg-muted"
+              }`}
             />
           ))}
         </div>
 
-        <div className="mt-6 space-y-5 rounded-3xl border border-border bg-card p-5">
+        <div
+          key={step}
+          className="bx-rise mt-6 space-y-5 rounded-[2rem] border border-border bg-card p-6 shadow-[0_24px_60px_-35px_rgba(0,0,0,0.6)]"
+        >
           {step === 0 && (
             <>
               <div>
