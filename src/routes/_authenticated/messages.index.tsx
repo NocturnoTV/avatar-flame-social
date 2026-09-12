@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/messages/")({
 type Row = {
   id: string;
   is_group: boolean;
-  title: string | null;
+  name: string | null;
   last_message_at: string | null;
   others: { id: string; username: string | null }[];
   preview: string;
@@ -47,7 +47,7 @@ function MessagesPage() {
       if (ids.length === 0) return [];
       const { data: convos } = await supabase
         .from("conversations")
-        .select("id,is_group,title,last_message_at")
+        .select("id,is_group,name,last_message_at")
         .in("id", ids)
         .order("last_message_at", { ascending: false, nullsFirst: false });
       const { data: members } = await supabase
@@ -110,7 +110,7 @@ function MessagesPage() {
   async function createGroup() {
     if (!groupTitle.trim() || selected.length === 0) return;
     const { error } = await supabase.rpc("create_group", {
-      _title: groupTitle.trim(),
+      _name: groupTitle.trim(),
       _members: selected,
     });
     if (error) {
@@ -137,7 +137,7 @@ function MessagesPage() {
           <p className="py-16 text-center text-sm text-muted-foreground">{t("noConversations")}</p>
         ) : null}
         {(conversations.data ?? []).map((c) => {
-          const name = c.is_group ? c.title : (c.others[0]?.username ?? "?");
+          const name = c.is_group ? c.name : (c.others[0]?.username ?? "?");
           return (
             <Link
               key={c.id}
