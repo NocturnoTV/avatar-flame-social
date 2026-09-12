@@ -1,14 +1,16 @@
 import { Flag } from "@/components/Flag";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Heart, SlidersHorizontal, Star, X } from "lucide-react";
+import { Gamepad2, Heart, SlidersHorizontal, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { Button, Select, Sheet } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
+import { Verified } from "@/components/Verified";
 import { LANGUAGES, useI18n } from "@/lib/i18n";
+import { useSession } from "@/lib/session";
 import { ACCENTS, BANNERS, FRAMES, STICKERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 
