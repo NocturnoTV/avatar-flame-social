@@ -143,6 +143,27 @@ function SparksPage() {
         </Button>
       </header>
 
+      <div className="mt-3 flex gap-2">
+        {([
+          ["deck", t("sparks")],
+          ["matches", "Mes matchs"],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={cn(
+              "flex-1 rounded-full px-4 py-2 text-sm font-semibold transition",
+              tab === id ? "spark-gradient text-white" : "border border-border text-muted-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "matches" ? <MatchesTab /> : null}
+
+      <div className={cn(tab === "deck" ? "" : "hidden")}>
       <div className="relative mt-4 h-[62vh] min-h-100">
         {!current ? (
           <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-border text-center text-muted-foreground">
