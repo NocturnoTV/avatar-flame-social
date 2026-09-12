@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button, Input, Label, Select, Textarea } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
 import { uploadFile } from "@/lib/media";
-import { LANGUAGES, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { ACCENTS, BANNERS, FRAMES, STICKERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
