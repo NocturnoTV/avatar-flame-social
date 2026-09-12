@@ -345,7 +345,7 @@ function VideoSlide({
             if (el.paused) void el.play();
             else el.pause();
           }}
-          className="h-full w-full object-contain"
+          className="h-full w-full object-cover"
         />
       ) : (
         <div className="grid h-full w-full place-items-center text-white/50">Chargement de la vidéo…</div>
