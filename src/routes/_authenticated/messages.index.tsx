@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button, Input, Sheet } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
+import { Verified } from "@/components/Verified";
 
 export const Route = createFileRoute("/_authenticated/messages/")({
   head: () => ({
