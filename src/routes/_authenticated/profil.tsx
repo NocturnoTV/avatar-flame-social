@@ -94,15 +94,23 @@ function ProfilePage() {
     enabled: !!user,
   });
 
-  async function patch(values: Record<string, unknown>) {
-    if (!user) return;
+  // Les modifications sont mises en brouillon et enregistrées uniquement au clic sur "Enregistrer".
+  function patch(values: Record<string, unknown>) {
+    setDraft((d) => ({ ...d, ...values }));
+  }
+
+  const dirty = Object.keys(draft).length > 0;
+
+  async function saveChanges() {
+    if (!user || !dirty) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update(values as never).eq("id", user.id);
+    const { error } = await supabase.from("profiles").update(draft as never).eq("id", user.id);
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
+    setDraft({});
     toast.success(t("saved"));
     void profile.refetch();
   }
@@ -113,7 +121,7 @@ function ProfilePage() {
     try {
       const ext = file.name.split(".").pop() ?? "jpg";
       const path = await uploadFile("profile-photos", user.id, file, ext);
-      await patch(kind === "avatar" ? { avatar_url: path } : { banner_url: path });
+      patch(kind === "avatar" ? { avatar_url: path } : { banner_url: path });
     } catch {
       toast.error(t("errorGeneric"));
     } finally {
