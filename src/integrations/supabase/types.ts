@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: string | null
+          id: string
+          target_id: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          target_id?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          target_id?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -85,6 +115,39 @@ export type Database = {
           is_group?: boolean
           last_message_at?: string
           name?: string | null
+        }
+        Relationships: []
+      }
+      data_requests: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          note: string | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          note?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -247,66 +310,87 @@ export type Database = {
       profiles: {
         Row: {
           accent_color: string
+          avatar_url: string | null
           banner_style: string
+          banner_url: string | null
           bio: string | null
           birth_date: string | null
           created_at: string
+          deletion_requested_at: string | null
           frame_style: string
           id: string
           language: string
           last_active_at: string
+          notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null
           parent_name: string | null
           parental_consent: boolean
+          privacy_prefs: Json
           roblox_username: string | null
           sticker: string | null
           theme: string
           updated_at: string
           username: string | null
           username_changed_at: string | null
+          verified: boolean
+          verified_at: string | null
         }
         Insert: {
           accent_color?: string
+          avatar_url?: string | null
           banner_style?: string
+          banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
           created_at?: string
+          deletion_requested_at?: string | null
           frame_style?: string
           id: string
           language?: string
           last_active_at?: string
+          notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
           parent_name?: string | null
           parental_consent?: boolean
+          privacy_prefs?: Json
           roblox_username?: string | null
           sticker?: string | null
           theme?: string
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
+          verified?: boolean
+          verified_at?: string | null
         }
         Update: {
           accent_color?: string
+          avatar_url?: string | null
           banner_style?: string
+          banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
           created_at?: string
+          deletion_requested_at?: string | null
           frame_style?: string
           id?: string
           language?: string
           last_active_at?: string
+          notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
           parent_name?: string | null
           parental_consent?: boolean
+          privacy_prefs?: Json
           roblox_username?: string | null
           sticker?: string | null
           theme?: string
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
+          verified?: boolean
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -314,28 +398,40 @@ export type Database = {
         Row: {
           created_at: string
           details: string | null
+          handled_at: string | null
+          handled_by: string | null
           id: string
           message_id: string | null
+          moderator_note: string | null
           reason: string
           reporter_id: string
+          status: string
           target_user_id: string | null
         }
         Insert: {
           created_at?: string
           details?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
           id?: string
           message_id?: string | null
+          moderator_note?: string | null
           reason: string
           reporter_id: string
+          status?: string
           target_user_id?: string | null
         }
         Update: {
           created_at?: string
           details?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
           id?: string
           message_id?: string | null
+          moderator_note?: string | null
           reason?: string
           reporter_id?: string
+          status?: string
           target_user_id?: string | null
         }
         Relationships: [
@@ -347,6 +443,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      roblox_games: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       swipes: {
         Row: {
@@ -369,6 +492,27 @@ export type Database = {
           id?: string
           swiper_id?: string
           target_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -577,11 +721,19 @@ export type Database = {
         Args: { _members: string[]; _name: string }
         Returns: string
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_blocked: { Args: { _a: string; _b: string }; Returns: boolean }
       is_member: {
         Args: { _conversation: string; _user: string }
         Returns: boolean
       }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
       perform_swipe: {
         Args: {
           _action: Database["public"]["Enums"]["swipe_action"]
@@ -598,24 +750,31 @@ export type Database = {
         }
         Returns: {
           accent_color: string
+          avatar_url: string | null
           banner_style: string
+          banner_url: string | null
           bio: string | null
           birth_date: string | null
           created_at: string
+          deletion_requested_at: string | null
           frame_style: string
           id: string
           language: string
           last_active_at: string
+          notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null
           parent_name: string | null
           parental_consent: boolean
+          privacy_prefs: Json
           roblox_username: string | null
           sticker: string | null
           theme: string
           updated_at: string
           username: string | null
           username_changed_at: string | null
+          verified: boolean
+          verified_at: string | null
         }[]
         SetofOptions: {
           from: "*"
@@ -626,6 +785,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       message_kind: "text" | "image" | "voice" | "system"
       notification_kind: "match" | "message" | "like" | "super" | "system"
       swipe_action: "like" | "pass" | "super"
@@ -756,6 +916,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       message_kind: ["text", "image", "voice", "system"],
       notification_kind: ["match", "message", "like", "super", "system"],
       swipe_action: ["like", "pass", "super"],

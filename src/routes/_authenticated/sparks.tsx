@@ -1,14 +1,16 @@
 import { Flag } from "@/components/Flag";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Heart, SlidersHorizontal, Star, X } from "lucide-react";
+import { Gamepad2, Heart, SlidersHorizontal, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { Button, Select, Sheet } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
+import { Verified } from "@/components/Verified";
 import { LANGUAGES, useI18n } from "@/lib/i18n";
+import { useSession } from "@/lib/session";
 import { ACCENTS, BANNERS, FRAMES, STICKERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 
@@ -35,11 +37,14 @@ type DeckProfile = {
   frame_style: string;
   accent_color: string;
   sticker: string | null;
+  avatar_url: string | null;
+  verified: boolean | null;
 };
 
 function SparksPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const [tab, setTab] = useState<"deck" | "matches">("deck");
   const [filters, setFilters] = useState({ lang: "", min: 13, max: 99 });
   const [showFilters, setShowFilters] = useState(false);
   const [index, setIndex] = useState(0);
@@ -77,6 +82,24 @@ function SparksPage() {
       for (const row of data ?? []) {
         (map[row.user_id] ??= []).push(row.url);
       }
+      return map;
+    },
+  });
+
+  const { data: deckGames = {} } = useQuery({
+    queryKey: ["deck-games", deck.map((d) => d.id).join(",")],
+    enabled: deck.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("roblox_games")
+        .select("user_id,name,position")
+        .in(
+          "user_id",
+          deck.map((d) => d.id),
+        )
+        .order("position");
+      const map: Record<string, string[]> = {};
+      for (const row of data ?? []) (map[row.user_id] ??= []).push(row.name);
       return map;
     },
   });
@@ -120,6 +143,27 @@ function SparksPage() {
         </Button>
       </header>
 
+      <div className="mt-3 flex gap-2">
+        {([
+          ["deck", t("sparks")],
+          ["matches", "Mes matchs"],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={cn(
+              "flex-1 rounded-full px-4 py-2 text-sm font-semibold transition",
+              tab === id ? "spark-gradient text-white" : "border border-border text-muted-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "matches" ? <MatchesTab /> : null}
+
+      <div className={cn(tab === "deck" ? "" : "hidden")}>
       <div className="relative mt-4 h-[62vh] min-h-100">
         {!current ? (
           <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-border text-center text-muted-foreground">
@@ -130,7 +174,14 @@ function SparksPage() {
           </div>
         ) : (
           <>
-            {next ? <SparkCard profile={next} photos={photos[next.id] ?? []} className="scale-95 opacity-60" /> : null}
+            {next ? (
+              <SparkCard
+                profile={next}
+                photos={photos[next.id] ?? []}
+                games={deckGames[next.id] ?? []}
+                className="scale-95 opacity-60"
+              />
+            ) : null}
             <div
               style={cardStyle}
               onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
@@ -144,7 +195,11 @@ function SparksPage() {
               }}
               className="absolute inset-0 touch-none"
             >
-              <SparkCard profile={current} photos={photos[current.id] ?? []} />
+              <SparkCard
+                profile={current}
+                photos={photos[current.id] ?? []}
+                games={deckGames[current.id] ?? []}
+              />
             </div>
           </>
         )}
@@ -169,6 +224,7 @@ function SparksPage() {
         >
           <Heart className="h-8 w-8" fill="currentColor" />
         </button>
+      </div>
       </div>
 
       <Sheet open={showFilters} onClose={() => setShowFilters(false)} title={t("filters")}>
@@ -234,13 +290,97 @@ function SparksPage() {
   );
 }
 
+function MatchesTab() {
+  const { user } = useSession();
+
+  const matches = useQuery({
+    queryKey: ["my-matches", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: rows, error } = await supabase
+        .from("matches")
+        .select("id,user_a,user_b,conversation_id,created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const others = (rows ?? []).map((m) => (m.user_a === user?.id ? m.user_b : m.user_a));
+      if (others.length === 0) return [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,verified,language")
+        .in("id", others);
+      const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+      return (rows ?? []).map((m) => ({
+        ...m,
+        other: byId.get(m.user_a === user?.id ? m.user_b : m.user_a),
+      }));
+    },
+  });
+
+  const likes = useQuery({
+    queryKey: ["likes-received", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .in("kind", ["like", "super"]);
+      return count ?? 0;
+    },
+  });
+
+  const list = matches.data ?? [];
+
+  return (
+    <div className="mt-4 space-y-3 pb-4">
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <p className="text-sm text-muted-foreground">J'aime reçus</p>
+        <p className="spark-text text-3xl font-bold">{likes.data ?? 0}</p>
+      </div>
+      {list.length === 0 ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          Pas encore de match. Continue à swiper !
+        </p>
+      ) : (
+        list.map((m) =>
+          m.conversation_id ? (
+            <Link
+              key={m.id}
+              to="/messages/$id"
+              params={{ id: m.conversation_id }}
+              className="flex items-center gap-3 rounded-3xl border border-border bg-card p-3"
+            >
+              <StoredImage
+                path={m.other?.avatar_url}
+                alt={m.other?.username ?? ""}
+                className="h-14 w-14 shrink-0 rounded-2xl"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <span className="truncate">{m.other?.username ?? "Membre"}</span>
+                  {m.other?.verified ? <Verified /> : null}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  Match du {new Date(m.created_at).toLocaleDateString("fr-FR")}
+                </span>
+              </span>
+              <Heart className="h-5 w-5 shrink-0 text-primary" fill="currentColor" />
+            </Link>
+          ) : null,
+        )
+      )}
+    </div>
+  );
+}
+
 function SparkCard({
   profile,
   photos,
+  games = [],
   className,
 }: {
   profile: DeckProfile;
   photos: string[];
+  games?: string[];
   className?: string;
 }) {
   const { t } = useI18n();
@@ -256,8 +396,12 @@ function SparkCard({
       )}
     >
       <div className="relative h-full">
-        {photos[0] ? (
-          <StoredImage path={photos[0]} alt={profile.username ?? ""} className="h-full w-full" />
+        {profile.avatar_url || photos[0] ? (
+          <StoredImage
+            path={profile.avatar_url ?? photos[0]}
+            alt={profile.username ?? ""}
+            className="h-full w-full"
+          />
         ) : (
           <div
             className="h-full w-full"
@@ -267,6 +411,7 @@ function SparkCard({
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-5 pt-16 text-white">
           <div className="flex items-center gap-2">
             <h2 className="text-2xl font-bold">{profile.username}</h2>
+            {profile.verified ? <Verified className="h-5 w-5" /> : null}
             {age ? (
               <span className="text-lg">
                 {age} {t("years")}
@@ -279,6 +424,18 @@ function SparkCard({
           </div>
           <p className="mt-1 text-sm opacity-90">🎮 {profile.roblox_username}</p>
           {profile.bio ? <p className="mt-2 line-clamp-3 text-sm opacity-90">{profile.bio}</p> : null}
+          {games.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {games.slice(0, 5).map((g) => (
+                <span
+                  key={g}
+                  className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
+                >
+                  <Gamepad2 className="h-3 w-3" /> {g}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <span
             className={cn("mt-3 inline-block h-1.5 w-16 rounded-full", FRAMES[profile.frame_style] ? "" : "")}
             style={{ backgroundColor: accent }}
