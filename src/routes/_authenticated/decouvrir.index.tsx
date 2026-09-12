@@ -418,6 +418,7 @@ function VideoSlide({
         />
         <RailButton icon={Send} count={video.shares_count} onClick={share} label="Partager" />
       </div>
+      </div>
     </div>
   );
 }
