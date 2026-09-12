@@ -62,6 +62,7 @@ function AdminPage() {
     { id: "members", label: "Membres" },
     { id: "reports", label: "Signalements" },
     { id: "conversations", label: "Conversations" },
+    { id: "news", label: "Actualités" },
     { id: "audit", label: "Journal" },
   ];
 
