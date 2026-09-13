@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Bell, CheckCheck, Plus, Search, X } from "lucide-react";
+import { Bell, CheckCheck, ChevronRight, Inbox, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button, Input, Sheet } from "@/components/ui-kit";
@@ -29,6 +29,8 @@ type Row = {
   name: string | null;
   others: Person[];
   preview: string;
+  request_status: string;
+  created_by: string | null;
 };
 type Story = {
   id: string;
@@ -52,6 +54,7 @@ function MessagesPage() {
   const [groupTitle, setGroupTitle] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
+  const [showRequests, setShowRequests] = useState(false);
   const storyInput = useRef<HTMLInputElement>(null);
 
   const conversations = useQuery({
@@ -67,7 +70,7 @@ function MessagesPage() {
       const [{ data: convos }, { data: members }, { data: lastMessages }] = await Promise.all([
         supabase
           .from("conversations")
-          .select("id,is_group,name,last_message_at")
+          .select("id,is_group,name,last_message_at,request_status,created_by")
           .in("id", ids)
           .order("last_message_at", { ascending: false }),
         supabase
@@ -99,10 +102,26 @@ function MessagesPage() {
             : last?.kind === "image"
               ? "🖼️ Photo"
               : (last?.content ?? "");
-        return { id: c.id, is_group: c.is_group, name: c.name, others, preview };
+        return {
+          id: c.id,
+          is_group: c.is_group,
+          name: c.name,
+          others,
+          preview,
+          request_status: c.request_status,
+          created_by: c.created_by,
+        };
       });
     },
   });
+
+  async function respondToRequest(conversationId: string, accept: boolean) {
+    await supabase
+      .from("conversations")
+      .update({ request_status: accept ? "accepted" : "declined" })
+      .eq("id", conversationId);
+    void conversations.refetch();
+  }
 
   const stories = useQuery({
     queryKey: ["stories", user?.id],
@@ -237,7 +256,13 @@ function MessagesPage() {
   const peopleStories = (stories.data ?? []).filter(
     (story, index, all) => all.findIndex((x) => x.user_id === story.user_id) === index,
   );
-  const filtered = (conversations.data ?? []).filter((c) =>
+  const pendingReceived = (conversations.data ?? []).filter(
+    (c) => c.request_status === "pending" && c.created_by !== user?.id,
+  );
+  const visible = (conversations.data ?? []).filter(
+    (c) => c.request_status === "accepted" || (c.request_status === "pending" && c.created_by === user?.id),
+  );
+  const filtered = visible.filter((c) =>
     (c.is_group ? c.name : c.others[0]?.username)?.toLowerCase().includes(search.toLowerCase()),
   );
 
@@ -334,6 +359,23 @@ function MessagesPage() {
               className="min-w-0 flex-1 bg-transparent text-sm outline-none"
             />
           </label>
+          {pendingReceived.length > 0 ? (
+            <button
+              onClick={() => setShowRequests(true)}
+              className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-primary/10 p-3 text-left ring-1 ring-primary/20"
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-white">
+                <Inbox className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-primary">{t("messageRequests")}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {pendingReceived.length}
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-primary" />
+            </button>
+          ) : null}
           <div className="mt-4 space-y-1">
             {!filtered.length ? (
               <p className="py-14 text-center text-sm text-muted-foreground">
@@ -362,7 +404,11 @@ function MessagesPage() {
                       {!c.is_group && person?.verified ? <Verified /> : null}
                     </p>
                     <p className="truncate text-sm text-muted-foreground">
-                      {c.preview || t("startChat")}
+                      {c.request_status === "pending" ? (
+                        <span className="font-semibold text-primary">{t("requestSent")}</span>
+                      ) : (
+                        c.preview || t("startChat")
+                      )}
                     </p>
                   </div>
                 </Link>
@@ -440,6 +486,53 @@ function MessagesPage() {
           <Button className="w-full" onClick={() => void createGroup()}>
             {t("create")}
           </Button>
+        </div>
+      </Sheet>
+      <Sheet
+        open={showRequests}
+        onClose={() => setShowRequests(false)}
+        title={t("messageRequests")}
+      >
+        <div className="space-y-2">
+          {pendingReceived.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {t("noMessageRequests")}
+            </p>
+          ) : null}
+          {pendingReceived.map((c) => {
+            const person = c.others[0];
+            const name = person?.username ?? "?";
+            return (
+              <div key={c.id} className="flex items-center gap-3 rounded-2xl p-2">
+                <Link
+                  to="/users/$id"
+                  params={{ id: person?.id ?? "" }}
+                  onClick={() => setShowRequests(false)}
+                >
+                  <StoredImage
+                    path={person?.avatar_url}
+                    alt={name}
+                    className="h-12 w-12 rounded-full"
+                    fallback={name[0]?.toUpperCase() ?? "?"}
+                  />
+                </Link>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{c.preview}</p>
+                </div>
+                <Button size="sm" onClick={() => void respondToRequest(c.id, true)}>
+                  {t("acceptRequest")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void respondToRequest(c.id, false)}
+                >
+                  {t("declineRequest")}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       </Sheet>
       {activeStory ? (

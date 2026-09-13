@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ImagePlus, Mic, Send, Square } from "lucide-react";
@@ -58,6 +58,7 @@ function Conversation() {
   const { id } = Route.useParams();
   const { t } = useI18n();
   const { user } = useSession();
+  const navigate = useNavigate();
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -70,7 +71,7 @@ function Conversation() {
     queryFn: async () => {
       const { data: convo } = await supabase
         .from("conversations")
-        .select("id,is_group,name")
+        .select("id,is_group,name,request_status,created_by")
         .eq("id", id)
         .maybeSingle();
       const { data: members } = await supabase
@@ -101,9 +102,20 @@ function Conversation() {
         members: others.length + 1,
         people: byId,
         otherId: otherIds[0] ?? null,
+        requestStatus: convo?.request_status ?? "accepted",
+        isRequester: convo?.created_by === user?.id,
       };
     },
   });
+
+  async function respondToRequest(accept: boolean) {
+    await supabase
+      .from("conversations")
+      .update({ request_status: accept ? "accepted" : "declined" })
+      .eq("id", id);
+    void header.refetch();
+    if (!accept) await navigate({ to: "/messages" });
+  }
 
   const messages = useQuery({
     queryKey: ["messages", id],
@@ -241,6 +253,26 @@ function Conversation() {
           ) : null}
         </div>
       </header>
+
+      {header.data?.requestStatus === "pending" ? (
+        header.data.isRequester ? (
+          <p className="bg-primary/10 px-4 py-2.5 text-center text-xs font-semibold text-primary">
+            {t("requestSent")}
+          </p>
+        ) : (
+          <div className="flex items-center justify-between gap-2 bg-primary/10 px-4 py-2.5">
+            <p className="text-xs font-semibold text-primary">{t("requestPending")}</p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => void respondToRequest(true)}>
+                {t("acceptRequest")}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => void respondToRequest(false)}>
+                {t("declineRequest")}
+              </Button>
+            </div>
+          </div>
+        )
+      ) : null}
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {(messages.data ?? []).map((m) => {

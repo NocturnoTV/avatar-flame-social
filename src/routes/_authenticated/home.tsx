@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Card } from "@/components/ui-kit";
@@ -43,10 +43,8 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <div className="flex items-center gap-2.5">
-        <span className="spark-gradient grid h-8 w-8 shrink-0 place-items-center rounded-xl text-base">
-          {emoji}
-        </span>
+      <div className="flex items-center gap-2">
+        <span className="text-xl leading-none">{emoji}</span>
         <h2 className="text-lg font-black">{title}</h2>
       </div>
       {action ? (
@@ -325,7 +323,7 @@ function HomePage() {
                 aria-label="Notifications"
                 className="relative grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90"
               >
-                <span className="text-lg leading-none">🔔</span>
+                <Bell className="h-5 w-5" />
                 {counters.data?.unread ? (
                   <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
                     {counters.data.unread > 9 ? "9+" : counters.data.unread}
@@ -354,28 +352,6 @@ function HomePage() {
         </div>
       </header>
 
-      {/* Stats */}
-      <Reveal>
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          {[
-            { label: t("matches"), value: counters.data?.matches ?? 0, emoji: "🔥" },
-            { label: t("followers"), value: counters.data?.followers ?? 0, emoji: "👥" },
-            { label: t("notifications"), value: counters.data?.unread ?? 0, emoji: "🔔" },
-          ].map((s, i) => (
-            <Card
-              key={s.label}
-              className={cn(
-                "bx-rise p-4 text-center transition hover:-translate-y-0.5",
-                `bx-delay-${i + 1}`,
-              )}
-            >
-              <span className="mb-1.5 block text-xl leading-none">{s.emoji}</span>
-              <p className="text-xl font-black">{s.value}</p>
-              <p className="text-[11px] text-muted-foreground">{s.label}</p>
-            </Card>
-          ))}
-        </div>
-      </Reveal>
 
       {/* 1. Découvrir — vidéos du moment */}
       <Reveal className="mt-8">

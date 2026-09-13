@@ -99,6 +99,7 @@ export type Database = {
           is_group: boolean
           last_message_at: string
           name: string | null
+          request_status: string
         }
         Insert: {
           created_at?: string
@@ -107,6 +108,7 @@ export type Database = {
           is_group?: boolean
           last_message_at?: string
           name?: string | null
+          request_status?: string
         }
         Update: {
           created_at?: string
@@ -115,6 +117,7 @@ export type Database = {
           is_group?: boolean
           last_message_at?: string
           name?: string | null
+          request_status?: string
         }
         Relationships: []
       }
@@ -1131,6 +1134,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      start_direct_message: {
+        Args: { _target: string }
+        Returns: string
       }
     }
     Enums: {
