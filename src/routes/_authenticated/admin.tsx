@@ -6,6 +6,7 @@ import {
   Ban,
   BadgeCheck,
   Bell,
+  Crown,
   Eye,
   KeyRound,
   Mail,
@@ -446,6 +447,51 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                 </p>
               ) : null}
             </section>
+
+            {isAdmin ? (
+              <section className="space-y-3 border-t border-border pt-4">
+                <h3 className="flex items-center gap-2 font-black">
+                  <Crown className="h-4 w-4 text-primary" /> Bloxspark Plus
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {selected.sparkPlusActive
+                    ? selected.sparkPlusExpiresAt
+                      ? `Actif jusqu'au ${new Date(String(selected.sparkPlusExpiresAt)).toLocaleDateString("fr-FR")}`
+                      : "Actif à vie"
+                    : "Pas de Spark Plus actif"}
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {(
+                    [
+                      ["1m", "+1 mois"],
+                      ["3m", "+3 mois"],
+                      ["1y", "+1 an"],
+                      ["lifetime", "À vie"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <Button
+                      key={value}
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => act("grant_spark_plus", value)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+                {selected.sparkPlusActive ? (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => act("revoke_spark_plus")}
+                  >
+                    Retirer Spark Plus
+                  </Button>
+                ) : null}
+              </section>
+            ) : null}
 
             {isAdmin ? (
               <section className="space-y-3 border-t border-border pt-4">

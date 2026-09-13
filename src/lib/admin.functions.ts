@@ -31,7 +31,7 @@ export const adminListMembers = createServerFn({ method: "GET" })
         (supabaseAdmin as any)
           .from("profiles")
           .select(
-            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,moderation_status,warning_count,banned_until,moderation_note",
+            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,moderation_status,warning_count,banned_until,moderation_note,spark_plus_active,spark_plus_expires_at",
           )
           .order("created_at", { ascending: false }),
         supabaseAdmin.from("user_roles").select("user_id,role"),
@@ -70,6 +70,8 @@ export const adminListMembers = createServerFn({ method: "GET" })
         lastSignInAt: auth?.last_sign_in_at ?? null,
         bannedUntil: auth?.banned_until ?? (profile["banned_until"] as string | null) ?? null,
         roles: rolesById.get(String(profile["id"])) ?? [],
+        sparkPlusActive: Boolean(profile["spark_plus_active"]),
+        sparkPlusExpiresAt: (profile["spark_plus_expires_at"] as string | null) ?? null,
       };
     });
   });
@@ -136,6 +138,8 @@ const actionSchema = z.object({
     "hide_video",
     "restore_video",
     "delete_video",
+    "grant_spark_plus",
+    "revoke_spark_plus",
   ]),
   userId: z.string().uuid(),
   value: z.string().max(500).optional(),
@@ -146,7 +150,14 @@ export const adminManageMember = createServerFn({ method: "POST" })
   .validator(actionSchema)
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
-    const adminOnly = ["ban", "unban", "update_email", "update_password"].includes(data.action);
+    const adminOnly = [
+      "ban",
+      "unban",
+      "update_email",
+      "update_password",
+      "grant_spark_plus",
+      "revoke_spark_plus",
+    ].includes(data.action);
     const { supabaseAdmin } = await requireStaff(context.userId, adminOnly);
     if (data.userId === context.userId && data.action === "ban") throw new Error("cannot_ban_self");
 
@@ -222,6 +233,32 @@ export const adminManageMember = createServerFn({ method: "POST" })
       const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password });
       if (error) throw error;
       details = "password_reset";
+    }
+
+    if (data.action === "grant_spark_plus") {
+      const duration = value || "1m";
+      let expiresAt: string | null = null;
+      if (duration !== "lifetime") {
+        const months = { "1m": 1, "3m": 3, "6m": 6, "1y": 12 }[duration];
+        if (!months) throw new Error("invalid_duration");
+        const expires = new Date();
+        expires.setMonth(expires.getMonth() + months);
+        expiresAt = expires.toISOString();
+      }
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({ spark_plus_active: true, spark_plus_expires_at: expiresAt })
+        .eq("id", data.userId);
+      if (error) throw error;
+      details = duration;
+    }
+
+    if (data.action === "revoke_spark_plus") {
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({ spark_plus_active: false, spark_plus_expires_at: null })
+        .eq("id", data.userId);
+      if (error) throw error;
     }
 
     if (["hide_video", "restore_video", "delete_video"].includes(data.action)) {

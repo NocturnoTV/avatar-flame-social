@@ -1,8 +1,9 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav, SideNav } from "@/components/AppNav";
 import { AppMenu } from "@/components/AppMenu";
+import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -34,8 +35,37 @@ export const Route = createFileRoute("/_authenticated")({
   component: AppLayout,
 });
 
+/**
+ * Keeps profiles.last_active_at fresh so "online" status / "last seen"
+ * actually reflects reality instead of the value from account creation
+ * (it was never updated anywhere before this).
+ */
+function usePresenceHeartbeat() {
+  const { user } = useSession();
+  useEffect(() => {
+    if (!user) return;
+    const userId = user.id;
+    async function ping() {
+      await supabase.from("profiles").update({ last_active_at: new Date().toISOString() }).eq("id", userId);
+    }
+    void ping();
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") void ping();
+    }, 60_000);
+    function onVisible() {
+      if (document.visibilityState === "visible") void ping();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [user]);
+}
+
 function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  usePresenceHeartbeat();
   return (
     <div className="app-background min-h-screen">
       <SideNav />

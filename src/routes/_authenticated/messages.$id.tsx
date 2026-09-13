@@ -27,7 +27,8 @@ import { Button } from "@/components/ui-kit";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { PresenceDot, presenceStatus } from "@/components/PresenceDot";
 import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
-import { getBubbleTheme, getWallpaper, resolveWallpaperCss } from "@/lib/chatTheme";
+import { BUBBLE_THEMES, WALLPAPERS, getBubbleTheme, getWallpaper, resolveWallpaperCss } from "@/lib/chatTheme";
+import { isSparkPlusActive } from "@/lib/sparkPlus";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -120,8 +121,26 @@ function Conversation() {
   const [reportingMessage, setReportingMessage] = useState<Message | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
   const [lightbox, setLightbox] = useState<Message | null>(null);
-  const [wallpaper, setWallpaperLocal] = useState(() => getWallpaper(id));
-  const [bubble, setBubbleLocal] = useState(() => getBubbleTheme(id));
+  const [wallpaperChoice, setWallpaperLocal] = useState(() => getWallpaper(id));
+  const [bubbleChoice, setBubbleLocal] = useState(() => getBubbleTheme(id));
+  const myPlus = useQuery({
+    queryKey: ["my-spark-plus", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("spark_plus_active,spark_plus_expires_at")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const hasPlus = isSparkPlusActive(myPlus.data);
+  // Custom wallpaper/bubble is a Spark Plus perk — a non-Plus viewer (or one
+  // whose Plus lapsed) always sees the classic default, even if a custom
+  // choice is still saved locally from before.
+  const wallpaper = hasPlus ? wallpaperChoice : WALLPAPERS[0]!;
+  const bubble = hasPlus ? bubbleChoice : BUBBLE_THEMES[0]!;
   const wallpaperCss = resolveWallpaperCss(wallpaper, theme);
   const bubbleGradient = `linear-gradient(90deg, ${bubble.from} 0%, ${bubble.to} 100%)`;
   const [otherTyping, setOtherTyping] = useState(false);
@@ -1115,7 +1134,7 @@ function ForwardSheet({
   );
 }
 
-/** Original hand-drawn "note" bubble — thin outline, doodle face + hands at the corners. */
+/** Classic bubble for messages from the other person — plain, purple-tinted. */
 function ReceivedBubble({
   children,
   padded = true,
@@ -1124,50 +1143,15 @@ function ReceivedBubble({
   padded?: boolean;
 }) {
   return (
-    <div className="relative text-[#050505] dark:text-white">
-      <div className="rounded-[26px] border-2 border-current bg-background">
-        {padded ? (
-          <p className="whitespace-pre-wrap break-words px-[22px] py-[16px] pr-8 text-[15px]">
-            {children}
-          </p>
-        ) : (
-          children
-        )}
-      </div>
-      <DoodleFace className="absolute -right-1.5 -top-2.5 h-6 w-9" />
-      <DoodleHand className="absolute -bottom-2 -left-1.5 h-5 w-5 -scale-x-100" />
-      <DoodleHand className="absolute -bottom-2 -right-1.5 h-5 w-5" />
+    <div className="rounded-[26px] bg-primary/12 text-foreground dark:bg-primary/20">
+      {padded ? (
+        <p className="whitespace-pre-wrap break-words px-[22px] py-[16px] text-[15px]">
+          {children}
+        </p>
+      ) : (
+        children
+      )}
     </div>
-  );
-}
-
-function DoodleFace({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 40 26" className={className} fill="none" aria-hidden="true">
-      <ellipse cx="10" cy="12" rx="3.4" ry="5" fill="currentColor" transform="rotate(-12 10 12)" />
-      <ellipse cx="21" cy="10" rx="3.4" ry="5" fill="currentColor" transform="rotate(-6 21 10)" />
-      <path
-        d="M14 20c3-3 9-3 14-1"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
-
-function DoodleHand({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-      <path
-        d="M4 20c0-5 1-8 2-10M8 20c0-6 .5-9 1.5-11M12 20c0-6 0-10 1-12M16 20c0-5-.5-8 .5-10c1-2 3-1.5 3 .5c0 4-1 8-3 11.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
   );
 }
 

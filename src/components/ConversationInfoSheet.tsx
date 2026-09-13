@@ -22,6 +22,7 @@ import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { isSparkPlusActive } from "@/lib/sparkPlus";
 import {
   BUBBLE_THEMES,
   WALLPAPERS,
@@ -70,6 +71,20 @@ export function ConversationInfoSheet({
   const [bubble, setBubbleState] = useState(() => getBubbleTheme(conversationId));
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState("");
+
+  const myPlus = useQuery({
+    queryKey: ["my-spark-plus", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("spark_plus_active,spark_plus_expires_at")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const hasPlus = isSparkPlusActive(myPlus.data);
 
   const contact = useQuery({
     queryKey: ["contact-info", otherId, user?.id],
@@ -272,16 +287,22 @@ export function ConversationInfoSheet({
           <Row
             icon={MessageSquare}
             label={t("chatBubble")}
-            onClick={() => setPickingBubble((v) => !v)}
+            onClick={() => (hasPlus ? setPickingBubble((v) => !v) : navigate({ to: "/shop" }))}
             right={
-              <span
-                className="h-6 w-6 shrink-0 rounded-full"
-                style={{ background: `linear-gradient(90deg, ${bubble.from}, ${bubble.to})` }}
-              />
+              hasPlus ? (
+                <span
+                  className="h-6 w-6 shrink-0 rounded-full"
+                  style={{ background: `linear-gradient(90deg, ${bubble.from}, ${bubble.to})` }}
+                />
+              ) : (
+                <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  Plus
+                </span>
+              )
             }
             chevron
           />
-          {pickingBubble ? (
+          {pickingBubble && hasPlus ? (
             <div className="flex flex-wrap gap-3 rounded-2xl bg-[#F5F5F5] p-3 dark:bg-[#1c1c1e]">
               {BUBBLE_THEMES.map((b) => (
                 <button
@@ -305,16 +326,22 @@ export function ConversationInfoSheet({
           <Row
             icon={Paintbrush}
             label={t("chatWallpaper")}
-            onClick={() => setPickingWallpaper((v) => !v)}
+            onClick={() => (hasPlus ? setPickingWallpaper((v) => !v) : navigate({ to: "/shop" }))}
             right={
-              <span
-                className="h-6 w-6 shrink-0 rounded-full border border-black/10 dark:border-white/20"
-                style={{ background: wallpaper.css }}
-              />
+              hasPlus ? (
+                <span
+                  className="h-6 w-6 shrink-0 rounded-full border border-black/10 dark:border-white/20"
+                  style={{ background: wallpaper.css }}
+                />
+              ) : (
+                <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  Plus
+                </span>
+              )
             }
             chevron
           />
-          {pickingWallpaper ? (
+          {pickingWallpaper && hasPlus ? (
             <div className="flex flex-wrap gap-3 rounded-2xl bg-[#F5F5F5] p-3 dark:bg-[#1c1c1e]">
               {WALLPAPERS.map((w) => (
                 <button

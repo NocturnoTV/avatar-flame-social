@@ -1,6 +1,15 @@
 export const PROFILE_FONTS = ["default", "rounded", "serif", "mono", "display"] as const;
 export const PROFILE_GLOWS = ["none", "blue", "cyan", "royal"] as const;
 
+export function isSparkPlusActive(profile?: {
+  spark_plus_active?: boolean | null;
+  spark_plus_expires_at?: string | null;
+} | null) {
+  if (!profile?.spark_plus_active) return false;
+  if (!profile.spark_plus_expires_at) return true;
+  return new Date(profile.spark_plus_expires_at).getTime() > Date.now();
+}
+
 export function profileFontClass(font?: string | null) {
   if (font === "rounded") return "font-[ui-rounded,'Arial_Rounded_MT_Bold',sans-serif]";
   if (font === "serif") return "font-serif";
