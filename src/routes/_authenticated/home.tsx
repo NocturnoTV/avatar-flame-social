@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   ArrowUpRight,
   Bell,
@@ -18,6 +19,7 @@ import { Logo } from "@/components/Logo";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 import heroAsset from "@/assets/onboarding-hero.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/home")({
@@ -37,13 +39,6 @@ export const Route = createFileRoute("/_authenticated/home")({
   component: HomePage,
 });
 
-function greeting(h: number) {
-  if (h >= 5 && h < 12) return { text: "Bon matin", emoji: "🌅" };
-  if (h >= 12 && h < 18) return { text: "Bonjour", emoji: "☀️" };
-  if (h >= 18 && h < 23) return { text: "Bonsoir", emoji: "🌆" };
-  return { text: "Bonne nuit", emoji: "🌙" };
-}
-
 type NewsItem = {
   id: string;
   title: string;
@@ -55,6 +50,11 @@ type NewsItem = {
 
 function NewsSection() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [translations, setTranslations] = useState<
+    Record<string, { title: string; subtitle: string | null; body: string | null }>
+  >({});
+  const [translating, setTranslating] = useState<string | null>(null);
+  const { t, lang } = useI18n();
   const news = useQuery({
     queryKey: ["home-news"],
     queryFn: async () => {
@@ -74,7 +74,7 @@ function NewsSection() {
 
   return (
     <section className="mt-7">
-      <h2 className="mb-3 text-lg font-black">Actus Roblox</h2>
+      <h2 className="mb-3 text-lg font-black">{t("newsTitle")}</h2>
       <div className="grid gap-3 sm:grid-cols-3">
         {items.map((n, i) => {
           const open = openId === n.id;
@@ -92,15 +92,29 @@ function NewsSection() {
                 onClick={() => setOpenId(open ? null : n.id)}
                 className="block w-full text-left"
               >
-                <p className="pr-6 font-bold leading-snug">{n.title}</p>
+                <p className="pr-6 font-bold leading-snug">
+                  {translations[n.id]?.title ?? n.title}
+                </p>
                 {n.subtitle ? (
-                  <p className="mt-1 text-xs text-muted-foreground">{n.subtitle}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {translations[n.id]?.subtitle ?? n.subtitle}
+                  </p>
                 ) : null}
               </button>
               {open && n.body ? (
                 <p className="bx-rise mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                  {n.body}
+                  {translations[n.id]?.body ?? n.body}
                 </p>
+              ) : null}
+              {open && lang !== "en" ? (
+                <button
+                  disabled={translating === n.id}
+                  onClick={() => void translateArticle(n)}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {translations[n.id] ? t("showOriginal") : t("translateWithAi")}
+                </button>
               ) : null}
               {open && n.url ? (
                 <a
@@ -109,7 +123,7 @@ function NewsSection() {
                   rel="noreferrer noopener"
                   className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary"
                 >
-                  Ouvrir la source <ArrowUpRight className="h-4 w-4" />
+                  {t("source")} <ArrowUpRight className="h-4 w-4" />
                 </a>
               ) : null}
               <ArrowUpRight
@@ -124,12 +138,57 @@ function NewsSection() {
       </div>
     </section>
   );
+
+  async function translateArticle(article: NewsItem) {
+    if (translations[article.id]) {
+      setTranslations((current) => {
+        const next = { ...current };
+        delete next[article.id];
+        return next;
+      });
+      return;
+    }
+    setTranslating(article.id);
+    try {
+      const api = (
+        globalThis as unknown as {
+          Translator?: {
+            create: (options: {
+              sourceLanguage: string;
+              targetLanguage: string;
+            }) => Promise<{ translate: (text: string) => Promise<string> }>;
+          };
+        }
+      ).Translator;
+      if (!api) throw new Error("AI translation is not supported by this browser yet.");
+      const translator = await api.create({ sourceLanguage: "en", targetLanguage: lang });
+      const [title, subtitle, body] = await Promise.all([
+        translator.translate(article.title),
+        article.subtitle ? translator.translate(article.subtitle) : Promise.resolve(null),
+        article.body ? translator.translate(article.body) : Promise.resolve(null),
+      ]);
+      setTranslations((current) => ({ ...current, [article.id]: { title, subtitle, body } }));
+    } catch (error) {
+      console.error(error);
+      toast.error(t("translationUnavailable"));
+    } finally {
+      setTranslating(null);
+    }
+  }
 }
 
 function HomePage() {
   const { user } = useSession();
+  const { t } = useI18n();
   const hour = new Date().getHours();
-  const hello = greeting(hour);
+  const hello =
+    hour >= 5 && hour < 12
+      ? { text: t("greetingMorning"), emoji: "🌅" }
+      : hour < 18
+        ? { text: t("greetingDay"), emoji: "☀️" }
+        : hour < 23
+          ? { text: t("greetingEvening"), emoji: "🌆" }
+          : { text: t("greetingNight"), emoji: "🌙" };
 
   const me = useQuery({
     queryKey: ["me-home", user?.id],
@@ -246,7 +305,7 @@ function HomePage() {
               </span>
               {me.data?.verified ? <Verified className="h-5 w-5" /> : null}
             </h1>
-            <p className="text-xs text-white/75">Voici ce qui bouge sur Bloxspark aujourd'hui.</p>
+            <p className="text-xs text-white/75">{t("homeToday")}</p>
           </div>
         </div>
       </header>
@@ -254,9 +313,9 @@ function HomePage() {
       {/* Stats */}
       <div className="mt-4 grid grid-cols-3 gap-3">
         {[
-          { label: "Matchs", value: counters.data?.matches ?? 0, icon: Sparkles },
-          { label: "Abonnés", value: counters.data?.followers ?? 0, icon: Users },
-          { label: "Alertes", value: counters.data?.unread ?? 0, icon: Bell },
+          { label: t("matches"), value: counters.data?.matches ?? 0, icon: Sparkles },
+          { label: t("followers"), value: counters.data?.followers ?? 0, icon: Users },
+          { label: t("notifications"), value: counters.data?.unread ?? 0, icon: Bell },
         ].map((s, i) => (
           <Card
             key={s.label}
@@ -274,7 +333,7 @@ function HomePage() {
 
       {/* Amis connectés */}
       <section className="mt-6">
-        <h2 className="mb-3 text-lg font-black">Tes amis</h2>
+        <h2 className="mb-3 text-lg font-black">{t("friends")}</h2>
         {friends.data?.length ? (
           <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
             {friends.data.map((f) => {
@@ -322,22 +381,17 @@ function HomePage() {
 
       {/* Raccourcis */}
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <QuickLink to="/sparks" icon={Flame} title="Sparks" sub="Swipe et trouve ton match" />
-        <QuickLink to="/discover" icon={Compass} title="Découvrir" sub="Le feed vidéo Roblox" />
-        <QuickLink
-          to="/messages"
-          icon={MessageCircle}
-          title="Messages"
-          sub="Vocaux, groupes et emojis"
-        />
+        <QuickLink to="/sparks" icon={Flame} title="Sparks" sub={t("swipeMatch")} />
+        <QuickLink to="/discover" icon={Compass} title={t("discover")} sub={t("videoFeed")} />
+        <QuickLink to="/messages" icon={MessageCircle} title="Messages" sub={t("chatFeatures")} />
       </div>
 
       {/* Vidéos du moment */}
       <section className="mt-7">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-black">Vidéos du moment</h2>
+          <h2 className="text-lg font-black">{t("trendingVideos")}</h2>
           <Link to="/discover" className="text-sm font-semibold text-primary">
-            Tout voir
+            {t("seeAll")}
           </Link>
         </div>
         {latest.data?.length ? (
@@ -348,9 +402,9 @@ function HomePage() {
           </div>
         ) : (
           <Card className="text-center text-sm text-muted-foreground">
-            Pas encore de vidéo.{" "}
+            {t("noVideos")}{" "}
             <Link to="/discover" className="font-semibold text-primary">
-              Publie la première !
+              {t("publishFirst")}
             </Link>
           </Card>
         )}

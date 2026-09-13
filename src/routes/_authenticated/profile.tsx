@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Gamepad2,
   ImagePlus,
+  Play,
   Save,
   Settings,
   ShieldCheck,
@@ -17,7 +18,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button, Label, Textarea } from "@/components/ui-kit";
-import { StoredImage } from "@/components/Media";
+import { StoredImage, useSignedUrl } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
@@ -93,6 +94,19 @@ function ProfilePage() {
       return data ?? [];
     },
     enabled: !!user,
+  });
+
+  const videos = useQuery({
+    queryKey: ["my-profile-videos", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("videos")
+        .select("id,storage_path,caption,views_count")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
   });
 
   // Les modifications sont mises en brouillon et enregistrées uniquement au clic sur "Enregistrer".
@@ -432,6 +446,25 @@ function ProfilePage() {
         {saving || busy ? <p className="text-xs text-muted-foreground">{t("loading")}</p> : null}
       </section>
 
+      <section className="mt-7">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black">{t("profileVideos")}</h2>
+          <Link to="/discover/studio" className="text-sm font-bold text-primary">
+            {t("creatorStudio")}
+          </Link>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {(videos.data ?? []).map((video) => (
+            <ProfileVideo key={video.id} video={video} />
+          ))}
+          {!videos.data?.length ? (
+            <p className="col-span-3 rounded-3xl bg-surface py-10 text-center text-sm text-muted-foreground">
+              {t("noProfileVideos")}
+            </p>
+          ) : null}
+        </div>
+      </section>
+
       <Link
         to="/settings"
         className="mt-6 flex h-11 w-full items-center justify-center rounded-2xl border border-border text-sm font-semibold"
@@ -453,6 +486,28 @@ function ProfilePage() {
           <Save className="h-4.5 w-4.5" />
           {saving ? t("loading") : "Enregistrer"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function ProfileVideo({
+  video,
+}: {
+  video: { storage_path: string; caption: string | null; views_count: number };
+}) {
+  const url = useSignedUrl(video.storage_path);
+  return (
+    <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-black">
+      {url ? <video src={url} muted playsInline className="h-full w-full object-cover" /> : null}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white">
+        <p className="flex items-center gap-1 text-[11px] font-bold">
+          <Play className="h-3 w-3 fill-white" />
+          {video.views_count}
+        </p>
+        {video.caption ? (
+          <p className="mt-0.5 truncate text-[10px] text-white/75">{video.caption}</p>
+        ) : null}
       </div>
     </div>
   );

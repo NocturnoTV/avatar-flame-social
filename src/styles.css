@@ -178,6 +178,19 @@
   }
 }
 
+@keyframes bx-hero-zoom {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@utility bx-hero-zoom {
+  animation: bx-hero-zoom 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @utility bx-float {
   animation: bx-float 6s ease-in-out infinite;
 }

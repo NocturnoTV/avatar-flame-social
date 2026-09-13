@@ -22,6 +22,7 @@ import { useSession } from "@/lib/session";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Button } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/discover/")({
   head: () => ({
@@ -64,6 +65,7 @@ export function formatCount(n: number) {
 
 function DiscoverPage() {
   const { user } = useSession();
+  const { t } = useI18n();
   const [tab, setTab] = useState<"foryou" | "following">("foryou");
   const [muted, setMuted] = useState(true);
   const [comments, setComments] = useState<VideoRow | null>(null);
@@ -91,26 +93,23 @@ function DiscoverPage() {
         .limit(30);
       if (tab === "following") {
         const ids = following.data ?? [];
-        if (ids.length === 0) return { videos: [] as VideoRow[], profiles: {}, photos: {} };
+        if (ids.length === 0) return { videos: [] as VideoRow[], profiles: {} };
         q = q.in("user_id", ids);
       }
       const { data, error } = await q;
       if (error) throw error;
       const videos = (data ?? []) as VideoRow[];
       const ids = [...new Set(videos.map((v) => v.user_id))];
-      const profiles: Record<string, { username: string | null }> = {};
-      const photos: Record<string, string> = {};
+      const profiles: Record<string, { username: string | null; avatar_url: string | null }> = {};
       if (ids.length) {
-        const { data: p } = await supabase.from("profiles").select("id,username").in("id", ids);
-        for (const row of p ?? []) profiles[row.id] = { username: row.username };
-        const { data: ph } = await supabase
-          .from("profile_photos")
-          .select("user_id,url,position")
-          .in("user_id", ids)
-          .order("position");
-        for (const row of ph ?? []) if (!photos[row.user_id]) photos[row.user_id] = row.url;
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("id,username,avatar_url")
+          .in("id", ids);
+        for (const row of p ?? [])
+          profiles[row.id] = { username: row.username, avatar_url: row.avatar_url };
       }
-      return { videos, profiles, photos };
+      return { videos, profiles };
     },
   });
 
@@ -133,8 +132,8 @@ function DiscoverPage() {
         <div className="pointer-events-auto flex items-center gap-5">
           {(
             [
-              ["following", "Suivis"],
-              ["foryou", "Pour toi"],
+              ["following", t("following")],
+              ["foryou", t("forYou")],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -181,12 +180,10 @@ function DiscoverPage() {
           <div className="space-y-4">
             <Play className="mx-auto h-12 w-12 text-white/40" />
             <p className="text-white/70">
-              {tab === "following"
-                ? "Aucune vidéo de tes abonnements pour l'instant."
-                : "Aucune vidéo pour le moment. Sois le premier à publier !"}
+              {tab === "following" ? t("noFollowingVideos") : t("noFeedVideos")}
             </p>
             <Link to="/discover/studio">
-              <Button>Publier une vidéo</Button>
+              <Button>{t("publishVideo")}</Button>
             </Link>
           </div>
         </div>
@@ -198,7 +195,7 @@ function DiscoverPage() {
               video={video}
               muted={muted}
               username={feed.data?.profiles[video.user_id]?.username ?? "joueur"}
-              avatar={feed.data?.photos[video.user_id] ?? null}
+              avatar={feed.data?.profiles[video.user_id]?.avatar_url ?? null}
               onComments={() => setComments(video)}
             />
           ))}
@@ -224,6 +221,7 @@ function VideoSlide({
   onComments: () => void;
 }) {
   const { user } = useSession();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const url = useSignedUrl(video.storage_path);
   const ref = useRef<HTMLVideoElement>(null);
@@ -291,7 +289,12 @@ function VideoSlide({
       void el.play().catch(() => undefined);
       if (!viewed.current && user) {
         viewed.current = true;
-        void supabase.from("video_views").insert({ video_id: video.id, viewer_id: user.id });
+        void supabase
+          .from("video_views")
+          .upsert(
+            { video_id: video.id, viewer_id: user.id },
+            { onConflict: "video_id,viewer_id", ignoreDuplicates: true },
+          );
       }
     } else {
       el.pause();
@@ -432,7 +435,7 @@ function VideoSlide({
             icon={MessageCircle}
             count={video.comments_count}
             onClick={onComments}
-            label="Commentaires"
+            label={t("comments")}
           />
           <RailButton
             icon={Bookmark}
@@ -440,7 +443,7 @@ function VideoSlide({
             activeClass="fill-primary text-primary"
             count={video.favorites_count}
             onClick={() => toggle("video_favorites", !!state.data?.faved)}
-            label="Favoris"
+            label={t("favorites")}
           />
           <RailButton
             icon={Repeat2}
@@ -448,9 +451,9 @@ function VideoSlide({
             activeClass="text-sky-400"
             count={video.reposts_count}
             onClick={() => toggle("video_reposts", !!state.data?.reposted)}
-            label="Republier"
+            label={t("repost")}
           />
-          <RailButton icon={Send} count={video.shares_count} onClick={share} label="Partager" />
+          <RailButton icon={Send} count={video.shares_count} onClick={share} label={t("share")} />
         </div>
       </div>
     </div>
@@ -492,6 +495,7 @@ function RailButton({
 
 function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => void }) {
   const { user } = useSession();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
@@ -579,9 +583,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 />
               ))
           ) : (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              Sois le premier à commenter ✨
-            </p>
+            <p className="py-10 text-center text-sm text-muted-foreground">{t("firstComment")}</p>
           )}
         </div>
         {showExtras ? (
@@ -646,7 +648,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Commente ou mentionne @quelqu’un…"
+            placeholder={t("addComment")}
             className="h-11 flex-1 rounded-full border border-input bg-surface px-4 text-sm outline-none focus:border-primary"
           />
           <Button size="icon" onClick={send} aria-label="Envoyer">
@@ -679,6 +681,7 @@ function CommentItem({
   replies: RichComment[];
   onReply: (id: string, username: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-3">
       <div className="flex gap-3">
@@ -715,7 +718,7 @@ function CommentItem({
             onClick={() => onReply(comment.id, comment.username)}
             className="mt-1.5 flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"
           >
-            <Reply className="h-3.5 w-3.5" /> Répondre
+            <Reply className="h-3.5 w-3.5" /> {t("reply")}
           </button>
         </div>
       </div>

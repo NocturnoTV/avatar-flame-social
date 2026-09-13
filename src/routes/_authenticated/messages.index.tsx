@@ -209,7 +209,7 @@ function MessagesPage() {
         media_type: file.type.startsWith("video/") ? "video" : "image",
       });
       if (error) throw error;
-      toast.success("Story publiée pour 24 h");
+      toast.success(t("storyPublished"));
       void stories.refetch();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("errorGeneric"));
@@ -260,7 +260,7 @@ function MessagesPage() {
             tab === "messages" && "bg-background text-primary shadow-sm",
           )}
         >
-          Discussions
+          {t("discussions")}
         </button>
         <button
           onClick={() => setTab("notifications")}
@@ -287,7 +287,9 @@ function MessagesPage() {
                   <Plus className="h-6 w-6 text-primary" />
                 </span>
               </span>
-              <span className="mt-1 block truncate text-[11px] font-semibold">Ta story</span>
+              <span className="mt-1 block truncate text-[11px] font-semibold">
+                {t("yourStory")}
+              </span>
             </button>
             <input
               ref={storyInput}
@@ -328,7 +330,7 @@ function MessagesPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher"
+              placeholder={t("search")}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none"
             />
           </label>
@@ -360,7 +362,7 @@ function MessagesPage() {
                       {!c.is_group && person?.verified ? <Verified /> : null}
                     </p>
                     <p className="truncate text-sm text-muted-foreground">
-                      {c.preview || "Commence la discussion"}
+                      {c.preview || t("startChat")}
                     </p>
                   </div>
                 </Link>
@@ -371,7 +373,7 @@ function MessagesPage() {
       ) : (
         <div className="mt-5 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold">Activité récente</p>
+            <p className="text-sm font-bold">{t("recentActivity")}</p>
             <button
               onClick={() => void markAll()}
               className="flex items-center gap-1 text-xs font-semibold text-primary"

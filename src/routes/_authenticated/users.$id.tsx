@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { BANNERS } from "@/lib/decorations";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/users/$id")({
   head: () => ({ meta: [{ title: "Profil — Bloxspark" }] }),
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/_authenticated/users/$id")({
 
 function PublicProfile() {
   const { id } = Route.useParams();
+  const { t } = useI18n();
   const profile = useQuery({
     queryKey: ["public-profile", id],
     queryFn: async () => {
@@ -94,14 +96,14 @@ function PublicProfile() {
             ))}
           </div>
         )}
-        <h2 className="mt-7 text-lg font-black">Vidéos</h2>
+        <h2 className="mt-7 text-lg font-black">{t("profileVideos")}</h2>
         <div className="mt-3 grid grid-cols-3 gap-1">
           {profile.data?.videos.map((v) => (
             <ProfileVideo key={v.id} video={v} />
           ))}
           {!profile.data?.videos.length ? (
             <p className="col-span-3 py-10 text-center text-sm text-muted-foreground">
-              Aucune vidéo publique.
+              {t("noProfileVideos")}
             </p>
           ) : null}
         </div>
