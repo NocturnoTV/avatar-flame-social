@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, Gamepad2, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
@@ -14,6 +14,7 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { errorMessage } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
+import { RobloxGameIcon } from "@/components/RobloxGameIcon";
 
 export const Route = createFileRoute("/_authenticated/users/$id")({
   head: () => ({ meta: [{ title: "Profil — Bloxspark" }] }),
@@ -228,9 +229,9 @@ function PublicProfile() {
                 href={g.url ?? undefined}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 text-xs font-bold text-primary"
+                className="flex items-center gap-2 rounded-2xl border border-primary/15 bg-primary/10 py-1.5 pl-1.5 pr-3 text-xs font-bold text-primary transition hover:border-primary/40 hover:bg-primary/15"
               >
-                <Gamepad2 className="h-4 w-4" />
+                <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-9 w-9" />
                 {g.name}
               </a>
             ))}

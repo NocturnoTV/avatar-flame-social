@@ -29,6 +29,7 @@ import { useRoles } from "@/lib/roles";
 import { BANNERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
+import { RobloxGameIcon } from "@/components/RobloxGameIcon";
 import {
   searchPopularRobloxGames,
   type RobloxGameSearchResult,
@@ -369,16 +370,18 @@ function ProfilePage() {
                   href={g.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold hover:border-primary"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface py-1.5 pl-1.5 pr-3 text-xs font-semibold transition hover:border-primary hover:bg-primary/5"
                 >
-                  <Gamepad2 className="h-3.5 w-3.5" /> {g.name}
+                  <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-8 w-8" />
+                  {g.name}
                 </a>
               ) : (
                 <span
                   key={g.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface py-1.5 pl-1.5 pr-3 text-xs font-semibold"
                 >
-                  <Gamepad2 className="h-3.5 w-3.5" /> {g.name}
+                  <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-8 w-8" />
+                  {g.name}
                 </span>
               ),
             )}
@@ -489,13 +492,7 @@ function ProfilePage() {
                 key={g.id}
                 className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm"
               >
-                {g.thumbnail_url ? (
-                  <img src={g.thumbnail_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                ) : (
-                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-surface-2">
-                    <Gamepad2 className="h-4 w-4" />
-                  </span>
-                )}
+                <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-10 w-10" />
                 <a
                   href={g.url ?? undefined}
                   target="_blank"

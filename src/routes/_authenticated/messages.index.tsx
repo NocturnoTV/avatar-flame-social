@@ -72,6 +72,9 @@ type NotificationRow = {
   conversation_id: string | null;
   actor: Person | null;
 };
+type FollowerRow = Person & {
+  followed_at: string;
+};
 
 const NOTIFICATION_ICONS = {
   match: Sparkles,
@@ -104,6 +107,7 @@ function MessagesPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [showRequests, setShowRequests] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState<
     "all" | "unread" | "social" | "system"
@@ -257,24 +261,28 @@ function MessagesPage() {
     },
   });
 
-  const latestFollower = useQuery({
-    queryKey: ["latest-follower", user?.id],
+  const recentFollowers = useQuery({
+    queryKey: ["recent-followers", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
+    queryFn: async (): Promise<FollowerRow[]> => {
+      const { data, error } = await supabase
         .from("follows")
         .select("follower_id,created_at")
         .eq("following_id", user!.id)
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!data) return null;
-      const { data: p } = await supabase
+        .limit(100);
+      if (error) throw error;
+      const ids = (data ?? []).map((follow) => follow.follower_id);
+      if (!ids.length) return [];
+      const { data: people } = await supabase
         .from("profiles")
-        .select("username")
-        .eq("id", data.follower_id)
-        .maybeSingle();
-      return { username: p?.username ?? "?", created_at: data.created_at };
+        .select("id,username,avatar_url,verified")
+        .in("id", ids);
+      const peopleById = new Map((people ?? []).map((person) => [person.id, person]));
+      return (data ?? []).flatMap((follow) => {
+        const person = peopleById.get(follow.follower_id);
+        return person ? [{ ...person, followed_at: follow.created_at }] : [];
+      });
     },
   });
 
@@ -291,11 +299,16 @@ function MessagesPage() {
         { event: "INSERT", schema: "public", table: "notifications" },
         () => void notifications.refetch(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows" },
+        () => void recentFollowers.refetch(),
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [conversations, notifications]);
+  }, [conversations, notifications, recentFollowers]);
 
   async function createGroup() {
     if (!groupTitle.trim() || !selected.length) return;
@@ -519,10 +532,10 @@ function MessagesPage() {
 
       <div className="mt-2">
         {/* New followers */}
-        {latestFollower.data ? (
-          <Link
-            to="/notifications"
-            className="bx-pop flex items-center gap-3 rounded-2xl px-1 py-3 transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+        {recentFollowers.data?.length ? (
+          <button
+            onClick={() => setShowFollowers(true)}
+            className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
           >
             <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#18BFE2] text-white">
               <Users className="h-6 w-6" />
@@ -532,10 +545,13 @@ function MessagesPage() {
                 {t("followers")}
               </p>
               <p className="truncate text-sm text-[#929292]">
-                {t("newFollowerBody", { username: latestFollower.data.username })}
+                {t("newFollowerBody", {
+                  username: recentFollowers.data[0]?.username ?? t("someone"),
+                })}
               </p>
             </div>
-          </Link>
+            <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+          </button>
         ) : null}
 
         {/* Activity */}
@@ -734,6 +750,56 @@ function MessagesPage() {
                   {t("declineRequest")}
                 </Button>
               </div>
+            );
+          })}
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={showFollowers}
+        onClose={() => setShowFollowers(false)}
+        title={t("recentFollowers")}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">{t("recentFollowersHint")}</p>
+          {recentFollowers.isLoading ? (
+            <div className="space-y-3" aria-label={t("loading")}>
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="h-16 animate-pulse rounded-2xl bg-surface-2" />
+              ))}
+            </div>
+          ) : null}
+          {!recentFollowers.isLoading && !recentFollowers.data?.length ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">{t("noFollowersYet")}</p>
+          ) : null}
+          {(recentFollowers.data ?? []).map((follower) => {
+            const name = follower.username ?? t("someone");
+            return (
+              <button
+                key={follower.id}
+                onClick={() => {
+                  setShowFollowers(false);
+                  void navigate({ to: "/users/$id", params: { id: follower.id } });
+                }}
+                className="group flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                <StoredImage
+                  path={follower.avatar_url}
+                  alt={name}
+                  className="h-12 w-12 shrink-0 rounded-full object-cover"
+                  fallback={name[0]?.toUpperCase() ?? "?"}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <span className="truncate">{name}</span>
+                    {follower.verified ? <Verified /> : null}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {t("followedYou")} · {formatNotificationTime(follower.followed_at, lang)}
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+              </button>
             );
           })}
         </div>
