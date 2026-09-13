@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { rememberAccount } from "@/lib/accountSwitcher";
 
 type SessionValue = { session: Session | null; user: User | null; loading: boolean };
 
@@ -11,13 +12,28 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
       setLoading(false);
+      if (next?.access_token && next.refresh_token) {
+        rememberAccount({
+          userId: next.user.id,
+          accessToken: next.access_token,
+          refreshToken: next.refresh_token,
+          touch: event === "SIGNED_IN",
+        });
+      }
     });
     supabase.auth.getSession().then(({ data: d }) => {
       setSession(d.session);
       setLoading(false);
+      if (d.session?.access_token && d.session.refresh_token) {
+        rememberAccount({
+          userId: d.session.user.id,
+          accessToken: d.session.access_token,
+          refreshToken: d.session.refresh_token,
+        });
+      }
     });
     return () => data.subscription.unsubscribe();
   }, []);

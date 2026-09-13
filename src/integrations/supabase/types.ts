@@ -181,6 +181,7 @@ export type Database = {
           id: string
           handle: string
           name: string
+          tag: string
           description: string | null
           category: string
           language: string
@@ -199,6 +200,7 @@ export type Database = {
           id?: string
           handle: string
           name: string
+          tag: string
           description?: string | null
           category?: string
           language?: string
@@ -217,6 +219,7 @@ export type Database = {
           id?: string
           handle?: string
           name?: string
+          tag?: string
           description?: string | null
           category?: string
           language?: string

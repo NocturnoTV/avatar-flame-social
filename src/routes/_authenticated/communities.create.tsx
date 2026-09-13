@@ -1,28 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Gamepad2, LoaderCircle, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button, Input, Label, Select, Textarea } from "@/components/ui-kit";
 import { useSession } from "@/lib/session";
 import { errorMessage } from "@/lib/utils";
+import { searchPopularRobloxGames, type RobloxGameSearchResult } from "@/lib/roblox-games.functions";
 
 export const Route = createFileRoute("/_authenticated/communities/create")({
   head: () => ({ meta: [{ title: "Créer une communauté — Bloxspark" }] }),
   component: CreateCommunity,
 });
-
-const CATEGORIES = [
-  { id: "games", label: "Jeux" },
-  { id: "development", label: "Développement" },
-  { id: "creators", label: "Créateurs" },
-  { id: "roleplay", label: "Roleplay" },
-  { id: "competitive", label: "Compétitif" },
-  { id: "social", label: "Social" },
-  { id: "building", label: "Construction" },
-  { id: "community", label: "Communauté" },
-  { id: "other", label: "Autre" },
-];
 
 const LANGUAGES = [
   { id: "fr", label: "Français" },
@@ -31,6 +21,9 @@ const LANGUAGES = [
   { id: "de", label: "Deutsch" },
   { id: "pt", label: "Português" },
 ];
+
+const DESCRIPTION_MAX = 30;
+const TAG_MAX = 5;
 
 function slugify(value: string) {
   return value
@@ -45,19 +38,30 @@ function CreateCommunity() {
   const { user } = useSession();
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [handle, setHandle] = useState("");
-  const [handleTouched, setHandleTouched] = useState(false);
+  const [tag, setTag] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("games");
-  const [gameName, setGameName] = useState("");
+  const [game, setGame] = useState<RobloxGameSearchResult | null>(null);
+  const [gameSearch, setGameSearch] = useState("");
+  const [gamePickerOpen, setGamePickerOpen] = useState(false);
   const [language, setLanguage] = useState("fr");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [rules, setRules] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const gameResults = useQuery({
+    queryKey: ["community-game-search", gameSearch.trim()],
+    enabled: gamePickerOpen && gameSearch.trim().length >= 2,
+    queryFn: () => searchPopularRobloxGames({ data: { query: gameSearch.trim() } }),
+    staleTime: 5 * 60 * 1000,
+  });
+
   async function create() {
-    if (!user || !name.trim() || !handle.trim()) {
-      toast.error("Le nom et le @handle sont requis.");
+    if (!user || !name.trim()) {
+      toast.error("Le nom est requis.");
+      return;
+    }
+    if (!/^[A-Z0-9]{2,5}$/.test(tag)) {
+      toast.error(`Le tag doit contenir 2 à ${TAG_MAX} lettres ou chiffres.`);
       return;
     }
     setSaving(true);
@@ -65,10 +69,11 @@ function CreateCommunity() {
       .from("communities")
       .insert({
         name: name.trim(),
-        handle: handle.trim(),
+        handle: slugify(tag) || slugify(name),
+        tag,
         description: description.trim() || null,
-        category,
-        game_name: gameName.trim() || null,
+        category: "community",
+        game_name: game?.name ?? null,
         language,
         visibility,
         rules: rules.trim() || null,
@@ -78,9 +83,14 @@ function CreateCommunity() {
       .single();
     setSaving(false);
     if (error) {
-      toast.error(
-        error.message.includes("duplicate") ? "Ce @handle est déjà pris." : errorMessage(error, "Une erreur est survenue."),
-      );
+      const message = error.message.includes("communities_name_unique_idx")
+        ? "Ce nom de communauté est déjà pris."
+        : error.message.includes("communities_tag_unique_idx")
+          ? "Ce tag est déjà pris."
+          : error.message.includes("communities_handle_key")
+            ? "Ce tag génère une adresse déjà utilisée, essaie un autre tag."
+            : errorMessage(error, "Une erreur est survenue.");
+      toast.error(message);
       return;
     }
     toast.success("Communauté créée ! 🎉");
@@ -105,54 +115,120 @@ function CreateCommunity() {
           <Label>Nom de la communauté</Label>
           <Input
             value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (!handleTouched) setHandle(slugify(e.target.value));
-            }}
+            onChange={(e) => setName(e.target.value)}
             placeholder="Ex : Murder Mystery 2 FR"
           />
         </div>
 
         <div>
-          <Label>@handle</Label>
+          <Label>
+            Tag ({tag.length}/{TAG_MAX})
+          </Label>
           <Input
-            value={handle}
-            onChange={(e) => {
-              setHandleTouched(true);
-              setHandle(slugify(e.target.value));
-            }}
-            placeholder="Ex : mm2fr"
+            value={tag}
+            onChange={(e) => setTag(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, TAG_MAX))}
+            placeholder="Ex : MM2FR"
+            className="uppercase"
           />
+          <p className="mt-1 text-xs text-muted-foreground">
+            2 à 5 lettres ou chiffres, unique — deux communautés ne peuvent pas avoir le même nom ni le même tag.
+          </p>
         </div>
 
         <div>
-          <Label>Description</Label>
+          <Label>
+            Description ({description.length}/{DESCRIPTION_MAX})
+          </Label>
           <Textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Décris ta communauté..."
-            rows={4}
+            onChange={(e) => setDescription(e.target.value.slice(0, DESCRIPTION_MAX))}
+            placeholder="Une phrase courte pour présenter ta communauté"
+            rows={2}
+            maxLength={DESCRIPTION_MAX}
           />
         </div>
 
         <div>
-          <Label>Catégorie</Label>
-          <Select value={category} onChange={(e) => setCategory(e.target.value)}>
-            {CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div>
-          <Label>Jeu Roblox associé (optionnel)</Label>
-          <Input
-            value={gameName}
-            onChange={(e) => setGameName(e.target.value)}
-            placeholder="Rechercher un jeu..."
-          />
+          <Label>Jeu Roblox associé</Label>
+          {game ? (
+            <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2">
+              {game.thumbnailUrl ? (
+                <img src={game.thumbnailUrl} alt="" className="h-10 w-10 rounded-xl object-cover" />
+              ) : (
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-2">
+                  <Gamepad2 className="h-4 w-4" />
+                </span>
+              )}
+              <span className="min-w-0 flex-1 truncate text-sm font-bold">{game.name}</span>
+              <button
+                type="button"
+                onClick={() => setGame(null)}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-surface-2"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setGamePickerOpen((open) => !open)}
+                className="flex w-full items-center justify-between rounded-2xl border border-input bg-background/75 px-4 py-3 text-left text-sm transition hover:border-primary"
+              >
+                <span className="flex items-center gap-2 font-semibold text-muted-foreground">
+                  <Search className="h-4 w-4 text-primary" /> Rechercher un jeu...
+                </span>
+              </button>
+              {gamePickerOpen ? (
+                <div className="mt-2 overflow-hidden rounded-2xl border border-primary/30 bg-popover shadow-xl">
+                  <div className="flex items-center gap-2 border-b border-border px-3">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <input
+                      autoFocus
+                      value={gameSearch}
+                      onChange={(e) => setGameSearch(e.target.value)}
+                      placeholder="Brookhaven, Adopt Me, Blox Fruits…"
+                      className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
+                    />
+                    {gameResults.isFetching ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
+                    ) : null}
+                  </div>
+                  <div className="max-h-72 overflow-y-auto p-2">
+                    {gameSearch.trim().length < 2 ? (
+                      <p className="px-3 py-8 text-center text-xs text-muted-foreground">
+                        Tape au moins 2 lettres pour chercher un jeu.
+                      </p>
+                    ) : null}
+                    {(gameResults.data ?? []).map((g) => (
+                      <button
+                        key={g.universeId}
+                        type="button"
+                        onClick={() => {
+                          setGame(g);
+                          setGamePickerOpen(false);
+                          setGameSearch("");
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-primary/10"
+                      >
+                        {g.thumbnailUrl ? (
+                          <img src={g.thumbnailUrl} alt="" className="h-11 w-11 rounded-xl object-cover" />
+                        ) : (
+                          <span className="grid h-11 w-11 place-items-center rounded-xl bg-surface-2">
+                            <Gamepad2 className="h-4 w-4" />
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-sm font-bold">{g.name}</span>
+                      </button>
+                    ))}
+                    {gameResults.isSuccess && !gameResults.data.length ? (
+                      <p className="px-3 py-6 text-center text-xs text-muted-foreground">Aucun jeu trouvé.</p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
 
         <div>

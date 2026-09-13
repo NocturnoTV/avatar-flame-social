@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
   Bell,
   Bookmark,
@@ -12,18 +13,31 @@ import {
   LogOut,
   MessageCircle,
   Play,
+  Plus,
+  Repeat,
   Settings,
   Sparkles,
+  Trash2,
   User,
   Users,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { LogoWordmark } from "@/components/Logo";
+import { Sheet } from "@/components/ui-kit";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
+import {
+  MAX_SAVED_ACCOUNTS,
+  forgetAccount,
+  getSavedAccounts,
+  rememberAccount,
+  switchToAccount,
+  type SavedAccount,
+} from "@/lib/accountSwitcher";
 
 function useMyProfile() {
   const { user } = useSession();
@@ -153,18 +167,60 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
   const { t } = useI18n();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user } = useSession();
   const profile = useMyProfile();
   const unreadNotifs = useUnreadNotifications();
   const unreadMessages = useUnreadConversations();
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
+  const [switching, setSwitching] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user && profile.data) {
+      rememberAccount({
+        userId: user.id,
+        accessToken: "",
+        refreshToken: "",
+        username: profile.data.username,
+        avatarUrl: profile.data.avatar_url,
+      });
+    }
+  }, [user, profile.data]);
+
+  useEffect(() => {
+    if (switcherOpen) setSavedAccounts(getSavedAccounts());
+  }, [switcherOpen]);
 
   if (!open) return null;
 
   const isActive = (to: string) => pathname === to || pathname.startsWith(to + "/");
+  const otherAccounts = savedAccounts.filter((a) => a.userId !== user?.id && a.accessToken);
 
   async function signOut() {
     await supabase.auth.signOut();
     onClose();
     await navigate({ to: "/", replace: true });
+  }
+
+  async function switchAccount(account: SavedAccount) {
+    setSwitching(account.userId);
+    try {
+      await switchToAccount(account);
+      setSwitcherOpen(false);
+      onClose();
+      await navigate({ to: "/home", replace: true });
+    } catch (err) {
+      toast.error(errorMessage(err, t("accountSwitchFailed")));
+      forgetAccount(account.userId);
+      setSavedAccounts(getSavedAccounts());
+    } finally {
+      setSwitching(null);
+    }
+  }
+
+  function removeAccount(userId: string) {
+    forgetAccount(userId);
+    setSavedAccounts(getSavedAccounts());
   }
 
   return (
@@ -271,6 +327,70 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
       >
         <LogOut className="h-5 w-5" /> {t("signOut")}
       </button>
+
+      <button
+        onClick={() => setSwitcherOpen(true)}
+        className="mt-2 flex items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-semibold text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+      >
+        <Repeat className="h-4 w-4" /> {t("switchAccount")}
+      </button>
+
+      <Sheet open={switcherOpen} onClose={() => setSwitcherOpen(false)} title={t("switchAccount")}>
+        <div className="space-y-2">
+          {otherAccounts.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">{t("accountSwitcherNoOthers")}</p>
+          ) : (
+            otherAccounts.map((account) => (
+              <div
+                key={account.userId}
+                className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-3 py-2.5"
+              >
+                <StoredImage
+                  path={account.avatarUrl}
+                  alt={account.username ?? ""}
+                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                  fallback={account.username?.[0]?.toUpperCase() ?? "?"}
+                />
+                <button
+                  type="button"
+                  onClick={() => void switchAccount(account)}
+                  disabled={switching === account.userId}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <span className="block truncate text-sm font-bold">
+                    {account.username ?? t("profile")}
+                  </span>
+                  <span className="block text-xs text-primary">
+                    {switching === account.userId ? t("switchingAccount") : t("switchToThisAccount")}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={t("removeThisAccount")}
+                  onClick={() => removeAccount(account.userId)}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-surface-2 hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))
+          )}
+
+          <button
+            type="button"
+            disabled={savedAccounts.length >= MAX_SAVED_ACCOUNTS}
+            onClick={() => {
+              setSwitcherOpen(false);
+              onClose();
+              void navigate({ to: "/auth", search: { addAccount: true } });
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-3 text-sm font-semibold text-muted-foreground transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Plus className="h-4 w-4" />{" "}
+            {t("addAccount", { count: savedAccounts.length, max: MAX_SAVED_ACCOUNTS })}
+          </button>
+        </div>
+      </Sheet>
     </div>
   );
 }

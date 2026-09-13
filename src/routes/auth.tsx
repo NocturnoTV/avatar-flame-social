@@ -11,11 +11,13 @@ import { useSession } from "@/lib/session";
 import { signInWithIdentifier } from "@/lib/login-identifier.functions";
 import { errorMessage } from "@/lib/utils";
 
-type Search = { mode?: "signup" | "signin" | undefined };
+type Search = { mode?: "signup" | "signin" | undefined; addAccount?: boolean };
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>): Search =>
-    search["mode"] === "signup" ? { mode: "signup" } : {},
+  validateSearch: (search: Record<string, unknown>): Search => ({
+    ...(search["mode"] === "signup" ? { mode: "signup" as const } : {}),
+    ...(search["addAccount"] === true || search["addAccount"] === "true" ? { addAccount: true } : {}),
+  }),
 
   head: () => ({
     meta: [
@@ -34,7 +36,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { t, setLang } = useI18n();
   const { setTheme } = useTheme();
-  const { mode } = Route.useSearch();
+  const { mode, addAccount } = Route.useSearch();
   const navigate = useNavigate();
   const { session } = useSession();
   const [isSignup, setIsSignup] = useState(mode === "signup");
@@ -62,8 +64,10 @@ function AuthPage() {
   }
 
   useEffect(() => {
-    if (session?.user.id) void continueAfterAuthentication();
-  }, [session?.user.id]);
+    // In "add account" mode we're deliberately signed in under the account being
+    // replaced — skip the passive redirect so the sign-in form stays visible.
+    if (session?.user.id && !addAccount) void continueAfterAuthentication();
+  }, [session?.user.id, addAccount]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
