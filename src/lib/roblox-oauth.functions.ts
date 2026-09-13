@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest, getResponseHeaders } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -9,41 +8,24 @@ import {
   persistRobloxAccount,
   pkceChallenge,
   randomUrlSafe,
-  getRobloxOAuthSession,
+  saveOAuthState,
 } from "@/lib/roblox-oauth.server";
 
 const returnToSchema = z.object({ returnTo: z.enum(["/onboarding", "/settings"]) });
 
-function disableResponseCaching() {
-  const headers = getResponseHeaders();
-  headers.set("Cache-Control", "no-store");
-  headers.set("Vary", "Cookie, Authorization");
-}
-
 export const beginRobloxOAuth = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .validator(returnToSchema)
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
-    disableResponseCaching();
-    const origin = new URL(getRequest().url).origin;
-    if (
-      origin !== new URL(ROBLOX_REDIRECT_URI).origin &&
-      process.env["NODE_ENV"] === "production"
-    ) {
-      throw new Error("Roblox connection is only available on bloxspark.app.");
-    }
-
     const state = randomUrlSafe();
     const verifier = randomUrlSafe(48);
     const nonce = randomUrlSafe();
-    const session = await getRobloxOAuthSession();
-    await session.update({
+    await saveOAuthState({
       state,
       verifier,
       nonce,
       userId: context.userId,
       returnTo: data.returnTo,
-      createdAt: Date.now(),
     });
 
     const url = new URL("https://apis.roblox.com/oauth/v1/authorize");
