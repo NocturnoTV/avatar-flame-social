@@ -44,6 +44,12 @@ export type Database = {
         }
         Relationships: []
       }
+      banned_words: {
+        Row: { id: string; word: string; language: string; created_at: string }
+        Insert: { id?: string; word: string; language?: string; created_at?: string }
+        Update: { id?: string; word?: string; language?: string; created_at?: string }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string

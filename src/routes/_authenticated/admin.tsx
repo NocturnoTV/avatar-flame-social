@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { StoredImage } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { adminGetMemberDetail, adminListMembers, adminManageMember } from "@/lib/admin.functions";
+import { ageFrom } from "@/lib/decorations";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -661,7 +662,19 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
   );
 }
 
+type ReportProfile = {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+  roblox_username: string | null;
+  roblox_display_name: string | null;
+  birth_date: string | null;
+};
+
 function Reports({ log }: { log: LogFn }) {
+  const [subTab, setSubTab] = useState<"reports" | "banned_words">("reports");
+  const [fileUserId, setFileUserId] = useState<string | null>(null);
+
   const reports = useQuery({
     queryKey: ["admin-reports"],
     queryFn: async () => {
@@ -675,6 +688,49 @@ function Reports({ log }: { log: LogFn }) {
     },
   });
 
+  const messages = useQuery({
+    queryKey: ["admin-report-messages", (reports.data ?? []).map((r) => r.message_id).join(",")],
+    enabled: (reports.data ?? []).some((r) => r.message_id),
+    queryFn: async () => {
+      const ids = (reports.data ?? []).map((r) => r.message_id).filter((id): id is string => !!id);
+      if (!ids.length) return [];
+      const { data } = await supabase
+        .from("messages")
+        .select("id,content,kind,media_url,created_at")
+        .in("id", ids);
+      return data ?? [];
+    },
+  });
+
+  const profiles = useQuery({
+    queryKey: [
+      "admin-report-profiles",
+      (reports.data ?? []).map((r) => `${r.reporter_id}-${r.target_user_id}`).join(","),
+    ],
+    enabled: (reports.data ?? []).length > 0,
+    queryFn: async (): Promise<Record<string, ReportProfile>> => {
+      const ids = [
+        ...new Set(
+          (reports.data ?? []).flatMap((r) => [r.reporter_id, r.target_user_id].filter(Boolean)),
+        ),
+      ] as string[];
+      if (!ids.length) return {};
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,roblox_username,roblox_display_name,birth_date")
+        .in("id", ids);
+      const map: Record<string, ReportProfile> = {};
+      for (const p of data ?? []) map[p.id] = p;
+      return map;
+    },
+  });
+
+  const fileDetail = useQuery({
+    queryKey: ["admin-member-detail", fileUserId],
+    enabled: !!fileUserId,
+    queryFn: () => adminGetMemberDetail({ data: { userId: fileUserId! } }),
+  });
+
   async function setStatus(id: string, status: string) {
     await supabase
       .from("reports")
@@ -684,37 +740,302 @@ function Reports({ log }: { log: LogFn }) {
     void reports.refetch();
   }
 
-  if ((reports.data ?? []).length === 0)
-    return <p className="text-sm text-muted-foreground">Aucun signalement.</p>;
+  const fileProfile = fileUserId ? profiles.data?.[fileUserId] : undefined;
 
   return (
-    <div className="space-y-3">
-      {(reports.data ?? []).map((r) => (
-        <div key={r.id} className="rounded-3xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="font-semibold">{r.reason}</p>
-            <span
-              className={cn(
-                "rounded-full px-2.5 py-1 text-[11px] font-bold",
-                r.status === "pending"
-                  ? "bg-destructive/15 text-destructive"
-                  : "bg-surface-2 text-muted-foreground",
-              )}
-            >
-              {r.status}
-            </span>
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        {(
+          [
+            ["reports", "Signalements"],
+            ["banned_words", "Mots bannis"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setSubTab(id)}
+            className={cn(
+              "rounded-full px-4 py-2 text-sm font-semibold transition",
+              subTab === id
+                ? "bg-primary text-primary-foreground"
+                : "border border-border text-muted-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === "banned_words" ? (
+        <BannedWords log={log} />
+      ) : (reports.data ?? []).length === 0 ? (
+        <p className="text-sm text-muted-foreground">Aucun signalement.</p>
+      ) : (
+        <div className="space-y-3">
+          {(reports.data ?? []).map((r) => {
+            const reporter = r.reporter_id ? profiles.data?.[r.reporter_id] : undefined;
+            const target = r.target_user_id ? profiles.data?.[r.target_user_id] : undefined;
+            const message = r.message_id
+              ? (messages.data ?? []).find((m) => m.id === r.message_id)
+              : undefined;
+            return (
+              <div key={r.id} className="rounded-3xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold">{r.reason}</p>
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-bold",
+                      r.status === "pending"
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-surface-2 text-muted-foreground",
+                    )}
+                  >
+                    {r.status}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {new Date(r.created_at).toLocaleString("fr-FR")}
+                </p>
+
+                {r.details ? (
+                  <div className="mt-2 rounded-2xl bg-surface p-3 text-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                      Détails du signalement
+                    </p>
+                    <p className="mt-1">{r.details}</p>
+                  </div>
+                ) : null}
+
+                {message ? (
+                  <div className="mt-2 rounded-2xl bg-destructive/10 p-3 text-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-destructive">
+                      Contenu signalé ({message.kind})
+                    </p>
+                    <p className="mt-1 break-words">{message.content ?? "(média)"}</p>
+                  </div>
+                ) : null}
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <ReportPersonCard
+                    label="Signalé par"
+                    profile={reporter}
+                    fallbackId={r.reporter_id}
+                    onOpenFile={setFileUserId}
+                  />
+                  <ReportPersonCard
+                    label="Utilisateur signalé"
+                    profile={target}
+                    fallbackId={r.target_user_id}
+                    onOpenFile={setFileUserId}
+                  />
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setStatus(r.id, "reviewed")}>
+                    Traité
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setStatus(r.id, "dismissed")}>
+                    Rejeter
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Sheet
+        open={!!fileUserId}
+        onClose={() => setFileUserId(null)}
+        title={`Dossier · ${fileProfile?.username ?? "membre"}`}
+      >
+        {fileUserId ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-2xl bg-surface p-3">
+              <StoredImage
+                path={fileProfile?.avatar_url ?? null}
+                alt=""
+                className="h-16 w-16 rounded-2xl"
+                fallback="🎮"
+              />
+              <div className="min-w-0">
+                <p className="font-black">{fileProfile?.username ?? "Profil incomplet"}</p>
+                <RobloxIdentity
+                  displayName={fileProfile?.roblox_display_name ?? null}
+                  username={fileProfile?.roblox_username ?? null}
+                  className="mt-1 max-w-full text-xs"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {fileProfile?.birth_date
+                    ? `${ageFrom(fileProfile.birth_date)} ans (${new Date(fileProfile.birth_date).toLocaleDateString("fr-FR")})`
+                    : "Date de naissance inconnue"}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                [fileDetail.data?.videos.length ?? 0, "vidéos"],
+                [fileDetail.data?.messages.length ?? 0, "messages"],
+                [fileDetail.data?.reports.length ?? 0, "signalements"],
+                [fileDetail.data?.notifications.length ?? 0, "notifications"],
+              ].map(([value, label]) => (
+                <div key={String(label)} className="rounded-2xl bg-primary/10 p-2 text-center">
+                  <p className="font-black text-primary">{value}</p>
+                  <p className="truncate text-[9px] text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+            {fileDetail.data?.audit.length ? (
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  Historique de modération
+                </p>
+                <div className="space-y-1.5">
+                  {fileDetail.data.audit.slice(0, 10).map((a) => (
+                    <p key={a.id} className="rounded-xl bg-surface p-2 text-xs text-muted-foreground">
+                      {a.action} {a.details ? `— ${a.details}` : ""} ·{" "}
+                      {new Date(a.created_at).toLocaleString("fr-FR")}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
-          {r.details ? <p className="mt-1 text-sm text-muted-foreground">{r.details}</p> : null}
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {new Date(r.created_at).toLocaleString("fr-FR")}
+        ) : null}
+      </Sheet>
+    </div>
+  );
+}
+
+function ReportPersonCard({
+  label,
+  profile,
+  fallbackId,
+  onOpenFile,
+}: {
+  label: string;
+  profile: ReportProfile | undefined;
+  fallbackId: string | null;
+  onOpenFile: (id: string) => void;
+}) {
+  if (!fallbackId) return null;
+  return (
+    <div className="rounded-2xl border border-border p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-1.5 flex items-center gap-2">
+        <StoredImage
+          path={profile?.avatar_url ?? null}
+          alt=""
+          className="h-9 w-9 rounded-full"
+          fallback="🎮"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">{profile?.username ?? fallbackId.slice(0, 8)}</p>
+          <RobloxIdentity
+            displayName={profile?.roblox_display_name ?? null}
+            username={profile?.roblox_username ?? null}
+            className="max-w-full text-[11px] text-muted-foreground"
+          />
+          <p className="text-[10px] text-muted-foreground">
+            {profile?.birth_date ? `${ageFrom(profile.birth_date)} ans` : "Âge inconnu"}
           </p>
-          <div className="mt-3 flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setStatus(r.id, "reviewed")}>
-              Traité
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setStatus(r.id, "dismissed")}>
-              Rejeter
-            </Button>
+        </div>
+      </div>
+      <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => onOpenFile(fallbackId)}>
+        <Eye className="mr-1 h-3.5 w-3.5" /> Consulter le dossier
+      </Button>
+    </div>
+  );
+}
+
+function BannedWords({ log }: { log: LogFn }) {
+  const [word, setWord] = useState("");
+  const [language, setLanguage] = useState<"en" | "fr">("fr");
+
+  const words = useQuery({
+    queryKey: ["admin-banned-words"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("banned_words")
+        .select("id,word,language,created_at")
+        .order("language")
+        .order("word");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function addWord() {
+    const value = word.trim().toLowerCase();
+    if (!value) return;
+    const { error } = await supabase.from("banned_words").insert({ word: value, language });
+    if (error) {
+      toast.error(error.message.includes("duplicate") ? "Ce mot est déjà dans la liste." : error.message);
+      return;
+    }
+    setWord("");
+    await log("add_banned_word", undefined, `${value} (${language})`);
+    void words.refetch();
+  }
+
+  async function removeWord(id: string, label: string) {
+    await supabase.from("banned_words").delete().eq("id", id);
+    await log("remove_banned_word", undefined, label);
+    void words.refetch();
+  }
+
+  const en = (words.data ?? []).filter((w) => w.language === "en");
+  const fr = (words.data ?? []).filter((w) => w.language === "fr");
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <p className="text-sm text-muted-foreground">
+          Ces mots déclenchent automatiquement un message de prévention Trust &amp; Safety (traduit
+          selon la langue du destinataire) dans la conversation ou sous le commentaire concerné.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <Input
+            value={word}
+            onChange={(e) => setWord(e.target.value)}
+            placeholder="Ajouter un mot"
+            onKeyDown={(e) => e.key === "Enter" && addWord()}
+          />
+          <Select value={language} onChange={(e) => setLanguage(e.target.value as "en" | "fr")} className="w-28">
+            <option value="fr">FR</option>
+            <option value="en">EN</option>
+          </Select>
+          <Button onClick={() => void addWord()}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {([
+        ["Français", fr],
+        ["English", en],
+      ] as const).map(([label, list]) => (
+        <div key={label}>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {label} ({list.length})
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {list.map((w) => (
+              <span
+                key={w.id}
+                className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm"
+              >
+                {w.word}
+                <button
+                  onClick={() => void removeWord(w.id, `${w.word} (${w.language})`)}
+                  aria-label={`Retirer ${w.word}`}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {list.length === 0 ? <p className="text-sm text-muted-foreground">Aucun mot.</p> : null}
           </div>
         </div>
       ))}
