@@ -152,13 +152,13 @@ function PublicProfile() {
   return (
     <div className="mx-auto max-w-xl pb-28">
       <div
-        className="relative h-48 overflow-hidden bg-primary/20 sm:rounded-b-[2rem]"
+        className="relative z-0 h-40 overflow-hidden bg-primary/20 sm:rounded-b-[2rem]"
         style={
           !p?.banner_url ? { backgroundImage: BANNERS[p?.banner_style ?? "ocean"] } : undefined
         }
       >
         {p?.banner_url ? (
-          <StoredImage path={p.banner_url} alt="" className="h-full w-full" />
+          <StoredImage path={p.banner_url} alt="" className="h-full w-full object-cover" />
         ) : null}
         <Link
           to="/discover"
@@ -167,13 +167,13 @@ function PublicProfile() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
       </div>
-      <div className="px-4">
+      <div className="relative z-10 px-4">
         {/* Instagram-style row: avatar left, stats to the right */}
-        <div className="-mt-14 flex items-end gap-4">
+        <div className="-mt-12 flex items-end gap-4">
           <StoredImage
             path={p?.avatar_url ?? profile.data?.photos[0]?.url}
             alt={p?.username ?? ""}
-            className="h-28 w-28 shrink-0 rounded-full border-4 border-background"
+            className="h-24 w-24 shrink-0 rounded-full border-4 border-background object-cover"
             fallback="🎮"
           />
           <div className="grid flex-1 grid-cols-3 gap-1 pb-1 text-center">

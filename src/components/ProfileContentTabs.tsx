@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, ImagePlus, Play, Repeat2, Trash2, Video } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ImagePlus,
+  Play,
+  Repeat2,
+  Trash2,
+  Video,
+  X,
+} from "lucide-react";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -12,12 +21,14 @@ export type TabVideo = {
 };
 type TabPhoto = { id: string; url: string };
 type Tab = "videos" | "reposts" | "photos";
+type LightboxTarget = { kind: "video"; list: TabVideo[]; index: number } | { kind: "photo"; list: TabPhoto[]; index: number };
 
 /**
  * The Videos / Reposts / Photos tab group shown on every profile — the
  * owner's own (/profile) and everyone else's (/users/$id) render this same
  * component, so both look identical apart from the edit affordances on the
- * Photos tab (only shown when `photosEditable` is set).
+ * Photos tab (only shown when `photosEditable` is set). Every item opens
+ * full-screen on tap, with prev/next through the current tab's list.
  */
 export function ProfileContentTabs({
   videos,
@@ -42,6 +53,7 @@ export function ProfileContentTabs({
 }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("videos");
+  const [lightbox, setLightbox] = useState<LightboxTarget | null>(null);
 
   const tabs: { id: Tab; label: string; icon: typeof Video; count: number }[] = [
     { id: "videos", label: t("videosTab"), icon: Video, count: videos.length },
@@ -72,8 +84,10 @@ export function ProfileContentTabs({
       <div className="mt-3">
         {tab === "videos" ? (
           <div className="grid grid-cols-3 gap-1.5">
-            {videos.map((v) => (
-              <VideoThumb key={v.id} video={v} />
+            {videos.map((v, i) => (
+              <button key={v.id} onClick={() => setLightbox({ kind: "video", list: videos, index: i })}>
+                <VideoThumb video={v} />
+              </button>
             ))}
             {!videos.length ? <EmptyState label={t("noProfileVideos")} /> : null}
           </div>
@@ -81,8 +95,10 @@ export function ProfileContentTabs({
 
         {tab === "reposts" ? (
           <div className="grid grid-cols-3 gap-1.5">
-            {reposts.map((v) => (
-              <VideoThumb key={v.id} video={v} />
+            {reposts.map((v, i) => (
+              <button key={v.id} onClick={() => setLightbox({ kind: "video", list: reposts, index: i })}>
+                <VideoThumb video={v} />
+              </button>
             ))}
             {!reposts.length ? <EmptyState label={t("noReposts")} /> : null}
           </div>
@@ -92,9 +108,11 @@ export function ProfileContentTabs({
           <div className="flex flex-wrap gap-2">
             {photos.map((ph, i) => (
               <div key={ph.id} className="relative">
-                <StoredImage path={ph.url} alt="" className="h-24 w-24 rounded-2xl" />
+                <button onClick={() => setLightbox({ kind: "photo", list: photos, index: i })}>
+                  <StoredImage path={ph.url} alt="" className="h-24 w-24 rounded-2xl" />
+                </button>
                 {i === 0 ? (
-                  <span className="absolute left-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">
+                  <span className="pointer-events-none absolute left-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">
                     1
                   </span>
                 ) : null}
@@ -107,11 +125,11 @@ export function ProfileContentTabs({
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
-                    <div className="absolute inset-x-1 bottom-1 flex justify-between">
+                    <div className="pointer-events-none absolute inset-x-1 bottom-1 flex justify-between">
                       <button
                         onClick={() => onMovePhoto?.(i, -1)}
                         disabled={i === 0}
-                        className="rounded-full bg-black/60 p-1 text-white disabled:opacity-30"
+                        className="pointer-events-auto rounded-full bg-black/60 p-1 text-white disabled:opacity-30"
                         aria-label="Move left"
                       >
                         <ChevronLeft className="h-3.5 w-3.5" />
@@ -119,7 +137,7 @@ export function ProfileContentTabs({
                       <button
                         onClick={() => onMovePhoto?.(i, 1)}
                         disabled={i === photos.length - 1}
-                        className="rounded-full bg-black/60 p-1 text-white disabled:opacity-30"
+                        className="pointer-events-auto rounded-full bg-black/60 p-1 text-white disabled:opacity-30"
                         aria-label="Move right"
                       >
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -142,6 +160,8 @@ export function ProfileContentTabs({
           </div>
         ) : null}
       </div>
+
+      {lightbox ? <Lightbox target={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} /> : null}
     </section>
   );
 }
@@ -169,5 +189,94 @@ function VideoThumb({ video }: { video: TabVideo }) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** Full-screen viewer for a tapped video or photo, with prev/next within its tab. */
+function Lightbox({
+  target,
+  onChange,
+  onClose,
+}: {
+  target: LightboxTarget;
+  onChange: (t: LightboxTarget) => void;
+  onClose: () => void;
+}) {
+  const { index, list } = target;
+  const hasPrev = index > 0;
+  const hasNext = index < list.length - 1;
+
+  function go(delta: number) {
+    const next = index + delta;
+    if (next < 0 || next >= list.length) return;
+    onChange({ ...target, index: next } as LightboxTarget);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/95 p-4" onClick={onClose}>
+      <button
+        onClick={onClose}
+        className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white"
+        aria-label="Close"
+      >
+        <X className="h-6 w-6" />
+      </button>
+      {hasPrev ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            go(-1);
+          }}
+          className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white sm:left-6"
+          aria-label="Previous"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      ) : null}
+      {hasNext ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            go(1);
+          }}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white sm:right-6"
+          aria-label="Next"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      ) : null}
+      <div
+        className="relative h-full max-h-[850px] w-full max-w-md overflow-hidden rounded-3xl bg-neutral-950"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {target.kind === "video" ? <LightboxVideo video={target.list[target.index]!} /> : null}
+        {target.kind === "photo" ? <LightboxPhoto photo={target.list[target.index]!} /> : null}
+      </div>
+    </div>
+  );
+}
+
+function LightboxVideo({ video }: { video: TabVideo }) {
+  const url = useSignedUrl(video.storage_path);
+  return (
+    <>
+      {url ? (
+        <video src={url} autoPlay controls loop playsInline className="h-full w-full object-contain" />
+      ) : null}
+      {video.caption ? (
+        <p className="pointer-events-none absolute inset-x-4 bottom-5 rounded-2xl bg-black/55 p-3 text-sm text-white backdrop-blur">
+          {video.caption}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function LightboxPhoto({ photo }: { photo: TabPhoto }) {
+  const url = useSignedUrl(photo.url);
+  return url ? (
+    <img src={url} alt="" className="h-full w-full object-contain" />
+  ) : (
+    <div className="grid h-full w-full place-items-center text-white/50">…</div>
   );
 }

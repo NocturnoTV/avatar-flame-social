@@ -257,12 +257,12 @@ function ProfilePage() {
       </header>
 
       {/* Bannière */}
-      <div className="relative mt-4 overflow-hidden rounded-3xl">
+      <div className="relative z-0 mt-4 h-36 overflow-hidden rounded-3xl">
         {p?.banner_url ? (
-          <StoredImage path={p.banner_url} alt="" className="h-36 w-full" />
+          <StoredImage path={p.banner_url} alt="" className="h-full w-full object-cover" />
         ) : (
           <div
-            className="h-36 w-full"
+            className="h-full w-full"
             style={{ backgroundImage: BANNERS[p?.banner_style ?? "nebula"] ?? BANNERS["nebula"] }}
           />
         )}
@@ -295,13 +295,13 @@ function ProfilePage() {
       </div>
 
       {/* Avatar */}
-      <div className="-mt-12 px-1">
+      <div className="relative z-10 -mt-12 px-1">
         <div className="relative inline-block">
           <div className="inline-block rounded-full bg-background p-1">
             <StoredImage
               path={p?.avatar_url ?? photos.data?.[0]?.url}
               alt={p?.username ?? ""}
-              className="h-24 w-24 rounded-full"
+              className="h-24 w-24 rounded-full object-cover"
             />
           </div>
           <button
