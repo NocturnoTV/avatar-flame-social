@@ -16,7 +16,10 @@ CREATE INDEX IF NOT EXISTS favorite_games_user_idx ON public.favorite_games(user
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.favorite_games TO authenticated;
 GRANT ALL ON public.favorite_games TO service_role;
 ALTER TABLE public.favorite_games ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "favorite games readable" ON public.favorite_games;
 CREATE POLICY "favorite games readable" ON public.favorite_games FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "own favorite games" ON public.favorite_games;
+DROP POLICY IF EXISTS "manage own favorite games" ON public.favorite_games;
 CREATE POLICY "own favorite games" ON public.favorite_games FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.stories (
@@ -32,8 +35,10 @@ CREATE INDEX IF NOT EXISTS stories_expires_idx ON public.stories(expires_at DESC
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.stories TO authenticated;
 GRANT ALL ON public.stories TO service_role;
 ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "stories readable" ON public.stories;
 CREATE POLICY "stories readable" ON public.stories FOR SELECT TO authenticated
   USING (expires_at > now() AND NOT public.is_blocked(auth.uid(), user_id));
+DROP POLICY IF EXISTS "own stories" ON public.stories;
 CREATE POLICY "own stories" ON public.stories FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.story_views (
@@ -45,6 +50,8 @@ CREATE TABLE IF NOT EXISTS public.story_views (
 GRANT SELECT, INSERT ON public.story_views TO authenticated;
 GRANT ALL ON public.story_views TO service_role;
 ALTER TABLE public.story_views ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own story views" ON public.story_views;
 CREATE POLICY "own story views" ON public.story_views FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.stories s WHERE s.id = story_id AND s.user_id = auth.uid()));
+DROP POLICY IF EXISTS "insert own story views" ON public.story_views;
 CREATE POLICY "insert own story views" ON public.story_views FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());

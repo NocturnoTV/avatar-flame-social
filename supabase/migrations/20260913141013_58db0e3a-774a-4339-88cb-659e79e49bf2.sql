@@ -11,7 +11,9 @@ CREATE TABLE IF NOT EXISTS public.recommendation_config (
 GRANT SELECT ON public.recommendation_config TO authenticated;
 GRANT ALL ON public.recommendation_config TO service_role;
 ALTER TABLE public.recommendation_config ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "config readable by staff" ON public.recommendation_config;
 CREATE POLICY "config readable by staff" ON public.recommendation_config FOR SELECT TO authenticated USING (public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "config managed by admins" ON public.recommendation_config;
 CREATE POLICY "config managed by admins" ON public.recommendation_config FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
 
 CREATE TABLE IF NOT EXISTS public.video_categories (
@@ -25,7 +27,10 @@ CREATE INDEX IF NOT EXISTS video_categories_category_idx ON public.video_categor
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.video_categories TO authenticated;
 GRANT ALL ON public.video_categories TO service_role;
 ALTER TABLE public.video_categories ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "categories readable" ON public.video_categories;
 CREATE POLICY "categories readable" ON public.video_categories FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "categories managed by owner" ON public.video_categories;
+DROP POLICY IF EXISTS "creator manages own video categories" ON public.video_categories;
 CREATE POLICY "categories managed by owner" ON public.video_categories FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM public.videos v WHERE v.id = video_id AND (v.user_id = auth.uid() OR public.is_staff(auth.uid()))))
   WITH CHECK (EXISTS (SELECT 1 FROM public.videos v WHERE v.id = video_id AND (v.user_id = auth.uid() OR public.is_staff(auth.uid()))));
@@ -40,6 +45,8 @@ CREATE TABLE IF NOT EXISTS public.user_topic_affinity (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_topic_affinity TO authenticated;
 GRANT ALL ON public.user_topic_affinity TO service_role;
 ALTER TABLE public.user_topic_affinity ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own topic affinity" ON public.user_topic_affinity;
+DROP POLICY IF EXISTS "read own topic affinity" ON public.user_topic_affinity;
 CREATE POLICY "own topic affinity" ON public.user_topic_affinity FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.user_creator_affinity (
@@ -52,6 +59,8 @@ CREATE TABLE IF NOT EXISTS public.user_creator_affinity (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_creator_affinity TO authenticated;
 GRANT ALL ON public.user_creator_affinity TO service_role;
 ALTER TABLE public.user_creator_affinity ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own creator affinity" ON public.user_creator_affinity;
+DROP POLICY IF EXISTS "read own creator affinity" ON public.user_creator_affinity;
 CREATE POLICY "own creator affinity" ON public.user_creator_affinity FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.video_watch_events (
@@ -71,7 +80,9 @@ CREATE INDEX IF NOT EXISTS video_watch_events_video_idx ON public.video_watch_ev
 GRANT SELECT, INSERT ON public.video_watch_events TO authenticated;
 GRANT ALL ON public.video_watch_events TO service_role;
 ALTER TABLE public.video_watch_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own watch events" ON public.video_watch_events;
 CREATE POLICY "own watch events" ON public.video_watch_events FOR SELECT TO authenticated USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "insert own watch events" ON public.video_watch_events;
 CREATE POLICY "insert own watch events" ON public.video_watch_events FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.hidden_creators (
@@ -83,6 +94,7 @@ CREATE TABLE IF NOT EXISTS public.hidden_creators (
 GRANT SELECT, INSERT, DELETE ON public.hidden_creators TO authenticated;
 GRANT ALL ON public.hidden_creators TO service_role;
 ALTER TABLE public.hidden_creators ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own hidden creators" ON public.hidden_creators;
 CREATE POLICY "own hidden creators" ON public.hidden_creators FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.hidden_categories (
@@ -94,6 +106,7 @@ CREATE TABLE IF NOT EXISTS public.hidden_categories (
 GRANT SELECT, INSERT, DELETE ON public.hidden_categories TO authenticated;
 GRANT ALL ON public.hidden_categories TO service_role;
 ALTER TABLE public.hidden_categories ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own hidden categories" ON public.hidden_categories;
 CREATE POLICY "own hidden categories" ON public.hidden_categories FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.video_not_interested (
@@ -105,6 +118,8 @@ CREATE TABLE IF NOT EXISTS public.video_not_interested (
 GRANT SELECT, INSERT, DELETE ON public.video_not_interested TO authenticated;
 GRANT ALL ON public.video_not_interested TO service_role;
 ALTER TABLE public.video_not_interested ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own not interested" ON public.video_not_interested;
+DROP POLICY IF EXISTS "own not-interested" ON public.video_not_interested;
 CREATE POLICY "own not interested" ON public.video_not_interested FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 INSERT INTO public.recommendation_config (id, weights, decay, exploration_ratio)

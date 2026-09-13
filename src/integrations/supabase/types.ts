@@ -160,6 +160,8 @@ export type Database = {
           id: string
           name: string
           position: number
+          roblox_universe_id: string | null
+          thumbnail_url: string | null
           url: string | null
           user_id: string
         }
@@ -168,6 +170,8 @@ export type Database = {
           id?: string
           name: string
           position?: number
+          roblox_universe_id?: string | null
+          thumbnail_url?: string | null
           url?: string | null
           user_id: string
         }
@@ -176,6 +180,8 @@ export type Database = {
           id?: string
           name?: string
           position?: number
+          roblox_universe_id?: string | null
+          thumbnail_url?: string | null
           url?: string | null
           user_id?: string
         }
@@ -423,12 +429,14 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           birth_date: string | null
+          country: string | null
           created_at: string
           deletion_requested_at: string | null
           frame_style: string
           id: string
           language: string
           last_active_at: string
+          link_url: string | null
           notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null
@@ -457,12 +465,14 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
+          country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
           frame_style?: string
           id: string
           language?: string
           last_active_at?: string
+          link_url?: string | null
           notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
@@ -491,12 +501,14 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
+          country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
           frame_style?: string
           id?: string
           language?: string
           last_active_at?: string
+          link_url?: string | null
           notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
@@ -1070,6 +1082,7 @@ export type Database = {
           created_at: string
           duration_seconds: number | null
           favorites_count: number
+          hashtags: string[]
           id: string
           likes_count: number
           recommendation_eligible: boolean
@@ -1089,6 +1102,7 @@ export type Database = {
           created_at?: string
           duration_seconds?: number | null
           favorites_count?: number
+          hashtags?: string[]
           id?: string
           likes_count?: number
           recommendation_eligible?: boolean
@@ -1108,6 +1122,7 @@ export type Database = {
           created_at?: string
           duration_seconds?: number | null
           favorites_count?: number
+          hashtags?: string[]
           id?: string
           likes_count?: number
           recommendation_eligible?: boolean
@@ -1166,12 +1181,14 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           birth_date: string | null
+          country: string | null
           created_at: string
           deletion_requested_at: string | null
           frame_style: string
           id: string
           language: string
           last_active_at: string
+          link_url: string | null
           notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null

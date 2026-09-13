@@ -2,24 +2,24 @@
 -- PERSONALIZED VIDEO RECOMMENDATION ENGINE — data layer
 -- Feeds src/lib/recommendation-engine.server.ts. See that file for the
 -- scoring pipeline; this migration only adds storage for signals + affinities.
+-- Written defensively (IF NOT EXISTS / DROP-then-CREATE) since an equivalent
+-- schema may already exist depending on which migration ran first.
 -- ============================================================================
 
 -- Canonical topic list. Kept as a CHECK instead of an enum so new topics can
 -- be added later with a simple constraint migration instead of a type change.
-CREATE TABLE public.video_categories (
+CREATE TABLE IF NOT EXISTS public.video_categories (
   video_id UUID NOT NULL REFERENCES public.videos(id) ON DELETE CASCADE,
-  category TEXT NOT NULL CHECK (category IN (
-    'roblox_development','scripting','building','gaming','meme','funny',
-    'roleplay','obby','tutorial','news','updates','showcase','ugc',
-    'animation','vehicles','scp','murder_mystery'
-  )),
+  category TEXT NOT NULL,
   weight NUMERIC NOT NULL DEFAULT 1 CHECK (weight >= 0 AND weight <= 1),
   PRIMARY KEY (video_id, category)
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.video_categories TO authenticated;
 GRANT ALL ON public.video_categories TO service_role;
 ALTER TABLE public.video_categories ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "categories readable" ON public.video_categories;
 CREATE POLICY "categories readable" ON public.video_categories FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "creator manages own video categories" ON public.video_categories;
 CREATE POLICY "creator manages own video categories" ON public.video_categories FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM public.videos v WHERE v.id = video_id AND v.user_id = auth.uid()))
   WITH CHECK (EXISTS (SELECT 1 FROM public.videos v WHERE v.id = video_id AND v.user_id = auth.uid()));
@@ -30,7 +30,7 @@ ALTER TABLE public.videos
   ADD COLUMN IF NOT EXISTS hashtags TEXT[] NOT NULL DEFAULT '{}';
 
 -- Fine-grained watch signal per playback session (section 2 & 3 inputs).
-CREATE TABLE public.video_watch_events (
+CREATE TABLE IF NOT EXISTS public.video_watch_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   video_id UUID NOT NULL REFERENCES public.videos(id) ON DELETE CASCADE,
@@ -42,16 +42,17 @@ CREATE TABLE public.video_watch_events (
   time_before_skip_ms INTEGER,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX video_watch_events_user_idx ON public.video_watch_events (user_id, created_at DESC);
-CREATE INDEX video_watch_events_video_idx ON public.video_watch_events (video_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS video_watch_events_user_idx ON public.video_watch_events (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS video_watch_events_video_idx ON public.video_watch_events (video_id, created_at DESC);
 GRANT SELECT, INSERT ON public.video_watch_events TO authenticated;
 GRANT ALL ON public.video_watch_events TO service_role;
 ALTER TABLE public.video_watch_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own watch events" ON public.video_watch_events;
 CREATE POLICY "own watch events" ON public.video_watch_events FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- "Pas intéressé" — per-video negative signal (section 2 & 19).
-CREATE TABLE public.video_not_interested (
+CREATE TABLE IF NOT EXISTS public.video_not_interested (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   video_id UUID NOT NULL REFERENCES public.videos(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -60,25 +61,26 @@ CREATE TABLE public.video_not_interested (
 GRANT SELECT, INSERT, DELETE ON public.video_not_interested TO authenticated;
 GRANT ALL ON public.video_not_interested TO service_role;
 ALTER TABLE public.video_not_interested ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own not-interested" ON public.video_not_interested;
 CREATE POLICY "own not-interested" ON public.video_not_interested FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- "Masquer ce créateur" (section 2 & 5).
-CREATE TABLE public.hidden_creators (
+CREATE TABLE IF NOT EXISTS public.hidden_creators (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   creator_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, creator_id),
-  CHECK (user_id <> creator_id)
+  PRIMARY KEY (user_id, creator_id)
 );
 GRANT SELECT, INSERT, DELETE ON public.hidden_creators TO authenticated;
 GRANT ALL ON public.hidden_creators TO service_role;
 ALTER TABLE public.hidden_creators ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own hidden creators" ON public.hidden_creators;
 CREATE POLICY "own hidden creators" ON public.hidden_creators FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- "Masquer ce thème" (section 2 & 6).
-CREATE TABLE public.hidden_categories (
+CREATE TABLE IF NOT EXISTS public.hidden_categories (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   category TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -87,11 +89,12 @@ CREATE TABLE public.hidden_categories (
 GRANT SELECT, INSERT, DELETE ON public.hidden_categories TO authenticated;
 GRANT ALL ON public.hidden_categories TO service_role;
 ALTER TABLE public.hidden_categories ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own hidden categories" ON public.hidden_categories;
 CREATE POLICY "own hidden categories" ON public.hidden_categories FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- Dynamic interest profile per user × topic (section 4 & 17 & 18).
-CREATE TABLE public.user_topic_affinity (
+CREATE TABLE IF NOT EXISTS public.user_topic_affinity (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   category TEXT NOT NULL,
   affinity NUMERIC NOT NULL DEFAULT 0.3 CHECK (affinity >= 0 AND affinity <= 1),
@@ -99,14 +102,14 @@ CREATE TABLE public.user_topic_affinity (
   PRIMARY KEY (user_id, category)
 );
 GRANT ALL ON public.user_topic_affinity TO service_role;
-GRANT SELECT ON public.user_topic_affinity TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.user_topic_affinity TO authenticated;
 ALTER TABLE public.user_topic_affinity ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "read own topic affinity" ON public.user_topic_affinity;
 CREATE POLICY "read own topic affinity" ON public.user_topic_affinity FOR SELECT TO authenticated
   USING (user_id = auth.uid());
--- writes happen only through the service-role recommendation engine, never the client.
 
 -- Dynamic affinity per user × creator (section 5 & 17 & 18).
-CREATE TABLE public.user_creator_affinity (
+CREATE TABLE IF NOT EXISTS public.user_creator_affinity (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   creator_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   affinity NUMERIC NOT NULL DEFAULT 0.3 CHECK (affinity >= 0 AND affinity <= 1),
@@ -114,14 +117,14 @@ CREATE TABLE public.user_creator_affinity (
   PRIMARY KEY (user_id, creator_id)
 );
 GRANT ALL ON public.user_creator_affinity TO service_role;
-GRANT SELECT ON public.user_creator_affinity TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.user_creator_affinity TO authenticated;
 ALTER TABLE public.user_creator_affinity ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "read own creator affinity" ON public.user_creator_affinity;
 CREATE POLICY "read own creator affinity" ON public.user_creator_affinity FOR SELECT TO authenticated
   USING (user_id = auth.uid());
 
 -- Server-configurable scoring weights (section 3 & 23) — single editable row.
--- Kept generic (JSONB) so weights can be experimented with without a migration.
-CREATE TABLE public.recommendation_config (
+CREATE TABLE IF NOT EXISTS public.recommendation_config (
   id TEXT PRIMARY KEY DEFAULT 'default',
   weights JSONB NOT NULL DEFAULT '{
     "watch": 0.30, "completion": 0.20, "like": 0.15, "comment": 0.10,
@@ -130,15 +133,17 @@ CREATE TABLE public.recommendation_config (
   decay JSONB NOT NULL DEFAULT '{
     "freshnessHalfLifeHours": 36, "affinityHalfLifeDays": 45
   }'::jsonb,
-  exploration_ratio NUMERIC NOT NULL DEFAULT 0.15 CHECK (exploration_ratio >= 0 AND exploration_ratio <= 1),
+  exploration_ratio NUMERIC NOT NULL DEFAULT 0.15,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-INSERT INTO public.recommendation_config (id) VALUES ('default') ON CONFLICT DO NOTHING;
+INSERT INTO public.recommendation_config (id) VALUES ('default') ON CONFLICT (id) DO NOTHING;
 GRANT SELECT ON public.recommendation_config TO authenticated;
 GRANT ALL ON public.recommendation_config TO service_role;
 ALTER TABLE public.recommendation_config ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "staff read config" ON public.recommendation_config;
 CREATE POLICY "staff read config" ON public.recommendation_config FOR SELECT TO authenticated
   USING (public.is_staff(auth.uid()));
+DROP POLICY IF EXISTS "admins update config" ON public.recommendation_config;
 CREATE POLICY "admins update config" ON public.recommendation_config FOR UPDATE TO authenticated
   USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
 
@@ -158,6 +163,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END; $$;
+DROP TRIGGER IF EXISTS reports_recompute_eligibility ON public.reports;
 CREATE TRIGGER reports_recompute_eligibility AFTER INSERT ON public.reports
 FOR EACH ROW EXECUTE FUNCTION public.recompute_video_eligibility();
 

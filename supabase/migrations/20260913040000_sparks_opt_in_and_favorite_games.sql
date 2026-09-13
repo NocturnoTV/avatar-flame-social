@@ -1,6 +1,7 @@
 -- Sparks becomes opt-in, and the deck is ranked by real shared signals
 -- (favorite games in common, same country, closest age) instead of just
--- recency.
+-- recency. Written defensively since an equivalent favorite_games/
+-- sparks_enabled schema may already exist from another migration.
 
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS country TEXT,
@@ -9,25 +10,29 @@ ALTER TABLE public.profiles
 
 -- Curated "favorite games" (what shows on the profile and feeds matching),
 -- distinct from roblox_games (auto-synced from the linked Roblox account).
-CREATE TABLE public.favorite_games (
+CREATE TABLE IF NOT EXISTS public.favorite_games (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  roblox_universe_id TEXT,
-  thumbnail_url TEXT,
   url TEXT,
   position INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE public.favorite_games
+  ADD COLUMN IF NOT EXISTS roblox_universe_id TEXT,
+  ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.favorite_games TO authenticated;
 GRANT ALL ON public.favorite_games TO service_role;
 ALTER TABLE public.favorite_games ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "favorite games readable" ON public.favorite_games;
 CREATE POLICY "favorite games readable" ON public.favorite_games FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR NOT public.is_blocked(auth.uid(), user_id));
+DROP POLICY IF EXISTS "own favorite games" ON public.favorite_games;
+DROP POLICY IF EXISTS "manage own favorite games" ON public.favorite_games;
 CREATE POLICY "manage own favorite games" ON public.favorite_games FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
-CREATE INDEX favorite_games_user_idx ON public.favorite_games (user_id, position);
-CREATE UNIQUE INDEX favorite_games_user_universe_unique
+CREATE INDEX IF NOT EXISTS favorite_games_user_idx ON public.favorite_games (user_id, position);
+CREATE UNIQUE INDEX IF NOT EXISTS favorite_games_user_universe_unique
   ON public.favorite_games (user_id, roblox_universe_id)
   WHERE roblox_universe_id IS NOT NULL;
 
@@ -39,6 +44,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END; $$;
+DROP TRIGGER IF EXISTS favorite_games_limit ON public.favorite_games;
 CREATE TRIGGER favorite_games_limit BEFORE INSERT ON public.favorite_games
 FOR EACH ROW EXECUTE FUNCTION public.limit_favorite_games();
 REVOKE ALL ON FUNCTION public.limit_favorite_games() FROM PUBLIC, anon, authenticated;
