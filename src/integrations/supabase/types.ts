@@ -233,6 +233,216 @@ export type Database = {
         }
         Relationships: []
       }
+      community_threads: {
+        Row: {
+          id: string
+          community_id: string
+          user_id: string
+          title: string
+          body: string | null
+          featured: boolean
+          replies_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          user_id: string
+          title: string
+          body?: string | null
+          featured?: boolean
+          replies_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          user_id?: string
+          title?: string
+          body?: string | null
+          featured?: boolean
+          replies_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_thread_replies: {
+        Row: { id: string; thread_id: string; user_id: string; content: string; created_at: string }
+        Insert: { id?: string; thread_id: string; user_id: string; content: string; created_at?: string }
+        Update: { id?: string; thread_id?: string; user_id?: string; content?: string; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "community_thread_replies_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "community_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_lfg_posts: {
+        Row: {
+          id: string
+          community_id: string
+          user_id: string
+          players_needed: string
+          when_text: string
+          mic_pref: string
+          note: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          user_id: string
+          players_needed?: string
+          when_text?: string
+          mic_pref?: string
+          note?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          user_id?: string
+          players_needed?: string
+          when_text?: string
+          mic_pref?: string
+          note?: string | null
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_events: {
+        Row: {
+          id: string
+          community_id: string
+          created_by: string
+          title: string
+          description: string | null
+          image_url: string | null
+          starts_at: string
+          capacity: number | null
+          tags: string[]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          created_by: string
+          title: string
+          description?: string | null
+          image_url?: string | null
+          starts_at: string
+          capacity?: number | null
+          tags?: string[]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          created_by?: string
+          title?: string
+          description?: string | null
+          image_url?: string | null
+          starts_at?: string
+          capacity?: number | null
+          tags?: string[]
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_event_rsvps: {
+        Row: { event_id: string; user_id: string; created_at: string }
+        Insert: { event_id: string; user_id: string; created_at?: string }
+        Update: { event_id?: string; user_id?: string; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "community_event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "community_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_media: {
+        Row: {
+          id: string
+          community_id: string
+          user_id: string
+          kind: string
+          media_url: string
+          caption: string | null
+          likes_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          user_id: string
+          kind?: string
+          media_url: string
+          caption?: string | null
+          likes_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          user_id?: string
+          kind?: string
+          media_url?: string
+          caption?: string | null
+          likes_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_media_likes: {
+        Row: { media_id: string; user_id: string; created_at: string }
+        Insert: { media_id: string; user_id: string; created_at?: string }
+        Update: { media_id?: string; user_id?: string; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "community_media_likes_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "community_media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_xp_events: {
+        Row: {
+          id: string
+          community_id: string
+          user_id: string
+          amount: number
+          reason: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          user_id: string
+          amount: number
+          reason: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          user_id?: string
+          amount?: number
+          reason?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       community_members: {
         Row: { community_id: string; user_id: string; role: string; joined_at: string }
         Insert: { community_id: string; user_id: string; role?: string; joined_at?: string }
