@@ -37,6 +37,7 @@ function AuthPage() {
   const { session } = useSession();
   const [isSignup, setIsSignup] = useState(mode === "signup");
   const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -58,12 +59,17 @@ function AuthPage() {
         toast.success(t("checkEmail"));
         setIsSignup(false);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const tokens = await signInWithIdentifier({ data: { identifier, password } });
+        const { error } = await supabase.auth.setSession({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+        });
         if (error) throw error;
         navigate({ to: "/home" });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("errorGeneric"));
+      const message = err instanceof Error ? err.message : "";
+      toast.error(message.includes("invalid_credentials") ? t("badLogin") : t("errorGeneric"));
     } finally {
       setBusy(false);
     }
