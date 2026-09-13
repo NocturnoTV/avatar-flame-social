@@ -32,14 +32,16 @@ type GuestProfile = {
   verified: boolean;
 };
 
-const DEMO_PROFILES: GuestProfile[] = [
-  ["NovaBuilder", "Building neon worlds one block at a time.", "en"],
-  ["LunaPlays", "Obbies, adventures and good vibes.", "en"],
-  ["PixelRider", "Toujours partant pour une nouvelle partie !", "fr"],
-  ["SkyQuest", "Exploring every corner of Roblox.", "en"],
-  ["BlueComet", "Creator, player, dreamer.", "de"],
-  ["GameWave", "Vamos jogar juntos!", "pt"],
-].map(([username, bio, language], index) => ({
+const DEMO_PROFILES: GuestProfile[] = (
+  [
+    ["NovaBuilder", "Building neon worlds one block at a time.", "en"],
+    ["LunaPlays", "Obbies, adventures and good vibes.", "en"],
+    ["PixelRider", "Toujours partant pour une nouvelle partie !", "fr"],
+    ["SkyQuest", "Exploring every corner of Roblox.", "en"],
+    ["BlueComet", "Creator, player, dreamer.", "de"],
+    ["GameWave", "Vamos jogar juntos!", "pt"],
+  ] as const
+).map(([username, bio, language], index) => ({
   id: `demo-${index}`,
   username,
   bio,
