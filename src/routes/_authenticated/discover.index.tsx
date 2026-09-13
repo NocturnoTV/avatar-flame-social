@@ -636,6 +636,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const [gifUrl, setGifUrl] = useState("");
   const [media, setMedia] = useState<{ url: string; type: "gif" | "sticker" } | null>(null);
   const [sort, setSort] = useState<"popular" | "recent">("popular");
+  const [commentSearch, setCommentSearch] = useState("");
 
   const myProfile = useQuery({
     queryKey: ["comment-composer-profile", user?.id],
@@ -724,15 +725,23 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     if (!user) return;
     const current = comments.data?.find((comment) => comment.id === commentId)?.my_reaction;
     if (current === reaction) {
-      await supabase
+      const { error } = await supabase
         .from("video_comment_reactions")
         .delete()
         .eq("comment_id", commentId)
         .eq("user_id", user.id);
+      if (error) {
+        toast.error(t("errorGeneric"));
+        return;
+      }
     } else {
-      await supabase
+      const { error } = await supabase
         .from("video_comment_reactions")
         .upsert({ comment_id: commentId, user_id: user.id, reaction });
+      if (error) {
+        toast.error(t("errorGeneric"));
+        return;
+      }
     }
     await comments.refetch();
   }
@@ -749,13 +758,21 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
-        {video.caption ? (
-          <div className="mx-4 mt-3 flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-2.5 text-sm">
-            <Search className="h-4 w-4 shrink-0 text-primary" />
-            <span className="text-muted-foreground">{t("commentSearchTopic")} :</span>
-            <span className="truncate font-bold text-primary">{video.caption}</span>
-          </div>
-        ) : null}
+        <label className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-blue-400/30 bg-blue-500/15 px-4 py-2.5 text-sm shadow-[0_10px_30px_-20px_rgba(37,99,235,.8)] focus-within:border-blue-500">
+          <Search className="h-4 w-4 shrink-0 text-blue-500" />
+          <span className="sr-only">{t("commentSearchTopic")}</span>
+          <input
+            value={commentSearch}
+            onChange={(event) => setCommentSearch(event.target.value)}
+            placeholder={video.caption || t("search")}
+            className="min-w-0 flex-1 bg-transparent font-semibold text-blue-600 outline-none placeholder:text-blue-500/75 dark:text-blue-300"
+          />
+          {commentSearch ? (
+            <button type="button" onClick={() => setCommentSearch("")} aria-label={t("cancel")}>
+              <X className="h-4 w-4 text-blue-500" />
+            </button>
+          ) : null}
+        </label>
         <div className="relative flex items-center justify-center border-b border-border px-5 py-4">
           <button
             type="button"
@@ -778,6 +795,14 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
           {comments.data?.length ? (
             [...comments.data]
               .filter((comment) => !comment.parent_id)
+              .filter((comment) => {
+                const query = commentSearch.trim().toLocaleLowerCase();
+                return (
+                  !query ||
+                  comment.content.toLocaleLowerCase().includes(query) ||
+                  comment.username.toLocaleLowerCase().includes(query)
+                );
+              })
               .sort((a, b) =>
                 sort === "popular"
                   ? b.likes_count - a.likes_count
@@ -968,10 +993,7 @@ function CommentItem({
         <div className="flex w-9 shrink-0 flex-col items-center gap-3 pt-2 text-muted-foreground">
           <button
             onClick={() => void onReact(comment.id, "like")}
-            className={cn(
-              "flex flex-col items-center",
-              comment.my_reaction === "like" && "text-primary",
-            )}
+            className={cn("flex flex-col items-center text-blue-500 transition active:scale-90")}
             aria-label="J’aime"
           >
             <Heart className={cn("h-6 w-6", comment.my_reaction === "like" && "fill-current")} />
@@ -1025,10 +1047,7 @@ function CommentItem({
           </div>
           <button
             onClick={() => void onReact(r.id, "like")}
-            className={cn(
-              "flex w-9 shrink-0 flex-col items-center pt-2 text-muted-foreground",
-              r.my_reaction === "like" && "text-primary",
-            )}
+            className="flex w-9 shrink-0 flex-col items-center pt-2 text-blue-500 transition active:scale-90"
             aria-label="J’aime"
           >
             <Heart className={cn("h-5 w-5", r.my_reaction === "like" && "fill-current")} />
