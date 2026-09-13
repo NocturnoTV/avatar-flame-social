@@ -184,7 +184,14 @@ function Onboarding() {
           >
             {t("continue")}
           </Button>
+          <Link
+            to="/auth"
+            className="bx-pop bx-delay-4 mt-3 block rounded-2xl border border-border bg-card/70 py-3 text-center text-sm font-semibold backdrop-blur transition hover:border-primary"
+          >
+            {t("haveAccount")} <span className="spark-text">{t("signIn")}</span>
+          </Link>
           <p className="mt-5 text-center text-xs text-muted-foreground">{t("notAffiliated")}</p>
+
         </div>
       </div>
     );

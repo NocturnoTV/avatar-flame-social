@@ -8,6 +8,7 @@ import { Button, Input, Label } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
+import { signInWithIdentifier } from "@/lib/login-identifier.functions";
 
 type Search = { mode?: "signup" | "signin" | undefined };
 
@@ -37,6 +38,7 @@ function AuthPage() {
   const { session } = useSession();
   const [isSignup, setIsSignup] = useState(mode === "signup");
   const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -58,12 +60,17 @@ function AuthPage() {
         toast.success(t("checkEmail"));
         setIsSignup(false);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const tokens = await signInWithIdentifier({ data: { identifier, password } });
+        const { error } = await supabase.auth.setSession({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+        });
         if (error) throw error;
         navigate({ to: "/home" });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("errorGeneric"));
+      const message = err instanceof Error ? err.message : "";
+      toast.error(message.includes("invalid_credentials") ? t("badLogin") : t("errorGeneric"));
     } finally {
       setBusy(false);
     }
@@ -110,16 +117,28 @@ function AuthPage() {
         </div>
 
         <form onSubmit={submit} className="space-y-4">
-          <div>
-            <Label>{t("email")}</Label>
-            <Input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="toi@exemple.com"
-            />
-          </div>
+          {isSignup ? (
+            <div>
+              <Label>{t("email")}</Label>
+              <Input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="toi@exemple.com"
+              />
+            </div>
+          ) : (
+            <div>
+              <Label>{t("identifierLabel")}</Label>
+              <Input
+                required
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={t("identifierPlaceholder")}
+              />
+            </div>
+          )}
           <div>
             <Label>{t("password")}</Label>
             <Input
