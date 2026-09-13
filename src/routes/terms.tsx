@@ -12,7 +12,10 @@ export const Route = createFileRoute("/terms")({
       },
       { property: "og:title", content: "Terms of Use — Bloxspark" },
       { property: "og:description", content: "The rules governing the Bloxspark service." },
+      { property: "og:url", content: "https://bloxspark.app/terms" },
+      { name: "robots", content: "index, follow" },
     ],
+    links: [{ rel: "canonical", href: "https://bloxspark.app/terms" }],
   }),
   component: () => (
     <LegalPage title="Terms of Use" updated="Last updated: September 13, 2026">

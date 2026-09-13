@@ -14,7 +14,10 @@ export const Route = createFileRoute("/community-guidelines")({
         property: "og:description",
         content: "A safe and respectful community for Roblox players.",
       },
+      { property: "og:url", content: "https://bloxspark.app/community-guidelines" },
+      { name: "robots", content: "index, follow" },
     ],
+    links: [{ rel: "canonical", href: "https://bloxspark.app/community-guidelines" }],
   }),
   component: () => (
     <LegalPage title="Community Guidelines" updated="Last updated: September 12, 2026">

@@ -1,14 +1,29 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
+# Social link-preview crawlers: always allowed, even for pages disallowed
+# below, so a shared profile/community/video link still gets a rich card.
 User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
 Allow: /
 
+# Everyone else (Googlebot, Bingbot, etc.): the marketing pages are public,
+# but there's no point crawling pages that require a session - they just
+# redirect to /auth for a logged-out visitor.
 User-agent: *
 Allow: /
+Disallow: /auth
+Disallow: /onboarding
+Disallow: /home
+Disallow: /discover
+Disallow: /sparks
+Disallow: /communities
+Disallow: /messages
+Disallow: /notifications
+Disallow: /profile
+Disallow: /settings
+Disallow: /shop
+Disallow: /support
+Disallow: /admin
+Disallow: /users/
+
+Sitemap: https://bloxspark.app/sitemap.xml

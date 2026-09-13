@@ -21,14 +21,19 @@ export const Route = createFileRoute("/auth")({
 
   head: () => ({
     meta: [
-      { title: "Connexion — Bloxspark" },
+      { title: "Sign in — BloxSpark" },
       {
         name: "description",
-        content: "Connecte-toi ou crée ton compte Bloxspark pour rejoindre la communauté Roblox.",
+        content: "Sign in or create your BloxSpark account to join the Roblox community.",
       },
-      { property: "og:title", content: "Connexion — Bloxspark" },
-      { property: "og:description", content: "Rejoins Bloxspark en quelques secondes." },
+      { property: "og:title", content: "Sign in — BloxSpark" },
+      { property: "og:description", content: "Join BloxSpark in a few seconds." },
+      { property: "og:url", content: "https://bloxspark.app/auth" },
+      // A bare sign-in form has no unique content worth ranking on its own —
+      // keep it out of search results so people land on "/" instead.
+      { name: "robots", content: "noindex, follow" },
     ],
+    links: [{ rel: "canonical", href: "https://bloxspark.app/auth" }],
   }),
   component: AuthPage,
 });

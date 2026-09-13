@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Discover Roblox players, share videos, find your people and chat safely on BloxSpark.",
+          "Discover Roblox players, share videos, find your people and chat safely on BloxSpark. Free to join — sign up with your Roblox account.",
       },
       { property: "og:title", content: "BloxSpark — The social world for Roblox players" },
       {
@@ -21,7 +21,34 @@ export const Route = createFileRoute("/")({
         content: "Profiles, vertical videos, Sparks, stories and real conversations.",
       },
       { property: "og:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
+      { property: "og:url", content: "https://bloxspark.app/" },
+      { name: "twitter:title", content: "BloxSpark — The social world for Roblox players" },
+      {
+        name: "twitter:description",
+        content: "Profiles, vertical videos, Sparks, stories and real conversations.",
+      },
+      { name: "twitter:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
+      {
+        "script:ld+json": {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "BloxSpark",
+          url: "https://bloxspark.app/",
+          description:
+            "BloxSpark connects Roblox players worldwide: discover profiles, share videos, match with Sparks and chat safely.",
+        },
+      },
+      {
+        "script:ld+json": {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "BloxSpark",
+          url: "https://bloxspark.app/",
+          logo: "https://bloxspark.app/bloxspark-logo.png",
+        },
+      },
     ],
+    links: [{ rel: "canonical", href: "https://bloxspark.app/" }],
   }),
   component: Landing,
 });

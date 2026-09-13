@@ -82,20 +82,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Bloxspark — réseau social et rencontres pour joueurs Roblox" },
+      { title: "BloxSpark — the social network for Roblox players" },
       {
         name: "description",
         content:
-          "Bloxspark connecte les joueurs Roblox : swipe des profils, matche et discute en privé, en groupe ou en vocal. Non affilié à Roblox Corporation.",
+          "BloxSpark connects Roblox players worldwide: discover profiles, share videos, match with Sparks and chat privately, in groups or by voice. Not affiliated with Roblox Corporation.",
       },
-      { property: "og:title", content: "Bloxspark — l'app des joueurs Roblox" },
+      { name: "robots", content: "index, follow" },
+      { name: "theme-color", content: "#7c3aed" },
+      { property: "og:site_name", content: "BloxSpark" },
+      { property: "og:title", content: "BloxSpark — the social network for Roblox players" },
       {
         property: "og:description",
-        content: "Swipe, matche et discute avec des joueurs Roblox du monde entier.",
+        content: "Discover players, share videos, match with Sparks and chat safely on BloxSpark.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://bloxspark.app/bloxspark-logo.png" },
+      { property: "og:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
+      { property: "og:locale", content: "en_US" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "BloxSpark — the social network for Roblox players" },
+      {
+        name: "twitter:description",
+        content: "Discover players, share videos, match with Sparks and chat safely on BloxSpark.",
+      },
+      { name: "twitter:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -118,7 +128,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr" className="dark">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>

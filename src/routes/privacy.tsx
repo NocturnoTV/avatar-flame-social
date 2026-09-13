@@ -12,7 +12,10 @@ export const Route = createFileRoute("/privacy")({
       },
       { property: "og:title", content: "Privacy Policy — Bloxspark" },
       { property: "og:description", content: "Your data and your rights, explained clearly." },
+      { property: "og:url", content: "https://bloxspark.app/privacy" },
+      { name: "robots", content: "index, follow" },
     ],
+    links: [{ rel: "canonical", href: "https://bloxspark.app/privacy" }],
   }),
   component: () => (
     <LegalPage title="Privacy Policy" updated="Last updated: September 13, 2026">

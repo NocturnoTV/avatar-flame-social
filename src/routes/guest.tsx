@@ -15,8 +15,15 @@ export const Route = createFileRoute("/guest")({
   head: () => ({
     meta: [
       { title: "Guest preview — BloxSpark" },
-      { name: "description", content: "Watch the BloxSpark video feed as a guest." },
+      {
+        name: "description",
+        content: "Watch the BloxSpark video feed as a guest — no account needed to browse.",
+      },
+      { property: "og:title", content: "Guest preview — BloxSpark" },
+      { property: "og:description", content: "Watch the BloxSpark video feed as a guest." },
+      { property: "og:url", content: "https://bloxspark.app/guest" },
     ],
+    links: [{ rel: "canonical", href: "https://bloxspark.app/guest" }],
   }),
   component: GuestPage,
 });
