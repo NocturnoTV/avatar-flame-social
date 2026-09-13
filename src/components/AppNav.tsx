@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Compass, Home, Send, Settings, Sparkles, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { StoredImage } from "@/components/Media";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,25 @@ function useUnread() {
         .select("id", { count: "exact", head: true })
         .eq("read", false);
       return count ?? 0;
+    },
+  });
+  return data;
+}
+
+// Shares its cache with AppMenu's own profile query (same queryKey) so the
+// avatar shown on the bottom-nav "Profil" tab never re-fetches twice.
+function useMyAvatar() {
+  const { user } = useSession();
+  const { data } = useQuery({
+    queryKey: ["app-menu-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username,avatar_url")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
     },
   });
   return data;
@@ -103,10 +123,11 @@ export function SideNav() {
   );
 }
 
-export function BottomNav() {
+export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
   const items = useItems();
   const isActive = useActive();
   const unread = useUnread();
+  const myAvatar = useMyAvatar();
 
   return (
     <nav className="fixed inset-x-3 bottom-[max(0.65rem,env(safe-area-inset-bottom))] z-40 rounded-[1.65rem] border border-border/80 bg-background/90 p-1.5 shadow-[0_14px_45px_-12px_rgba(0,0,0,.35)] backdrop-blur-2xl lg:hidden">
@@ -114,6 +135,37 @@ export function BottomNav() {
         {items.map((item) => {
           const active = isActive(item.to);
           const isSpark = item.to === "/sparks";
+          const isProfile = item.to === "/profile";
+
+          if (isProfile && onOpenMenu) {
+            return (
+              <button
+                key={item.to}
+                onClick={onOpenMenu}
+                className={cn(
+                  "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 text-[10px] font-bold transition-all duration-200 active:scale-95",
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+                )}
+              >
+                <span
+                  className={cn(
+                    "relative grid h-8 w-10 place-items-center",
+                    active && "rounded-full ring-2 ring-primary",
+                  )}
+                >
+                  <StoredImage
+                    path={myAvatar?.avatar_url}
+                    alt={myAvatar?.username ?? ""}
+                    className="h-7 w-7 rounded-full object-cover"
+                    fallback={myAvatar?.username?.[0]?.toUpperCase() ?? "?"}
+                  />
+                </span>
+                <span className="w-full truncate text-center leading-tight">{item.label}</span>
+              </button>
+            );
+          }
 
           if (isSpark) {
             return (
