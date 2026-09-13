@@ -345,27 +345,27 @@ function MessagesPage() {
   const unreadCount = activity.filter((n) => !n.read).length;
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-lg bg-white px-4 pb-28 pt-5 text-[#050505]">
+    <div className="mx-auto min-h-screen w-full max-w-lg bg-white px-4 pb-28 pt-5 text-[#050505] dark:bg-black dark:text-white">
       <header className="flex h-[52px] items-center justify-between">
         <button
           onClick={() => setNewGroup(true)}
           aria-label={t("newGroup")}
-          className="grid h-10 w-10 place-items-center rounded-full text-[#050505] hover:bg-black/5"
+          className="grid h-10 w-10 place-items-center rounded-full text-[#050505] hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
         >
           <UserPlus className="h-5 w-5" />
         </button>
-        <h1 className="flex items-center gap-1.5 text-[22px] font-black text-[#050505]">
+        <h1 className="flex items-center gap-1.5 text-[22px] font-black text-[#050505] dark:text-white">
           {t("messages")}
-          <span className="grid h-5 w-5 place-items-center rounded-md bg-[#F5F5F5]">
-            <span className="h-2 w-2 rounded-full bg-[#20D778]" />
+          <span className="grid h-5 w-5 place-items-center rounded-md bg-[#F5F5F5] dark:bg-[#1c1c1e]">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#20D778]" />
           </span>
         </h1>
         <button
           onClick={() => setShowSearch((v) => !v)}
           aria-label={t("search")}
           className={cn(
-            "grid h-10 w-10 place-items-center rounded-full hover:bg-black/5",
-            showSearch ? "text-primary" : "text-[#050505]",
+            "grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10",
+            showSearch ? "text-primary" : "text-[#050505] dark:text-white",
           )}
         >
           <Search className="h-5 w-5" />
@@ -375,11 +375,13 @@ function MessagesPage() {
       <section className="no-scrollbar -mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2">
         <button onClick={() => storyInput.current?.click()} className="w-[72px] shrink-0 text-center">
           <span className="relative mx-auto block h-[72px] w-[72px] rounded-full border-2 border-dashed border-primary bg-primary/10 p-1">
-            <span className="grid h-full w-full place-items-center rounded-full bg-[#F5F5F5]">
+            <span className="grid h-full w-full place-items-center rounded-full bg-[#F5F5F5] dark:bg-[#1c1c1e]">
               <Plus className="h-6 w-6 text-primary" />
             </span>
           </span>
-          <span className="mt-1.5 block truncate text-xs font-semibold text-[#050505]">{t("yourStory")}</span>
+          <span className="mt-1.5 block truncate text-xs font-semibold text-[#050505] dark:text-white">
+            {t("yourStory")}
+          </span>
         </button>
         <input
           ref={storyInput}
@@ -396,31 +398,33 @@ function MessagesPage() {
           <button key={s.id} onClick={() => void openStory(s)} className="w-[72px] shrink-0 text-center">
             <span
               className={cn(
-                "mx-auto block h-[72px] w-[72px] rounded-full p-[3px]",
-                s.unread ? "bg-gradient-to-br from-[#18BFE2] to-[#20D778]" : "bg-[#E5E5E5]",
+                "mx-auto block h-[72px] w-[72px] rounded-full p-[3px] transition-transform active:scale-95",
+                s.unread ? "bg-gradient-to-br from-[#18BFE2] to-[#20D778]" : "bg-[#E5E5E5] dark:bg-white/15",
               )}
             >
               <StoredImage
                 path={s.avatar_url}
                 alt={s.username}
-                className="h-full w-full rounded-full border-2 border-white object-cover"
+                className="h-full w-full rounded-full border-2 border-white object-cover dark:border-black"
                 fallback={s.username[0]?.toUpperCase() ?? "?"}
               />
             </span>
-            <span className="mt-1.5 block truncate text-xs font-semibold text-[#050505]">{s.username}</span>
+            <span className="mt-1.5 block truncate text-xs font-semibold text-[#050505] dark:text-white">
+              {s.username}
+            </span>
           </button>
         ))}
       </section>
 
       {showSearch ? (
-        <label className="mt-3 flex h-11 items-center gap-2 rounded-2xl bg-[#F5F5F5] px-4">
+        <label className="bx-pop mt-3 flex h-11 items-center gap-2 rounded-2xl bg-[#F5F5F5] px-4 dark:bg-[#1c1c1e]">
           <Search className="h-4 w-4 text-[#929292]" />
           <input
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("search")}
-            className="min-w-0 flex-1 bg-transparent text-sm text-[#050505] outline-none placeholder:text-[#929292]"
+            className="min-w-0 flex-1 bg-transparent text-sm text-[#050505] outline-none placeholder:text-[#929292] dark:text-white"
           />
           <button onClick={() => setShowSearch(false)} aria-label={t("cancel")}>
             <X className="h-4 w-4 text-[#929292]" />
@@ -447,12 +451,15 @@ function MessagesPage() {
       <div className="mt-2">
         {/* New followers */}
         {latestFollower.data ? (
-          <Link to="/notifications" className="flex items-center gap-3 rounded-2xl px-1 py-3 hover:bg-black/[.03]">
+          <Link
+            to="/notifications"
+            className="bx-pop flex items-center gap-3 rounded-2xl px-1 py-3 transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+          >
             <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#18BFE2] text-white">
               <Users className="h-6 w-6" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold text-[#050505]">{t("followers")}</p>
+              <p className="text-[17px] font-bold text-[#050505] dark:text-white">{t("followers")}</p>
               <p className="truncate text-sm text-[#929292]">
                 {t("newFollowerBody", { username: latestFollower.data.username })}
               </p>
@@ -464,7 +471,7 @@ function MessagesPage() {
         {latestActivity ? (
           <button
             onClick={() => setShowNotifications(true)}
-            className="flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left hover:bg-black/[.03]"
+            className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
           >
             <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#FF3568] text-xl text-white">
               {ICONS[latestActivity.kind] ?? "🔔"}
@@ -475,7 +482,7 @@ function MessagesPage() {
               ) : null}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold text-[#050505]">{t("recentActivity")}</p>
+              <p className="text-[17px] font-bold text-[#050505] dark:text-white">{t("recentActivity")}</p>
               <p className="truncate text-sm text-[#929292]">{latestActivity.body}</p>
             </div>
           </button>
@@ -489,7 +496,10 @@ function MessagesPage() {
           const name = c.is_group ? c.name : c.others[0]?.username;
           const person = c.others[0];
           return (
-            <div key={c.id} className="group relative flex items-center gap-3 rounded-2xl px-1 py-3 hover:bg-black/[.03]">
+            <div
+              key={c.id}
+              className="bx-pop group relative flex items-center gap-3 rounded-2xl px-1 py-3 transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+            >
               <Link
                 to="/messages/$id"
                 params={{ id: c.id }}
@@ -504,7 +514,7 @@ function MessagesPage() {
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505]">
+                  <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
                     <span className="truncate">{name || "Discussion"}</span>
                     {!c.is_group && person?.verified ? <Verified /> : null}
                     {c.pinned ? <Pin className="h-3.5 w-3.5 shrink-0 text-[#929292]" /> : null}
@@ -522,7 +532,7 @@ function MessagesPage() {
                 <button
                   onClick={() => cameraInputs.current[c.id]?.click()}
                   aria-label={t("photo")}
-                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-[#929292] hover:bg-black/5 hover:text-primary"
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-[#929292] transition hover:bg-black/5 hover:text-primary dark:hover:bg-white/10"
                 >
                   <Camera className="h-5 w-5" />
                 </button>
@@ -548,13 +558,13 @@ function MessagesPage() {
         {systemNotif ? (
           <button
             onClick={() => setShowNotifications(true)}
-            className="flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left hover:bg-black/[.03]"
+            className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
           >
             <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-900 text-white">
               <Newspaper className="h-6 w-6" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505]">
+              <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
                 {t("systemNotifications")}
                 <Pin className="h-3.5 w-3.5 text-[#929292]" />
               </p>

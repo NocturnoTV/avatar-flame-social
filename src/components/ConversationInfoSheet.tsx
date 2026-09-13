@@ -153,7 +153,7 @@ export function ConversationInfoSheet({
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
       <div
-        className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-t-3xl bg-white p-5 text-[#050505] sm:rounded-3xl"
+        className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-t-3xl bg-white p-5 text-[#050505] dark:bg-black dark:text-white sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-end">
@@ -171,7 +171,7 @@ export function ConversationInfoSheet({
               fallback={title[0]?.toUpperCase() ?? "?"}
             />
           ) : (
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-[#F5F5F5] text-3xl">👥</div>
+            <div className="grid h-20 w-20 place-items-center rounded-full bg-[#F5F5F5] text-3xl dark:bg-[#1c1c1e]">👥</div>
           )}
           <p className="mt-2 text-lg font-bold">{contact.data?.nickname || title}</p>
           {contact.data?.nickname ? (
@@ -187,7 +187,7 @@ export function ConversationInfoSheet({
                   onChange={(e) => setNicknameDraft(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && void saveNickname()}
                   placeholder={t("addNickname")}
-                  className="min-w-0 flex-1 rounded-full bg-[#F5F5F5] px-3 py-1.5 text-sm outline-none"
+                  className="min-w-0 flex-1 rounded-full bg-[#F5F5F5] px-3 py-1.5 text-sm text-[#050505] outline-none dark:bg-[#1c1c1e] dark:text-white"
                 />
                 <button onClick={() => void saveNickname()} className="text-sm font-bold text-primary">
                   {t("save")}
@@ -207,7 +207,7 @@ export function ConversationInfoSheet({
           ) : null}
 
           {contact.data?.profile?.roblox_user_id ? (
-            <div className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#F5F5F5] p-3 text-left">
+            <div className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#F5F5F5] p-3 text-left dark:bg-[#1c1c1e]">
               <img
                 src={contact.data.profile.roblox_avatar_url ?? undefined}
                 alt=""
@@ -220,7 +220,7 @@ export function ConversationInfoSheet({
                 <RobloxIdentity
                   displayName={contact.data.profile.roblox_display_name}
                   username={contact.data.profile.roblox_username}
-                  className="text-sm font-semibold text-[#050505]"
+                  className="text-sm font-semibold text-[#050505] dark:text-white"
                 />
                 <p className="truncate text-[11px] text-[#929292]">ID: {contact.data.profile.roblox_user_id}</p>
               </div>
@@ -247,7 +247,7 @@ export function ConversationInfoSheet({
 
         {searching ? (
           <div className="mt-4 space-y-2">
-            <div className="flex items-center gap-2 rounded-2xl bg-[#F5F5F5] px-3 py-2">
+            <div className="flex items-center gap-2 rounded-2xl bg-[#F5F5F5] px-3 py-2 dark:bg-[#1c1c1e]">
               <Search className="h-4 w-4 text-[#929292]" />
               <input
                 autoFocus
@@ -255,12 +255,12 @@ export function ConversationInfoSheet({
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && void runSearch()}
                 placeholder={t("search")}
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                className="min-w-0 flex-1 bg-transparent text-sm text-[#050505] outline-none dark:text-white"
               />
             </div>
             <div className="max-h-40 space-y-1 overflow-y-auto">
               {results.map((r) => (
-                <p key={r.id} className="truncate rounded-xl bg-[#F5F5F5] px-3 py-2 text-sm">
+                <p key={r.id} className="truncate rounded-xl bg-[#F5F5F5] px-3 py-2 text-sm dark:bg-[#1c1c1e]">
                   {r.content}
                 </p>
               ))}
@@ -268,7 +268,7 @@ export function ConversationInfoSheet({
           </div>
         ) : null}
 
-        <div className="mt-5 space-y-1 border-t border-black/5 pt-3">
+        <div className="mt-5 space-y-1 border-t border-black/5 pt-3 dark:border-white/10">
           <Row
             icon={MessageSquare}
             label={t("chatBubble")}
@@ -282,7 +282,7 @@ export function ConversationInfoSheet({
             chevron
           />
           {pickingBubble ? (
-            <div className="flex flex-wrap gap-3 rounded-2xl bg-[#F5F5F5] p-3">
+            <div className="flex flex-wrap gap-3 rounded-2xl bg-[#F5F5F5] p-3 dark:bg-[#1c1c1e]">
               {BUBBLE_THEMES.map((b) => (
                 <button
                   key={b.id}
@@ -294,7 +294,7 @@ export function ConversationInfoSheet({
                   aria-label={b.label}
                   className={cn(
                     "h-9 w-9 rounded-full ring-offset-2",
-                    bubble.id === b.id && "ring-2 ring-[#050505]",
+                    bubble.id === b.id && "ring-2 ring-[#050505] dark:ring-white",
                   )}
                   style={{ background: `linear-gradient(135deg, ${b.from}, ${b.to})` }}
                 />
@@ -308,14 +308,14 @@ export function ConversationInfoSheet({
             onClick={() => setPickingWallpaper((v) => !v)}
             right={
               <span
-                className="h-6 w-6 shrink-0 rounded-full border border-black/10"
+                className="h-6 w-6 shrink-0 rounded-full border border-black/10 dark:border-white/20"
                 style={{ background: wallpaper.css }}
               />
             }
             chevron
           />
           {pickingWallpaper ? (
-            <div className="flex flex-wrap gap-3 rounded-2xl bg-[#F5F5F5] p-3">
+            <div className="flex flex-wrap gap-3 rounded-2xl bg-[#F5F5F5] p-3 dark:bg-[#1c1c1e]">
               {WALLPAPERS.map((w) => (
                 <button
                   key={w.id}
@@ -326,8 +326,8 @@ export function ConversationInfoSheet({
                   }}
                   aria-label={w.label}
                   className={cn(
-                    "h-9 w-9 rounded-full border border-black/10 ring-offset-2",
-                    wallpaper.id === w.id && "ring-2 ring-[#050505]",
+                    "h-9 w-9 rounded-full border border-black/10 ring-offset-2 dark:border-white/20",
+                    wallpaper.id === w.id && "ring-2 ring-[#050505] dark:ring-white",
                   )}
                   style={{ background: w.css }}
                 />
@@ -354,7 +354,7 @@ export function ConversationInfoSheet({
         </div>
 
         {reporting ? (
-          <div className="mt-3 space-y-2 rounded-2xl bg-[#F5F5F5] p-3">
+          <div className="mt-3 space-y-2 rounded-2xl bg-[#F5F5F5] p-3 dark:bg-[#1c1c1e]">
             <p className="text-xs font-semibold text-[#929292]">{t("reportReason")}</p>
             {[
               { id: "harassment", label: t("reportHarassment") },
@@ -365,7 +365,7 @@ export function ConversationInfoSheet({
               <button
                 key={reason.id}
                 onClick={() => void report(reason.id)}
-                className="block w-full rounded-xl bg-white px-3 py-2 text-left text-sm hover:bg-black/5"
+                className="block w-full rounded-xl bg-white px-3 py-2 text-left text-sm text-[#050505] hover:bg-black/5 dark:bg-black dark:text-white dark:hover:bg-white/10"
               >
                 {reason.label}
               </button>
@@ -380,10 +380,10 @@ export function ConversationInfoSheet({
 function QuickAction({ icon: Icon, label, onClick }: { icon: typeof Search; label: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="flex flex-col items-center gap-1.5">
-      <span className="grid h-14 w-14 place-items-center rounded-full bg-[#F5F5F5] text-[#050505]">
+      <span className="grid h-14 w-14 place-items-center rounded-full bg-[#F5F5F5] text-[#050505] dark:bg-[#1c1c1e] dark:text-white">
         <Icon className="h-5 w-5" />
       </span>
-      <span className="truncate text-xs font-medium text-[#050505]">{label}</span>
+      <span className="truncate text-xs font-medium text-[#050505] dark:text-white">{label}</span>
     </button>
   );
 }
@@ -405,10 +405,10 @@ function Row({
     <button
       onClick={onClick}
       disabled={!onClick && !right}
-      className="flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left hover:bg-black/5"
+      className="flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/5 dark:hover:bg-white/10"
     >
-      <Icon className="h-5 w-5 text-[#050505]" />
-      <span className="flex-1 font-semibold text-[#050505]">{label}</span>
+      <Icon className="h-5 w-5 text-[#050505] dark:text-white" />
+      <span className="flex-1 font-semibold text-[#050505] dark:text-white">{label}</span>
       {right}
       {chevron ? <ChevronRight className="h-4 w-4 text-[#929292]" /> : null}
     </button>

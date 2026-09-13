@@ -25,10 +25,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
-import { getBubbleTheme, getWallpaper } from "@/lib/chatTheme";
+import { getBubbleTheme, getWallpaper, resolveWallpaperCss } from "@/lib/chatTheme";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
+import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 const EMOJIS = ["😀", "😂", "🥰", "😎", "😭", "🔥", "✨", "💖", "👀", "🎮", "🧱", "🚀", "👍", "🙏", "💀", "🤝"];
@@ -61,6 +62,7 @@ function Conversation() {
   const { id } = Route.useParams();
   const { t } = useI18n();
   const { user } = useSession();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -72,7 +74,12 @@ function Conversation() {
   const [lightbox, setLightbox] = useState<Message | null>(null);
   const [wallpaper, setWallpaperLocal] = useState(() => getWallpaper(id));
   const [bubble, setBubbleLocal] = useState(() => getBubbleTheme(id));
+  const wallpaperCss = resolveWallpaperCss(wallpaper, theme);
   const bubbleGradient = `linear-gradient(90deg, ${bubble.from} 0%, ${bubble.to} 100%)`;
+  const [otherTyping, setOtherTyping] = useState(false);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -171,7 +178,10 @@ function Conversation() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` },
-        () => void messages.refetch(),
+        () => {
+          setOtherTyping(false);
+          void messages.refetch();
+        },
       )
       .subscribe();
     return () => {
@@ -179,9 +189,40 @@ function Conversation() {
     };
   }, [id, messages]);
 
+  // "typing…" indicator — a lightweight realtime broadcast, no table needed.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`typing-${id}`)
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        if (payload?.userId === user.id) return;
+        setOtherTyping(true);
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => setOtherTyping(false), 3000);
+      })
+      .subscribe();
+    typingChannelRef.current = channel;
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      void supabase.removeChannel(channel);
+    };
+  }, [id, user]);
+
+  function notifyTyping() {
+    if (!user) return;
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < 1500) return;
+    lastTypingSentRef.current = now;
+    void typingChannelRef.current?.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { userId: user.id },
+    });
+  }
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.data]);
+  }, [messages.data, otherTyping]);
 
   useEffect(() => {
     if (!user) return;
@@ -263,10 +304,10 @@ function Conversation() {
   const list = messages.data ?? [];
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-5rem)] w-full max-w-md flex-col bg-white text-[#050505]">
+    <div className="mx-auto flex h-[calc(100vh-5rem)] w-full max-w-md flex-col bg-white text-[#050505] dark:bg-black dark:text-white">
       {/* En-tête fixe */}
-      <header className="flex h-[74px] shrink-0 items-center gap-3 border-b border-black/5 bg-white px-4">
-        <Link to="/messages" aria-label={t("back")} className="text-[#050505]">
+      <header className="flex h-[74px] shrink-0 items-center gap-3 border-b border-black/5 bg-white px-4 dark:border-white/10 dark:bg-black">
+        <Link to="/messages" aria-label={t("back")} className="text-[#050505] dark:text-white">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         {header.data?.isGroup || !header.data?.otherId ? (
@@ -282,31 +323,33 @@ function Conversation() {
               fallback={header.data.title?.[0]?.toUpperCase() ?? "?"}
             />
             {header.data.online ? (
-              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-[#20D778]" />
+              <span className="absolute bottom-0 right-0 h-3 w-3 animate-pulse rounded-full border-2 border-white bg-[#20D778] dark:border-black" />
             ) : null}
           </Link>
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-bold leading-tight text-[#050505]">{header.data?.title}</p>
+          <p className="truncate font-bold leading-tight text-[#050505] dark:text-white">{header.data?.title}</p>
           <p className="truncate text-xs text-[#929292]">
-            {header.data?.isGroup
-              ? `${header.data.members} ${t("members")}`
-              : header.data?.online
-                ? t("online")
-                : ""}
+            {otherTyping
+              ? <span className="font-semibold text-primary">{t("typing")}</span>
+              : header.data?.isGroup
+                ? `${header.data.members} ${t("members")}`
+                : header.data?.online
+                  ? t("online")
+                  : ""}
           </p>
         </div>
         <button
           onClick={() => toast.message(t("callUnavailable"))}
           aria-label={t("call")}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#050505] hover:bg-black/5"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#050505] hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
         >
           <Phone className="h-5 w-5" />
         </button>
         <button
           onClick={() => setInfo(true)}
           aria-label={t("more")}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#050505] hover:bg-black/5"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#050505] hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
         >
           <MoreVertical className="h-5 w-5" />
         </button>
@@ -333,7 +376,7 @@ function Conversation() {
       ) : null}
 
       {/* Liste défilante */}
-      <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4" style={{ background: wallpaper.css }}>
+      <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4" style={{ background: wallpaperCss }}>
         {list.map((m, i) => {
           const mine = m.sender_id === user?.id;
           const sender = header.data?.people?.[m.sender_id];
@@ -348,7 +391,7 @@ function Conversation() {
               : false;
 
           return (
-            <div key={m.id} className={cn(sameAsPrev ? "mt-1" : "mt-4")}>
+            <div key={m.id} className={cn("bx-pop", sameAsPrev ? "mt-1" : "mt-4")}>
               <div className={cn("flex items-end gap-2", mine ? "justify-end" : "justify-start")}>
                 {!mine ? (
                   <div className="h-7 w-7 shrink-0">
@@ -379,14 +422,14 @@ function Conversation() {
                     e.currentTarget.addEventListener("touchmove", clear, { once: true });
                   }}
                   className={cn(
-                    "max-w-[70%] text-left",
+                    "max-w-[70%] text-left transition-transform active:scale-[0.98]",
                     mine ? "max-w-[72%]" : "max-w-[68%]",
                   )}
                 >
                   {m.kind === "text" ? (
                     mine ? (
                       <p
-                        className="whitespace-pre-wrap break-words rounded-[26px] px-[30px] py-[18px] text-[15px] text-white"
+                        className="whitespace-pre-wrap break-words rounded-[26px] px-[30px] py-[18px] text-[15px] text-white shadow-sm"
                         style={{ background: bubbleGradient }}
                       >
                         {m.content}
@@ -400,10 +443,7 @@ function Conversation() {
 
                   {m.kind === "voice" ? (
                     mine ? (
-                      <div
-                        className="rounded-[26px] px-4 py-3"
-                        style={{ background: bubbleGradient }}
-                      >
+                      <div className="rounded-[26px] px-4 py-3 shadow-sm" style={{ background: bubbleGradient }}>
                         <VoicePlayer path={m.media_url} light />
                       </div>
                     ) : (
@@ -426,11 +466,38 @@ function Conversation() {
             </div>
           );
         })}
+
+        {otherTyping ? (
+          <div className="bx-pop mt-4 flex items-end justify-start gap-2">
+            <div className="h-7 w-7 shrink-0">
+              {header.data?.otherId ? (
+                <StoredImage
+                  path={header.data.people[header.data.otherId]?.avatar_url}
+                  alt=""
+                  className="h-7 w-7 rounded-full object-cover"
+                  fallback="🎮"
+                />
+              ) : null}
+            </div>
+            <div className="rounded-[26px] border-2 border-[#050505] bg-white px-4 py-3 dark:border-white dark:bg-black">
+              <div className="flex items-center gap-1">
+                {[0, 1, 2].map((n) => (
+                  <span
+                    key={n}
+                    className="h-2 w-2 animate-bounce rounded-full bg-[#050505] dark:bg-white"
+                    style={{ animationDelay: `${n * 0.15}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div ref={bottomRef} />
       </div>
 
       {/* Réponses rapides */}
-      <div className="border-t border-black/5 bg-white px-3 pt-2">
+      <div className="border-t border-black/5 bg-white px-3 pt-2 dark:border-white/10 dark:bg-black">
         {showQuickReplies ? (
           <div className="no-scrollbar mb-2 flex gap-2 overflow-x-auto">
             {QUICK_REPLIES.map((q) => (
@@ -440,7 +507,7 @@ function Conversation() {
                   setText(q);
                   setShowQuickReplies(false);
                 }}
-                className="shrink-0 rounded-full bg-[#F5F5F5] px-3.5 py-2 text-sm font-medium text-[#050505]"
+                className="shrink-0 rounded-full bg-[#F5F5F5] px-3.5 py-2 text-sm font-medium text-[#050505] dark:bg-[#1c1c1e] dark:text-white"
               >
                 {q}
               </button>
@@ -449,7 +516,7 @@ function Conversation() {
         ) : (
           <button
             onClick={() => setShowQuickReplies(true)}
-            className="mb-2 flex items-center gap-2 rounded-full bg-[#F5F5F5] px-3.5 py-2 text-sm text-[#929292]"
+            className="mb-2 flex items-center gap-2 rounded-full bg-[#F5F5F5] px-3.5 py-2 text-sm text-[#929292] dark:bg-[#1c1c1e]"
           >
             <span className="grid h-5 w-5 place-items-center rounded-full bg-[#18BFE2] text-white">
               <Zap className="h-3 w-3 fill-white" />
@@ -461,7 +528,11 @@ function Conversation() {
         {showEmoji ? (
           <div className="mb-2 grid grid-cols-8 gap-1 text-2xl">
             {EMOJIS.map((e) => (
-              <button key={e} onClick={() => setText((v) => v + e)} className="rounded-lg p-1 hover:bg-black/5">
+              <button
+                key={e}
+                onClick={() => setText((v) => v + e)}
+                className="rounded-lg p-1 hover:bg-black/5 dark:hover:bg-white/10"
+              >
                 {e}
               </button>
             ))}
@@ -473,7 +544,7 @@ function Conversation() {
           <button
             onClick={() => cameraRef.current?.click()}
             aria-label={t("photo")}
-            className="grid h-11 w-11 shrink-0 place-items-center text-[#050505]"
+            className="grid h-11 w-11 shrink-0 place-items-center text-[#050505] dark:text-white"
           >
             <Camera className="h-6 w-6" />
           </button>
@@ -490,11 +561,14 @@ function Conversation() {
             }}
           />
 
-          <div className="flex min-h-[64px] flex-1 items-center gap-2 rounded-[32px] bg-[#F5F5F5] px-4 py-2">
+          <div className="flex min-h-[64px] flex-1 items-center gap-2 rounded-[32px] bg-[#F5F5F5] px-4 py-2 transition-shadow focus-within:ring-2 focus-within:ring-primary/40 dark:bg-[#1c1c1e]">
             <textarea
               rows={1}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value);
+                notifyTyping();
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -502,9 +576,13 @@ function Conversation() {
                 }
               }}
               placeholder={t("typeMessage")}
-              className="max-h-28 min-w-0 flex-1 resize-none bg-transparent text-[15px] text-[#050505] outline-none placeholder:text-[#929292]"
+              className="max-h-28 min-w-0 flex-1 resize-none bg-transparent text-[15px] text-[#050505] outline-none placeholder:text-[#929292] dark:text-white"
             />
-            <button onClick={() => fileRef.current?.click()} aria-label={t("addPhoto")} className="shrink-0 text-[#050505]">
+            <button
+              onClick={() => fileRef.current?.click()}
+              aria-label={t("addPhoto")}
+              className="shrink-0 text-[#050505] dark:text-white"
+            >
               <ImagePlus className="h-5 w-5" />
             </button>
             <input
@@ -518,21 +596,25 @@ function Conversation() {
                 e.target.value = "";
               }}
             />
-            <button onClick={() => setShowEmoji((v) => !v)} aria-label="emoji" className="shrink-0 text-[#050505]">
+            <button
+              onClick={() => setShowEmoji((v) => !v)}
+              aria-label="emoji"
+              className="shrink-0 text-[#050505] dark:text-white"
+            >
               <Smile className="h-5 w-5" />
             </button>
           </div>
 
           {text.trim() ? (
-            <Button size="icon" onClick={() => send("text")} aria-label={t("send")} className="shrink-0">
+            <Button size="icon" onClick={() => send("text")} aria-label={t("send")} className="bx-pop shrink-0">
               <Send className="h-4 w-4" />
             </Button>
           ) : (
             <button
               onClick={toggleRecording}
               className={cn(
-                "grid h-11 w-11 shrink-0 place-items-center rounded-full",
-                recording ? "bg-destructive text-white" : "text-[#050505]",
+                "grid h-11 w-11 shrink-0 place-items-center rounded-full transition",
+                recording ? "scale-110 bg-destructive text-white" : "text-[#050505] dark:text-white",
               )}
               aria-label={t("recordVoice")}
             >
@@ -544,11 +626,21 @@ function Conversation() {
 
       {/* Menu contextuel appui long */}
       {activeMessage ? (
-        <div className="fixed inset-0 z-[75] flex items-end justify-center bg-black/40 sm:items-center" onClick={() => setActiveMessage(null)}>
-          <div className="w-full max-w-xs rounded-t-3xl bg-white p-4 sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-center gap-3 border-b border-black/5 pb-3">
+        <div
+          className="fixed inset-0 z-[75] flex items-end justify-center bg-black/40 sm:items-center"
+          onClick={() => setActiveMessage(null)}
+        >
+          <div
+            className="bx-pop w-full max-w-xs rounded-t-3xl bg-white p-4 dark:bg-[#111] sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-center gap-3 border-b border-black/5 pb-3 dark:border-white/10">
               {REACTIONS.map((r) => (
-                <button key={r} onClick={() => setActiveMessage(null)} className="text-2xl transition active:scale-90">
+                <button
+                  key={r}
+                  onClick={() => setActiveMessage(null)}
+                  className="text-2xl transition active:scale-90"
+                >
                   {r}
                 </button>
               ))}
@@ -615,8 +707,8 @@ function MenuRow({
     <button
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-black/5",
-        destructive ? "text-destructive" : "text-[#050505]",
+        "flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/10",
+        destructive ? "text-destructive" : "text-[#050505] dark:text-white",
       )}
     >
       <Icon className="h-4.5 w-4.5" /> {label}
@@ -624,15 +716,13 @@ function MenuRow({
   );
 }
 
-/** Original hand-drawn "note" bubble — thin black outline, doodle face + hands at the corners. */
+/** Original hand-drawn "note" bubble — thin outline, doodle face + hands at the corners. */
 function ReceivedBubble({ children, padded = true }: { children: React.ReactNode; padded?: boolean }) {
   return (
-    <div className="relative">
-      <div className="rounded-[26px] border-2 border-[#050505] bg-white">
+    <div className="relative text-[#050505] dark:text-white">
+      <div className="rounded-[26px] border-2 border-current bg-white dark:bg-black">
         {padded ? (
-          <p className="whitespace-pre-wrap break-words px-[22px] py-[16px] pr-8 text-[15px] text-[#050505]">
-            {children}
-          </p>
+          <p className="whitespace-pre-wrap break-words px-[22px] py-[16px] pr-8 text-[15px]">{children}</p>
         ) : (
           children
         )}
@@ -647,15 +737,9 @@ function ReceivedBubble({ children, padded = true }: { children: React.ReactNode
 function DoodleFace({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 40 26" className={className} fill="none" aria-hidden="true">
-      <ellipse cx="10" cy="12" rx="3.4" ry="5" fill="#050505" transform="rotate(-12 10 12)" />
-      <ellipse cx="21" cy="10" rx="3.4" ry="5" fill="#050505" transform="rotate(-6 21 10)" />
-      <path
-        d="M14 20c3-3 9-3 14-1"
-        stroke="#050505"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        fill="none"
-      />
+      <ellipse cx="10" cy="12" rx="3.4" ry="5" fill="currentColor" transform="rotate(-12 10 12)" />
+      <ellipse cx="21" cy="10" rx="3.4" ry="5" fill="currentColor" transform="rotate(-6 21 10)" />
+      <path d="M14 20c3-3 9-3 14-1" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none" />
     </svg>
   );
 }
@@ -665,7 +749,7 @@ function DoodleHand({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
       <path
         d="M4 20c0-5 1-8 2-10M8 20c0-6 .5-9 1.5-11M12 20c0-6 0-10 1-12M16 20c0-5-.5-8 .5-10c1-2 3-1.5 3 .5c0 4-1 8-3 11.5"
-        stroke="#050505"
+        stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
         fill="none"
@@ -677,8 +761,17 @@ function DoodleHand({ className }: { className?: string }) {
 function ImageBubble({ path, mine }: { path: string | null; mine: boolean }) {
   const url = useSignedUrl(path);
   return (
-    <div className={cn("relative overflow-hidden rounded-[22px]", !mine && "border-2 border-[#050505]")}>
-      {url ? <img src={url} alt="" className="h-48 w-48 object-cover" /> : <div className="h-48 w-48 animate-pulse bg-black/5" />}
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-[22px]",
+        !mine && "border-2 border-[#050505] dark:border-white",
+      )}
+    >
+      {url ? (
+        <img src={url} alt="" className="h-48 w-48 object-cover" />
+      ) : (
+        <div className="h-48 w-48 animate-pulse bg-black/5 dark:bg-white/10" />
+      )}
     </div>
   );
 }
@@ -686,7 +779,12 @@ function ImageBubble({ path, mine }: { path: string | null; mine: boolean }) {
 function LightboxImage({ path }: { path: string | null }) {
   const url = useSignedUrl(path);
   return url ? (
-    <img src={url} alt="" className="max-h-full max-w-full rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+    <img
+      src={url}
+      alt=""
+      className="max-h-full max-w-full rounded-2xl object-contain"
+      onClick={(e) => e.stopPropagation()}
+    />
   ) : null;
 }
 
@@ -726,8 +824,8 @@ function VoicePlayer({ path, light = false }: { path: string | null; light?: boo
       <button
         onClick={toggle}
         className={cn(
-          "grid h-9 w-9 shrink-0 place-items-center rounded-full",
-          light ? "bg-white/25 text-white" : "bg-[#E5E5E5] text-[#050505]",
+          "grid h-9 w-9 shrink-0 place-items-center rounded-full transition active:scale-90",
+          light ? "bg-white/25 text-white" : "bg-[#E5E5E5] text-[#050505] dark:bg-white/15 dark:text-white",
         )}
       >
         {playing ? <Pause className="h-4 w-4 fill-current" /> : <Play className="ml-0.5 h-4 w-4 fill-current" />}
@@ -736,7 +834,10 @@ function VoicePlayer({ path, light = false }: { path: string | null; light?: boo
         {bars.map((h, i) => (
           <span
             key={i}
-            className={cn("w-[3px] rounded-full", light ? "bg-white/85" : "bg-[#050505]")}
+            className={cn(
+              "w-[3px] rounded-full transition-opacity",
+              light ? "bg-white/85" : "bg-[#050505] dark:bg-white",
+            )}
             style={{
               height: h,
               opacity: progress * bars.length > i ? 1 : light ? 0.45 : 0.35,
@@ -744,7 +845,7 @@ function VoicePlayer({ path, light = false }: { path: string | null; light?: boo
           />
         ))}
       </div>
-      <span className={cn("shrink-0 text-xs tabular-nums", light ? "text-white/90" : "text-[#050505]")}>
+      <span className={cn("shrink-0 text-xs tabular-nums", light ? "text-white/90" : "text-[#050505] dark:text-white")}>
         {formatDuration(duration)}
       </span>
     </div>

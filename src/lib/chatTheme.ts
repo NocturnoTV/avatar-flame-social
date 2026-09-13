@@ -7,10 +7,12 @@ export type Wallpaper = {
   id: string;
   label: string;
   css: string;
+  /** Only "default" differs by theme — a chosen wallpaper stays as chosen. */
+  darkCss?: string;
 };
 
 export const WALLPAPERS: Wallpaper[] = [
-  { id: "default", label: "Default", css: "#ffffff" },
+  { id: "default", label: "Default", css: "#ffffff", darkCss: "#000000" },
   { id: "sunset", label: "Sunset", css: "linear-gradient(160deg,#FFE5EC 0%,#FFF3E0 100%)" },
   { id: "ocean", label: "Ocean", css: "linear-gradient(160deg,#E3F6FF 0%,#EAF2FF 100%)" },
   { id: "nebula", label: "Nebula", css: "linear-gradient(160deg,#F1E9FF 0%,#E7EEFF 100%)" },
@@ -54,6 +56,10 @@ export function setWallpaper(conversationId: string, id: string) {
   } catch {
     /* ignore (private browsing, storage disabled, etc.) */
   }
+}
+
+export function resolveWallpaperCss(wallpaper: Wallpaper, appTheme: "dark" | "light") {
+  return appTheme === "dark" && wallpaper.darkCss ? wallpaper.darkCss : wallpaper.css;
 }
 
 export function getBubbleTheme(conversationId: string): BubbleTheme {
