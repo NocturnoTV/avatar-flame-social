@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Compass, MessageCircle, Settings, ShieldCheck, UserPlus, X } from "lucide-react";
-import { useEffect, useMemo, useState, type UIEvent } from "react";
+import { Compass, Heart, MessageCircle, Settings, UserPlus, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { LogoWordmark } from "@/components/Logo";
+import { StoredImage, useSignedUrl } from "@/components/Media";
 import { Button, Select } from "@/components/ui-kit";
 import { LANGUAGES, useI18n, type LangCode } from "@/lib/i18n";
 import { useTheme, type ThemeName } from "@/lib/theme";
@@ -14,44 +15,30 @@ export const Route = createFileRoute("/guest")({
   head: () => ({
     meta: [
       { title: "Guest preview — BloxSpark" },
-      { name: "description", content: "Explore the BloxSpark community as a guest." },
+      { name: "description", content: "Watch the BloxSpark video feed as a guest." },
     ],
   }),
   component: GuestPage,
 });
 
-type GuestProfile = {
-  id: string;
-  username: string | null;
-  bio: string | null;
-  avatar_url: string | null;
-  roblox_display_name: string | null;
-  roblox_username: string | null;
-  roblox_avatar_url: string | null;
-  language: string;
-  verified: boolean;
-};
+const VIDEO_GATE_THRESHOLD = 10;
 
-const DEMO_PROFILES: GuestProfile[] = (
-  [
-    ["NovaBuilder", "Building neon worlds one block at a time.", "en"],
-    ["LunaPlays", "Obbies, adventures and good vibes.", "en"],
-    ["PixelRider", "Toujours partant pour une nouvelle partie !", "fr"],
-    ["SkyQuest", "Exploring every corner of Roblox.", "en"],
-    ["BlueComet", "Creator, player, dreamer.", "de"],
-    ["GameWave", "Vamos jogar juntos!", "pt"],
-  ] as const
-).map(([username, bio, language], index) => ({
-  id: `demo-${index}`,
-  username,
-  bio,
-  language,
-  avatar_url: null,
-  roblox_display_name: username,
-  roblox_username: username,
-  roblox_avatar_url: null,
-  verified: index === 0,
-}));
+function formatCount(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(".0", "")}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(".0", "")}k`;
+  return String(n);
+}
+
+type GuestVideo = {
+  id: string;
+  user_id: string;
+  storage_path: string;
+  caption: string | null;
+  likes_count: number;
+  comments_count: number;
+  username: string | null;
+  avatar_url: string | null;
+};
 
 function GuestPage() {
   const { session } = useSession();
@@ -59,54 +46,54 @@ function GuestPage() {
   const { t, lang, setLang } = useI18n();
   const { theme, setTheme } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [gate, setGate] = useState<"limit" | "messages" | null>(null);
+  const [gate, setGate] = useState<"limit" | "locked" | null>(null);
+  const seenCount = useRef(0);
+  const gateShown = useRef(false);
 
   useEffect(() => {
-    if (window.localStorage.getItem("bloxspark-guest") !== "true") {
-      window.localStorage.setItem("bloxspark-guest", "true");
-      window.localStorage.removeItem("bloxspark-guest-gate-seen");
-      setLang("en");
-      setTheme("dark");
-    }
-  }, [setLang, setTheme]);
+    window.localStorage.setItem("bloxspark-guest", "true");
+    setLang((window.localStorage.getItem("bloxspark-lang") as LangCode) ?? "en");
+    setTheme("dark");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (session) navigate({ to: "/home", replace: true });
   }, [session, navigate]);
 
-  const profiles = useQuery({
-    queryKey: ["guest-profiles"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(
-          "id,username,bio,avatar_url,roblox_display_name,roblox_username,roblox_avatar_url,language,verified",
-        )
-        .eq("onboarding_completed", true)
-        .limit(40);
+  const videos = useQuery({
+    queryKey: ["guest-videos"],
+    queryFn: async (): Promise<GuestVideo[]> => {
+      const { data: rows, error } = await supabase
+        .from("videos")
+        .select("id,user_id,storage_path,caption,likes_count,comments_count")
+        .eq("visibility", "public")
+        .order("views_count", { ascending: false })
+        .limit(30);
       if (error) throw error;
-      return (data ?? []) as GuestProfile[];
+      const ids = [...new Set((rows ?? []).map((r) => r.user_id))];
+      const { data: people } = ids.length
+        ? await supabase.from("profiles").select("id,username,avatar_url").in("id", ids)
+        : { data: [] };
+      const byId = new Map((people ?? []).map((p) => [p.id, p]));
+      return (rows ?? []).map((r) => ({
+        ...r,
+        username: byId.get(r.user_id)?.username ?? null,
+        avatar_url: byId.get(r.user_id)?.avatar_url ?? null,
+      }));
     },
     retry: false,
   });
 
-  const feed = useMemo<GuestProfile[]>(() => {
-    const source: GuestProfile[] = profiles.data?.length ? profiles.data : DEMO_PROFILES;
-    return Array.from(
-      { length: Math.max(24, source.length) },
-      (_, index) => source[index % source.length] as GuestProfile,
-    );
-  }, [profiles.data]);
-
-  function onScroll(event: UIEvent<HTMLDivElement>) {
-    const element = event.currentTarget;
-    const viewed =
-      Math.floor((element.scrollTop + element.clientHeight * 0.6) / element.clientHeight) + 1;
-    if (viewed >= 15 && window.localStorage.getItem("bloxspark-guest-gate-seen") !== "true") {
-      window.localStorage.setItem("bloxspark-guest-gate-seen", "true");
+  function onVideoSeen() {
+    seenCount.current += 1;
+    if (seenCount.current >= VIDEO_GATE_THRESHOLD && !gateShown.current) {
+      gateShown.current = true;
       setGate("limit");
     }
   }
+
+  const feed = videos.data ?? [];
 
   return (
     <div className="relative h-dvh overflow-hidden bg-background">
@@ -119,49 +106,20 @@ function GuestPage() {
         </div>
       </header>
 
-      <main
-        className="h-full snap-y snap-mandatory overflow-y-auto pt-16 pb-20"
-        onScroll={onScroll}
-      >
-        {feed.map((profile, index) => (
-          <article
-            key={`${profile.id}-${index}`}
-            className="flex min-h-[calc(100dvh-9rem)] snap-start items-center justify-center px-5 py-8"
-          >
-            <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-primary/20 bg-card shadow-xl shadow-primary/10">
-              <div className="h-32 bg-gradient-to-br from-purple-300 via-purple-500 to-purple-700" />
-              <div className="relative p-6 pt-14">
-                <div className="absolute -top-12 left-6 grid h-24 w-24 place-items-center overflow-hidden rounded-3xl border-4 border-card bg-surface-2 text-3xl font-black text-primary">
-                  {profile.roblox_avatar_url || profile.avatar_url ? (
-                    <img
-                      src={profile.roblox_avatar_url ?? profile.avatar_url ?? ""}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    (profile.roblox_display_name ?? profile.username ?? "B")
-                      .slice(0, 1)
-                      .toUpperCase()
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-extrabold">
-                    {profile.roblox_display_name ?? profile.username ?? "BloxSpark player"}
-                  </h2>
-                  {profile.verified ? <ShieldCheck className="h-5 w-5 text-primary" /> : null}
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  @{profile.roblox_username ?? profile.username ?? "player"} ·{" "}
-                  {profile.language.toUpperCase()}
-                </p>
-                <p className="mt-5 min-h-12 leading-relaxed">{profile.bio ?? t("guestSubtitle")}</p>
-                <div className="mt-6 flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
-                  <Compass className="h-4 w-4" /> {t("guestTitle")}
-                </div>
-              </div>
-            </div>
-          </article>
-        ))}
+      <main className="h-full snap-y snap-mandatory overflow-y-auto pt-16 pb-20">
+        {videos.isLoading ? (
+          <div className="grid h-[calc(100dvh-9rem)] place-items-center text-muted-foreground">
+            {t("loading")}
+          </div>
+        ) : feed.length === 0 ? (
+          <div className="grid h-[calc(100dvh-9rem)] place-items-center px-8 text-center text-muted-foreground">
+            {t("noVideos")}
+          </div>
+        ) : (
+          feed.map((video) => (
+            <GuestVideoCard key={video.id} video={video} onSeen={onVideoSeen} onLockedAction={() => setGate("locked")} />
+          ))
+        )}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
@@ -170,7 +128,7 @@ function GuestPage() {
             <Compass className="h-5 w-5" /> {t("discover")}
           </button>
           <button
-            onClick={() => setGate("messages")}
+            onClick={() => setGate("locked")}
             className="flex flex-col items-center justify-center gap-1 text-xs font-semibold text-muted-foreground"
           >
             <MessageCircle className="h-5 w-5" /> {t("messages")}
@@ -240,7 +198,7 @@ function GuestPage() {
             </span>
             <h2 className="mt-5 text-2xl font-extrabold">{t("guestGateTitle")}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {gate === "messages" ? t("guestMessagesLocked") : t("guestGateBody")}
+              {gate === "locked" ? t("guestActionLocked") : t("guestGateBody")}
             </p>
             <Link to="/auth" search={{ mode: "signup" }} className="mt-6 block">
               <Button className="w-full" size="lg">
@@ -256,6 +214,93 @@ function GuestPage() {
           </section>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function GuestVideoCard({
+  video,
+  onSeen,
+  onLockedAction,
+}: {
+  video: GuestVideo;
+  onSeen: () => void;
+  onLockedAction: () => void;
+}) {
+  const url = useSignedUrl(video.storage_path);
+  const ref = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const seen = useRef(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = (entries[0]?.intersectionRatio ?? 0) > 0.6;
+        const videoEl = ref.current;
+        if (!videoEl) return;
+        if (visible) {
+          void videoEl.play().catch(() => undefined);
+          if (!seen.current) {
+            seen.current = true;
+            onSeen();
+          }
+        } else {
+          videoEl.pause();
+        }
+      },
+      { threshold: [0, 0.6, 1] },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex min-h-[calc(100dvh-9rem)] snap-start items-center justify-center bg-black px-0 py-0"
+    >
+      <div className="relative aspect-[9/16] h-full max-h-full w-full max-w-full overflow-hidden bg-black sm:max-w-md sm:rounded-2xl">
+        {url ? (
+          <video ref={ref} src={url} loop muted playsInline className="h-full w-full object-cover" />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-white/50">…</div>
+        )}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-4 pb-6 pr-20">
+          <p className="text-[15px] font-extrabold text-white drop-shadow">
+            @{video.username ?? "player"}
+          </p>
+          {video.caption ? (
+            <p className="mt-1 line-clamp-3 text-sm text-white/95 drop-shadow">{video.caption}</p>
+          ) : null}
+        </div>
+        <div className="absolute bottom-20 right-2.5 z-20 flex flex-col items-center gap-3.5">
+          <StoredImage
+            path={video.avatar_url}
+            alt=""
+            className="h-10 w-10 rounded-full border-2 border-white object-cover"
+            fallback="🎮"
+          />
+          <button
+            onClick={onLockedAction}
+            aria-label="Like"
+            className="flex flex-col items-center gap-0.5 text-white active:scale-90"
+          >
+            <Heart className="h-[26px] w-[26px] drop-shadow-[0_2px_6px_rgba(0,0,0,.5)]" />
+            <span className="text-[11px] font-bold drop-shadow">{formatCount(video.likes_count)}</span>
+          </button>
+          <button
+            onClick={onLockedAction}
+            aria-label="Comment"
+            className="flex flex-col items-center gap-0.5 text-white active:scale-90"
+          >
+            <MessageCircle className="h-[26px] w-[26px] drop-shadow-[0_2px_6px_rgba(0,0,0,.5)]" />
+            <span className="text-[11px] font-bold drop-shadow">{formatCount(video.comments_count)}</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

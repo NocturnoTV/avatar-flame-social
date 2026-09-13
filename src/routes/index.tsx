@@ -72,11 +72,11 @@ function Landing() {
       </header>
 
       <main>
-        <section className="relative flex min-h-[92vh] items-end overflow-hidden pt-20">
+        <section className="relative flex min-h-[70vh] items-end overflow-hidden bg-[#0a0614] pt-20 sm:min-h-[92vh]">
           <img
             src="/bloxspark-hero-banner.png"
             alt="BloxSpark Roblox community"
-            className="absolute inset-0 h-full w-full object-cover object-center bx-hero-zoom"
+            className="absolute inset-0 h-full w-full object-contain object-top bx-hero-zoom sm:object-cover sm:object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0614] via-[#0a0614]/35 to-[#0a0614]/10" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,transparent_10%,rgba(3,11,29,.38)_75%)]" />
