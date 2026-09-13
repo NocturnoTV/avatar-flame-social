@@ -345,39 +345,41 @@ function MessagesPage() {
   const unreadCount = activity.filter((n) => !n.read).length;
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 pb-28 pt-5">
-      <header className="flex items-center justify-between">
+    <div className="mx-auto min-h-screen w-full max-w-lg bg-white px-4 pb-28 pt-5 text-[#050505]">
+      <header className="flex h-[52px] items-center justify-between">
         <button
           onClick={() => setNewGroup(true)}
           aria-label={t("newGroup")}
-          className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+          className="grid h-10 w-10 place-items-center rounded-full text-[#050505] hover:bg-black/5"
         >
           <UserPlus className="h-5 w-5" />
         </button>
-        <h1 className="flex items-center gap-1.5 text-xl font-black">
+        <h1 className="flex items-center gap-1.5 text-[22px] font-black text-[#050505]">
           {t("messages")}
-          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          <span className="grid h-5 w-5 place-items-center rounded-md bg-[#F5F5F5]">
+            <span className="h-2 w-2 rounded-full bg-[#20D778]" />
+          </span>
         </h1>
         <button
           onClick={() => setShowSearch((v) => !v)}
           aria-label={t("search")}
           className={cn(
-            "grid h-10 w-10 place-items-center rounded-full hover:bg-surface-2",
-            showSearch ? "text-primary" : "text-muted-foreground hover:text-foreground",
+            "grid h-10 w-10 place-items-center rounded-full hover:bg-black/5",
+            showSearch ? "text-primary" : "text-[#050505]",
           )}
         >
           <Search className="h-5 w-5" />
         </button>
       </header>
 
-      <section className="no-scrollbar -mx-4 mt-5 flex gap-4 overflow-x-auto px-4 pb-2">
-        <button onClick={() => storyInput.current?.click()} className="w-16 shrink-0 text-center">
-          <span className="relative mx-auto block h-16 w-16 rounded-full border-2 border-dashed border-primary bg-primary/10 p-1">
-            <span className="grid h-full w-full place-items-center rounded-full bg-surface">
+      <section className="no-scrollbar -mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2">
+        <button onClick={() => storyInput.current?.click()} className="w-[72px] shrink-0 text-center">
+          <span className="relative mx-auto block h-[72px] w-[72px] rounded-full border-2 border-dashed border-primary bg-primary/10 p-1">
+            <span className="grid h-full w-full place-items-center rounded-full bg-[#F5F5F5]">
               <Plus className="h-6 w-6 text-primary" />
             </span>
           </span>
-          <span className="mt-1 block truncate text-[11px] font-semibold">{t("yourStory")}</span>
+          <span className="mt-1.5 block truncate text-xs font-semibold text-[#050505]">{t("yourStory")}</span>
         </button>
         <input
           ref={storyInput}
@@ -391,37 +393,37 @@ function MessagesPage() {
           }}
         />
         {peopleStories.map((s) => (
-          <button key={s.id} onClick={() => void openStory(s)} className="w-16 shrink-0 text-center">
+          <button key={s.id} onClick={() => void openStory(s)} className="w-[72px] shrink-0 text-center">
             <span
               className={cn(
-                "mx-auto block h-16 w-16 rounded-full p-[3px]",
-                s.unread ? "bg-primary" : "bg-border",
+                "mx-auto block h-[72px] w-[72px] rounded-full p-[3px]",
+                s.unread ? "bg-gradient-to-br from-[#18BFE2] to-[#20D778]" : "bg-[#E5E5E5]",
               )}
             >
               <StoredImage
                 path={s.avatar_url}
                 alt={s.username}
-                className="h-full w-full rounded-full border-2 border-background"
+                className="h-full w-full rounded-full border-2 border-white object-cover"
                 fallback={s.username[0]?.toUpperCase() ?? "?"}
               />
             </span>
-            <span className="mt-1 block truncate text-[11px] font-semibold">{s.username}</span>
+            <span className="mt-1.5 block truncate text-xs font-semibold text-[#050505]">{s.username}</span>
           </button>
         ))}
       </section>
 
       {showSearch ? (
-        <label className="mt-3 flex h-11 items-center gap-2 rounded-2xl bg-surface-2 px-4">
-          <Search className="h-4 w-4 text-muted-foreground" />
+        <label className="mt-3 flex h-11 items-center gap-2 rounded-2xl bg-[#F5F5F5] px-4">
+          <Search className="h-4 w-4 text-[#929292]" />
           <input
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("search")}
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm text-[#050505] outline-none placeholder:text-[#929292]"
           />
           <button onClick={() => setShowSearch(false)} aria-label={t("cancel")}>
-            <X className="h-4 w-4 text-muted-foreground" />
+            <X className="h-4 w-4 text-[#929292]" />
           </button>
         </label>
       ) : null}
@@ -436,25 +438,22 @@ function MessagesPage() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-primary">{t("messageRequests")}</span>
-            <span className="block truncate text-xs text-muted-foreground">{pendingReceived.length}</span>
+            <span className="block truncate text-xs text-[#929292]">{pendingReceived.length}</span>
           </span>
           <ChevronRight className="h-4 w-4 text-primary" />
         </button>
       ) : null}
 
-      <div className="mt-3 space-y-1">
+      <div className="mt-2">
         {/* New followers */}
         {latestFollower.data ? (
-          <Link
-            to="/notifications"
-            className="flex items-center gap-3 rounded-2xl p-3 transition hover:bg-surface-2"
-          >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sky-500 text-white">
-              <Users className="h-5 w-5" />
+          <Link to="/notifications" className="flex items-center gap-3 rounded-2xl px-1 py-3 hover:bg-black/[.03]">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#18BFE2] text-white">
+              <Users className="h-6 w-6" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-bold">{t("followers")}</p>
-              <p className="truncate text-sm text-muted-foreground">
+              <p className="text-[17px] font-bold text-[#050505]">{t("followers")}</p>
+              <p className="truncate text-sm text-[#929292]">
                 {t("newFollowerBody", { username: latestFollower.data.username })}
               </p>
             </div>
@@ -465,50 +464,52 @@ function MessagesPage() {
         {latestActivity ? (
           <button
             onClick={() => setShowNotifications(true)}
-            className="flex w-full items-center gap-3 rounded-2xl p-3 text-left transition hover:bg-surface-2"
+            className="flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left hover:bg-black/[.03]"
           >
-            <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-white">
+            <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#FF3568] text-xl text-white">
               {ICONS[latestActivity.kind] ?? "🔔"}
               {unreadCount ? (
-                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               ) : null}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-bold">{t("recentActivity")}</p>
-              <p className="truncate text-sm text-muted-foreground">{latestActivity.body}</p>
+              <p className="text-[17px] font-bold text-[#050505]">{t("recentActivity")}</p>
+              <p className="truncate text-sm text-[#929292]">{latestActivity.body}</p>
             </div>
           </button>
         ) : null}
 
         {!filtered.length ? (
-          <p className="py-14 text-center text-sm text-muted-foreground">{t("noConversations")}</p>
+          <p className="py-14 text-center text-sm text-[#929292]">{t("noConversations")}</p>
         ) : null}
 
-        {filtered.map((c, i) => {
+        {filtered.map((c) => {
           const name = c.is_group ? c.name : c.others[0]?.username;
           const person = c.others[0];
           return (
-            <div key={c.id} className="group relative flex items-center gap-3 rounded-2xl p-3 transition hover:bg-surface-2">
+            <div key={c.id} className="group relative flex items-center gap-3 rounded-2xl px-1 py-3 hover:bg-black/[.03]">
               <Link
                 to="/messages/$id"
                 params={{ id: c.id }}
                 className="flex min-w-0 flex-1 items-center gap-3 active:scale-[.99]"
               >
-                <StoredImage
-                  path={c.is_group ? null : person?.avatar_url}
-                  alt={name ?? ""}
-                  className="h-14 w-14 shrink-0 rounded-full"
-                  fallback={c.is_group ? "👥" : (name?.[0]?.toUpperCase() ?? "?")}
-                />
+                <div className="relative shrink-0">
+                  <StoredImage
+                    path={c.is_group ? null : person?.avatar_url}
+                    alt={name ?? ""}
+                    className="h-14 w-14 rounded-full object-cover"
+                    fallback={c.is_group ? "👥" : (name?.[0]?.toUpperCase() ?? "?")}
+                  />
+                </div>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 font-bold">
+                  <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505]">
                     <span className="truncate">{name || "Discussion"}</span>
                     {!c.is_group && person?.verified ? <Verified /> : null}
-                    {c.pinned ? <Pin className="h-3 w-3 shrink-0 text-muted-foreground" /> : null}
+                    {c.pinned ? <Pin className="h-3.5 w-3.5 shrink-0 text-[#929292]" /> : null}
                   </p>
-                  <p className="truncate text-sm text-muted-foreground">
+                  <p className="truncate text-sm text-[#929292]">
                     {c.request_status === "pending" ? (
                       <span className="font-semibold text-primary">{t("requestSent")}</span>
                     ) : (
@@ -521,9 +522,9 @@ function MessagesPage() {
                 <button
                   onClick={() => cameraInputs.current[c.id]?.click()}
                   aria-label={t("photo")}
-                  className="shrink-0 rounded-full p-2 text-muted-foreground hover:bg-surface hover:text-primary"
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-[#929292] hover:bg-black/5 hover:text-primary"
                 >
-                  <Camera className="h-4.5 w-4.5" />
+                  <Camera className="h-5 w-5" />
                 </button>
               ) : null}
               <input
@@ -539,7 +540,6 @@ function MessagesPage() {
                   e.target.value = "";
                 }}
               />
-              {i === 0 && systemNotif ? null : null}
             </div>
           );
         })}
@@ -548,17 +548,17 @@ function MessagesPage() {
         {systemNotif ? (
           <button
             onClick={() => setShowNotifications(true)}
-            className="flex w-full items-center gap-3 rounded-2xl p-3 text-left transition hover:bg-surface-2"
+            className="flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left hover:bg-black/[.03]"
           >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-800 text-white">
-              <Newspaper className="h-5 w-5" />
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-900 text-white">
+              <Newspaper className="h-6 w-6" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 font-bold">
+              <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505]">
                 {t("systemNotifications")}
-                <Pin className="h-3 w-3 text-muted-foreground" />
+                <Pin className="h-3.5 w-3.5 text-[#929292]" />
               </p>
-              <p className="truncate text-sm text-muted-foreground">
+              <p className="truncate text-sm text-[#929292]">
                 {systemNotif.body === "safety_alert" ? t("safetyAlertNotif") : systemNotif.body}
               </p>
             </div>
