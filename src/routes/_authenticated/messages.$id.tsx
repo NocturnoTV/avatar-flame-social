@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Camera,
   Copy,
+  Flag,
   Forward,
   ImagePlus,
   Mic,
@@ -31,7 +32,7 @@ import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 
 const EMOJIS = [
   "😀",
@@ -69,10 +70,19 @@ type Message = {
   id: string;
   sender_id: string;
   content: string | null;
-  kind: "text" | "image" | "voice";
+  kind: "text" | "image" | "voice" | "system";
   media_url: string | null;
   created_at: string;
 };
+
+type ReactionRow = { message_id: string; user_id: string; emoji: string };
+
+const REPORT_REASONS = [
+  { id: "harassment", labelKey: "reportHarassment" },
+  { id: "spam", labelKey: "reportSpam" },
+  { id: "inappropriate_content", labelKey: "reportInappropriate" },
+  { id: "impersonation", labelKey: "reportImpersonation" },
+] as const;
 
 const QUICK_REPLIES = [
   "😂",
@@ -107,6 +117,8 @@ function Conversation() {
   const [recording, setRecording] = useState(false);
   const [info, setInfo] = useState(false);
   const [activeMessage, setActiveMessage] = useState<Message | null>(null);
+  const [reportingMessage, setReportingMessage] = useState<Message | null>(null);
+  const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
   const [lightbox, setLightbox] = useState<Message | null>(null);
   const [wallpaper, setWallpaperLocal] = useState(() => getWallpaper(id));
   const [bubble, setBubbleLocal] = useState(() => getBubbleTheme(id));
@@ -225,6 +237,69 @@ function Conversation() {
       return (data ?? []) as Message[];
     },
   });
+
+  const messageIds = (messages.data ?? []).map((m) => m.id);
+  const reactions = useQuery({
+    queryKey: ["message-reactions", id, messageIds.join(",")],
+    enabled: messageIds.length > 0,
+    queryFn: async (): Promise<ReactionRow[]> => {
+      const { data } = await supabase
+        .from("message_reactions")
+        .select("message_id,user_id,emoji")
+        .in("message_id", messageIds);
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`message-reactions-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "message_reactions" },
+        () => void reactions.refetch(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function reactTo(message: Message, emoji: string) {
+    if (!user) return;
+    const mine = (reactions.data ?? []).find(
+      (r) => r.message_id === message.id && r.user_id === user.id,
+    );
+    if (mine?.emoji === emoji) {
+      await supabase
+        .from("message_reactions")
+        .delete()
+        .eq("message_id", message.id)
+        .eq("user_id", user.id);
+    } else {
+      await supabase
+        .from("message_reactions")
+        .upsert(
+          { message_id: message.id, user_id: user.id, emoji },
+          { onConflict: "message_id,user_id" },
+        );
+    }
+    setActiveMessage(null);
+    void reactions.refetch();
+  }
+
+  function reactionsFor(messageId: string) {
+    const rows = (reactions.data ?? []).filter((r) => r.message_id === messageId);
+    const byEmoji = new Map<string, { count: number; mine: boolean }>();
+    for (const r of rows) {
+      const entry = byEmoji.get(r.emoji) ?? { count: 0, mine: false };
+      entry.count += 1;
+      if (r.user_id === user?.id) entry.mine = true;
+      byEmoji.set(r.emoji, entry);
+    }
+    return [...byEmoji.entries()].map(([emoji, v]) => ({ emoji, ...v }));
+  }
 
   useEffect(() => {
     const channel = supabase
@@ -365,6 +440,70 @@ function Conversation() {
     toast.success(t("saved"));
   }
 
+  const myUsername = user ? (header.data?.people?.[user.id]?.username ?? "?") : "?";
+
+  async function reportMessage(reasonId: string) {
+    if (!user || !reportingMessage) return;
+    await supabase.from("reports").insert({
+      reporter_id: user.id,
+      target_user_id: reportingMessage.sender_id,
+      message_id: reportingMessage.id,
+      reason: reasonId,
+    });
+    setReportingMessage(null);
+    setActiveMessage(null);
+    toast.success(t("saved"));
+  }
+
+  async function forwardMessageTo(friendId: string) {
+    if (!user || !forwardingMessage) return;
+    try {
+      const { data: destConversationId, error } = await supabase.rpc("start_direct_message", {
+        _target: friendId,
+      });
+      if (error) throw error;
+      await supabase.from("messages").insert({
+        conversation_id: destConversationId as string,
+        sender_id: user.id,
+        kind: forwardingMessage.kind === "system" ? "text" : forwardingMessage.kind,
+        content: forwardingMessage.content,
+        media_url: forwardingMessage.media_url,
+      });
+      await supabase.from("messages").insert({
+        conversation_id: id,
+        sender_id: user.id,
+        kind: "system",
+        content: `sys:forwarded:${myUsername}`,
+      });
+      toast.success(t("saved"));
+    } catch (err) {
+      toast.error(errorMessage(err, t("errorGeneric")));
+    } finally {
+      setForwardingMessage(null);
+      setActiveMessage(null);
+      void messages.refetch();
+    }
+  }
+
+  // Best-effort screenshot notice: browsers give web pages no real API to
+  // detect a screenshot. This catches the PrintScreen key on desktop while
+  // the tab is focused — there is no equivalent signal on mobile web at all.
+  useEffect(() => {
+    if (!user) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "PrintScreen") return;
+      void supabase.from("messages").insert({
+        conversation_id: id,
+        sender_id: user!.id,
+        kind: "system",
+        content: `sys:screenshot:${myUsername}`,
+      });
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user, myUsername]);
+
   const list = messages.data ?? [];
 
   return (
@@ -474,6 +613,25 @@ function Conversation() {
               ? new Date(header.data.otherReadAt).getTime() >= new Date(m.created_at).getTime()
               : false;
 
+          if (m.kind === "system") {
+            const [, tag, actor] = m.content?.match(/^sys:(\w+):(.*)$/) ?? [];
+            const label =
+              tag === "forwarded"
+                ? t("systemForwarded", { username: actor ?? "?" })
+                : tag === "screenshot"
+                  ? t("systemScreenshot", { username: actor ?? "?" })
+                  : m.content;
+            return (
+              <div key={m.id} className="my-3 flex justify-center">
+                <span className="rounded-full bg-black/5 px-3 py-1.5 text-center text-[11px] font-semibold text-[#929292] dark:bg-white/10">
+                  {label}
+                </span>
+              </div>
+            );
+          }
+
+          const myReactions = reactionsFor(m.id);
+
           return (
             <div key={m.id} className={cn("bx-pop", sameAsPrev ? "mt-1" : "mt-4")}>
               <div className={cn("flex items-end gap-2", mine ? "justify-end" : "justify-start")}>
@@ -496,10 +654,9 @@ function Conversation() {
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    if (m.kind === "text") setActiveMessage(m);
+                    setActiveMessage(m);
                   }}
                   onTouchStart={(e) => {
-                    if (m.kind !== "text") return;
                     const timer = setTimeout(() => setActiveMessage(m), 450);
                     const clear = () => clearTimeout(timer);
                     e.currentTarget.addEventListener("touchend", clear, { once: true });
@@ -540,6 +697,28 @@ function Conversation() {
                         </div>
                       </ReceivedBubble>
                     )
+                  ) : null}
+
+                  {myReactions.length > 0 ? (
+                    <div className={cn("mt-1 flex flex-wrap gap-1", mine && "justify-end")}>
+                      {myReactions.map((r) => (
+                        <button
+                          key={r.emoji}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void reactTo(m, r.emoji);
+                          }}
+                          className={cn(
+                            "flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs",
+                            r.mine
+                              ? "border-primary bg-primary/10"
+                              : "border-black/10 bg-black/5 dark:border-white/15 dark:bg-white/10",
+                          )}
+                        >
+                          {r.emoji} {r.count > 1 ? r.count : ""}
+                        </button>
+                      ))}
+                    </div>
                   ) : null}
                 </button>
 
@@ -732,7 +911,7 @@ function Conversation() {
               {REACTIONS.map((r) => (
                 <button
                   key={r}
-                  onClick={() => setActiveMessage(null)}
+                  onClick={() => void reactTo(activeMessage, r)}
                   className="text-2xl transition active:scale-90"
                 >
                   {r}
@@ -741,12 +920,26 @@ function Conversation() {
             </div>
             <div className="mt-2 space-y-1">
               <MenuRow icon={Reply} label={t("reply")} onClick={() => setActiveMessage(null)} />
+              {activeMessage.kind === "text" ? (
+                <MenuRow
+                  icon={Copy}
+                  label={t("copy")}
+                  onClick={() => void copyMessage(activeMessage)}
+                />
+              ) : null}
               <MenuRow
-                icon={Copy}
-                label={t("copy")}
-                onClick={() => void copyMessage(activeMessage)}
+                icon={Forward}
+                label={t("forward")}
+                onClick={() => setForwardingMessage(activeMessage)}
               />
-              <MenuRow icon={Forward} label={t("forward")} onClick={() => setActiveMessage(null)} />
+              {activeMessage.sender_id !== user?.id ? (
+                <MenuRow
+                  icon={Flag}
+                  label={t("reportMessage")}
+                  destructive
+                  onClick={() => setReportingMessage(activeMessage)}
+                />
+              ) : null}
               {activeMessage.sender_id === user?.id ? (
                 <MenuRow
                   icon={Trash2}
@@ -758,6 +951,39 @@ function Conversation() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {reportingMessage ? (
+        <div
+          className="fixed inset-0 z-[76] flex items-end justify-center bg-black/40 sm:items-center"
+          onClick={() => setReportingMessage(null)}
+        >
+          <div
+            className="bx-pop w-full max-w-xs rounded-t-3xl bg-card p-4 sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-2 px-1 text-xs font-semibold text-muted-foreground">
+              {t("reportReason")}
+            </p>
+            <div className="space-y-1">
+              {REPORT_REASONS.map((reason) => (
+                <MenuRow
+                  key={reason.id}
+                  icon={Flag}
+                  label={t(reason.labelKey)}
+                  onClick={() => void reportMessage(reason.id)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {forwardingMessage ? (
+        <ForwardSheet
+          onPick={(friendId) => void forwardMessageTo(friendId)}
+          onClose={() => setForwardingMessage(null)}
+        />
       ) : null}
 
       {lightbox ? (
@@ -821,6 +1047,71 @@ function MenuRow({
     >
       <Icon className="h-4.5 w-4.5" /> {label}
     </button>
+  );
+}
+
+/** Pick a Sparks match to forward a message to. */
+function ForwardSheet({
+  onPick,
+  onClose,
+}: {
+  onPick: (friendId: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const { user } = useSession();
+
+  const matches = useQuery({
+    queryKey: ["forward-sheet-matches", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from("matches")
+        .select("user_a,user_b")
+        .or(`user_a.eq.${user!.id},user_b.eq.${user!.id}`);
+      const otherIds = (rows ?? []).map((m) => (m.user_a === user!.id ? m.user_b : m.user_a));
+      if (!otherIds.length) return [];
+      const { data: people } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url")
+        .in("id", otherIds);
+      return people ?? [];
+    },
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-[77] flex items-end justify-center bg-black/40 sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="bx-pop w-full max-w-xs rounded-t-3xl bg-card p-4 sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="mb-2 px-1 text-sm font-bold">{t("forwardTo")}</p>
+        <div className="max-h-72 space-y-1 overflow-y-auto">
+          {(matches.data ?? []).length === 0 ? (
+            <p className="px-1 py-4 text-sm text-muted-foreground">{t("noMatchesToShare")}</p>
+          ) : (
+            (matches.data ?? []).map((m) => (
+              <button
+                key={m.id}
+                onClick={() => onPick(m.id)}
+                className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                <StoredImage
+                  path={m.avatar_url}
+                  alt={m.username ?? ""}
+                  className="h-10 w-10 rounded-full object-cover"
+                  fallback={m.username?.[0]?.toUpperCase() ?? "?"}
+                />
+                <span className="font-semibold">{m.username}</span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
