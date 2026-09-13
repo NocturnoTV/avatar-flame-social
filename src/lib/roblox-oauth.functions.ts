@@ -45,7 +45,6 @@ export const beginRobloxOAuth = createServerFn({ method: "POST" })
 export const syncRobloxAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    disableResponseCaching();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
@@ -61,7 +60,6 @@ export const syncRobloxAccount = createServerFn({ method: "POST" })
 export const disconnectRobloxAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    disableResponseCaching();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profile, error: readError } = await supabaseAdmin
       .from("profiles")
