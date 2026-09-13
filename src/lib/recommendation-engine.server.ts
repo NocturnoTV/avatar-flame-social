@@ -146,9 +146,10 @@ export async function getUserInterestProfile(
     .select("category,affinity,updated_at")
     .eq("user_id", userId);
 
-  const profile = Object.fromEntries(
-    TOPIC_CATEGORIES.map((c) => [c, DEFAULT_AFFINITY]),
-  ) as Record<TopicCategory, number>;
+  const profile = Object.fromEntries(TOPIC_CATEGORIES.map((c) => [c, DEFAULT_AFFINITY])) as Record<
+    TopicCategory,
+    number
+  >;
 
   for (const row of data ?? []) {
     if (!TOPIC_CATEGORIES.includes(row.category as TopicCategory)) continue;
@@ -175,7 +176,9 @@ export async function getUserCreatorAffinity(
   for (const row of data ?? []) {
     map.set(
       row.creator_id,
-      clamp01(timeDecay(row.affinity, row.updated_at, config.affinityHalfLifeDays, NEUTRAL_AFFINITY)),
+      clamp01(
+        timeDecay(row.affinity, row.updated_at, config.affinityHalfLifeDays, NEUTRAL_AFFINITY),
+      ),
     );
   }
   return map;
@@ -242,7 +245,7 @@ export async function getCandidateVideos(userId: string): Promise<Candidate[]> {
         .from("videos")
         .select(VIDEO_COLUMNS)
         .in("user_id", followingIds)
-        .eq("visibility", "public")
+        .in("visibility", ["public", "sparks"])
         .order("created_at", { ascending: false })
         .limit(60)
         .then((r) => ({ rows: r.data ?? [], source: "following" as const })),
@@ -407,7 +410,13 @@ export async function calculateVideoScore(
 ): Promise<ScoredVideo> {
   const stats =
     ctx.stats.get(video.id) ??
-    ({ watchRatio: 0.4, completionRate: 0.25, likeRatio: 0, commentRatio: 0, shareRatio: 0 } as VideoStats);
+    ({
+      watchRatio: 0.4,
+      completionRate: 0.25,
+      likeRatio: 0,
+      commentRatio: 0,
+      shareRatio: 0,
+    } as VideoStats);
   const creatorAffinity = ctx.creatorAffinity.get(video.user_id) ?? DEFAULT_AFFINITY;
   const topicAffinity = video.categories.length
     ? video.categories.reduce((sum, c) => sum + (ctx.topicProfile[c] ?? DEFAULT_AFFINITY), 0) /
@@ -419,7 +428,9 @@ export async function calculateVideoScore(
   const commentRatio = clamp01(video.comments_count / views);
   const shareRatio = clamp01((video.reposts_count + video.shares_count) / views);
 
-  const predictedWatch = clamp01(0.5 * creatorAffinity + 0.3 * topicAffinity + 0.2 * stats.watchRatio);
+  const predictedWatch = clamp01(
+    0.5 * creatorAffinity + 0.3 * topicAffinity + 0.2 * stats.watchRatio,
+  );
   const predictedCompletion = clamp01(0.6 * stats.completionRate + 0.4 * topicAffinity);
   const predictedLike = clamp01(0.5 * likeRatio * 4 + 0.3 * creatorAffinity + 0.2 * topicAffinity);
   const predictedComment = clamp01(commentRatio * 8 * (0.5 + 0.5 * creatorAffinity));
@@ -523,7 +534,11 @@ export function applyExploration(
   const result = [...ranked];
   const everyN = Math.max(Math.round(1 / Math.max(ratio, 0.01)), 3);
   let explorationIndex = 0;
-  for (let i = everyN - 1; i < result.length && explorationIndex < freshExploration.length; i += everyN) {
+  for (
+    let i = everyN - 1;
+    i < result.length && explorationIndex < freshExploration.length;
+    i += everyN
+  ) {
     const pick = freshExploration[explorationIndex++]!;
     result.splice(i, 0, { ...pick, reason: "exploration" });
   }
@@ -547,7 +562,9 @@ export async function rankVideos(userId: string, candidates: Candidate[], limit:
   const stats = await getVideoStats(candidates.map((c) => c.id));
 
   const ctx = { config, topicProfile, creatorAffinity, stats, followingIds };
-  const scored = await Promise.all(candidates.map((video) => calculateVideoScore(userId, video, ctx)));
+  const scored = await Promise.all(
+    candidates.map((video) => calculateVideoScore(userId, video, ctx)),
+  );
   const withFreshness = scored.map((v) => applyFreshnessScore(v, config));
 
   const explorationPool = withFreshness.filter((v) => v.source === "exploration");
@@ -613,7 +630,12 @@ async function bumpCreatorAffinity(
   await supabaseAdmin
     .from("user_creator_affinity")
     .upsert(
-      { user_id: userId, creator_id: creatorId, affinity: next, updated_at: new Date().toISOString() },
+      {
+        user_id: userId,
+        creator_id: creatorId,
+        affinity: next,
+        updated_at: new Date().toISOString(),
+      },
       { onConflict: "user_id,creator_id" },
     );
 }
@@ -752,8 +774,6 @@ export async function recordPositiveAction(
   const lr = LR[action === "visit_profile" ? "visitProfile" : action];
   await Promise.all([
     bumpCreatorAffinity(userId, video.user_id, 1, lr, trust),
-    ...(categories ?? []).map((c) =>
-      bumpTopicAffinity(userId, c.category, 1, lr * 0.6, trust),
-    ),
+    ...(categories ?? []).map((c) => bumpTopicAffinity(userId, c.category, 1, lr * 0.6, trust)),
   ]);
 }
