@@ -12,6 +12,7 @@ import { Button } from "@/components/ui-kit";
 import { BANNERS } from "@/lib/decorations";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
+import { errorMessage } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 
 export const Route = createFileRoute("/_authenticated/users/$id")({
@@ -134,7 +135,8 @@ function PublicProfile() {
       if (error) throw error;
       await navigate({ to: "/messages/$id", params: { id: conversationId as string } });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("errorGeneric"));
+      console.error("start_direct_message failed", err);
+      toast.error(errorMessage(err, t("errorGeneric")));
     } finally {
       setMessaging(false);
     }

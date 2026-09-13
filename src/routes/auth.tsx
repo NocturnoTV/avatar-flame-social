@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { signInWithIdentifier } from "@/lib/login-identifier.functions";
+import { errorMessage } from "@/lib/utils";
 
 type Search = { mode?: "signup" | "signin" | undefined };
 
@@ -113,7 +114,7 @@ function AuthPage() {
       });
       if (error) throw error;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("errorGeneric"));
+      toast.error(errorMessage(error, t("errorGeneric")));
     } finally {
       setBusy(false);
     }
