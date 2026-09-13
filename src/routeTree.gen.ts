@@ -28,7 +28,9 @@ import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/h
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedShopRouteImport } from './routes/_authenticated/shop'
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as DecouvrirIndexRouteImport } from './routes/decouvrir.index'
 import { Route as DecouvrirStudioRouteImport } from './routes/decouvrir.studio'
 import { Route as AuthenticatedDiscoverIndexRouteImport } from './routes/_authenticated/discover.index'
@@ -36,6 +38,7 @@ import { Route as AuthenticatedDiscoverStudioRouteImport } from './routes/_authe
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users.$id'
+import { Route as ApiSparkPlusWebhookRouteImport } from './routes/api.spark-plus.webhook'
 import { Route as AuthRobloxCallbackRouteImport } from './routes/auth.roblox.callback'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -135,9 +138,19 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedShopRoute = AuthenticatedShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSparksRoute = AuthenticatedSparksRouteImport.update({
   id: '/sparks',
   path: '/sparks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const DecouvrirIndexRoute = DecouvrirIndexRouteImport.update({
@@ -178,6 +191,11 @@ const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
   path: '/users/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiSparkPlusWebhookRoute = ApiSparkPlusWebhookRouteImport.update({
+  id: '/api/spark-plus/webhook',
+  path: '/api/spark-plus/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRobloxCallbackRoute = AuthRobloxCallbackRouteImport.update({
   id: '/roblox/callback',
   path: '/roblox/callback',
@@ -213,12 +231,15 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/shop': typeof AuthenticatedShopRoute
   '/sparks': typeof AuthenticatedSparksRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
+  '/api/spark-plus/webhook': typeof ApiSparkPlusWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/discover/': typeof AuthenticatedDiscoverIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -244,12 +265,15 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/shop': typeof AuthenticatedShopRoute
   '/sparks': typeof AuthenticatedSparksRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir': typeof DecouvrirIndexRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
+  '/api/spark-plus/webhook': typeof ApiSparkPlusWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/discover': typeof AuthenticatedDiscoverIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
@@ -277,12 +301,15 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/shop': typeof AuthenticatedShopRoute
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
+  '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
   '/_authenticated/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRoute
+  '/api/spark-plus/webhook': typeof ApiSparkPlusWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/_authenticated/discover/': typeof AuthenticatedDiscoverIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -310,12 +337,15 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/settings'
+    | '/shop'
     | '/sparks'
+    | '/support'
     | '/decouvrir/studio'
     | '/decouvrir/'
     | '/discover/studio'
     | '/messages/$id'
     | '/users/$id'
+    | '/api/spark-plus/webhook'
     | '/auth/roblox/callback'
     | '/discover/'
     | '/messages/'
@@ -341,12 +371,15 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/settings'
+    | '/shop'
     | '/sparks'
+    | '/support'
     | '/decouvrir/studio'
     | '/decouvrir'
     | '/discover/studio'
     | '/messages/$id'
     | '/users/$id'
+    | '/api/spark-plus/webhook'
     | '/auth/roblox/callback'
     | '/discover'
     | '/messages'
@@ -373,12 +406,15 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/profile'
     | '/_authenticated/settings'
+    | '/_authenticated/shop'
     | '/_authenticated/sparks'
+    | '/_authenticated/support'
     | '/decouvrir/studio'
     | '/decouvrir/'
     | '/_authenticated/discover/studio'
     | '/_authenticated/messages/$id'
     | '/_authenticated/users/$id'
+    | '/api/spark-plus/webhook'
     | '/auth/roblox/callback'
     | '/_authenticated/discover/'
     | '/_authenticated/messages/'
@@ -403,6 +439,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   DecouvrirStudioRoute: typeof DecouvrirStudioRoute
   DecouvrirIndexRoute: typeof DecouvrirIndexRoute
+  ApiSparkPlusWebhookRoute: typeof ApiSparkPlusWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
 }
@@ -542,11 +579,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/shop': {
+      id: '/_authenticated/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof AuthenticatedShopRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/sparks': {
       id: '/_authenticated/sparks'
       path: '/sparks'
       fullPath: '/sparks'
       preLoaderRoute: typeof AuthenticatedSparksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/decouvrir/': {
@@ -598,6 +649,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/spark-plus/webhook': {
+      id: '/api/spark-plus/webhook'
+      path: '/api/spark-plus/webhook'
+      fullPath: '/api/spark-plus/webhook'
+      preLoaderRoute: typeof ApiSparkPlusWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/roblox/callback': {
       id: '/auth/roblox/callback'
       path: '/roblox/callback'
@@ -628,7 +686,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedShopRoute: typeof AuthenticatedShopRoute
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
+  AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedDiscoverStudioRoute: typeof AuthenticatedDiscoverStudioRoute
   AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
   AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRoute
@@ -642,7 +702,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedShopRoute: AuthenticatedShopRoute,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
+  AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedDiscoverStudioRoute: AuthenticatedDiscoverStudioRoute,
   AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
   AuthenticatedUsersIdRoute: AuthenticatedUsersIdRoute,
@@ -680,6 +742,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   DecouvrirStudioRoute: DecouvrirStudioRoute,
   DecouvrirIndexRoute: DecouvrirIndexRoute,
+  ApiSparkPlusWebhookRoute: ApiSparkPlusWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
 }

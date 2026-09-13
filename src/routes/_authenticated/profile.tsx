@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import {
   Camera,
+  Crown,
   Gamepad2,
   ImagePlus,
   LoaderCircle,
@@ -30,6 +31,7 @@ import { BANNERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { RobloxGameIcon } from "@/components/RobloxGameIcon";
+import { PROFILE_FONTS, PROFILE_GLOWS, profileFontClass, profileGlowClass } from "@/lib/sparkPlus";
 import {
   searchPopularRobloxGames,
   type RobloxGameSearchResult,
@@ -256,6 +258,10 @@ function ProfilePage() {
   const p = profile.data ? ({ ...profile.data, ...draft } as typeof profile.data) : profile.data;
   const age = ageFrom(p?.birth_date ?? null);
   const gameList = games.data ?? [];
+  const sparkPlusActive = Boolean(
+    p?.spark_plus_active &&
+    (!p.spark_plus_expires_at || new Date(p.spark_plus_expires_at).getTime() > Date.now()),
+  );
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 pt-5 pb-40 lg:pb-28">
@@ -318,7 +324,12 @@ function ProfilePage() {
       {/* Avatar */}
       <div className="relative z-10 -mt-12 px-1">
         <div className="relative inline-block">
-          <div className="inline-block rounded-full bg-background p-1">
+          <div
+            className={cn(
+              "inline-block rounded-full bg-background p-1",
+              profileGlowClass(p?.profile_glow),
+            )}
+          >
             <StoredImage
               path={p?.avatar_url ?? photos.data?.[0]?.url}
               alt={p?.username ?? ""}
@@ -345,8 +356,16 @@ function ProfilePage() {
           />
         </div>
 
-        <h2 className="mt-3 flex items-center gap-2 text-xl font-bold">
+        <h2
+          className={cn(
+            "mt-3 flex items-center gap-2 text-xl font-bold",
+            profileFontClass(p?.profile_font),
+          )}
+        >
           {p?.username}
+          {sparkPlusActive ? (
+            <Crown className="h-5 w-5 text-blue-500" aria-label="Spark Plus" />
+          ) : null}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
         </h2>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -391,6 +410,57 @@ function ProfilePage() {
 
       {/* Édition */}
       <section className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-4">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-black text-primary">Spark Plus</p>
+              <p className="text-xs text-muted-foreground">{t("premiumProfileCustomization")}</p>
+            </div>
+            {!sparkPlusActive ? (
+              <Link
+                to="/shop"
+                className="rounded-full bg-primary px-3 py-2 text-xs font-bold text-white"
+              >
+                {t("discoverSparkPlus")}
+              </Link>
+            ) : null}
+          </div>
+          <div
+            className={cn(
+              "mt-4 grid gap-3 sm:grid-cols-2",
+              !sparkPlusActive && "pointer-events-none opacity-45",
+            )}
+          >
+            <div>
+              <Label>{t("usernameFont")}</Label>
+              <select
+                value={p?.profile_font ?? "default"}
+                onChange={(event) => patch({ profile_font: event.target.value })}
+                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+              >
+                {PROFILE_FONTS.map((font) => (
+                  <option key={font} value={font}>
+                    {t(`profileFont${font[0]!.toUpperCase()}${font.slice(1)}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>{t("profileGlow")}</Label>
+              <select
+                value={p?.profile_glow ?? "none"}
+                onChange={(event) => patch({ profile_glow: event.target.value })}
+                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+              >
+                {PROFILE_GLOWS.map((glow) => (
+                  <option key={glow} value={glow}>
+                    {t(`profileGlow${glow[0]!.toUpperCase()}${glow.slice(1)}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
         <div>
           <Label>{t("bio")}</Label>
           <Textarea

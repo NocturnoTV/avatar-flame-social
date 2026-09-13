@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowUpRight, Bell } from "lucide-react";
+import { ArrowUpRight, Bell, Compass, Flame, LifeBuoy, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Card } from "@/components/ui-kit";
@@ -337,7 +337,9 @@ function HomePage() {
               {hello.emoji} {hello.text}
             </p>
             <h1 className="flex items-center gap-2 text-2xl font-black text-white drop-shadow sm:text-3xl">
-              <span className="truncate">{me.data?.username ? `@${me.data.username}` : "player"}</span>
+              <span className="truncate">
+                {me.data?.username ? `@${me.data.username}` : "player"}
+              </span>
               {me.data?.roblox_avatar_url ? (
                 <img
                   src={me.data.roblox_avatar_url}
@@ -352,11 +354,35 @@ function HomePage() {
         </div>
       </header>
 
+      <nav
+        className="no-scrollbar -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1"
+        aria-label={t("quickAccess")}
+      >
+        {[
+          { to: "/discover", label: t("discover"), icon: Compass },
+          { to: "/sparks", label: t("sparks"), icon: Flame },
+          { to: "/support", label: t("support"), icon: LifeBuoy },
+          { to: "/shop", label: t("shop"), icon: ShoppingBag },
+        ].map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className="bx-pop flex min-w-[112px] flex-1 items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black text-primary transition hover:border-primary/40 hover:bg-primary/15"
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </Link>
+        ))}
+      </nav>
 
       {/* 1. Découvrir — vidéos du moment */}
       <Reveal className="mt-8">
         <section>
-          <SectionHeader emoji="🧭" title={t("discover")} action={{ to: "/discover", label: t("seeAll") }} />
+          <SectionHeader
+            emoji="🧭"
+            title={t("discover")}
+            action={{ to: "/discover", label: t("seeAll") }}
+          />
           {latest.data?.length ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               {latest.data.map((v) => (
@@ -427,7 +453,11 @@ function HomePage() {
       {/* 3. Mes matchs Sparks */}
       <Reveal className="mt-8">
         <section>
-          <SectionHeader emoji="🔥" title={t("matches")} action={{ to: "/sparks", label: t("seeAll") }} />
+          <SectionHeader
+            emoji="🔥"
+            title={t("matches")}
+            action={{ to: "/sparks", label: t("seeAll") }}
+          />
           {sparkMatches.data?.length ? (
             <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
               {sparkMatches.data.map((m) => (

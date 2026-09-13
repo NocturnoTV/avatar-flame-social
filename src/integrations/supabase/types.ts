@@ -62,6 +62,48 @@ export type Database = {
         }
         Relationships: []
       }
+      bug_reports: {
+        Row: {
+          created_at: string
+          description: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          moderator_note: string | null
+          page_url: string | null
+          reporter_id: string
+          severity: string
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          moderator_note?: string | null
+          page_url?: string | null
+          reporter_id: string
+          severity?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          moderator_note?: string | null
+          page_url?: string | null
+          reporter_id?: string
+          severity?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
       contact_nicknames: {
         Row: { contact_id: string; nickname: string; owner_id: string; updated_at: string }
         Insert: {
@@ -471,8 +513,12 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
+          spark_plus_active: boolean
+          spark_plus_expires_at: string | null
           sparks_enabled: boolean
           sticker: string | null
+          profile_font: string
+          profile_glow: string
           theme: string
           updated_at: string
           username: string | null
@@ -507,8 +553,12 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          spark_plus_active?: boolean
+          spark_plus_expires_at?: string | null
           sparks_enabled?: boolean
           sticker?: string | null
+          profile_font?: string
+          profile_glow?: string
           theme?: string
           updated_at?: string
           username?: string | null
@@ -543,8 +593,12 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          spark_plus_active?: boolean
+          spark_plus_expires_at?: string | null
           sparks_enabled?: boolean
           sticker?: string | null
+          profile_font?: string
+          profile_glow?: string
           theme?: string
           updated_at?: string
           username?: string | null
@@ -723,6 +777,42 @@ export type Database = {
           id?: string
           media_type?: string
           media_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      spark_plus_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          provider: string
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          provider?: string
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          provider?: string
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

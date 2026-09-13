@@ -2,10 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
-  BarChart3,
   Bookmark,
   AtSign,
   EyeOff,
+  Eye,
   Heart,
   ImagePlus,
   MessageCircle,
@@ -87,6 +87,13 @@ function DiscoverPage() {
     () => window.localStorage.getItem("bloxspark-discover-muted") === "true",
   );
   const [comments, setComments] = useState<VideoRow | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [spotlight, setSpotlight] = useState<{
+    video: VideoRow;
+    username: string;
+    avatar: string | null;
+  } | null>(null);
 
   const following = useQuery({
     queryKey: ["following", user?.id],
@@ -130,12 +137,74 @@ function DiscoverPage() {
           .in("id", ids);
         for (const row of p ?? [])
           profiles[row.id] = { username: row.username, avatar_url: row.avatar_url };
+        const { data: plusProfiles } = await supabase
+          .from("profiles")
+          .select("id,spark_plus_active,spark_plus_expires_at")
+          .in("id", ids);
+        const boosted = new Set(
+          (plusProfiles ?? [])
+            .filter(
+              (profile) =>
+                profile.spark_plus_active &&
+                (!profile.spark_plus_expires_at ||
+                  new Date(profile.spark_plus_expires_at).getTime() > Date.now()),
+            )
+            .map((profile) => profile.id),
+        );
+        videos = videos
+          .map((video, index) => ({ video, index }))
+          .sort((a, b) => {
+            const boostDifference =
+              Number(boosted.has(b.video.user_id)) - Number(boosted.has(a.video.user_id));
+            return boostDifference || a.index - b.index;
+          })
+          .map(({ video }) => video);
       }
       return { videos, profiles };
     },
   });
 
+  const searchResults = useQuery({
+    queryKey: ["discover-search", searchQuery.trim().toLowerCase()],
+    enabled: searchOpen && searchQuery.trim().length >= 2,
+    queryFn: async () => {
+      const query = searchQuery.trim();
+      const [{ data: creators }, { data: foundVideos }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id,username,avatar_url,verified")
+          .ilike("username", `%${query}%`)
+          .limit(12),
+        supabase
+          .from("videos")
+          .select(
+            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count",
+          )
+          .eq("visibility", "public")
+          .ilike("caption", `%${query}%`)
+          .order("views_count", { ascending: false })
+          .limit(12),
+      ]);
+      const creatorIds = [...new Set((foundVideos ?? []).map((video) => video.user_id))];
+      const { data: videoCreators } = creatorIds.length
+        ? await supabase.from("profiles").select("id,username,avatar_url").in("id", creatorIds)
+        : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] };
+      const creatorById = new Map((videoCreators ?? []).map((creator) => [creator.id, creator]));
+      return {
+        creators: creators ?? [],
+        videos: ((foundVideos ?? []) as VideoRow[]).map((video) => ({
+          video,
+          username: creatorById.get(video.user_id)?.username ?? t("someone"),
+          avatar: creatorById.get(video.user_id)?.avatar_url ?? null,
+        })),
+      };
+    },
+  });
+
   const videos = feed.data?.videos ?? [];
+  const displayedVideos = spotlight
+    ? [spotlight.video, ...videos.filter((video) => video.id !== spotlight.video.id)]
+    : videos;
 
   return (
     <div className="relative h-[calc(100dvh-4.5rem)] w-full overflow-hidden bg-black lg:h-dvh">
@@ -183,27 +252,20 @@ function DiscoverPage() {
           ))}
         </div>
 
-        <div className="pointer-events-auto flex w-20 items-center justify-end gap-1">
-          <Link
-            to="/discover/studio"
-            className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
-            aria-label="Studio créateur"
+        <div className="pointer-events-auto flex w-20 items-center justify-end">
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="grid h-10 w-10 place-items-center rounded-full bg-black/25 text-white transition active:scale-90"
+            aria-label={t("searchCreatorsAndVideos")}
           >
-            <BarChart3 className="h-5 w-5" />
-          </Link>
-          <Link
-            to="/discover/studio"
-            className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
-            aria-label="Publier une vidéo"
-          >
-            <Plus className="h-6 w-6" />
-          </Link>
+            <Search className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
       {feed.isLoading ? (
         <div className="grid h-full place-items-center text-white/60">Chargement…</div>
-      ) : videos.length === 0 ? (
+      ) : displayedVideos.length === 0 ? (
         <div className="grid h-full place-items-center px-8 text-center">
           <div className="space-y-4">
             <Play className="mx-auto h-12 w-12 text-white/40" />
@@ -217,31 +279,204 @@ function DiscoverPage() {
         </div>
       ) : (
         <div className="h-full snap-y snap-mandatory overflow-y-scroll overscroll-contain">
-          {videos.map((video) => (
-            <VideoSlide
-              key={video.id}
-              video={video}
-              muted={muted}
-              username={feed.data?.profiles[video.user_id]?.username ?? "joueur"}
-              avatar={feed.data?.profiles[video.user_id]?.avatar_url ?? null}
-              onComments={() => setComments(video)}
-              onNotInterested={() => {
-                void markNotInterested({ data: { videoId: video.id } });
-                queryClient.setQueryData<typeof feed.data>(
-                  ["feed", tab, following.data?.join(",")],
-                  (current) =>
-                    current
-                      ? { ...current, videos: current.videos.filter((v) => v.id !== video.id) }
-                      : current,
-                );
-                toast.success(t("notInterestedDone"));
-              }}
-            />
-          ))}
+          {displayedVideos.map((video) => {
+            const highlighted = spotlight?.video.id === video.id ? spotlight : null;
+            return (
+              <VideoSlide
+                key={video.id}
+                video={video}
+                muted={muted}
+                username={
+                  highlighted?.username ??
+                  feed.data?.profiles[video.user_id]?.username ??
+                  t("someone")
+                }
+                avatar={
+                  highlighted?.avatar ?? feed.data?.profiles[video.user_id]?.avatar_url ?? null
+                }
+                onComments={() => setComments(video)}
+                onNotInterested={() => {
+                  void markNotInterested({ data: { videoId: video.id } });
+                  queryClient.setQueryData<typeof feed.data>(
+                    ["feed", tab, following.data?.join(",")],
+                    (current) =>
+                      current
+                        ? { ...current, videos: current.videos.filter((v) => v.id !== video.id) }
+                        : current,
+                  );
+                  toast.success(t("notInterestedDone"));
+                }}
+              />
+            );
+          })}
         </div>
       )}
 
       {comments ? <CommentsSheet video={comments} onClose={() => setComments(null)} /> : null}
+      {searchOpen ? (
+        <DiscoverSearch
+          query={searchQuery}
+          onQuery={setSearchQuery}
+          results={searchResults.data}
+          loading={searchResults.isFetching}
+          onClose={() => setSearchOpen(false)}
+          onVideo={(result) => {
+            setSpotlight(result);
+            setSearchOpen(false);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+type DiscoverSearchResults = {
+  creators: Array<{
+    id: string;
+    username: string | null;
+    avatar_url: string | null;
+    verified: boolean | null;
+  }>;
+  videos: Array<{ video: VideoRow; username: string; avatar: string | null }>;
+};
+
+function DiscoverSearch({
+  query,
+  onQuery,
+  results,
+  loading,
+  onClose,
+  onVideo,
+}: {
+  query: string;
+  onQuery: (value: string) => void;
+  results: DiscoverSearchResults | undefined;
+  loading: boolean;
+  onClose: () => void;
+  onVideo: (result: DiscoverSearchResults["videos"][number]) => void;
+}) {
+  const { t } = useI18n();
+  const hasQuery = query.trim().length >= 2;
+
+  return (
+    <div className="fixed inset-0 z-[80] bg-background/95 text-foreground backdrop-blur-xl">
+      <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-8 pt-4">
+        <div className="flex items-center gap-2">
+          <label className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 focus-within:border-primary">
+            <Search className="h-5 w-5 shrink-0 text-primary" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(event) => onQuery(event.target.value)}
+              placeholder={t("searchCreatorsAndVideos")}
+              className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
+            />
+            {query ? (
+              <button onClick={() => onQuery("")} aria-label={t("cancel")}>
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            ) : null}
+          </label>
+          <button
+            onClick={onClose}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full hover:bg-surface-2"
+            aria-label={t("close")}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-5 flex-1 overflow-y-auto">
+          {!hasQuery ? (
+            <div className="grid h-2/3 place-items-center text-center text-muted-foreground">
+              <div>
+                <Search className="mx-auto h-12 w-12 text-primary/45" />
+                <p className="mt-3 text-sm">{t("discoverSearchHint")}</p>
+              </div>
+            </div>
+          ) : loading ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">{t("loading")}</p>
+          ) : (
+            <div className="space-y-7">
+              <section>
+                <h2 className="mb-3 text-sm font-black uppercase tracking-wider text-primary">
+                  {t("creators")}
+                </h2>
+                <div className="space-y-2">
+                  {(results?.creators ?? []).map((creator) => (
+                    <Link
+                      key={creator.id}
+                      to="/users/$id"
+                      params={{ id: creator.id }}
+                      onClick={onClose}
+                      className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 hover:border-primary/40"
+                    >
+                      <StoredImage
+                        path={creator.avatar_url}
+                        alt={creator.username ?? ""}
+                        className="h-12 w-12 rounded-full object-cover"
+                        fallback={creator.username?.[0]?.toUpperCase() ?? "?"}
+                      />
+                      <span className="font-bold">@{creator.username ?? t("someone")}</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+              <section>
+                <h2 className="mb-3 text-sm font-black uppercase tracking-wider text-primary">
+                  {t("videos")}
+                </h2>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {(results?.videos ?? []).map((result) => (
+                    <button
+                      key={result.video.id}
+                      onClick={() => onVideo(result)}
+                      className="overflow-hidden rounded-2xl border border-border bg-card text-left hover:border-primary/40"
+                    >
+                      <SearchVideoThumb video={result.video} />
+                      <span className="block truncate px-3 pt-2 text-xs font-bold">
+                        @{result.username}
+                      </span>
+                      <span className="line-clamp-2 min-h-10 px-3 pb-3 text-xs text-muted-foreground">
+                        {result.video.caption || t("videoWithoutCaption")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+              {!results?.creators.length && !results?.videos.length ? (
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  {t("noSearchResults")}
+                </p>
+              ) : null}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SearchVideoThumb({ video }: { video: VideoRow }) {
+  const url = useSignedUrl(video.thumbnail_path || video.storage_path);
+  return (
+    <div className="relative aspect-[9/12] bg-black">
+      {url ? (
+        video.thumbnail_path ? (
+          <img src={url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <video
+            src={url}
+            muted
+            playsInline
+            preload="metadata"
+            className="h-full w-full object-cover"
+          />
+        )
+      ) : null}
+      <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-bold text-white">
+        <Eye className="h-3 w-3" /> {formatCount(video.views_count)}
+      </span>
     </div>
   );
 }
@@ -268,6 +503,7 @@ function VideoSlide({
   const ref = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+  const [viewCount, setViewCount] = useState(video.views_count);
   const viewed = useRef(false);
   const isMine = user?.id === video.user_id;
 
@@ -358,7 +594,15 @@ function VideoSlide({
           .upsert(
             { video_id: video.id, viewer_id: user.id },
             { onConflict: "video_id,viewer_id", ignoreDuplicates: true },
-          );
+          )
+          .then(async () => {
+            const { data } = await supabase
+              .from("videos")
+              .select("views_count")
+              .eq("id", video.id)
+              .maybeSingle();
+            if (data) setViewCount(data.views_count);
+          });
       }
     } else {
       el.pause();
@@ -484,6 +728,10 @@ function VideoSlide({
               <MentionText text={video.caption} />
             </p>
           ) : null}
+          <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-white/90">
+            <Eye className="h-3.5 w-3.5" />
+            {t("uniqueViews", { count: formatCount(viewCount) })}
+          </p>
           <p className="mt-2 flex items-center gap-2 overflow-hidden text-xs font-medium text-white/90">
             <Music2 className="h-3.5 w-3.5 shrink-0 animate-pulse" />
             <span className="truncate">{video.sound_name || `Son original — @${username}`}</span>

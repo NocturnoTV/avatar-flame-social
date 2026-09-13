@@ -32,7 +32,24 @@ import { useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-const EMOJIS = ["😀", "😂", "🥰", "😎", "😭", "🔥", "✨", "💖", "👀", "🎮", "🧱", "🚀", "👍", "🙏", "💀", "🤝"];
+const EMOJIS = [
+  "😀",
+  "😂",
+  "🥰",
+  "😎",
+  "😭",
+  "🔥",
+  "✨",
+  "💖",
+  "👀",
+  "🎮",
+  "🧱",
+  "🚀",
+  "👍",
+  "🙏",
+  "💀",
+  "🤝",
+];
 const REACTIONS = ["❤️", "😂", "😮", "😢", "🙏", "🔥"];
 
 export const Route = createFileRoute("/_authenticated/messages/$id")({
@@ -56,11 +73,29 @@ type Message = {
   created_at: string;
 };
 
-const QUICK_REPLIES = ["😂", "👍 Ok", "On se capte quand ?", "Trop bien !", "😍", "Envoie une photo"];
+const QUICK_REPLIES = [
+  "😂",
+  "👍 Ok",
+  "On se capte quand ?",
+  "Trop bien !",
+  "😍",
+  "Envoie une photo",
+];
+
+function formatLastSeen(value: string, lang: string) {
+  const elapsed = new Date(value).getTime() - Date.now();
+  const absolute = Math.abs(elapsed);
+  const formatter = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
+  if (absolute < 60_000) return formatter.format(Math.round(elapsed / 1000), "second");
+  if (absolute < 3_600_000) return formatter.format(Math.round(elapsed / 60_000), "minute");
+  if (absolute < 86_400_000) return formatter.format(Math.round(elapsed / 3_600_000), "hour");
+  if (absolute < 604_800_000) return formatter.format(Math.round(elapsed / 86_400_000), "day");
+  return new Date(value).toLocaleDateString(lang, { day: "numeric", month: "short" });
+}
 
 function Conversation() {
   const { id } = Route.useParams();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user } = useSession();
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -105,32 +140,40 @@ function Conversation() {
         .from("profiles")
         .select("id,username,avatar_url,last_active_at")
         .in("id", allIds.length > 0 ? allIds : ["00000000-0000-0000-0000-000000000000"]);
-      const byId: Record<string, { username: string; avatar_url: string | null; last_active_at: string | null }> = {};
+      const byId: Record<
+        string,
+        { username: string; avatar_url: string | null; last_active_at: string | null }
+      > = {};
       for (const p of (people ?? []) as {
         id: string;
         username: string;
         avatar_url: string | null;
         last_active_at: string | null;
       }[]) {
-        byId[p.id] = { username: p.username, avatar_url: p.avatar_url, last_active_at: p.last_active_at };
+        byId[p.id] = {
+          username: p.username,
+          avatar_url: p.avatar_url,
+          last_active_at: p.last_active_at,
+        };
       }
       const others = otherIds.map((uid) => byId[uid]?.username ?? "?");
       const otherId = otherIds[0] ?? null;
       const otherRead = (members ?? []).find((m) => m.user_id === otherId)?.last_read_at ?? null;
-      const online = otherId && byId[otherId]?.last_active_at
-        ? Date.now() - new Date(byId[otherId]!.last_active_at!).getTime() < 5 * 60 * 1000
-        : false;
+      const online =
+        otherId && byId[otherId]?.last_active_at
+          ? Date.now() - new Date(byId[otherId]!.last_active_at!).getTime() < 5 * 60 * 1000
+          : false;
       const mine = (members ?? []).find((m) => m.user_id === user?.id);
       const nickname =
         otherId && user
-          ? (
+          ? ((
               await supabase
                 .from("contact_nicknames")
                 .select("nickname")
                 .eq("owner_id", user.id)
                 .eq("contact_id", otherId)
                 .maybeSingle()
-            ).data?.nickname ?? null
+            ).data?.nickname ?? null)
           : null;
 
       return {
@@ -141,6 +184,7 @@ function Conversation() {
         people: byId,
         otherId,
         online,
+        lastActiveAt: otherId ? (byId[otherId]?.last_active_at ?? null) : null,
         otherReadAt: otherRead,
         requestStatus: convo?.request_status ?? "accepted",
         isRequester: convo?.created_by === user?.id,
@@ -177,7 +221,12 @@ function Conversation() {
       .channel(`messages-${id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${id}`,
+        },
         () => {
           setOtherTyping(false);
           void messages.refetch();
@@ -255,7 +304,12 @@ function Conversation() {
   async function pickImage(file: File) {
     if (!user) return;
     try {
-      const path = await uploadFile("profile-photos", user.id, file, file.name.split(".").pop() ?? "jpg");
+      const path = await uploadFile(
+        "profile-photos",
+        user.id,
+        file,
+        file.name.split(".").pop() ?? "jpg",
+      );
       await send("image", path);
     } catch {
       toast.error(t("errorGeneric"));
@@ -328,15 +382,23 @@ function Conversation() {
           </Link>
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-bold leading-tight text-[#050505] dark:text-white">{header.data?.title}</p>
+          <p className="truncate font-bold leading-tight text-[#050505] dark:text-white">
+            {header.data?.title}
+          </p>
           <p className="truncate text-xs text-[#929292]">
-            {otherTyping
-              ? <span className="font-semibold text-primary">{t("typing")}</span>
-              : header.data?.isGroup
-                ? `${header.data.members} ${t("members")}`
-                : header.data?.online
-                  ? t("online")
-                  : ""}
+            {otherTyping ? (
+              <span className="font-semibold text-primary">{t("typing")}</span>
+            ) : header.data?.isGroup ? (
+              `${header.data.members} ${t("members")}`
+            ) : header.data?.online ? (
+              t("onlineNow")
+            ) : header.data?.lastActiveAt ? (
+              t("lastSeen", {
+                time: formatLastSeen(header.data.lastActiveAt, lang),
+              })
+            ) : (
+              t("offline")
+            )}
           </p>
         </div>
         <button
@@ -376,7 +438,10 @@ function Conversation() {
       ) : null}
 
       {/* Liste défilante */}
-      <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4" style={{ background: wallpaperCss }}>
+      <div
+        className="flex-1 space-y-1 overflow-y-auto px-3 py-4"
+        style={{ background: wallpaperCss }}
+      >
         {list.map((m, i) => {
           const mine = m.sender_id === user?.id;
           const sender = header.data?.people?.[m.sender_id];
@@ -443,7 +508,10 @@ function Conversation() {
 
                   {m.kind === "voice" ? (
                     mine ? (
-                      <div className="rounded-[26px] px-4 py-3 shadow-sm" style={{ background: bubbleGradient }}>
+                      <div
+                        className="rounded-[26px] px-4 py-3 shadow-sm"
+                        style={{ background: bubbleGradient }}
+                      >
                         <VoicePlayer path={m.media_url} light />
                       </div>
                     ) : (
@@ -606,7 +674,12 @@ function Conversation() {
           </div>
 
           {text.trim() ? (
-            <Button size="icon" onClick={() => send("text")} aria-label={t("send")} className="bx-pop shrink-0">
+            <Button
+              size="icon"
+              onClick={() => send("text")}
+              aria-label={t("send")}
+              className="bx-pop shrink-0"
+            >
               <Send className="h-4 w-4" />
             </Button>
           ) : (
@@ -614,7 +687,9 @@ function Conversation() {
               onClick={toggleRecording}
               className={cn(
                 "grid h-11 w-11 shrink-0 place-items-center rounded-full transition",
-                recording ? "scale-110 bg-destructive text-white" : "text-[#050505] dark:text-white",
+                recording
+                  ? "scale-110 bg-destructive text-white"
+                  : "text-[#050505] dark:text-white",
               )}
               aria-label={t("recordVoice")}
             >
@@ -647,7 +722,11 @@ function Conversation() {
             </div>
             <div className="mt-2 space-y-1">
               <MenuRow icon={Reply} label={t("reply")} onClick={() => setActiveMessage(null)} />
-              <MenuRow icon={Copy} label={t("copy")} onClick={() => void copyMessage(activeMessage)} />
+              <MenuRow
+                icon={Copy}
+                label={t("copy")}
+                onClick={() => void copyMessage(activeMessage)}
+              />
               <MenuRow icon={Forward} label={t("forward")} onClick={() => setActiveMessage(null)} />
               {activeMessage.sender_id === user?.id ? (
                 <MenuRow
@@ -663,8 +742,14 @@ function Conversation() {
       ) : null}
 
       {lightbox ? (
-        <div className="fixed inset-0 z-[80] grid place-items-center bg-black/95 p-3" onClick={() => setLightbox(null)}>
-          <button className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white" aria-label="Close">
+        <div
+          className="fixed inset-0 z-[80] grid place-items-center bg-black/95 p-3"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white"
+            aria-label="Close"
+          >
             <X className="h-6 w-6" />
           </button>
           <LightboxImage path={lightbox.media_url} />
@@ -676,7 +761,11 @@ function Conversation() {
           conversationId={id}
           otherId={header.data.otherId}
           title={header.data.realUsername ?? header.data.title ?? "?"}
-          avatarUrl={header.data.otherId ? header.data.people[header.data.otherId]?.avatar_url ?? null : null}
+          avatarUrl={
+            header.data.otherId
+              ? (header.data.people[header.data.otherId]?.avatar_url ?? null)
+              : null
+          }
           pinned={header.data.pinned}
           muted={header.data.muted}
           onClose={() => setInfo(false)}
@@ -717,12 +806,20 @@ function MenuRow({
 }
 
 /** Original hand-drawn "note" bubble — thin outline, doodle face + hands at the corners. */
-function ReceivedBubble({ children, padded = true }: { children: React.ReactNode; padded?: boolean }) {
+function ReceivedBubble({
+  children,
+  padded = true,
+}: {
+  children: React.ReactNode;
+  padded?: boolean;
+}) {
   return (
     <div className="relative text-[#050505] dark:text-white">
       <div className="rounded-[26px] border-2 border-current bg-white dark:bg-black">
         {padded ? (
-          <p className="whitespace-pre-wrap break-words px-[22px] py-[16px] pr-8 text-[15px]">{children}</p>
+          <p className="whitespace-pre-wrap break-words px-[22px] py-[16px] pr-8 text-[15px]">
+            {children}
+          </p>
         ) : (
           children
         )}
@@ -739,7 +836,13 @@ function DoodleFace({ className }: { className?: string }) {
     <svg viewBox="0 0 40 26" className={className} fill="none" aria-hidden="true">
       <ellipse cx="10" cy="12" rx="3.4" ry="5" fill="currentColor" transform="rotate(-12 10 12)" />
       <ellipse cx="21" cy="10" rx="3.4" ry="5" fill="currentColor" transform="rotate(-6 21 10)" />
-      <path d="M14 20c3-3 9-3 14-1" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+      <path
+        d="M14 20c3-3 9-3 14-1"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        fill="none"
+      />
     </svg>
   );
 }
@@ -814,7 +917,9 @@ function VoicePlayer({ path, light = false }: { path: string | null; light?: boo
           ref={audioRef}
           src={url}
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-          onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || 1))}
+          onTimeUpdate={(e) =>
+            setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || 1))
+          }
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
           onEnded={() => setPlaying(false)}
@@ -825,10 +930,16 @@ function VoicePlayer({ path, light = false }: { path: string | null; light?: boo
         onClick={toggle}
         className={cn(
           "grid h-9 w-9 shrink-0 place-items-center rounded-full transition active:scale-90",
-          light ? "bg-white/25 text-white" : "bg-[#E5E5E5] text-[#050505] dark:bg-white/15 dark:text-white",
+          light
+            ? "bg-white/25 text-white"
+            : "bg-[#E5E5E5] text-[#050505] dark:bg-white/15 dark:text-white",
         )}
       >
-        {playing ? <Pause className="h-4 w-4 fill-current" /> : <Play className="ml-0.5 h-4 w-4 fill-current" />}
+        {playing ? (
+          <Pause className="h-4 w-4 fill-current" />
+        ) : (
+          <Play className="ml-0.5 h-4 w-4 fill-current" />
+        )}
       </button>
       <div className="flex flex-1 items-center gap-[3px]">
         {bars.map((h, i) => (
@@ -845,7 +956,12 @@ function VoicePlayer({ path, light = false }: { path: string | null; light?: boo
           />
         ))}
       </div>
-      <span className={cn("shrink-0 text-xs tabular-nums", light ? "text-white/90" : "text-[#050505] dark:text-white")}>
+      <span
+        className={cn(
+          "shrink-0 text-xs tabular-nums",
+          light ? "text-white/90" : "text-[#050505] dark:text-white",
+        )}
+      >
         {formatDuration(duration)}
       </span>
     </div>
