@@ -77,18 +77,24 @@ function GuestPage() {
   const profiles = useQuery({
     queryKey: ["guest-profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("guest_profiles", { _limit: 40 });
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(
+          "id,username,bio,avatar_url,roblox_display_name,roblox_username,roblox_avatar_url,language,verified",
+        )
+        .eq("onboarding_completed", true)
+        .limit(40);
       if (error) throw error;
-      return data as GuestProfile[];
+      return (data ?? []) as GuestProfile[];
     },
     retry: false,
   });
 
-  const feed = useMemo(() => {
-    const source = profiles.data?.length ? profiles.data : DEMO_PROFILES;
+  const feed = useMemo<GuestProfile[]>(() => {
+    const source: GuestProfile[] = profiles.data?.length ? profiles.data : DEMO_PROFILES;
     return Array.from(
       { length: Math.max(24, source.length) },
-      (_, index) => source[index % source.length],
+      (_, index) => source[index % source.length] as GuestProfile,
     );
   }, [profiles.data]);
 
