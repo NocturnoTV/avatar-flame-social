@@ -64,6 +64,7 @@ export type Database = {
       }
       bug_reports: {
         Row: {
+          category: string
           created_at: string
           description: string
           handled_at: string | null
@@ -77,6 +78,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          category?: string
           created_at?: string
           description: string
           handled_at?: string | null
@@ -90,6 +92,7 @@ export type Database = {
           title: string
         }
         Update: {
+          category?: string
           created_at?: string
           description?: string
           handled_at?: string | null
@@ -101,6 +104,69 @@ export type Database = {
           severity?: string
           status?: string
           title?: string
+        }
+        Relationships: []
+      }
+      faq_entries: {
+        Row: {
+          id: string
+          question: string
+          answer: string
+          position: number
+          published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          question: string
+          answer: string
+          position?: number
+          published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          question?: string
+          answer?: string
+          position?: number
+          published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      service_status: {
+        Row: { id: string; status: string; message: string | null; updated_at: string }
+        Insert: { id?: string; status?: string; message?: string | null; updated_at?: string }
+        Update: { id?: string; status?: string; message?: string | null; updated_at?: string }
+        Relationships: []
+      }
+      service_incidents: {
+        Row: {
+          id: string
+          title: string
+          status: string
+          started_at: string
+          resolved_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          status?: string
+          started_at?: string
+          resolved_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          status?: string
+          started_at?: string
+          resolved_at?: string | null
+          created_at?: string
         }
         Relationships: []
       }
