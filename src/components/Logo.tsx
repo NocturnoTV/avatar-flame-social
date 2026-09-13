@@ -1,5 +1,3 @@
-import logoWhite from "@/assets/logo-white.png.asset.json";
-import logoBlack from "@/assets/logo-black.png.asset.json";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +12,13 @@ export function Logo({
   const variant = forceVariant ?? theme;
   return (
     <img
-      src={variant === "dark" ? logoWhite.url : logoBlack.url}
+      src="/bloxspark-logo.png"
       alt="Bloxspark"
-      className={cn("h-12 w-auto select-none object-contain", className)}
+      className={cn(
+        "h-12 w-auto select-none object-contain",
+        variant === "light" && "invert",
+        className,
+      )}
       draggable={false}
     />
   );

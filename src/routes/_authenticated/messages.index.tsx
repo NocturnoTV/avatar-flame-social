@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Camera, Heart, Search, UserRoundPlus, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button, Input, Sheet } from "@/components/ui-kit";
@@ -15,7 +15,10 @@ export const Route = createFileRoute("/_authenticated/messages/")({
       { title: "Messages — Bloxspark" },
       { name: "description", content: "Tes discussions privées et tes groupes Bloxspark." },
       { property: "og:title", content: "Messages — Bloxspark" },
-      { property: "og:description", content: "Discute en privé ou en groupe, avec vocaux et emojis." },
+      {
+        property: "og:description",
+        content: "Discute en privé ou en groupe, avec vocaux et emojis.",
+      },
     ],
   }),
   component: MessagesPage,
@@ -26,7 +29,13 @@ type Row = {
   is_group: boolean;
   name: string | null;
   last_message_at: string | null;
-  others: { id: string; username: string | null; verified?: boolean | null }[];
+  others: {
+    id: string;
+    username: string | null;
+    avatar_url?: string | null;
+    roblox_avatar_url?: string | null;
+    verified?: boolean | null;
+  }[];
   preview: string;
 };
 
@@ -60,7 +69,7 @@ function MessagesPage() {
       );
       const { data: people } = await supabase
         .from("profiles")
-        .select("id,username,verified")
+        .select("id,username,avatar_url,roblox_avatar_url,verified")
         .in("id", otherIds.length > 0 ? otherIds : ["00000000-0000-0000-0000-000000000000"]);
       const { data: lastMessages } = await supabase
         .from("messages")
@@ -74,6 +83,9 @@ function MessagesPage() {
           .map((m) => ({
             id: m.user_id,
             username: (people ?? []).find((p) => p.id === m.user_id)?.username ?? null,
+            avatar_url: (people ?? []).find((p) => p.id === m.user_id)?.avatar_url ?? null,
+            roblox_avatar_url:
+              (people ?? []).find((p) => p.id === m.user_id)?.roblox_avatar_url ?? null,
             verified: (people ?? []).find((p) => p.id === m.user_id)?.verified ?? false,
           }));
 
@@ -99,7 +111,10 @@ function MessagesPage() {
         .or(`user_a.eq.${user?.id},user_b.eq.${user?.id}`);
       const ids = (data ?? []).map((m) => (m.user_a === user?.id ? m.user_b : m.user_a));
       if (ids.length === 0) return [];
-      const { data: profiles } = await supabase.from("profiles").select("id,username").in("id", ids);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,roblox_avatar_url")
+        .in("id", ids);
       return profiles ?? [];
     },
     enabled: !!user,
@@ -134,17 +149,93 @@ function MessagesPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 pt-5">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("messages")}</h1>
-        <Button size="sm" onClick={() => setNewGroup(true)}>
-          <Plus className="h-4 w-4" /> {t("newGroup")}
-        </Button>
+    <div className="mx-auto min-h-full w-full max-w-lg bg-background px-4 pt-4">
+      <header className="grid grid-cols-[44px_1fr_44px] items-center">
+        <button
+          type="button"
+          onClick={() => setNewGroup(true)}
+          className="grid h-11 w-11 place-items-center rounded-full transition hover:bg-muted"
+          aria-label={t("newGroup")}
+        >
+          <UserRoundPlus className="h-6 w-6" />
+        </button>
+        <h1 className="text-center text-xl font-black">{t("messages")}</h1>
+        <button
+          type="button"
+          className="grid h-11 w-11 place-items-center rounded-full transition hover:bg-muted"
+          aria-label="Search"
+        >
+          <Search className="h-7 w-7" />
+        </button>
       </header>
 
-      <div className="mt-5 space-y-2">
+      <section className="scrollbar-none -mx-4 mt-5 flex gap-4 overflow-x-auto px-4 pb-3">
+        <button
+          type="button"
+          onClick={() => setNewGroup(true)}
+          className="w-[72px] shrink-0 text-center"
+        >
+          <span className="relative mx-auto grid h-16 w-16 place-items-center rounded-full border-2 border-dashed border-primary/50 bg-muted">
+            <UserRoundPlus className="h-6 w-6 text-primary" />
+            <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border-2 border-background bg-primary text-sm font-bold text-white">
+              +
+            </span>
+          </span>
+          <span className="mt-2 block truncate text-xs font-bold">{t("create")}</span>
+        </button>
+        {(matches.data ?? []).slice(0, 8).map((match, index) => {
+          const avatar = match.roblox_avatar_url ?? match.avatar_url;
+          return (
+            <div key={match.id} className="w-[72px] shrink-0 text-center">
+              <span className="mx-auto block rounded-full bg-gradient-to-br from-sky-400 via-primary to-cyan-300 p-[3px]">
+                <span className="grid h-[58px] w-[58px] place-items-center overflow-hidden rounded-full border-[3px] border-background bg-muted text-lg font-bold">
+                  {avatar ? (
+                    <img src={avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    (match.username?.[0]?.toUpperCase() ?? "?")
+                  )}
+                </span>
+              </span>
+              <span className="mt-2 block truncate text-xs font-bold">
+                {match.username ?? `Player ${index + 1}`}
+              </span>
+            </div>
+          );
+        })}
+      </section>
+
+      <div className="mt-3 space-y-1">
+        <Link
+          to="/notifications"
+          className="flex items-center gap-4 rounded-2xl px-1 py-3 transition hover:bg-muted/60"
+        >
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sky-500 text-white">
+            <UsersRound className="h-7 w-7" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <strong className="block font-semibold">Nouveaux followers</strong>
+            <span className="block truncate text-sm text-muted-foreground">
+              Découvre les nouveaux membres qui te suivent
+            </span>
+          </span>
+        </Link>
+        <Link
+          to="/notifications"
+          className="flex items-center gap-4 rounded-2xl px-1 py-3 transition hover:bg-muted/60"
+        >
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-pink-500 text-white">
+            <Heart className="h-7 w-7 fill-current" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <strong className="block font-semibold">Activité</strong>
+            <span className="block truncate text-sm text-muted-foreground">
+              Likes, commentaires et réactions
+            </span>
+          </span>
+        </Link>
+
         {(conversations.data ?? []).length === 0 ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">{t("noConversations")}</p>
+          <p className="py-12 text-center text-sm text-muted-foreground">{t("noConversations")}</p>
         ) : null}
         {(conversations.data ?? []).map((c) => {
           const name = c.is_group ? c.name : (c.others[0]?.username ?? "?");
@@ -153,10 +244,23 @@ function MessagesPage() {
               key={c.id}
               to="/messages/$id"
               params={{ id: c.id }}
-              className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 active:scale-[.99]"
+              className="flex items-center gap-4 rounded-2xl px-1 py-3 transition hover:bg-muted/60 active:scale-[.99]"
             >
-              <div className="spark-gradient flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white">
-                {c.is_group ? "👥" : (name?.[0]?.toUpperCase() ?? "?")}
+              <div className="relative spark-gradient flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full text-lg font-bold text-white">
+                {!c.is_group && (c.others[0]?.roblox_avatar_url || c.others[0]?.avatar_url) ? (
+                  <img
+                    src={c.others[0]?.roblox_avatar_url ?? c.others[0]?.avatar_url ?? ""}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : c.is_group ? (
+                  "👥"
+                ) : (
+                  (name?.[0]?.toUpperCase() ?? "?")
+                )}
+                {!c.is_group ? (
+                  <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500" />
+                ) : null}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 font-semibold">
@@ -165,6 +269,7 @@ function MessagesPage() {
                 </p>
                 <p className="truncate text-sm text-muted-foreground">{c.preview || "—"}</p>
               </div>
+              <Camera className="h-6 w-6 shrink-0 text-muted-foreground" />
             </Link>
           );
         })}
@@ -189,7 +294,9 @@ function MessagesPage() {
                   className="h-4 w-4 accent-[var(--spark)]"
                   checked={selected.includes(m.id)}
                   onChange={(e) =>
-                    setSelected((s) => (e.target.checked ? [...s, m.id] : s.filter((x) => x !== m.id)))
+                    setSelected((s) =>
+                      e.target.checked ? [...s, m.id] : s.filter((x) => x !== m.id),
+                    )
                   }
                 />
                 {m.username}
