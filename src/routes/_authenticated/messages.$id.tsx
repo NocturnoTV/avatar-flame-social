@@ -518,7 +518,7 @@ function Conversation() {
             onClick={() => setShowQuickReplies(true)}
             className="mb-2 flex items-center gap-2 rounded-full bg-[#F5F5F5] px-3.5 py-2 text-sm text-[#929292] dark:bg-[#1c1c1e]"
           >
-            <span className="grid h-5 w-5 place-items-center rounded-full bg-[#18BFE2] text-white">
+            <span className="grid h-5 w-5 place-items-center rounded-full bg-[#A855F7] text-white">
               <Zap className="h-3 w-3 fill-white" />
             </span>
             {t("quickReplies")}

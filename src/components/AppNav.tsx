@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Compass, Flame, Home, Send, Settings, User } from "lucide-react";
+import { Compass, Home, Send, Settings, Sparkles, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
@@ -29,7 +29,7 @@ function useItems() {
   return [
     { to: "/home", icon: Home, label: t("home") },
     { to: "/discover", icon: Compass, label: t("discover") },
-    { to: "/sparks", icon: Flame, label: t("sparks") },
+    { to: "/sparks", icon: Sparkles, label: t("sparks") },
     { to: "/messages", icon: Send, label: t("messages") },
     { to: "/profile", icon: User, label: t("profile") },
   ];
@@ -56,6 +56,7 @@ export function SideNav() {
       <nav className="flex-1 space-y-1 px-3">
         {items.map((item) => {
           const active = isActive(item.to);
+          const isSpark = item.to === "/sparks";
           return (
             <Link
               key={item.to}
@@ -67,7 +68,17 @@ export function SideNav() {
                   : "text-muted-foreground hover:bg-surface hover:text-foreground",
               )}
             >
-              <item.icon className="h-6 w-6 shrink-0" strokeWidth={active ? 2.6 : 2} />
+              {isSpark ? (
+                <span
+                  className={cn(
+                    "spark-gradient grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow-[0_0_16px_rgba(168,85,247,.55)]",
+                  )}
+                >
+                  <item.icon className="h-5 w-5" fill="currentColor" />
+                </span>
+              ) : (
+                <item.icon className="h-6 w-6 shrink-0" strokeWidth={active ? 2.6 : 2} />
+              )}
               <span className="truncate">{item.label}</span>
               {item.to === "/messages" && unread ? (
                 <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
@@ -99,9 +110,31 @@ export function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-      <div className="mx-auto flex max-w-lg items-stretch justify-around px-1">
+      <div className="mx-auto flex max-w-lg items-end justify-around px-1">
         {items.map((item) => {
           const active = isActive(item.to);
+          const isSpark = item.to === "/sparks";
+
+          if (isSpark) {
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="relative flex flex-1 flex-col items-center gap-1 pb-2 text-[10px] font-semibold text-primary"
+              >
+                <span
+                  className={cn(
+                    "spark-gradient -mt-6 grid h-14 w-14 place-items-center rounded-full text-white shadow-[0_0_22px_rgba(168,85,247,.6)] transition-transform",
+                    active ? "scale-100 ring-2 ring-white/50" : "scale-[.92]",
+                  )}
+                >
+                  <item.icon className="h-7 w-7" fill="currentColor" />
+                </span>
+                <span className="truncate">{item.label}</span>
+              </Link>
+            );
+          }
+
           return (
             <Link
               key={item.to}

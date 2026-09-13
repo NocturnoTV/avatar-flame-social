@@ -29,7 +29,7 @@ export const WALLPAPERS: Wallpaper[] = [
 export type BubbleTheme = { id: string; label: string; from: string; to: string };
 
 export const BUBBLE_THEMES: BubbleTheme[] = [
-  { id: "default", label: "Blue/Purple", from: "#2878F5", to: "#6744FF" },
+  { id: "default", label: "Purple", from: "#A855F7", to: "#7C3AED" },
   { id: "sunset", label: "Sunset", from: "#FF6B6B", to: "#FFA36C" },
   { id: "candy", label: "Candy", from: "#FF3568", to: "#FF7CE5" },
   { id: "mint", label: "Mint", from: "#18BFE2", to: "#20D778" },

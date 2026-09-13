@@ -129,7 +129,7 @@ function GuestPage() {
             className="flex min-h-[calc(100dvh-9rem)] snap-start items-center justify-center px-5 py-8"
           >
             <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-primary/20 bg-card shadow-xl shadow-primary/10">
-              <div className="h-32 bg-gradient-to-br from-sky-300 via-blue-400 to-blue-600" />
+              <div className="h-32 bg-gradient-to-br from-purple-300 via-purple-500 to-purple-700" />
               <div className="relative p-6 pt-14">
                 <div className="absolute -top-12 left-6 grid h-24 w-24 place-items-center overflow-hidden rounded-3xl border-4 border-card bg-surface-2 text-3xl font-black text-primary">
                   {profile.roblox_avatar_url || profile.avatar_url ? (

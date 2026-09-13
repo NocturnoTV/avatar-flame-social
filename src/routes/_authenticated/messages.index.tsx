@@ -399,7 +399,7 @@ function MessagesPage() {
             <span
               className={cn(
                 "mx-auto block h-[72px] w-[72px] rounded-full p-[3px] transition-transform active:scale-95",
-                s.unread ? "bg-gradient-to-br from-[#18BFE2] to-[#20D778]" : "bg-[#E5E5E5] dark:bg-white/15",
+                s.unread ? "bg-gradient-to-br from-[#A855F7] to-[#20D778]" : "bg-[#E5E5E5] dark:bg-white/15",
               )}
             >
               <StoredImage
@@ -455,7 +455,7 @@ function MessagesPage() {
             to="/notifications"
             className="bx-pop flex items-center gap-3 rounded-2xl px-1 py-3 transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
           >
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#18BFE2] text-white">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#A855F7] text-white">
               <Users className="h-6 w-6" />
             </span>
             <div className="min-w-0 flex-1">

@@ -471,6 +471,7 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
+          spark_badges: string[]
           sparks_enabled: boolean
           sticker: string | null
           theme: string
@@ -507,6 +508,7 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          spark_badges?: string[]
           sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
@@ -543,6 +545,7 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          spark_badges?: string[]
           sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
@@ -1223,6 +1226,7 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
+          spark_badges: string[]
           sparks_enabled: boolean
           sticker: string | null
           theme: string

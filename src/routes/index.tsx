@@ -41,8 +41,8 @@ function Landing() {
   ];
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#030b1d] text-white">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#030b1d]/75 backdrop-blur-xl">
+    <div className="min-h-screen overflow-hidden bg-[#0a0614] text-white">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0a0614]/75 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5">
           <Logo className="h-10 w-auto" forceVariant="dark" />
           <div className="flex items-center gap-2">
@@ -78,23 +78,23 @@ function Landing() {
             alt="BloxSpark Roblox community"
             className="absolute inset-0 h-full w-full object-cover object-center bx-hero-zoom"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#030b1d] via-[#030b1d]/35 to-[#030b1d]/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0614] via-[#0a0614]/35 to-[#0a0614]/10" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,transparent_10%,rgba(3,11,29,.38)_75%)]" />
           <div className="relative mx-auto w-full max-w-7xl px-5 pb-16 sm:pb-24">
-            <span className="bx-rise inline-flex items-center gap-2 rounded-full border border-sky-300/30 bg-blue-600/20 px-4 py-2 text-xs font-extrabold uppercase tracking-[.22em] text-sky-100 backdrop-blur">
+            <span className="bx-rise inline-flex items-center gap-2 rounded-full border border-purple-300/30 bg-purple-600/20 px-4 py-2 text-xs font-extrabold uppercase tracking-[.22em] text-purple-100 backdrop-blur">
               <Sparkles className="h-4 w-4" /> {t("landingEyebrow")}
             </span>
             <h1 className="bx-rise bx-delay-1 mt-5 max-w-4xl text-5xl font-black leading-[.93] tracking-[-.055em] sm:text-7xl lg:text-8xl">
               {t("landingHeroTitle")}
             </h1>
-            <p className="bx-rise bx-delay-2 mt-6 max-w-2xl text-base font-medium leading-relaxed text-blue-50/80 sm:text-xl">
+            <p className="bx-rise bx-delay-2 mt-6 max-w-2xl text-base font-medium leading-relaxed text-purple-50/80 sm:text-xl">
               {t("landingHeroText")}
             </p>
             <div className="bx-rise bx-delay-3 mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/auth" search={{ mode: "signup" }}>
                 <Button
                   size="lg"
-                  className="w-full px-8 shadow-[0_0_45px_rgba(37,99,235,.55)] sm:w-auto"
+                  className="w-full px-8 shadow-[0_0_45px_rgba(168,85,247,.55)] sm:w-auto"
                 >
                   {t("landingJoin")} <ArrowRight className="h-5 w-5" />
                 </Button>
@@ -111,19 +111,19 @@ function Landing() {
             </div>
             <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-xs font-bold text-white/70">
               <span className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-sky-400" /> {t("landingSafe")}
+                <ShieldCheck className="h-4 w-4 text-purple-400" /> {t("landingSafe")}
               </span>
               <span className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-sky-400" /> {t("landingCommunity")}
+                <Users className="h-4 w-4 text-purple-400" /> {t("landingCommunity")}
               </span>
             </div>
           </div>
         </section>
 
         <section className="relative mx-auto max-w-7xl px-5 py-24">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600/20 blur-[100px]" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/20 blur-[100px]" />
           <div className="relative mx-auto max-w-3xl text-center">
-            <p className="text-xs font-extrabold uppercase tracking-[.28em] text-sky-400">
+            <p className="text-xs font-extrabold uppercase tracking-[.28em] text-purple-400">
               {t("landingBuiltFor")}
             </p>
             <h2 className="mt-4 text-4xl font-black sm:text-6xl">{t("landingSectionTitle")}</h2>
@@ -132,32 +132,32 @@ function Landing() {
             {features.map((f, i) => (
               <article
                 key={f.title}
-                className={`bx-rise bx-delay-${i + 1} group rounded-[2rem] border border-white/10 bg-white/[.045] p-7 backdrop-blur transition duration-300 hover:-translate-y-2 hover:border-blue-400/50 hover:bg-blue-500/10`}
+                className={`bx-rise bx-delay-${i + 1} group rounded-[2rem] border border-white/10 bg-white/[.045] p-7 backdrop-blur transition duration-300 hover:-translate-y-2 hover:border-purple-400/50 hover:bg-purple-500/10`}
               >
-                <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 shadow-lg shadow-blue-500/25">
+                <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-400 shadow-lg shadow-purple-500/25">
                   <f.icon className="h-7 w-7" />
                 </span>
                 <h3 className="mt-6 text-xl font-black">{f.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-blue-100/60">{f.text}</p>
+                <p className="mt-3 text-sm leading-relaxed text-purple-100/60">{f.text}</p>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="mx-5 mb-16 overflow-hidden rounded-[2.5rem] border border-blue-400/20 bg-gradient-to-br from-blue-700 to-blue-950 px-6 py-16 text-center sm:mx-auto sm:max-w-6xl sm:px-16">
-          <Sparkles className="mx-auto h-9 w-9 text-sky-300 bx-float" />
+        <section className="mx-5 mb-16 overflow-hidden rounded-[2.5rem] border border-purple-400/20 bg-gradient-to-br from-purple-700 to-purple-950 px-6 py-16 text-center sm:mx-auto sm:max-w-6xl sm:px-16">
+          <Sparkles className="mx-auto h-9 w-9 text-purple-300 bx-float" />
           <h2 className="mx-auto mt-5 max-w-3xl text-4xl font-black sm:text-6xl">
             {t("landingCtaTitle")}
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-blue-100/70">{t("landingCtaText")}</p>
+          <p className="mx-auto mt-4 max-w-xl text-purple-100/70">{t("landingCtaText")}</p>
           <Link to="/auth" search={{ mode: "signup" }}>
-            <Button size="lg" className="mt-8 bg-white text-blue-700 shadow-xl hover:scale-105">
+            <Button size="lg" className="mt-8 bg-white text-purple-700 shadow-xl hover:scale-105">
               {t("getStarted")}
             </Button>
           </Link>
         </section>
       </main>
-      <footer className="border-t border-white/10 px-5 py-8 text-center text-xs text-blue-100/45">
+      <footer className="border-t border-white/10 px-5 py-8 text-center text-xs text-purple-100/45">
         <div className="mb-3 flex justify-center gap-5">
           <Link to="/terms">{t("terms")}</Link>
           <Link to="/privacy">{t("privacy")}</Link>

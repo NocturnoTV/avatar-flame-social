@@ -2,7 +2,16 @@ import { Flag } from "@/components/Flag";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Gamepad2, Heart, SlidersHorizontal, Star, X } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  MessageCircle,
+  SlidersHorizontal,
+  Star,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
@@ -12,6 +21,9 @@ import { Verified } from "@/components/Verified";
 import { LANGUAGES, useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { BANNERS, ageFrom } from "@/lib/decorations";
+import { COUNTRY_CODES, countryFlagEmoji, countryName } from "@/lib/countries";
+import { MAX_SPARK_BADGES, SPARK_BADGES, sparkBadge } from "@/lib/sparkBadges";
+import { errorMessage } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/sparks")({
@@ -36,7 +48,38 @@ type DeckProfile = {
   banner_style: string;
   avatar_url: string | null;
   verified: boolean | null;
+  country: string | null;
+  spark_badges: string[] | null;
+  last_active_at: string;
 };
+
+type DeckGame = { name: string; thumbnail_url: string | null };
+
+type QuickFilter = "all" | "similar" | "language" | "mic";
+
+function isOnline(lastActiveAt: string | null | undefined) {
+  if (!lastActiveAt) return false;
+  return Date.now() - new Date(lastActiveAt).getTime() < 5 * 60 * 1000;
+}
+
+function computeCompatibility(
+  me: { language: string; country: string | null; birthDate: string | null; gameNames: Set<string> },
+  profile: DeckProfile,
+  profileGames: string[],
+) {
+  let score = 35;
+  const shared = profileGames.filter((g) => me.gameNames.has(g.toLowerCase())).length;
+  score += Math.min(shared, 3) * 12;
+  if (me.country && profile.country && me.country === profile.country) score += 15;
+  if (me.language && profile.language && me.language === profile.language) score += 10;
+  const myAge = ageFrom(me.birthDate);
+  const theirAge = ageFrom(profile.birth_date);
+  if (myAge && theirAge) {
+    const diff = Math.abs(myAge - theirAge);
+    score += diff <= 2 ? 8 : diff <= 5 ? 4 : 0;
+  }
+  return Math.max(35, Math.min(99, Math.round(score)));
+}
 
 /** Met à jour en direct les profils affichés (avatar, bannière, pseudo…) sans recharger la page. */
 function useLiveProfiles() {
@@ -68,18 +111,20 @@ function useLiveProfiles() {
 }
 
 function SparksPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user } = useSession();
   const queryClient = useQueryClient();
   useLiveProfiles();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"deck" | "matches">("deck");
+  const [tab, setTab] = useState<"deck" | "matches" | "profile">("deck");
   const [filters, setFilters] = useState({ lang: "", min: 13, max: 99 });
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState(0);
   const [match, setMatch] = useState<{ name: string; conversationId: string } | null>(null);
   const [enabling, setEnabling] = useState(false);
+  const [messaging, setMessaging] = useState(false);
 
   const myGate = useQuery({
     queryKey: ["sparks-gate", user?.id],
@@ -93,6 +138,28 @@ function SparksPage() {
           .eq("user_id", user!.id),
       ]);
       return { sparksEnabled: profile?.sparks_enabled ?? false, gameCount: count ?? 0 };
+    },
+  });
+
+  const myProfile = useQuery({
+    queryKey: ["sparks-my-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [{ data: profile }, { data: games }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("language,country,birth_date,spark_badges")
+          .eq("id", user!.id)
+          .maybeSingle(),
+        supabase.from("favorite_games").select("name").eq("user_id", user!.id),
+      ]);
+      return {
+        language: profile?.language ?? lang,
+        country: profile?.country ?? null,
+        birthDate: profile?.birth_date ?? null,
+        badges: profile?.spark_badges ?? [],
+        gameNames: new Set((games ?? []).map((g) => g.name.toLowerCase())),
+      };
     },
   });
 
@@ -153,20 +220,43 @@ function SparksPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("favorite_games")
-        .select("user_id,name,position")
+        .select("user_id,name,thumbnail_url,position")
         .in(
           "user_id",
           deck.map((d) => d.id),
         )
         .order("position");
-      const map: Record<string, string[]> = {};
-      for (const row of data ?? []) (map[row.user_id] ??= []).push(row.name);
+      const map: Record<string, DeckGame[]> = {};
+      for (const row of data ?? []) (map[row.user_id] ??= []).push({ name: row.name, thumbnail_url: row.thumbnail_url });
       return map;
     },
   });
 
-  const current = deck[index];
-  const next = deck[index + 1];
+  const visibleDeck = useMemo(() => {
+    if (quickFilter === "mic") return deck.filter((p) => (p.spark_badges ?? []).includes("mic"));
+    if (quickFilter === "similar") {
+      const mine = myProfile.data?.gameNames ?? new Set<string>();
+      if (mine.size === 0) return deck;
+      return deck.filter((p) => (deckGames[p.id] ?? []).some((g) => mine.has(g.name.toLowerCase())));
+    }
+    return deck;
+  }, [deck, deckGames, quickFilter, myProfile.data]);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [quickFilter]);
+
+  function selectQuickFilter(next: QuickFilter) {
+    setQuickFilter(next);
+    if (next === "language") {
+      setFilters((f) => ({ ...f, lang: myProfile.data?.language ?? "" }));
+    } else if (quickFilter === "language") {
+      setFilters((f) => ({ ...f, lang: "" }));
+    }
+  }
+
+  const current = visibleDeck[index];
+  const next = visibleDeck[index + 1];
 
   async function swipe(action: "like" | "pass" | "super") {
     if (!current) return;
@@ -184,6 +274,22 @@ function SparksPage() {
     const result = data as unknown as { match: boolean; conversation_id?: string };
     if (result?.match && result.conversation_id) {
       setMatch({ name: target.username ?? "?", conversationId: result.conversation_id });
+    }
+  }
+
+  async function messageCurrent() {
+    if (!current || messaging) return;
+    setMessaging(true);
+    try {
+      const { data: conversationId, error } = await supabase.rpc("start_direct_message", {
+        _target: current.id,
+      });
+      if (error) throw error;
+      await navigate({ to: "/messages/$id", params: { id: conversationId as string } });
+    } catch (err) {
+      toast.error(errorMessage(err, t("errorGeneric")));
+    } finally {
+      setMessaging(false);
     }
   }
 
@@ -207,8 +313,8 @@ function SparksPage() {
     return (
       <div className="mx-auto flex min-h-[80vh] w-full max-w-md flex-col items-center justify-center px-6 text-center">
         <Logo className="mb-6 h-11" />
-        <span className="spark-gradient grid h-16 w-16 place-items-center rounded-3xl text-3xl text-white">
-          🔥
+        <span className="spark-gradient grid h-16 w-16 place-items-center rounded-3xl text-3xl text-white shadow-[0_0_28px_rgba(168,85,247,.55)]">
+          ✦
         </span>
         <h1 className="mt-5 text-xl font-black">{t("sparksGateTitle")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t("sparksGateBody")}</p>
@@ -228,6 +334,13 @@ function SparksPage() {
     );
   }
 
+  const quickFilters: { id: QuickFilter; label: string }[] = [
+    { id: "all", label: t("filterAll") },
+    { id: "similar", label: t("filterSimilarGames") },
+    { id: "language", label: t("filterSameLanguage") },
+    { id: "mic", label: t("filterHasMic") },
+  ];
+
   return (
     <div className="mx-auto w-full max-w-md px-4 pt-4">
       <header className="flex items-center justify-between">
@@ -242,20 +355,27 @@ function SparksPage() {
         </Button>
       </header>
 
+      <div className="mt-2 flex items-center gap-2">
+        <span className="spark-text text-2xl">✦</span>
+        <h1 className="text-2xl font-black">{t("sparks")}</h1>
+      </div>
+      <p className="mt-0.5 text-sm text-muted-foreground">{t("sparksGateTitle")}</p>
+
       <div className="mt-3 flex gap-2">
         {(
           [
             ["deck", t("sparks")],
             ["matches", "Mes matchs"],
+            ["profile", t("sparkProfileTab")],
           ] as const
         ).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
             className={cn(
-              "flex-1 rounded-full px-4 py-2 text-sm font-semibold transition",
+              "flex-1 rounded-full px-3 py-2 text-sm font-semibold transition",
               tab === id
-                ? "spark-gradient text-white"
+                ? "spark-gradient text-white shadow-[0_0_14px_rgba(168,85,247,.45)]"
                 : "border border-border text-muted-foreground",
             )}
           >
@@ -264,7 +384,27 @@ function SparksPage() {
         ))}
       </div>
 
+      {tab === "deck" ? (
+        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+          {quickFilters.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => selectQuickFilter(f.id)}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition",
+                quickFilter === f.id
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border text-muted-foreground",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {tab === "matches" ? <MatchesTab /> : null}
+      {tab === "profile" ? <SparkProfileTab /> : null}
 
       <div className={cn(tab === "deck" ? "" : "hidden")}>
         <div className="relative mt-4 h-[62vh] min-h-100">
@@ -279,9 +419,15 @@ function SparksPage() {
             <>
               {next ? (
                 <SparkCard
+                  key={next.id}
                   profile={next}
                   photos={photos[next.id] ?? []}
                   games={deckGames[next.id] ?? []}
+                  compatibility={
+                    myProfile.data
+                      ? computeCompatibility(myProfile.data, next, (deckGames[next.id] ?? []).map((g) => g.name))
+                      : 50
+                  }
                   className="scale-95 opacity-60"
                 />
               ) : null}
@@ -299,33 +445,58 @@ function SparksPage() {
                 className="absolute inset-0 touch-none"
               >
                 <SparkCard
+                  key={current.id}
                   profile={current}
                   photos={photos[current.id] ?? []}
                   games={deckGames[current.id] ?? []}
+                  compatibility={
+                    myProfile.data
+                      ? computeCompatibility(myProfile.data, current, (deckGames[current.id] ?? []).map((g) => g.name))
+                      : 50
+                  }
                 />
               </div>
             </>
           )}
         </div>
 
-        <div className="mt-5 flex items-center justify-center gap-5">
+        <div className="mt-5 flex items-center justify-center gap-4">
           <button
             onClick={() => swipe("pass")}
-            className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-95"
+            className="flex flex-col items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"
           >
-            <X className="h-7 w-7" />
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-red-500 shadow-sm active:scale-95">
+              <X className="h-7 w-7" />
+            </span>
+            {t("pass")}
           </button>
           <button
             onClick={() => swipe("super")}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-spark-2 active:scale-95"
+            className="flex flex-col items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"
           >
-            <Star className="h-6 w-6" />
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-blue-500 shadow-sm active:scale-95">
+              <Star className="h-6 w-6" />
+            </span>
+            {t("superLike")}
           </button>
           <button
             onClick={() => swipe("like")}
-            className="spark-gradient flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg shadow-primary/30 active:scale-95"
+            className="flex flex-col items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"
           >
-            <Heart className="h-8 w-8" fill="currentColor" />
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-green-500 shadow-sm active:scale-95">
+              <Heart className="h-7 w-7" fill="currentColor" />
+            </span>
+            {t("like")}
+          </button>
+          <button
+            onClick={() => void messageCurrent()}
+            disabled={!current || messaging}
+            className="flex flex-col items-center gap-1.5 text-[11px] font-semibold text-muted-foreground disabled:opacity-40"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-primary shadow-sm active:scale-95">
+              <MessageCircle className="h-6 w-6" />
+            </span>
+            {t("message")}
           </button>
         </div>
       </div>
@@ -334,7 +505,10 @@ function SparksPage() {
         <div className="space-y-4">
           <Select
             value={filters.lang}
-            onChange={(e) => setFilters((f) => ({ ...f, lang: e.target.value }))}
+            onChange={(e) => {
+              setQuickFilter("all");
+              setFilters((f) => ({ ...f, lang: e.target.value }));
+            }}
           >
             <option value="">{t("allLanguages")}</option>
             {LANGUAGES.map((l) => (
@@ -354,7 +528,7 @@ function SparksPage() {
                 max={99}
                 value={filters.min}
                 onChange={(e) => setFilters((f) => ({ ...f, min: Number(e.target.value) }))}
-                className="flex-1 accent-[var(--spark)]"
+                className="flex-1 accent-primary"
               />
               <input
                 type="range"
@@ -362,7 +536,7 @@ function SparksPage() {
                 max={99}
                 value={filters.max}
                 onChange={(e) => setFilters((f) => ({ ...f, max: Number(e.target.value) }))}
-                className="flex-1 accent-[var(--spark)]"
+                className="flex-1 accent-primary"
               />
             </div>
           </div>
@@ -478,19 +652,130 @@ function MatchesTab() {
   );
 }
 
+function SparkProfileTab() {
+  const { t } = useI18n();
+  const { user } = useSession();
+  const qc = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [badges, setBadges] = useState<string[]>([]);
+  const [country, setCountry] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  const profile = useQuery({
+    queryKey: ["spark-profile-editor", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("country,spark_badges")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (profile.data && !loaded) {
+      setBadges(profile.data.spark_badges ?? []);
+      setCountry(profile.data.country ?? "");
+      setLoaded(true);
+    }
+  }, [profile.data, loaded]);
+
+  function toggleBadge(id: string) {
+    setBadges((current) => {
+      if (current.includes(id)) return current.filter((b) => b !== id);
+      if (current.length >= MAX_SPARK_BADGES) return current;
+      return [...current, id];
+    });
+  }
+
+  async function save() {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ spark_badges: badges, country: country || null })
+      .eq("id", user.id);
+    setSaving(false);
+    if (error) {
+      toast.error(t("errorGeneric"));
+      return;
+    }
+    toast.success(t("saved"));
+    void qc.invalidateQueries({ queryKey: ["sparks-my-profile", user.id] });
+    void qc.invalidateQueries({ queryKey: ["deck"] });
+  }
+
+  return (
+    <div className="mt-4 space-y-5 pb-4">
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <p className="text-sm font-bold">{t("country")}</p>
+        <p className="mb-3 text-xs text-muted-foreground">{t("sparksGateBody")}</p>
+        <Select value={country} onChange={(e) => setCountry(e.target.value)}>
+          <option value="">{t("chooseCountry")}</option>
+          {COUNTRY_CODES.map((code) => (
+            <option key={code} value={code}>
+              {countryFlagEmoji(code)} {countryName(code, "en")}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <p className="text-sm font-bold">{t("sparkBadgesTitle")}</p>
+        <p className="mb-3 text-xs text-muted-foreground">{t("sparkBadgesHint")}</p>
+        <div className="flex flex-wrap gap-2">
+          {SPARK_BADGES.map((b) => {
+            const active = badges.includes(b.id);
+            return (
+              <button
+                key={b.id}
+                onClick={() => toggleBadge(b.id)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition",
+                  active
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border text-muted-foreground",
+                )}
+              >
+                <span>{b.emoji}</span> {t(b.labelKey)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <Button className="w-full" disabled={saving} onClick={() => void save()}>
+        {saving ? t("loading") : t("save")}
+      </Button>
+    </div>
+  );
+}
+
 function SparkCard({
   profile,
   photos,
   games = [],
+  compatibility,
   className,
 }: {
   profile: DeckProfile;
   photos: string[];
-  games?: string[];
+  games?: DeckGame[];
+  compatibility: number;
   className?: string;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const age = ageFrom(profile.birth_date);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const online = isOnline(profile.last_active_at);
+  const badges = (profile.spark_badges ?? []).map(sparkBadge).filter(Boolean);
+  const mainPhoto = photos[photoIndex] ?? profile.avatar_url;
+
+  function stop(e: React.PointerEvent) {
+    e.stopPropagation();
+  }
 
   return (
     <div
@@ -500,9 +785,9 @@ function SparkCard({
       )}
     >
       <div className="relative h-full">
-        {profile.avatar_url || photos[0] ? (
+        {mainPhoto ? (
           <StoredImage
-            path={profile.avatar_url ?? photos[0]}
+            path={mainPhoto}
             alt={profile.username ?? ""}
             className="h-full w-full"
           />
@@ -512,34 +797,120 @@ function SparkCard({
             style={{ backgroundImage: BANNERS[profile.banner_style] ?? BANNERS["nebula"] }}
           />
         )}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-5 pt-16 text-white">
-          <div className="flex items-center gap-2">
+
+        {photos.length > 1 ? (
+          <>
+            <div className="absolute inset-x-3 top-3 flex gap-1">
+              {photos.map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-1 flex-1 rounded-full transition-colors",
+                    i === photoIndex ? "bg-white" : "bg-white/30",
+                  )}
+                />
+              ))}
+            </div>
+            <button
+              onPointerDown={stop}
+              onClick={() => setPhotoIndex((i) => (i === 0 ? photos.length - 1 : i - 1))}
+              aria-label="previous photo"
+              className="absolute left-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onPointerDown={stop}
+              onClick={() => setPhotoIndex((i) => (i === photos.length - 1 ? 0 : i + 1))}
+              aria-label="next photo"
+              className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        ) : null}
+
+        <div className="absolute left-3 top-8 flex flex-col gap-1.5">
+          <span className="flex items-center gap-1.5 rounded-xl bg-black/50 px-2.5 py-1.5 text-[11px] font-semibold text-white backdrop-blur">
+            <span className={cn("h-2 w-2 rounded-full", online ? "bg-[#20D778]" : "bg-white/40")} />
+            {online ? t("sparkOnline") : t("lookingForPlayers")}
+          </span>
+          {online ? (
+            <span className="flex items-center gap-1.5 rounded-xl bg-black/50 px-2.5 py-1.5 text-[11px] font-semibold text-white backdrop-blur">
+              🎮 {t("lookingForPlayers")}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="absolute right-3 top-8 rounded-xl bg-black/50 px-2.5 py-1.5 text-center backdrop-blur">
+          <p className="text-sm font-bold text-white">💜 {compatibility}%</p>
+          <p className="text-[10px] text-white/80">{t("compatible")}</p>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-5 pt-24 text-white">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h2 className="text-2xl font-bold">{profile.username}</h2>
             {profile.verified ? <Verified className="h-5 w-5" /> : null}
-            {age ? (
-              <span className="text-lg">
-                {age} {t("years")}
-              </span>
-            ) : null}
-            <Flag code={profile.language ?? ""} className="h-4 w-6" />
+            {age ? <span className="text-lg opacity-90">, {age}</span> : null}
+            <span className={cn("h-2.5 w-2.5 rounded-full", online ? "bg-[#20D778]" : "bg-white/30")} />
           </div>
-          <p className="mt-1 text-sm opacity-90">🎮 {profile.roblox_username}</p>
-          {profile.bio ? (
-            <p className="mt-2 line-clamp-3 text-sm opacity-90">{profile.bio}</p>
-          ) : null}
-          {games.length > 0 ? (
+          {profile.country ? (
+            <p className="mt-1 flex items-center gap-1.5 text-sm opacity-90">
+              <span>{countryFlagEmoji(profile.country)}</span>
+              <span>{countryName(profile.country, lang)}</span>
+            </p>
+          ) : (
+            <p className="mt-1 flex items-center gap-1.5 text-sm opacity-90">
+              <Flag code={profile.language ?? ""} className="h-4 w-6" />
+              🎮 {profile.roblox_username}
+            </p>
+          )}
+          {profile.bio ? <p className="mt-2 line-clamp-2 text-sm italic opacity-90">"{profile.bio}"</p> : null}
+          {badges.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {games.slice(0, 5).map((g) => (
+              {badges.map((b) => (
                 <span
-                  key={g}
+                  key={b!.id}
                   className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
                 >
-                  <Gamepad2 className="h-3 w-3" /> {g}
+                  {b!.emoji} {t(b!.labelKey)}
                 </span>
               ))}
             </div>
           ) : null}
-          <span className="mt-3 inline-block h-1.5 w-16 rounded-full bg-primary" />
+
+          <div className="mt-3 flex items-end justify-between gap-3">
+            {games.length > 0 ? (
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide opacity-70">{t("plays")}</p>
+                <div className="mt-1.5 flex gap-2">
+                  {games.slice(0, 3).map((g) => (
+                    <div key={g.name} className="w-11 text-center">
+                      <div className="h-11 w-11 overflow-hidden rounded-xl bg-white/15">
+                        <StoredImage path={g.thumbnail_url} alt={g.name} className="h-full w-full" fallback="🎮" />
+                      </div>
+                      <p className="mt-1 truncate text-[10px] leading-tight opacity-85">{g.name}</p>
+                    </div>
+                  ))}
+                  {games.length > 3 ? (
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/15 text-xs font-bold">
+                      +{games.length - 3}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <span />
+            )}
+            <Link
+              to="/users/$id"
+              params={{ id: profile.id }}
+              onPointerDown={stop}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-bold text-black shadow-lg"
+            >
+              {t("viewProfile")} <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </div>
     </div>
