@@ -4,10 +4,12 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
   Bookmark,
   AtSign,
+  Check,
   EyeOff,
   Eye,
   Heart,
   ImagePlus,
+  Link2,
   MessageCircle,
   MoreHorizontal,
   Music2,
@@ -29,7 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Button } from "@/components/ui-kit";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import {
   getPersonalizedFeed,
@@ -504,6 +506,7 @@ function VideoSlide({
   const containerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [viewCount, setViewCount] = useState(video.views_count);
+  const [sharing, setSharing] = useState(false);
   const viewed = useRef(false);
   const isMine = user?.id === video.user_id;
 
@@ -669,22 +672,6 @@ function VideoSlide({
     await qc.invalidateQueries({ queryKey: ["following"] });
   }
 
-  async function share() {
-    const link = `${window.location.origin}/decouvrir`;
-    try {
-      if (navigator.share) await navigator.share({ title: `Vidéo de @${username}`, url: link });
-      else {
-        await navigator.clipboard.writeText(link);
-        toast.success("Lien copié");
-      }
-      await supabase
-        .from("videos")
-        .update({ shares_count: video.shares_count + 1 })
-        .eq("id", video.id);
-    } catch {
-      /* annulé */
-    }
-  }
 
   return (
     <div
@@ -773,7 +760,7 @@ function VideoSlide({
           <RailButton
             icon={Heart}
             active={state.data?.liked}
-            activeClass="fill-primary text-primary"
+            activeClass="fill-red-500 text-red-500"
             count={video.likes_count}
             onClick={() => toggle("video_likes", !!state.data?.liked)}
             label="J'aime"
@@ -787,7 +774,7 @@ function VideoSlide({
           <RailButton
             icon={Bookmark}
             active={state.data?.faved}
-            activeClass="fill-primary text-primary"
+            activeClass="fill-yellow-400 text-yellow-400"
             count={video.favorites_count}
             onClick={() => toggle("video_favorites", !!state.data?.faved)}
             label={t("favorites")}
@@ -800,8 +787,160 @@ function VideoSlide({
             onClick={() => toggle("video_reposts", !!state.data?.reposted)}
             label={t("repost")}
           />
-          <RailButton icon={Send} count={video.shares_count} onClick={share} label={t("share")} />
+          <RailButton icon={Send} count={video.shares_count} onClick={() => setSharing(true)} label={t("share")} />
           {!isMine ? <RailOverflow onNotInterested={onNotInterested} /> : null}
+        </div>
+      </div>
+      {sharing ? (
+        <ShareSheet
+          video={video}
+          username={username}
+          onClose={() => setSharing(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ShareSheet({
+  video,
+  username,
+  onClose,
+}: {
+  video: VideoRow;
+  username: string;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const { user } = useSession();
+  const qc = useQueryClient();
+  const [copied, setCopied] = useState(false);
+  const [sendingTo, setSendingTo] = useState<string | null>(null);
+  const link = `${window.location.origin}/discover?v=${video.id}`;
+
+  const matches = useQuery({
+    queryKey: ["share-sheet-matches", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from("matches")
+        .select("user_a,user_b")
+        .or(`user_a.eq.${user!.id},user_b.eq.${user!.id}`);
+      const otherIds = (rows ?? []).map((m) => (m.user_a === user!.id ? m.user_b : m.user_a));
+      if (!otherIds.length) return [];
+      const { data: people } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url")
+        .in("id", otherIds);
+      return people ?? [];
+    },
+  });
+
+  async function bumpShares() {
+    await supabase
+      .from("videos")
+      .update({ shares_count: video.shares_count + 1 })
+      .eq("id", video.id);
+    await qc.invalidateQueries({ queryKey: ["feed"] });
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      toast.success(t("linkCopied"));
+      await bumpShares();
+      setTimeout(() => setCopied(false), 1800);
+    } catch (err) {
+      toast.error(errorMessage(err, t("errorGeneric")));
+    }
+  }
+
+  async function sendTo(friendId: string, friendUsername: string) {
+    if (!user || sendingTo) return;
+    setSendingTo(friendId);
+    try {
+      const { data: conversationId, error } = await supabase.rpc("start_direct_message", {
+        _target: friendId,
+      });
+      if (error) throw error;
+      const { error: msgError } = await supabase.from("messages").insert({
+        conversation_id: conversationId as string,
+        sender_id: user.id,
+        kind: "text",
+        content: `🎥 @${username} — ${link}`,
+      });
+      if (msgError) throw msgError;
+      await bumpShares();
+      toast.success(t("sentToFriend", { username: friendUsername }));
+      onClose();
+    } catch (err) {
+      toast.error(errorMessage(err, t("errorGeneric")));
+    } finally {
+      setSendingTo(null);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <div
+        className="app-background flex max-h-[75dvh] w-full max-w-md flex-col overflow-hidden rounded-t-[2rem] border border-b-0 border-border pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_70px_-30px_rgba(0,0,0,.8)] sm:mb-6 sm:rounded-[2rem] sm:border-b"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
+        <div className="flex items-center justify-between px-5 pt-4">
+          <h2 className="text-base font-black">{t("share")}</h2>
+          <button onClick={onClose} aria-label={t("cancel")} className="text-muted-foreground">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <p className="px-5 pt-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          {t("shareToSparks")}
+        </p>
+        <div className="no-scrollbar flex gap-4 overflow-x-auto px-5 py-3">
+          {(matches.data ?? []).length === 0 ? (
+            <p className="py-2 text-sm text-muted-foreground">{t("noMatchesToShare")}</p>
+          ) : (
+            (matches.data ?? []).map((m) => (
+              <button
+                key={m.id}
+                onClick={() => void sendTo(m.id, m.username ?? "?")}
+                disabled={!!sendingTo}
+                className="flex w-16 shrink-0 flex-col items-center gap-1.5 text-center disabled:opacity-50"
+              >
+                <span className="relative">
+                  <StoredImage
+                    path={m.avatar_url}
+                    alt={m.username ?? ""}
+                    className="h-14 w-14 rounded-full object-cover ring-1 ring-border"
+                    fallback={m.username?.[0]?.toUpperCase() ?? "?"}
+                  />
+                  {sendingTo === m.id ? (
+                    <span className="absolute inset-0 grid place-items-center rounded-full bg-black/50">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    </span>
+                  ) : null}
+                </span>
+                <span className="w-full truncate text-[11px] font-semibold">{m.username}</span>
+              </button>
+            ))
+          )}
+        </div>
+
+        <div className="mt-1 space-y-1 border-t border-border p-3">
+          <button
+            onClick={() => void copyLink()}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left font-semibold hover:bg-surface-2"
+          >
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-surface-2">
+              {copied ? <Check className="h-5 w-5 text-primary" /> : <Link2 className="h-5 w-5" />}
+            </span>
+            {copied ? t("linkCopied") : t("copyLink")}
+          </button>
         </div>
       </div>
     </div>
@@ -1006,18 +1145,18 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
-        <label className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-blue-400/30 bg-blue-500/15 px-4 py-2.5 text-sm shadow-[0_10px_30px_-20px_rgba(37,99,235,.8)] focus-within:border-blue-500">
-          <Search className="h-4 w-4 shrink-0 text-blue-500" />
+        <label className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-purple-400/30 bg-purple-500/15 px-4 py-2.5 text-sm shadow-[0_10px_30px_-20px_rgba(168,85,247,.8)] focus-within:border-purple-500">
+          <Search className="h-4 w-4 shrink-0 text-purple-500" />
           <span className="sr-only">{t("commentSearchTopic")}</span>
           <input
             value={commentSearch}
             onChange={(event) => setCommentSearch(event.target.value)}
             placeholder={video.caption || t("search")}
-            className="min-w-0 flex-1 bg-transparent font-semibold text-blue-600 outline-none placeholder:text-blue-500/75 dark:text-blue-300"
+            className="min-w-0 flex-1 bg-transparent font-semibold text-purple-600 outline-none placeholder:text-purple-500/75 dark:text-purple-300"
           />
           {commentSearch ? (
             <button type="button" onClick={() => setCommentSearch("")} aria-label={t("cancel")}>
-              <X className="h-4 w-4 text-blue-500" />
+              <X className="h-4 w-4 text-purple-500" />
             </button>
           ) : null}
         </label>
@@ -1241,7 +1380,7 @@ function CommentItem({
         <div className="flex w-9 shrink-0 flex-col items-center gap-3 pt-2 text-muted-foreground">
           <button
             onClick={() => void onReact(comment.id, "like")}
-            className={cn("flex flex-col items-center text-blue-500 transition active:scale-90")}
+            className={cn("flex flex-col items-center text-purple-500 transition active:scale-90")}
             aria-label="J’aime"
           >
             <Heart className={cn("h-6 w-6", comment.my_reaction === "like" && "fill-current")} />
@@ -1295,7 +1434,7 @@ function CommentItem({
           </div>
           <button
             onClick={() => void onReact(r.id, "like")}
-            className="flex w-9 shrink-0 flex-col items-center pt-2 text-blue-500 transition active:scale-90"
+            className="flex w-9 shrink-0 flex-col items-center pt-2 text-purple-500 transition active:scale-90"
             aria-label="J’aime"
           >
             <Heart className={cn("h-5 w-5", r.my_reaction === "like" && "fill-current")} />
