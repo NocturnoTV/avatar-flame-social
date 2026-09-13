@@ -231,7 +231,13 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
         <Row icon={Compass} label={t("discover")} to="/discover" active={isActive("/discover")} onClick={onClose} />
         <Row icon={Play} label={t("menuVideos")} to="/discover" active={false} onClick={onClose} />
         <Row icon={Sparkles} label={t("sparks")} to="/sparks" active={isActive("/sparks")} onClick={onClose} />
-        <Row icon={Users} label={t("menuCommunities")} disabled comingSoon={t("comingSoon")} />
+        <Row
+          icon={Users}
+          label={t("menuCommunities")}
+          to="/communities"
+          active={isActive("/communities")}
+          onClick={onClose}
+        />
         <Row icon={Gamepad2} label={t("menuGames")} disabled comingSoon={t("comingSoon")} />
         <Row
           icon={MessageCircle}

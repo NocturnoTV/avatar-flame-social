@@ -593,7 +593,7 @@ function VideoSlide({
     if (visible) {
       void el.play().catch(() => undefined);
       watchStartRef.current = performance.now();
-      if (!viewed.current && user) {
+      if (!viewed.current && user && user.id !== video.user_id) {
         viewed.current = true;
         void supabase
           .from("video_views")

@@ -33,6 +33,9 @@ import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as DecouvrirIndexRouteImport } from './routes/decouvrir.index'
 import { Route as DecouvrirStudioRouteImport } from './routes/decouvrir.studio'
+import { Route as AuthenticatedCommunitiesIndexRouteImport } from './routes/_authenticated/communities.index'
+import { Route as AuthenticatedCommunitiesHandleRouteImport } from './routes/_authenticated/communities.$handle'
+import { Route as AuthenticatedCommunitiesCreateRouteImport } from './routes/_authenticated/communities.create'
 import { Route as AuthenticatedDiscoverIndexRouteImport } from './routes/_authenticated/discover.index'
 import { Route as AuthenticatedDiscoverStudioRouteImport } from './routes/_authenticated/discover.studio'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
@@ -163,6 +166,24 @@ const DecouvrirStudioRoute = DecouvrirStudioRouteImport.update({
   path: '/decouvrir/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedCommunitiesIndexRoute =
+  AuthenticatedCommunitiesIndexRouteImport.update({
+    id: '/communities/',
+    path: '/communities/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCommunitiesHandleRoute =
+  AuthenticatedCommunitiesHandleRouteImport.update({
+    id: '/communities/$handle',
+    path: '/communities/$handle',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCommunitiesCreateRoute =
+  AuthenticatedCommunitiesCreateRouteImport.update({
+    id: '/communities/create',
+    path: '/communities/create',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDiscoverIndexRoute =
   AuthenticatedDiscoverIndexRouteImport.update({
     id: '/discover/',
@@ -236,11 +257,14 @@ export interface FileRoutesByFullPath {
   '/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
+  '/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
+  '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
   '/api/spark-plus/webhook': typeof ApiSparkPlusWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
+  '/communities/': typeof AuthenticatedCommunitiesIndexRoute
   '/discover/': typeof AuthenticatedDiscoverIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -270,11 +294,14 @@ export interface FileRoutesByTo {
   '/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir': typeof DecouvrirIndexRoute
+  '/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
+  '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
   '/api/spark-plus/webhook': typeof ApiSparkPlusWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
+  '/communities': typeof AuthenticatedCommunitiesIndexRoute
   '/discover': typeof AuthenticatedDiscoverIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -306,11 +333,14 @@ export interface FileRoutesById {
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
+  '/_authenticated/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
+  '/_authenticated/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/_authenticated/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRoute
   '/api/spark-plus/webhook': typeof ApiSparkPlusWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
+  '/_authenticated/communities/': typeof AuthenticatedCommunitiesIndexRoute
   '/_authenticated/discover/': typeof AuthenticatedDiscoverIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -342,11 +372,14 @@ export interface FileRouteTypes {
     | '/support'
     | '/decouvrir/studio'
     | '/decouvrir/'
+    | '/communities/$handle'
+    | '/communities/create'
     | '/discover/studio'
     | '/messages/$id'
     | '/users/$id'
     | '/api/spark-plus/webhook'
     | '/auth/roblox/callback'
+    | '/communities/'
     | '/discover/'
     | '/messages/'
     | '/lovable/email/auth/preview'
@@ -376,11 +409,14 @@ export interface FileRouteTypes {
     | '/support'
     | '/decouvrir/studio'
     | '/decouvrir'
+    | '/communities/$handle'
+    | '/communities/create'
     | '/discover/studio'
     | '/messages/$id'
     | '/users/$id'
     | '/api/spark-plus/webhook'
     | '/auth/roblox/callback'
+    | '/communities'
     | '/discover'
     | '/messages'
     | '/lovable/email/auth/preview'
@@ -411,11 +447,14 @@ export interface FileRouteTypes {
     | '/_authenticated/support'
     | '/decouvrir/studio'
     | '/decouvrir/'
+    | '/_authenticated/communities/$handle'
+    | '/_authenticated/communities/create'
     | '/_authenticated/discover/studio'
     | '/_authenticated/messages/$id'
     | '/_authenticated/users/$id'
     | '/api/spark-plus/webhook'
     | '/auth/roblox/callback'
+    | '/_authenticated/communities/'
     | '/_authenticated/discover/'
     | '/_authenticated/messages/'
     | '/lovable/email/auth/preview'
@@ -614,6 +653,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DecouvrirStudioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/communities/': {
+      id: '/_authenticated/communities/'
+      path: '/communities'
+      fullPath: '/communities/'
+      preLoaderRoute: typeof AuthenticatedCommunitiesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/communities/$handle': {
+      id: '/_authenticated/communities/$handle'
+      path: '/communities/$handle'
+      fullPath: '/communities/$handle'
+      preLoaderRoute: typeof AuthenticatedCommunitiesHandleRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/communities/create': {
+      id: '/_authenticated/communities/create'
+      path: '/communities/create'
+      fullPath: '/communities/create'
+      preLoaderRoute: typeof AuthenticatedCommunitiesCreateRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/discover/': {
       id: '/_authenticated/discover/'
       path: '/discover'
@@ -689,9 +749,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedShopRoute: typeof AuthenticatedShopRoute
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
+  AuthenticatedCommunitiesHandleRoute: typeof AuthenticatedCommunitiesHandleRoute
+  AuthenticatedCommunitiesCreateRoute: typeof AuthenticatedCommunitiesCreateRoute
   AuthenticatedDiscoverStudioRoute: typeof AuthenticatedDiscoverStudioRoute
   AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
   AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRoute
+  AuthenticatedCommunitiesIndexRoute: typeof AuthenticatedCommunitiesIndexRoute
   AuthenticatedDiscoverIndexRoute: typeof AuthenticatedDiscoverIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
 }
@@ -705,9 +768,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedShopRoute: AuthenticatedShopRoute,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
+  AuthenticatedCommunitiesHandleRoute: AuthenticatedCommunitiesHandleRoute,
+  AuthenticatedCommunitiesCreateRoute: AuthenticatedCommunitiesCreateRoute,
   AuthenticatedDiscoverStudioRoute: AuthenticatedDiscoverStudioRoute,
   AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
   AuthenticatedUsersIdRoute: AuthenticatedUsersIdRoute,
+  AuthenticatedCommunitiesIndexRoute: AuthenticatedCommunitiesIndexRoute,
   AuthenticatedDiscoverIndexRoute: AuthenticatedDiscoverIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
 }

@@ -116,6 +116,24 @@ function ProfilePage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const myCommunities = useQuery({
+    queryKey: ["my-communities", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from("community_members")
+        .select("community_id")
+        .eq("user_id", user!.id);
+      const ids = (rows ?? []).map((r) => r.community_id);
+      if (!ids.length) return [];
+      const { data } = await supabase
+        .from("communities")
+        .select("id,handle,name,icon_url")
+        .in("id", ids);
+      return data ?? [];
+    },
+  });
+
   const videos = useQuery({
     queryKey: ["my-profile-videos", user?.id],
     enabled: !!user,
@@ -585,6 +603,25 @@ function ProfilePage() {
             ) : null}
           </div>
         </div>
+
+        {(myCommunities.data ?? []).length > 0 ? (
+          <div className="mt-4">
+            <Label>Communautés</Label>
+            <div className="flex flex-wrap gap-2">
+              {(myCommunities.data ?? []).map((c) => (
+                <Link
+                  key={c.id}
+                  to="/communities/$handle"
+                  params={{ handle: c.handle }}
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold hover:border-primary/40"
+                >
+                  <StoredImage path={c.icon_url} alt="" className="h-4 w-4 rounded" fallback="🎮" />
+                  {c.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {saving || busy ? <p className="text-xs text-muted-foreground">{t("loading")}</p> : null}
       </section>
 

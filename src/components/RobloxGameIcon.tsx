@@ -29,7 +29,7 @@ export function RobloxGameIcon({
     <span
       aria-hidden="true"
       className={cn(
-        "grid shrink-0 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white",
+        "grid shrink-0 place-items-center rounded-xl spark-gradient text-white",
         className,
       )}
     >

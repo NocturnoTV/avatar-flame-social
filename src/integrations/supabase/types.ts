@@ -104,6 +104,132 @@ export type Database = {
         }
         Relationships: []
       }
+      communities: {
+        Row: {
+          id: string
+          handle: string
+          name: string
+          description: string | null
+          category: string
+          language: string
+          game_name: string | null
+          visibility: string
+          banner_url: string | null
+          icon_url: string | null
+          tags: string[]
+          rules: string | null
+          verified: boolean
+          owner_id: string
+          member_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          handle: string
+          name: string
+          description?: string | null
+          category?: string
+          language?: string
+          game_name?: string | null
+          visibility?: string
+          banner_url?: string | null
+          icon_url?: string | null
+          tags?: string[]
+          rules?: string | null
+          verified?: boolean
+          owner_id: string
+          member_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          handle?: string
+          name?: string
+          description?: string | null
+          category?: string
+          language?: string
+          game_name?: string | null
+          visibility?: string
+          banner_url?: string | null
+          icon_url?: string | null
+          tags?: string[]
+          rules?: string | null
+          verified?: boolean
+          owner_id?: string
+          member_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_members: {
+        Row: { community_id: string; user_id: string; role: string; joined_at: string }
+        Insert: { community_id: string; user_id: string; role?: string; joined_at?: string }
+        Update: { community_id?: string; user_id?: string; role?: string; joined_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          id: string
+          community_id: string
+          user_id: string
+          content: string
+          pinned: boolean
+          likes_count: number
+          comments_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          user_id: string
+          content: string
+          pinned?: boolean
+          likes_count?: number
+          comments_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          user_id?: string
+          content?: string
+          pinned?: boolean
+          likes_count?: number
+          comments_count?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_post_likes: {
+        Row: { post_id: string; user_id: string; created_at: string }
+        Insert: { post_id: string; user_id: string; created_at?: string }
+        Update: { post_id?: string; user_id?: string; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_nicknames: {
         Row: { contact_id: string; nickname: string; owner_id: string; updated_at: string }
         Insert: {

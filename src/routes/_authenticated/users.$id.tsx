@@ -103,6 +103,24 @@ function PublicProfile() {
     },
   });
 
+  const communities = useQuery({
+    queryKey: ["public-communities", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from("community_members")
+        .select("community_id")
+        .eq("user_id", id!);
+      const ids = (rows ?? []).map((r) => r.community_id);
+      if (!ids.length) return [];
+      const { data } = await supabase
+        .from("communities")
+        .select("id,handle,name,icon_url")
+        .in("id", ids);
+      return data ?? [];
+    },
+  });
+
   const reposts = useQuery({
     queryKey: ["public-reposts", id],
     enabled: !!id,
@@ -252,6 +270,22 @@ function PublicProfile() {
           <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{p.bio}</p>
         ) : null}
         {p?.link_url ? <ExternalLinkButton url={p.link_url} /> : null}
+
+        {(communities.data ?? []).length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(communities.data ?? []).map((c) => (
+              <Link
+                key={c.id}
+                to="/communities/$handle"
+                params={{ handle: c.handle }}
+                className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold hover:border-primary/40"
+              >
+                <StoredImage path={c.icon_url} alt="" className="h-4 w-4 rounded" fallback="🎮" />
+                {c.name}
+              </Link>
+            ))}
+          </div>
+        ) : null}
 
         {!isMe ? (
           <div className="mt-4 flex gap-2">
