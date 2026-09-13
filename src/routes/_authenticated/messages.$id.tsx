@@ -27,6 +27,7 @@ import { Button } from "@/components/ui-kit";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { PresenceDot, presenceStatus } from "@/components/PresenceDot";
 import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
+import { useCall } from "@/components/CallProvider";
 import { BUBBLE_THEMES, WALLPAPERS, getBubbleTheme, getWallpaper, resolveWallpaperCss } from "@/lib/chatTheme";
 import { isSparkPlusActive } from "@/lib/sparkPlus";
 import { uploadFile } from "@/lib/media";
@@ -110,6 +111,7 @@ function Conversation() {
   const { t, lang } = useI18n();
   const { user } = useSession();
   const { theme } = useTheme();
+  const { startCall } = useCall();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -590,13 +592,24 @@ function Conversation() {
             )}
           </p>
         </div>
-        <button
-          onClick={() => toast.message(t("callUnavailable"))}
-          aria-label={t("call")}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#050505] hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
-        >
-          <Phone className="h-5 w-5" />
-        </button>
+        {!header.data?.isGroup && header.data?.otherId ? (
+          <button
+            onClick={() => {
+              const otherId = header.data?.otherId;
+              if (!otherId) return;
+              const other = header.data?.people[otherId];
+              void startCall(id, {
+                id: otherId,
+                username: header.data?.realUsername ?? other?.username ?? "?",
+                avatarUrl: other?.avatar_url ?? null,
+              });
+            }}
+            aria-label={t("call")}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#050505] hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
+          >
+            <Phone className="h-5 w-5" />
+          </button>
+        ) : null}
         <button
           onClick={() => setInfo(true)}
           aria-label={t("more")}
@@ -651,7 +664,13 @@ function Conversation() {
                 ? t("systemForwarded", { username: actor ?? "?" })
                 : tag === "screenshot"
                   ? t("systemScreenshot", { username: actor ?? "?" })
-                  : m.content;
+                  : tag === "call"
+                    ? t("systemCallEnded", { duration: actor ?? "0:00" })
+                    : tag === "missedcall"
+                      ? t("systemMissedCall")
+                      : tag === "calldeclined"
+                        ? t("systemCallDeclined")
+                        : m.content;
             return (
               <div key={m.id} className="my-3 flex justify-center">
                 <span className="rounded-full bg-black/5 px-3 py-1.5 text-center text-[11px] font-semibold text-[#929292] dark:bg-white/10">

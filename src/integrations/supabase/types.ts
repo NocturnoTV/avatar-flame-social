@@ -531,6 +531,50 @@ export type Database = {
         }
         Relationships: []
       }
+      calls: {
+        Row: {
+          id: string
+          conversation_id: string
+          caller_id: string
+          callee_id: string
+          status: string
+          started_at: string
+          answered_at: string | null
+          ended_at: string | null
+          duration_seconds: number | null
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          caller_id: string
+          callee_id: string
+          status?: string
+          started_at?: string
+          answered_at?: string | null
+          ended_at?: string | null
+          duration_seconds?: number | null
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          caller_id?: string
+          callee_id?: string
+          status?: string
+          started_at?: string
+          answered_at?: string | null
+          ended_at?: string | null
+          duration_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calls_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_participants: {
         Row: {
           conversation_id: string

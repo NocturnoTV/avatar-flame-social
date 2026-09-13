@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav, SideNav } from "@/components/AppNav";
 import { AppMenu } from "@/components/AppMenu";
+import { CallProvider } from "@/components/CallProvider";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -67,13 +68,15 @@ function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   usePresenceHeartbeat();
   return (
-    <div className="app-background min-h-screen">
-      <SideNav />
-      <div className="pb-24 lg:ml-64 lg:pb-0">
-        <Outlet />
+    <CallProvider>
+      <div className="app-background min-h-screen">
+        <SideNav />
+        <div className="pb-24 lg:ml-64 lg:pb-0">
+          <Outlet />
+        </div>
+        <BottomNav onOpenMenu={() => setMenuOpen(true)} />
+        <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       </div>
-      <BottomNav onOpenMenu={() => setMenuOpen(true)} />
-      <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
-    </div>
+    </CallProvider>
   );
 }
