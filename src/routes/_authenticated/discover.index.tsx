@@ -207,7 +207,7 @@ function DiscoverPage() {
     : videos;
 
   return (
-    <div className="relative h-[calc(100dvh-4.5rem)] w-full overflow-hidden bg-black lg:h-dvh">
+    <div className="relative h-[calc(100dvh-5.75rem)] w-full overflow-hidden bg-background lg:h-dvh">
       {/* top bar — style TikTok : onglets centrés, actions à droite */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 via-black/25 to-transparent px-3 pb-8 pt-3">
         <div className="pointer-events-auto flex w-20 items-center gap-1">
@@ -689,7 +689,7 @@ function VideoSlide({
   return (
     <div
       ref={containerRef}
-      className="flex h-full w-full snap-start snap-always items-center justify-center bg-black"
+      className="flex h-full w-full snap-start snap-always items-center justify-center bg-background"
     >
       <div className="relative aspect-[9/16] h-full max-h-full w-full max-w-full overflow-hidden bg-black lg:w-auto lg:rounded-2xl lg:shadow-2xl lg:shadow-black/60 lg:ring-1 lg:ring-white/10">
         {url ? (

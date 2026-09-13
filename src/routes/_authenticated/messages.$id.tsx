@@ -358,9 +358,9 @@ function Conversation() {
   const list = messages.data ?? [];
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-5rem)] w-full max-w-md flex-col bg-white text-[#050505] dark:bg-black dark:text-white">
+    <div className="app-background mx-auto flex h-[calc(100dvh-6rem)] w-full max-w-md flex-col text-foreground lg:h-screen">
       {/* En-tête fixe */}
-      <header className="flex h-[74px] shrink-0 items-center gap-3 border-b border-black/5 bg-white px-4 dark:border-white/10 dark:bg-black">
+      <header className="flex h-[74px] shrink-0 items-center gap-3 border-b border-border bg-background px-4">
         <Link to="/messages" aria-label={t("back")} className="text-[#050505] dark:text-white">
           <ArrowLeft className="h-5 w-5" />
         </Link>
@@ -377,7 +377,7 @@ function Conversation() {
               fallback={header.data.title?.[0]?.toUpperCase() ?? "?"}
             />
             {header.data.online ? (
-              <span className="absolute bottom-0 right-0 h-3 w-3 animate-pulse rounded-full border-2 border-white bg-[#20D778] dark:border-black" />
+              <span className="absolute bottom-0 right-0 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-[#20D778]" />
             ) : null}
           </Link>
         )}
@@ -547,7 +547,7 @@ function Conversation() {
                 />
               ) : null}
             </div>
-            <div className="rounded-[26px] border-2 border-[#050505] bg-white px-4 py-3 dark:border-white dark:bg-black">
+            <div className="rounded-[26px] border-2 border-foreground bg-background px-4 py-3">
               <div className="flex items-center gap-1">
                 {[0, 1, 2].map((n) => (
                   <span
@@ -565,7 +565,7 @@ function Conversation() {
       </div>
 
       {/* Réponses rapides */}
-      <div className="border-t border-black/5 bg-white px-3 pt-2 dark:border-white/10 dark:bg-black">
+      <div className="border-t border-border bg-background px-3 pt-2">
         {showQuickReplies ? (
           <div className="no-scrollbar mb-2 flex gap-2 overflow-x-auto">
             {QUICK_REPLIES.map((q) => (
@@ -706,7 +706,7 @@ function Conversation() {
           onClick={() => setActiveMessage(null)}
         >
           <div
-            className="bx-pop w-full max-w-xs rounded-t-3xl bg-white p-4 dark:bg-[#111] sm:rounded-3xl"
+            className="bx-pop w-full max-w-xs rounded-t-3xl bg-card p-4 sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-center gap-3 border-b border-black/5 pb-3 dark:border-white/10">
@@ -815,7 +815,7 @@ function ReceivedBubble({
 }) {
   return (
     <div className="relative text-[#050505] dark:text-white">
-      <div className="rounded-[26px] border-2 border-current bg-white dark:bg-black">
+      <div className="rounded-[26px] border-2 border-current bg-background">
         {padded ? (
           <p className="whitespace-pre-wrap break-words px-[22px] py-[16px] pr-8 text-[15px]">
             {children}

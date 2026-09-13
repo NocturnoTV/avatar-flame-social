@@ -36,7 +36,7 @@ function AppLayout() {
   return (
     <div className="app-background min-h-screen">
       <SideNav />
-      <div className="pb-20 lg:ml-64 lg:pb-0">
+      <div className="pb-24 lg:ml-64 lg:pb-0">
         <Outlet />
       </div>
       <BottomNav />

@@ -41,7 +41,7 @@
 
 :root {
   --radius: 1rem;
-  --background: oklch(0.985 0.012 250);
+  --background: oklch(1 0 0);
   --foreground: oklch(0.19 0.045 255);
   --card: oklch(0.995 0.006 250);
   --card-foreground: oklch(0.19 0.045 255);
@@ -68,7 +68,7 @@
 }
 
 .dark {
-  --background: oklch(0.14 0.04 255);
+  --background: oklch(0.08 0 0);
   --foreground: oklch(0.97 0.012 250);
   --card: oklch(0.19 0.055 255);
   --card-foreground: oklch(0.97 0.012 250);
@@ -139,18 +139,6 @@
 
 @utility app-background {
   background-color: var(--color-background);
-  background-image:
-    radial-gradient(
-      circle at 8% 0%,
-      color-mix(in oklab, var(--spark) 12%, transparent) 0,
-      transparent 32rem
-    ),
-    radial-gradient(
-      circle at 92% 8%,
-      color-mix(in oklab, var(--spark-2) 11%, transparent) 0,
-      transparent 28rem
-    );
-  background-attachment: fixed;
 }
 
 @utility spark-text {
