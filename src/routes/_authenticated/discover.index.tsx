@@ -101,7 +101,10 @@ function DiscoverPage() {
     queryKey: ["following", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("follows").select("following_id");
+      const { data } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", user!.id);
       return (data ?? []).map((r) => r.following_id);
     },
   });

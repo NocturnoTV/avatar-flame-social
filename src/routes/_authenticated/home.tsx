@@ -250,7 +250,10 @@ function HomePage() {
     enabled: !!user,
     refetchInterval: 60000,
     queryFn: async () => {
-      const { data: follows } = await supabase.from("follows").select("following_id");
+      const { data: follows } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", user!.id);
       const ids = [...new Set((follows ?? []).map((f) => f.following_id))].filter(
         (id) => id !== user!.id,
       );

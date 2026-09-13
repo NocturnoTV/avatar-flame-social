@@ -137,49 +137,35 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
           const isSpark = item.to === "/sparks";
           const isProfile = item.to === "/profile";
 
-          if (isProfile && onOpenMenu) {
-            return (
-              <button
-                key={item.to}
-                onClick={onOpenMenu}
-                className={cn(
-                  "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 text-[10px] font-bold transition-all duration-200 active:scale-95",
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
-                )}
-              >
-                <span
-                  className={cn(
-                    "relative grid h-8 w-10 place-items-center",
-                    active && "rounded-full ring-2 ring-primary",
-                  )}
-                >
-                  <StoredImage
-                    path={myAvatar?.avatar_url}
-                    alt={myAvatar?.username ?? ""}
-                    className="h-7 w-7 rounded-full object-cover"
-                    fallback={myAvatar?.username?.[0]?.toUpperCase() ?? "?"}
-                  />
-                </span>
-                <span className="w-full truncate text-center leading-tight">{item.label}</span>
-              </button>
-            );
-          }
-
           if (isSpark) {
+            const sparkClass = cn(
+              "spark-gradient -mt-6 grid h-14 w-14 place-items-center rounded-full text-white shadow-[0_0_22px_rgba(168,85,247,.6)] transition-transform",
+              active ? "scale-100 ring-2 ring-white/50" : "scale-[.92]",
+            );
+            // The Sparks button is the app's hub: it opens the full nav menu
+            // instead of navigating directly (Sparks itself is reachable
+            // from the menu's own "Sparks" row).
+            if (onOpenMenu) {
+              return (
+                <button
+                  key={item.to}
+                  onClick={onOpenMenu}
+                  className="relative flex flex-1 flex-col items-center gap-1 pb-2 text-[10px] font-semibold text-primary"
+                >
+                  <span className={sparkClass}>
+                    <item.icon className="h-7 w-7" fill="currentColor" />
+                  </span>
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            }
             return (
               <Link
                 key={item.to}
                 to={item.to}
                 className="relative flex flex-1 flex-col items-center gap-1 pb-2 text-[10px] font-semibold text-primary"
               >
-                <span
-                  className={cn(
-                    "spark-gradient -mt-6 grid h-14 w-14 place-items-center rounded-full text-white shadow-[0_0_22px_rgba(168,85,247,.6)] transition-transform",
-                    active ? "scale-100 ring-2 ring-white/50" : "scale-[.92]",
-                  )}
-                >
+                <span className={sparkClass}>
                   <item.icon className="h-7 w-7" fill="currentColor" />
                 </span>
                 <span className="truncate">{item.label}</span>
@@ -201,10 +187,20 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
               <span
                 className={cn(
                   "relative grid h-8 w-10 place-items-center rounded-xl transition-all",
-                  active && "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+                  active && !isProfile && "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+                  active && isProfile && "rounded-full ring-2 ring-primary",
                 )}
               >
-                <item.icon className="h-5 w-5" strokeWidth={active ? 2.7 : 2.1} />
+                {isProfile ? (
+                  <StoredImage
+                    path={myAvatar?.avatar_url}
+                    alt={myAvatar?.username ?? ""}
+                    className="h-7 w-7 rounded-full object-cover"
+                    fallback={myAvatar?.username?.[0]?.toUpperCase() ?? "?"}
+                  />
+                ) : (
+                  <item.icon className="h-5 w-5" strokeWidth={active ? 2.7 : 2.1} />
+                )}
                 {item.to === "/messages" && unread ? (
                   <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white ring-2 ring-background">
                     {unread > 9 ? "9+" : unread}
