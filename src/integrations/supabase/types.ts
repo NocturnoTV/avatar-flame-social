@@ -169,6 +169,42 @@ export type Database = {
         }
         Relationships: []
       }
+      hidden_categories: {
+        Row: {
+          category: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hidden_creators: {
+        Row: {
+          created_at: string
+          creator_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           conversation_id: string | null
@@ -451,6 +487,30 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_config: {
+        Row: {
+          decay: Json
+          exploration_ratio: number
+          id: string
+          updated_at: string
+          weights: Json
+        }
+        Insert: {
+          decay?: Json
+          exploration_ratio?: number
+          id: string
+          updated_at?: string
+          weights?: Json
+        }
+        Update: {
+          decay?: Json
+          exploration_ratio?: number
+          id?: string
+          updated_at?: string
+          weights?: Json
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           created_at: string
@@ -594,6 +654,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_creator_affinity: {
+        Row: {
+          affinity: number
+          creator_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affinity?: number
+          creator_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affinity?: number
+          creator_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -614,6 +695,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_topic_affinity: {
+        Row: {
+          affinity: number
+          category: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affinity?: number
+          category: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affinity?: number
+          category?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      video_categories: {
+        Row: {
+          category: string
+          created_at: string
+          video_id: string
+          weight: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          video_id: string
+          weight?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          video_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_categories_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       video_comments: {
         Row: {
@@ -699,6 +830,32 @@ export type Database = {
           },
         ]
       }
+      video_not_interested: {
+        Row: {
+          created_at: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_not_interested_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_reposts: {
         Row: {
           created_at: string
@@ -754,6 +911,53 @@ export type Database = {
           },
         ]
       }
+      video_watch_events: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          replayed: boolean
+          skipped: boolean
+          time_before_skip_ms: number | null
+          user_id: string
+          video_id: string
+          watch_ms: number
+          watch_ratio: number
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          replayed?: boolean
+          skipped?: boolean
+          time_before_skip_ms?: number | null
+          user_id: string
+          video_id: string
+          watch_ms?: number
+          watch_ratio?: number
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          replayed?: boolean
+          skipped?: boolean
+          time_before_skip_ms?: number | null
+          user_id?: string
+          video_id?: string
+          watch_ms?: number
+          watch_ratio?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_watch_events_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           caption: string | null
@@ -763,6 +967,7 @@ export type Database = {
           favorites_count: number
           id: string
           likes_count: number
+          recommendation_eligible: boolean
           reposts_count: number
           shares_count: number
           sound_name: string | null
@@ -781,6 +986,7 @@ export type Database = {
           favorites_count?: number
           id?: string
           likes_count?: number
+          recommendation_eligible?: boolean
           reposts_count?: number
           shares_count?: number
           sound_name?: string | null
@@ -799,6 +1005,7 @@ export type Database = {
           favorites_count?: number
           id?: string
           likes_count?: number
+          recommendation_eligible?: boolean
           reposts_count?: number
           shares_count?: number
           sound_name?: string | null
