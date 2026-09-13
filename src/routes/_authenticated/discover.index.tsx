@@ -67,7 +67,9 @@ function DiscoverPage() {
   const { user } = useSession();
   const { t } = useI18n();
   const [tab, setTab] = useState<"foryou" | "following">("foryou");
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(
+    () => window.localStorage.getItem("bloxspark-discover-muted") === "true",
+  );
   const [comments, setComments] = useState<VideoRow | null>(null);
 
   const following = useQuery({
@@ -121,7 +123,13 @@ function DiscoverPage() {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 via-black/25 to-transparent px-3 pb-8 pt-3">
         <div className="pointer-events-auto flex w-20 items-center gap-1">
           <button
-            onClick={() => setMuted((m) => !m)}
+            onClick={() =>
+              setMuted((current) => {
+                const next = !current;
+                window.localStorage.setItem("bloxspark-discover-muted", String(next));
+                return next;
+              })
+            }
             className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
             aria-label={muted ? "Activer le son" : "Couper le son"}
           >
@@ -285,6 +293,7 @@ function VideoSlide({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    el.muted = muted;
     if (visible) {
       void el.play().catch(() => undefined);
       if (!viewed.current && user) {
@@ -299,7 +308,7 @@ function VideoSlide({
     } else {
       el.pause();
     }
-  }, [visible, user, video.id]);
+  }, [visible, muted, url, user, video.id]);
 
   async function toggle(table: "video_likes" | "video_favorites" | "video_reposts", on: boolean) {
     if (!user) return;
@@ -354,6 +363,7 @@ function VideoSlide({
           <video
             ref={ref}
             src={url}
+            autoPlay
             loop
             playsInline
             muted={muted}
