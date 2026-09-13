@@ -151,7 +151,7 @@ function SettingsPage() {
       const { data } = await supabase
         .from("profiles")
         .select(
-          "username,roblox_username,roblox_user_id,roblox_display_name,roblox_avatar_url,roblox_connected_at,roblox_synced_at,username_changed_at,language,theme,notification_prefs,privacy_prefs,deletion_requested_at,verified",
+          "username,roblox_username,roblox_user_id,roblox_display_name,roblox_avatar_url,roblox_connected_at,roblox_synced_at,username_changed_at,language,theme,notification_prefs,privacy_prefs,deletion_requested_at,verified,show_online_status,dnd",
         )
         .eq("id", user?.id ?? "")
         .maybeSingle();
@@ -511,6 +511,18 @@ function SettingsPage() {
       </Section>
 
       <Section icon={Eye} title={t("privacyTitle")} description={t("privacyDesc")}>
+        <Toggle
+          label={t("appearOnline")}
+          hint={t("appearOnlineHint")}
+          checked={profile.data?.show_online_status !== false}
+          onChange={(v) => void patch({ show_online_status: v })}
+        />
+        <Toggle
+          label={t("doNotDisturb")}
+          hint={t("doNotDisturbHint")}
+          checked={profile.data?.dnd === true}
+          onChange={(v) => void patch({ dnd: v })}
+        />
         <Toggle
           label={t("appearInSparks")}
           hint={t("appearInSparksHint")}

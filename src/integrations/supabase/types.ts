@@ -496,6 +496,7 @@ export type Database = {
           country: string | null
           created_at: string
           deletion_requested_at: string | null
+          dnd: boolean
           frame_style: string
           id: string
           language: string
@@ -513,6 +514,7 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
+          show_online_status: boolean
           spark_badges: string[]
           spark_plus_active: boolean
           spark_plus_expires_at: string | null
@@ -537,6 +539,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
+          dnd?: boolean
           frame_style?: string
           id: string
           language?: string
@@ -554,6 +557,7 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          show_online_status?: boolean
           spark_badges?: string[]
           spark_plus_active?: boolean
           spark_plus_expires_at?: string | null
@@ -578,6 +582,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
+          dnd?: boolean
           frame_style?: string
           id?: string
           language?: string
@@ -595,6 +600,7 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          show_online_status?: boolean
           spark_badges?: string[]
           spark_plus_active?: boolean
           spark_plus_expires_at?: string | null
@@ -1328,6 +1334,7 @@ export type Database = {
           country: string | null
           created_at: string
           deletion_requested_at: string | null
+          dnd: boolean
           frame_style: string
           id: string
           language: string
@@ -1345,6 +1352,7 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
+          show_online_status: boolean
           spark_badges: string[]
           spark_plus_active: boolean
           spark_plus_expires_at: string | null

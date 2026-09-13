@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
 import { StoredImage, useSignedUrl } from "@/components/Media";
+import { PresenceDot, presenceStatus } from "@/components/PresenceDot";
 import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
 import { getBubbleTheme, getWallpaper, resolveWallpaperCss } from "@/lib/chatTheme";
 import { uploadFile } from "@/lib/media";
@@ -138,31 +139,39 @@ function Conversation() {
       ] as string[];
       const { data: people } = await supabase
         .from("profiles")
-        .select("id,username,avatar_url,last_active_at")
+        .select("id,username,avatar_url,last_active_at,show_online_status,dnd")
         .in("id", allIds.length > 0 ? allIds : ["00000000-0000-0000-0000-000000000000"]);
       const byId: Record<
         string,
-        { username: string; avatar_url: string | null; last_active_at: string | null }
+        {
+          username: string;
+          avatar_url: string | null;
+          last_active_at: string | null;
+          show_online_status: boolean | null;
+          dnd: boolean | null;
+        }
       > = {};
       for (const p of (people ?? []) as {
         id: string;
         username: string;
         avatar_url: string | null;
         last_active_at: string | null;
+        show_online_status: boolean | null;
+        dnd: boolean | null;
       }[]) {
         byId[p.id] = {
           username: p.username,
           avatar_url: p.avatar_url,
           last_active_at: p.last_active_at,
+          show_online_status: p.show_online_status,
+          dnd: p.dnd,
         };
       }
       const others = otherIds.map((uid) => byId[uid]?.username ?? "?");
       const otherId = otherIds[0] ?? null;
       const otherRead = (members ?? []).find((m) => m.user_id === otherId)?.last_read_at ?? null;
-      const online =
-        otherId && byId[otherId]?.last_active_at
-          ? Date.now() - new Date(byId[otherId]!.last_active_at!).getTime() < 5 * 60 * 1000
-          : false;
+      const otherPresence = otherId ? byId[otherId] : null;
+      const online = otherPresence ? presenceStatus(otherPresence) === "online" : false;
       const mine = (members ?? []).find((m) => m.user_id === user?.id);
       const nickname =
         otherId && user
@@ -184,6 +193,7 @@ function Conversation() {
         people: byId,
         otherId,
         online,
+        otherPresence,
         lastActiveAt: otherId ? (byId[otherId]?.last_active_at ?? null) : null,
         otherReadAt: otherRead,
         requestStatus: convo?.request_status ?? "accepted",
@@ -376,8 +386,8 @@ function Conversation() {
               className="h-11 w-11 rounded-full object-cover"
               fallback={header.data.title?.[0]?.toUpperCase() ?? "?"}
             />
-            {header.data.online ? (
-              <span className="absolute bottom-0 right-0 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-[#20D778]" />
+            {header.data.otherPresence ? (
+              <PresenceDot profile={header.data.otherPresence} className="absolute bottom-0 right-0 h-3 w-3" />
             ) : null}
           </Link>
         )}

@@ -8,6 +8,7 @@ import { useSession } from "@/lib/session";
 import { Card } from "@/components/ui-kit";
 import { LogoWordmark } from "@/components/Logo";
 import { useSignedUrl, StoredImage } from "@/components/Media";
+import { PresenceDot } from "@/components/PresenceDot";
 import { Verified } from "@/components/Verified";
 import { Reveal } from "@/components/Reveal";
 import { cn } from "@/lib/utils";
@@ -260,7 +261,7 @@ function HomePage() {
       if (ids.length === 0) return [];
       const { data } = await supabase
         .from("profiles")
-        .select("id,username,avatar_url,verified,last_active_at")
+        .select("id,username,avatar_url,verified,last_active_at,show_online_status,dnd")
         .in("id", ids)
         .order("last_active_at", { ascending: false })
         .limit(12);
@@ -410,9 +411,6 @@ function HomePage() {
           {following.data?.length ? (
             <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
               {following.data.map((f) => {
-                const online = f.last_active_at
-                  ? Date.now() - new Date(f.last_active_at).getTime() < 5 * 60 * 1000
-                  : false;
                 return (
                   <Link
                     key={f.id}
@@ -428,12 +426,7 @@ function HomePage() {
                           fallback="🎮"
                         />
                       </span>
-                      <span
-                        className={cn(
-                          "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background",
-                          online ? "bg-sky-400" : "bg-muted-foreground/50",
-                        )}
-                      />
+                      <PresenceDot profile={f} className="absolute bottom-0 right-0 h-3.5 w-3.5" />
                     </span>
                     <span className="w-full truncate text-center text-[11px] font-semibold">
                       {f.username ?? "player"}

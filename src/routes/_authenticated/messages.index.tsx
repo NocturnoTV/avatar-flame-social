@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button, Input, Sheet } from "@/components/ui-kit";
 import { StoredImage, useSignedUrl } from "@/components/Media";
+import { PresenceDot } from "@/components/PresenceDot";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -38,6 +39,9 @@ type Person = {
   username: string | null;
   avatar_url: string | null;
   verified: boolean | null;
+  last_active_at?: string | null;
+  show_online_status?: boolean | null;
+  dnd?: boolean | null;
 };
 type Row = {
   id: string;
@@ -145,7 +149,7 @@ function MessagesPage() {
       ];
       const { data: people } = await supabase
         .from("profiles")
-        .select("id,username,avatar_url,verified")
+        .select("id,username,avatar_url,verified,last_active_at,show_online_status,dnd")
         .in("id", personIds.length ? personIds : ["00000000-0000-0000-0000-000000000000"]);
       const mineById = new Map((mine ?? []).map((m) => [m.conversation_id, m]));
       const rows = (convos ?? []).map((c) => {
@@ -411,7 +415,7 @@ function MessagesPage() {
     (c.is_group ? c.name : c.others[0]?.username)?.toLowerCase().includes(search.toLowerCase()),
   );
   const activity = (notifications.data ?? []).filter(
-    (n) => n.kind !== "system" || n.body !== "safety_alert",
+    (n) => n.kind !== "message" && (n.kind !== "system" || n.body !== "safety_alert"),
   );
   const latestActivity = activity[0];
   const systemNotif = (notifications.data ?? []).find((n) => n.kind === "system");
@@ -433,16 +437,30 @@ function MessagesPage() {
             <span className="h-2 w-2 animate-pulse rounded-full bg-[#20D778]" />
           </span>
         </h1>
-        <button
-          onClick={() => setShowSearch((v) => !v)}
-          aria-label={t("search")}
-          className={cn(
-            "grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10",
-            showSearch ? "text-primary" : "text-[#050505] dark:text-white",
-          )}
-        >
-          <Search className="h-5 w-5" />
-        </button>
+        <div className="flex items-center">
+          <button
+            onClick={() => setShowSearch((v) => !v)}
+            aria-label={t("search")}
+            className={cn(
+              "grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10",
+              showSearch ? "text-primary" : "text-[#050505] dark:text-white",
+            )}
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => setShowRequests(true)}
+            aria-label={t("messageRequests")}
+            className="relative grid h-10 w-10 place-items-center rounded-full text-[#050505] hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
+          >
+            <Inbox className="h-5 w-5" />
+            {pendingReceived.length ? (
+              <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                {pendingReceived.length > 9 ? "9+" : pendingReceived.length}
+              </span>
+            ) : null}
+          </button>
+        </div>
       </header>
 
       <section className="no-scrollbar -mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2">
@@ -605,6 +623,12 @@ function MessagesPage() {
                     className="h-14 w-14 rounded-full object-cover"
                     fallback={c.is_group ? "👥" : (name?.[0]?.toUpperCase() ?? "?")}
                   />
+                  {!c.is_group && person ? (
+                    <PresenceDot
+                      profile={person}
+                      className="absolute bottom-0 right-0 h-3.5 w-3.5"
+                    />
+                  ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">

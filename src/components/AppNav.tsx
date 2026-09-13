@@ -131,31 +131,43 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
 
   return (
     <nav className="fixed inset-x-3 bottom-[max(0.65rem,env(safe-area-inset-bottom))] z-40 rounded-[1.65rem] border border-border/80 bg-background/90 p-1.5 shadow-[0_14px_45px_-12px_rgba(0,0,0,.35)] backdrop-blur-2xl lg:hidden">
-      <div className="mx-auto flex max-w-lg items-end justify-around gap-1">
+      <div className="mx-auto flex max-w-lg items-stretch justify-around gap-1">
         {items.map((item) => {
           const active = isActive(item.to);
           const isSpark = item.to === "/sparks";
           const isProfile = item.to === "/profile";
 
+          // Sparks is the app's hub: same size as every other icon, but
+          // always carries the brand gradient + a soft glow so it reads as
+          // special without breaking the row's rhythm. It opens the full
+          // nav menu instead of navigating directly — Sparks itself is one
+          // tap away from inside that menu.
           if (isSpark) {
-            const sparkClass = cn(
-              "spark-gradient -mt-6 grid h-14 w-14 place-items-center rounded-full text-white shadow-[0_0_22px_rgba(168,85,247,.6)] transition-transform",
-              active ? "scale-100 ring-2 ring-white/50" : "scale-[.92]",
+            const content = (
+              <>
+                <span className="relative grid h-8 w-10 place-items-center rounded-xl">
+                  <span
+                    className={cn(
+                      "bx-glow absolute inset-0 rounded-xl spark-gradient blur-[6px]",
+                    )}
+                  />
+                  <span className="spark-gradient relative grid h-8 w-10 place-items-center rounded-xl text-white shadow-[0_0_10px_rgba(168,85,247,.55)]">
+                    <item.icon className="h-5 w-5" fill="currentColor" />
+                  </span>
+                </span>
+                <span className="w-full truncate text-center text-[10px] font-bold leading-tight text-primary">
+                  {item.label}
+                </span>
+              </>
             );
-            // The Sparks button is the app's hub: it opens the full nav menu
-            // instead of navigating directly (Sparks itself is reachable
-            // from the menu's own "Sparks" row).
             if (onOpenMenu) {
               return (
                 <button
                   key={item.to}
                   onClick={onOpenMenu}
-                  className="relative flex flex-1 flex-col items-center gap-1 pb-2 text-[10px] font-semibold text-primary"
+                  className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 active:scale-95"
                 >
-                  <span className={sparkClass}>
-                    <item.icon className="h-7 w-7" fill="currentColor" />
-                  </span>
-                  <span className="truncate">{item.label}</span>
+                  {content}
                 </button>
               );
             }
@@ -163,12 +175,9 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
               <Link
                 key={item.to}
                 to={item.to}
-                className="relative flex flex-1 flex-col items-center gap-1 pb-2 text-[10px] font-semibold text-primary"
+                className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 active:scale-95"
               >
-                <span className={sparkClass}>
-                  <item.icon className="h-7 w-7" fill="currentColor" />
-                </span>
-                <span className="truncate">{item.label}</span>
+                {content}
               </Link>
             );
           }
