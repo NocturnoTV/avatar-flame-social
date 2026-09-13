@@ -1,14 +1,11 @@
 import { Flag } from "@/components/Flag";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import {
   Camera,
-  ChevronLeft,
-  ChevronRight,
   Gamepad2,
   ImagePlus,
-  Play,
   Save,
   Settings,
   ShieldCheck,
@@ -17,9 +14,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button, Label, Textarea } from "@/components/ui-kit";
-import { StoredImage, useSignedUrl } from "@/components/Media";
+import { Button, Input, Label, Textarea } from "@/components/ui-kit";
+import { StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
+import { ExternalLinkButton } from "@/components/ExternalLinkButton";
+import { ProfileContentTabs, type TabVideo } from "@/components/ProfileContentTabs";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -31,13 +30,13 @@ import { RobloxIdentity } from "@/components/RobloxIdentity";
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
-      { title: "Mon profil — Bloxspark" },
+      { title: "My profile — Bloxspark" },
       {
         name: "description",
-        content: "Personnalise ton profil Bloxspark : avatar, photos, bio, jeux Roblox préférés.",
+        content: "Customize your Bloxspark profile: avatar, photos, bio, favorite Roblox games.",
       },
-      { property: "og:title", content: "Mon profil — Bloxspark" },
-      { property: "og:description", content: "Décore ton profil de joueur Roblox." },
+      { property: "og:title", content: "My profile — Bloxspark" },
+      { property: "og:description", content: "Decorate your Roblox player profile." },
     ],
   }),
   component: ProfilePage,
@@ -50,12 +49,15 @@ function ProfilePage() {
   const { t } = useI18n();
   const { user } = useSession();
   const { isAdmin } = useRoles();
+  const qc = useQueryClient();
   const avatarRef = useRef<HTMLInputElement>(null);
   const bannerRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
+  const [newGameName, setNewGameName] = useState("");
+  const [newGameUrl, setNewGameUrl] = useState("");
 
   const profile = useQuery({
     queryKey: ["my-profile"],
@@ -85,11 +87,11 @@ function ProfilePage() {
   });
 
   const games = useQuery({
-    queryKey: ["my-games"],
+    queryKey: ["my-favorite-games", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("roblox_games")
-        .select("id,name,url,position,thumbnail_url,source")
+        .from("favorite_games")
+        .select("id,name,url,position,thumbnail_url")
         .eq("user_id", user?.id ?? "")
         .order("position");
       return data ?? [];
@@ -106,7 +108,27 @@ function ProfilePage() {
         .select("id,storage_path,caption,views_count")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
-      return data ?? [];
+      return (data ?? []) as TabVideo[];
+    },
+  });
+
+  const reposts = useQuery({
+    queryKey: ["my-reposts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from("video_reposts")
+        .select("video_id,created_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      const ids = (rows ?? []).map((r) => r.video_id);
+      if (!ids.length) return [] as TabVideo[];
+      const { data: vids } = await supabase
+        .from("videos")
+        .select("id,storage_path,caption,views_count")
+        .in("id", ids);
+      const byId = new Map((vids ?? []).map((v) => [v.id, v]));
+      return ids.map((id) => byId.get(id)).filter((v): v is TabVideo => Boolean(v));
     },
   });
 
@@ -170,6 +192,11 @@ function ProfilePage() {
     }
   }
 
+  async function deletePhoto(id: string) {
+    await supabase.from("profile_photos").delete().eq("id", id);
+    void photos.refetch();
+  }
+
   async function movePhoto(index: number, delta: number) {
     const list = [...(photos.data ?? [])];
     const target = index + delta;
@@ -179,6 +206,29 @@ function ProfilePage() {
     await supabase.from("profile_photos").update({ position: target }).eq("id", a.id);
     await supabase.from("profile_photos").update({ position: index }).eq("id", b.id);
     void photos.refetch();
+  }
+
+  async function addFavoriteGame() {
+    if (!user || !newGameName.trim()) return;
+    const { error } = await supabase.from("favorite_games").insert({
+      user_id: user.id,
+      name: newGameName.trim(),
+      url: newGameUrl.trim() || null,
+      position: games.data?.length ?? 0,
+    });
+    if (error) {
+      toast.error(error.message.includes("max_five_games") ? t("maxFiveGames") : t("errorGeneric"));
+      return;
+    }
+    setNewGameName("");
+    setNewGameUrl("");
+    void games.refetch();
+    void qc.invalidateQueries({ queryKey: ["deck-games"] });
+  }
+
+  async function deleteFavoriteGame(id: string) {
+    await supabase.from("favorite_games").delete().eq("id", id);
+    void games.refetch();
   }
 
   // Aperçu = données enregistrées + brouillon non encore enregistré
@@ -220,13 +270,13 @@ function ProfilePage() {
           onClick={() => bannerRef.current?.click()}
           className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur"
         >
-          <ImagePlus className="h-3.5 w-3.5" /> Bannière
+          <ImagePlus className="h-3.5 w-3.5" /> {t("banner")}
         </button>
         {p?.banner_url ? (
           <button
             onClick={() => patch({ banner_url: null })}
             className="absolute right-3 bottom-3 rounded-full bg-black/55 p-1.5 text-white backdrop-blur"
-            aria-label="Retirer la bannière"
+            aria-label="Remove banner"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -257,7 +307,7 @@ function ProfilePage() {
           <button
             onClick={() => avatarRef.current?.click()}
             className="spark-gradient absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg"
-            aria-label="Changer d'avatar Roblox"
+            aria-label="Change avatar"
           >
             <Camera className="h-4.5 w-4.5" />
           </button>
@@ -288,6 +338,7 @@ function ProfilePage() {
           <Flag code={p?.language ?? ""} />
         </p>
         {p?.bio ? <p className="mt-2 whitespace-pre-line text-sm">{p.bio}</p> : null}
+        {p?.link_url ? <ExternalLinkButton url={p.link_url} /> : null}
 
         {gameList.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">
@@ -315,72 +366,6 @@ function ProfilePage() {
         ) : null}
       </div>
 
-      {/* Galerie */}
-      <section className="mt-6">
-        <Label>
-          {t("photos")} ({photos.data?.length ?? 0}/{MAX_PHOTOS})
-        </Label>
-        <div className="flex flex-wrap gap-2">
-          {(photos.data ?? []).map((ph, i) => (
-            <div key={ph.id} className="relative">
-              <StoredImage path={ph.url} alt="" className="h-24 w-24 rounded-2xl" />
-              {i === 0 ? (
-                <span className="absolute left-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">
-                  1
-                </span>
-              ) : null}
-              <button
-                onClick={async () => {
-                  await supabase.from("profile_photos").delete().eq("id", ph.id);
-                  void photos.refetch();
-                }}
-                className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white"
-                aria-label={t("delete")}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-              <div className="absolute inset-x-1 bottom-1 flex justify-between">
-                <button
-                  onClick={() => movePhoto(i, -1)}
-                  disabled={i === 0}
-                  className="rounded-full bg-black/60 p-1 text-white disabled:opacity-30"
-                  aria-label="Déplacer à gauche"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => movePhoto(i, 1)}
-                  disabled={i === (photos.data?.length ?? 1) - 1}
-                  className="rounded-full bg-black/60 p-1 text-white disabled:opacity-30"
-                  aria-label="Déplacer à droite"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-          {(photos.data?.length ?? 0) < MAX_PHOTOS ? (
-            <button
-              onClick={() => photoRef.current?.click()}
-              className="flex h-24 w-24 items-center justify-center rounded-2xl border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
-            >
-              <ImagePlus className="h-6 w-6" />
-            </button>
-          ) : null}
-          <input
-            ref={photoRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void addPhoto(file);
-              e.target.value = "";
-            }}
-          />
-        </div>
-      </section>
-
       {/* Édition */}
       <section className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-4">
         <div>
@@ -394,18 +379,21 @@ function ProfilePage() {
         </div>
 
         <div>
+          <Label>{t("externalLink")}</Label>
+          <Input
+            defaultValue={p?.link_url ?? ""}
+            placeholder={t("externalLinkPlaceholder")}
+            onBlur={(e) => patch({ link_url: e.target.value.trim() || null })}
+          />
+        </div>
+
+        <div>
           <Label>
-            Jeux Roblox synchronisés ({gameList.length}/{MAX_GAMES})
+            {t("favoriteGames")} ({gameList.length}/{MAX_GAMES})
           </Label>
           <div className="space-y-2">
             {gameList.map((g) => (
-              <a
-                key={g.id}
-                href={g.url ?? undefined}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm hover:ring-1 hover:ring-primary"
-              >
+              <div key={g.id} className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm">
                 {g.thumbnail_url ? (
                   <img src={g.thumbnail_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
                 ) : (
@@ -413,14 +401,42 @@ function ProfilePage() {
                     <Gamepad2 className="h-4 w-4" />
                   </span>
                 )}
-                <span className="truncate font-semibold">{g.name}</span>
-              </a>
+                <span className="min-w-0 flex-1 truncate font-semibold">{g.name}</span>
+                <button
+                  onClick={() => void deleteFavoriteGame(g.id)}
+                  aria-label={t("delete")}
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             ))}
             {gameList.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                Aucun jeu public créé sur ce compte Roblox. Tu peux resynchroniser depuis les
-                paramètres.
-              </p>
+              <p className="text-xs text-muted-foreground">{t("noFavoriteGames")}</p>
+            ) : null}
+            {gameList.length < MAX_GAMES ? (
+              <div className="flex gap-2">
+                <Input
+                  value={newGameName}
+                  onChange={(e) => setNewGameName(e.target.value)}
+                  placeholder={t("favoriteGamePlaceholder")}
+                  className="flex-1"
+                />
+                <Input
+                  value={newGameUrl}
+                  onChange={(e) => setNewGameUrl(e.target.value)}
+                  placeholder="https:// (optional)"
+                  className="flex-1"
+                />
+                <Button
+                  size="icon"
+                  onClick={() => void addFavoriteGame()}
+                  disabled={!newGameName.trim()}
+                  aria-label={t("addFavoriteGame")}
+                >
+                  <Gamepad2 className="h-4 w-4" />
+                </Button>
+              </div>
             ) : null}
           </div>
         </div>
@@ -445,24 +461,34 @@ function ProfilePage() {
         {saving || busy ? <p className="text-xs text-muted-foreground">{t("loading")}</p> : null}
       </section>
 
-      <section className="mt-7">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-black">{t("profileVideos")}</h2>
-          <Link to="/discover/studio" className="text-sm font-bold text-primary">
-            {t("creatorStudio")}
-          </Link>
-        </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {(videos.data ?? []).map((video) => (
-            <ProfileVideo key={video.id} video={video} />
-          ))}
-          {!videos.data?.length ? (
-            <p className="col-span-3 rounded-3xl bg-surface py-10 text-center text-sm text-muted-foreground">
-              {t("noProfileVideos")}
-            </p>
-          ) : null}
-        </div>
-      </section>
+      <ProfileContentTabs
+        videos={videos.data ?? []}
+        reposts={reposts.data ?? []}
+        photos={photos.data ?? []}
+        photosEditable
+        maxPhotos={MAX_PHOTOS}
+        busy={busy}
+        onAddPhotoClick={() => photoRef.current?.click()}
+        onDeletePhoto={(id) => void deletePhoto(id)}
+        onMovePhoto={(i, delta) => void movePhoto(i, delta)}
+      />
+      <input
+        ref={photoRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void addPhoto(file);
+          e.target.value = "";
+        }}
+      />
+      <Link
+        to="/discover/studio"
+        className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border text-sm font-semibold"
+      >
+        {t("creatorStudio")}
+      </Link>
 
       <Link
         to="/settings"
@@ -483,30 +509,8 @@ function ProfilePage() {
           )}
         >
           <Save className="h-4.5 w-4.5" />
-          {saving ? t("loading") : "Enregistrer"}
+          {saving ? t("loading") : t("save")}
         </button>
-      </div>
-    </div>
-  );
-}
-
-function ProfileVideo({
-  video,
-}: {
-  video: { storage_path: string; caption: string | null; views_count: number };
-}) {
-  const url = useSignedUrl(video.storage_path);
-  return (
-    <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-black">
-      {url ? <video src={url} muted playsInline className="h-full w-full object-cover" /> : null}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white">
-        <p className="flex items-center gap-1 text-[11px] font-bold">
-          <Play className="h-3 w-3 fill-white" />
-          {video.views_count}
-        </p>
-        {video.caption ? (
-          <p className="mt-0.5 truncate text-[10px] text-white/75">{video.caption}</p>
-        ) : null}
       </div>
     </div>
   );

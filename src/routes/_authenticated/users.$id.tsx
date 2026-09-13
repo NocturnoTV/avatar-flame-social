@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, Gamepad2, MessageCircle, Play } from "lucide-react";
+import { ArrowLeft, Gamepad2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { StoredImage, useSignedUrl } from "@/components/Media";
+import { StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
+import { ProfileContentTabs, type TabVideo } from "@/components/ProfileContentTabs";
 import { Button } from "@/components/ui-kit";
 import { BANNERS } from "@/lib/decorations";
 import { useI18n } from "@/lib/i18n";
@@ -58,6 +59,26 @@ function PublicProfile() {
             .limit(12),
         ]);
       return { person, photos: photos ?? [], games: games ?? [], videos: videos ?? [] };
+    },
+  });
+
+  const reposts = useQuery({
+    queryKey: ["public-reposts", id],
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from("video_reposts")
+        .select("video_id,created_at")
+        .eq("user_id", id)
+        .order("created_at", { ascending: false });
+      const ids = (rows ?? []).map((r) => r.video_id);
+      if (!ids.length) return [] as TabVideo[];
+      const { data: vids } = await supabase
+        .from("videos")
+        .select("id,storage_path,caption,views_count")
+        .in("id", ids)
+        .eq("visibility", "public");
+      const byId = new Map((vids ?? []).map((v) => [v.id, v]));
+      return ids.map((vid) => byId.get(vid)).filter((v): v is TabVideo => Boolean(v));
     },
   });
 
@@ -213,35 +234,12 @@ function PublicProfile() {
             ))}
           </div>
         )}
-        <h2 className="mt-7 text-lg font-black">{t("profileVideos")}</h2>
-        <div className="mt-3 grid grid-cols-3 gap-1">
-          {profile.data?.videos.map((v) => (
-            <ProfileVideo key={v.id} video={v} />
-          ))}
-          {!profile.data?.videos.length ? (
-            <p className="col-span-3 py-10 text-center text-sm text-muted-foreground">
-              {t("noProfileVideos")}
-            </p>
-          ) : null}
-        </div>
+        <ProfileContentTabs
+          videos={profile.data?.videos ?? []}
+          reposts={reposts.data ?? []}
+          photos={profile.data?.photos ?? []}
+        />
       </div>
-    </div>
-  );
-}
-
-function ProfileVideo({
-  video,
-}: {
-  video: { storage_path: string; caption: string | null; views_count: number };
-}) {
-  const url = useSignedUrl(video.storage_path);
-  return (
-    <div className="relative aspect-[9/16] overflow-hidden rounded-lg bg-black">
-      {url ? <video src={url} muted playsInline className="h-full w-full object-cover" /> : null}
-      <span className="absolute bottom-1 left-1 flex items-center gap-1 text-[10px] font-bold text-white drop-shadow">
-        <Play className="h-3 w-3 fill-white" />
-        {video.views_count}
-      </span>
     </div>
   );
 }
