@@ -42,17 +42,17 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function continueAfterAuthentication(userId: string) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("id", userId)
-      .maybeSingle();
-    navigate({ to: profile?.onboarding_completed ? "/home" : "/onboarding", replace: true });
+  async function continueAfterAuthentication() {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return;
+    navigate({
+      to: data.user.user_metadata["onboarding_required"] === true ? "/onboarding" : "/home",
+      replace: true,
+    });
   }
 
   useEffect(() => {
-    if (session?.user.id) void continueAfterAuthentication(session.user.id);
+    if (session?.user.id) void continueAfterAuthentication();
   }, [session?.user.id]);
 
   async function submit(e: React.FormEvent) {
@@ -63,11 +63,14 @@ function AuthPage() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+          options: {
+            emailRedirectTo: `${window.location.origin}/onboarding`,
+            data: { onboarding_required: true },
+          },
         });
         if (error) throw error;
         if (data.session?.user.id) {
-          await continueAfterAuthentication(data.session.user.id);
+          await continueAfterAuthentication();
           return;
         }
         toast.success(t("checkEmail"));
@@ -81,7 +84,7 @@ function AuthPage() {
         if (error) throw error;
         const { data } = await supabase.auth.getUser();
         if (!data.user) throw new Error("invalid_credentials");
-        await continueAfterAuthentication(data.user.id);
+        await continueAfterAuthentication();
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
@@ -100,7 +103,7 @@ function AuthPage() {
       if (!result.error) {
         if (result.redirected) return;
         const { data } = await supabase.auth.getUser();
-        if (data.user) await continueAfterAuthentication(data.user.id);
+        if (data.user) await continueAfterAuthentication();
         return;
       }
 

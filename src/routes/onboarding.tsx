@@ -104,23 +104,28 @@ function Onboarding() {
       return;
     }
     setBusy(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        username: username.trim(),
-        language: lang,
-        birth_date: birth,
-        bio: bio.trim(),
-        theme,
-        parental_consent: minor ? parentOk : true,
-        parent_name: minor ? parentName.trim() : null,
-        parent_email: minor ? parentEmail.trim() : null,
-        onboarding_completed: true,
-      })
-      .eq("id", user.id);
+    const { error } = await supabase.from("profiles").upsert({
+      id: user.id,
+      username: username.trim(),
+      language: lang,
+      birth_date: birth,
+      bio: bio.trim(),
+      theme,
+      parental_consent: minor ? parentOk : true,
+      parent_name: minor ? parentName.trim() : null,
+      parent_email: minor ? parentEmail.trim() : null,
+      onboarding_completed: true,
+    });
     setBusy(false);
     if (error) {
       toast.error(error.message.includes("duplicate") ? t("usernameTaken") : error.message);
+      return;
+    }
+    const { error: markerError } = await supabase.auth.updateUser({
+      data: { onboarding_required: false },
+    });
+    if (markerError) {
+      toast.error(markerError.message);
       return;
     }
     navigate({ to: "/home", replace: true });
