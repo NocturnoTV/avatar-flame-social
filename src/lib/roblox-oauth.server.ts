@@ -1,45 +1,66 @@
 import { createHash, randomBytes } from "node:crypto";
-import { useSession as getServerSession } from "@tanstack/react-start/server";
 
 export const ROBLOX_CLIENT_ID = process.env["ROBLOX_CLIENT_ID"] ?? "4495295082449707042";
 export const ROBLOX_REDIRECT_URI =
   process.env["ROBLOX_REDIRECT_URI"] ?? "https://bloxspark.app/auth/roblox/callback";
 
 export type RobloxOAuthSession = {
-  state?: string;
-  verifier?: string;
-  nonce?: string;
-  userId?: string;
-  returnTo?: "/onboarding" | "/settings";
-  createdAt?: number;
+  state: string;
+  verifier: string;
+  nonce: string;
+  userId: string;
+  returnTo: "/onboarding" | "/settings";
+  createdAt: number;
 };
 
-function requiredClientSecret() {
+export function robloxClientSecret() {
   const secret = process.env["ROBLOX_CLIENT_SECRET"];
   if (!secret) throw new Error("ROBLOX_CLIENT_SECRET is not configured on the server.");
   return secret;
 }
 
-export function robloxClientSecret() {
-  return requiredClientSecret();
-}
-
-export async function getRobloxOAuthSession() {
-  const password = createHash("sha256").update(requiredClientSecret()).digest("hex");
-  return getServerSession<RobloxOAuthSession>({
-    name: "bloxspark-roblox-oauth",
-    password,
-    maxAge: 10 * 60,
-    cookie: {
-      httpOnly: true,
-      secure: process.env["NODE_ENV"] === "production",
-      sameSite: "lax",
-      path: "/",
-    },
+export async function saveOAuthState(entry: {
+  state: string;
+  verifier: string;
+  nonce: string;
+  userId: string;
+  returnTo: "/onboarding" | "/settings";
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("roblox_oauth_states")
+    .delete()
+    .lt("expires_at", new Date().toISOString());
+  const { error } = await supabaseAdmin.from("roblox_oauth_states").insert({
+    state: entry.state,
+    verifier: entry.verifier,
+    nonce: entry.nonce,
+    user_id: entry.userId,
+    return_to: entry.returnTo,
   });
+  if (error) throw new Error(`Could not store the Roblox request: ${error.message}`);
 }
 
-export type RobloxOAuthSessionHandle = Awaited<ReturnType<typeof getRobloxOAuthSession>>;
+export async function consumeOAuthState(state: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("roblox_oauth_states")
+    .select("state,verifier,user_id,return_to,expires_at")
+    .eq("state", state)
+    .maybeSingle();
+  if (error) throw new Error(`Could not read the Roblox request: ${error.message}`);
+  if (data) {
+    await supabaseAdmin.from("roblox_oauth_states").delete().eq("state", state);
+  }
+  if (!data || new Date(data.expires_at).getTime() < Date.now()) return null;
+  return {
+    verifier: data.verifier,
+    userId: data.user_id,
+    returnTo: (data.return_to === "/onboarding" ? "/onboarding" : "/settings") as
+      | "/onboarding"
+      | "/settings",
+  };
+}
 
 export function randomUrlSafe(bytes = 32) {
   return randomBytes(bytes).toString("base64url");
