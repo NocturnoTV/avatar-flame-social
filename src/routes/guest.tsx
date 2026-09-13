@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Compass, MessageCircle, Settings, ShieldCheck, UserPlus, X } from "lucide-react";
 import { useEffect, useMemo, useState, type UIEvent } from "react";
-import { Logo } from "@/components/Logo";
+import { LogoWordmark } from "@/components/Logo";
 import { Button, Select } from "@/components/ui-kit";
 import { LANGUAGES, useI18n, type LangCode } from "@/lib/i18n";
 import { useTheme, type ThemeName } from "@/lib/theme";
@@ -112,7 +112,7 @@ function GuestPage() {
     <div className="relative h-dvh overflow-hidden bg-background">
       <header className="fixed inset-x-0 top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-lg items-center justify-between px-4">
-          <Logo className="h-9" />
+          <LogoWordmark className="h-9" />
           <span className="rounded-full bg-primary/15 px-3 py-1 text-xs font-bold text-primary">
             {t("guestBadge")}
           </span>

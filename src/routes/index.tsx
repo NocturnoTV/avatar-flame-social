@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { ArrowRight, Flame, MessageCircle, Play, ShieldCheck, Sparkles, Users } from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { LogoWordmark } from "@/components/Logo";
 import { Button } from "@/components/ui-kit";
 import { LANGUAGES, useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -44,7 +44,7 @@ function Landing() {
     <div className="min-h-screen overflow-hidden bg-[#0a0614] text-white">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0a0614]/75 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5">
-          <Logo className="h-10 w-auto" forceVariant="dark" />
+          <LogoWordmark className="h-10 w-auto" forceVariant="dark" />
           <div className="flex items-center gap-2">
             <select
               value={lang}

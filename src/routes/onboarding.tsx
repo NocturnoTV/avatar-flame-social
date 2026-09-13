@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Logo } from "@/components/Logo";
+import { LogoWordmark } from "@/components/Logo";
 import { Button, Input, Label, Textarea } from "@/components/ui-kit";
 import { LANGUAGES, robloxOAuthErrorKey, useI18n, type LangCode } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -150,7 +150,7 @@ function Onboarding() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
               <div className="absolute inset-0 bx-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              <Logo className="absolute bottom-4 left-1/2 h-24 -translate-x-1/2 bx-float drop-shadow-[0_0_48px_rgba(0,0,0,0.6)] sm:h-28" />
+              <LogoWordmark className="absolute bottom-4 left-1/2 h-24 -translate-x-1/2 bx-float drop-shadow-[0_0_48px_rgba(0,0,0,0.6)] sm:h-28" />
             </div>
           </div>
 
@@ -221,7 +221,7 @@ function Onboarding() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
             <div className="absolute inset-0 bx-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <Logo className="absolute bottom-4 left-1/2 h-20 -translate-x-1/2 bx-float drop-shadow-[0_0_36px_rgba(0,0,0,0.5)] sm:h-24" />
+            <LogoWordmark className="absolute bottom-4 left-1/2 h-20 -translate-x-1/2 bx-float drop-shadow-[0_0_36px_rgba(0,0,0,0.5)] sm:h-24" />
           </div>
         </div>
 

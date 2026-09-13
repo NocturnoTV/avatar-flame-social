@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Logo } from "@/components/Logo";
+import { LogoWordmark } from "@/components/Logo";
 import { Button, Select, Sheet } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
@@ -304,7 +304,7 @@ function SparksPage() {
   if (myGate.isLoading) {
     return (
       <div className="mx-auto w-full max-w-md px-4 pt-4">
-        <Logo className="h-11" />
+        <LogoWordmark className="h-11" />
       </div>
     );
   }
@@ -312,7 +312,7 @@ function SparksPage() {
   if (myGate.data?.sparksEnabled === false) {
     return (
       <div className="mx-auto flex min-h-[80vh] w-full max-w-md flex-col items-center justify-center px-6 text-center">
-        <Logo className="mb-6 h-11" />
+        <LogoWordmark className="mb-6 h-11" />
         <span className="spark-gradient grid h-16 w-16 place-items-center rounded-3xl text-3xl text-white shadow-[0_0_28px_rgba(168,85,247,.55)]">
           ✦
         </span>
@@ -344,7 +344,7 @@ function SparksPage() {
   return (
     <div className="mx-auto w-full max-w-md px-4 pt-4">
       <header className="flex items-center justify-between">
-        <Logo className="h-11" />
+        <LogoWordmark className="h-11" />
         <Button
           variant="ghost"
           size="icon"

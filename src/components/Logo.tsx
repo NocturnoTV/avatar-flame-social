@@ -1,13 +1,36 @@
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
+/** The square "B" mark — the default logo used across the app. */
+export function Logo({
+  className,
+  forceVariant,
+}: {
+  className?: string;
+  forceVariant?: "dark" | "light";
+}) {
+  const { theme } = useTheme();
+  const variant = forceVariant ?? theme;
+  return (
+    <img
+      src="/bloxspark-logo.png"
+      alt="Bloxspark"
+      className={cn(
+        "h-12 w-auto select-none object-contain",
+        variant === "light" && "invert",
+        className,
+      )}
+      draggable={false}
+    />
+  );
+}
+
 /**
  * BloxSpark wordmark — "BL◇XSPARK", the O stylized as a tilted diamond.
- * Rendered as inline SVG (not a raster asset) so it scales crisply at any
- * of the many h-* sizes used across the app and recolors via `currentColor`
- * exactly like the rest of the UI (no invert-filter hacks needed).
+ * Reserved for the top-left nav headers and the onboarding banner; every
+ * other spot keeps the square B mark above.
  */
-export function Logo({
+export function LogoWordmark({
   className,
   forceVariant,
 }: {

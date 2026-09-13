@@ -6,7 +6,7 @@ import { StoredImage } from "@/components/Media";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/Logo";
+import { LogoWordmark } from "@/components/Logo";
 
 function useUnread() {
   const { user } = useSession();
@@ -70,7 +70,7 @@ export function SideNav() {
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-background/80 backdrop-blur-xl lg:flex">
       <div className="flex items-center px-6 py-6">
         <Link to="/home" aria-label="Bloxspark">
-          <Logo className="h-10 w-auto" />
+          <LogoWordmark className="h-10 w-auto" />
         </Link>
       </div>
       <nav className="flex-1 space-y-1 px-3">

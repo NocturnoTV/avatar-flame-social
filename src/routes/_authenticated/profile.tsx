@@ -585,24 +585,6 @@ function ProfilePage() {
             ) : null}
           </div>
         </div>
-        <div>
-          <Label>{t("banner")}</Label>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(BANNERS).map(([key, value]) => (
-              <button
-                key={key}
-                onClick={() => patch({ banner_style: key, banner_url: null })}
-                className={cn(
-                  "h-10 w-16 rounded-xl border-2",
-                  p?.banner_style === key && !p?.banner_url
-                    ? "border-primary"
-                    : "border-transparent",
-                )}
-                style={{ backgroundImage: value }}
-              />
-            ))}
-          </div>
-        </div>
         {saving || busy ? <p className="text-xs text-muted-foreground">{t("loading")}</p> : null}
       </section>
 

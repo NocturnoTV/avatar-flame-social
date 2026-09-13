@@ -6,7 +6,7 @@ import { ArrowUpRight, Bell, Compass, Flame, LifeBuoy, ShoppingBag } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Card } from "@/components/ui-kit";
-import { Logo } from "@/components/Logo";
+import { LogoWordmark } from "@/components/Logo";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { Reveal } from "@/components/Reveal";
@@ -316,7 +316,7 @@ function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
         <div className="absolute inset-0 flex flex-col justify-between p-4">
           <div className="flex items-start justify-between">
-            <Logo className="h-8 w-auto bx-float" forceVariant="dark" />
+            <LogoWordmark className="h-8 w-auto bx-float" forceVariant="dark" />
             <div className="flex items-center gap-2">
               <Link
                 to="/messages"

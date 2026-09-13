@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
-import { Logo } from "@/components/Logo";
+import { LogoWordmark } from "@/components/Logo";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -170,7 +170,7 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
   return (
     <div className="fixed inset-x-0 top-0 bottom-24 z-[45] flex flex-col overflow-y-auto bg-background px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] lg:hidden">
       <div className="flex items-center justify-between">
-        <Logo className="h-6 w-auto" />
+        <LogoWordmark className="h-6 w-auto" />
         <button
           onClick={onClose}
           aria-label={t("cancel")}
