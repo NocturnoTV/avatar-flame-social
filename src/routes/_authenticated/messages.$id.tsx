@@ -383,8 +383,13 @@ function Conversation() {
       .from("conversation_participants")
       .update({ last_read_at: new Date().toISOString() })
       .eq("conversation_id", id)
-      .eq("user_id", user.id);
-  }, [id, user, messages.data]);
+      .eq("user_id", user.id)
+      .then(() => {
+        // Keep the conversations list's unread badge in sync — otherwise it
+        // stays stale until something else happens to refetch it.
+        void qc.invalidateQueries({ queryKey: ["conversations", user.id] });
+      });
+  }, [id, user, messages.data, qc]);
 
   async function send(kind: "text" | "image" | "voice", payload?: string) {
     if (!user) return;
