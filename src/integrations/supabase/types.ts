@@ -169,39 +169,6 @@ export type Database = {
         }
         Relationships: []
       }
-      favorite_games: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-          position: number
-          roblox_universe_id: string | null
-          thumbnail_url: string | null
-          url: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-          position?: number
-          roblox_universe_id?: string | null
-          thumbnail_url?: string | null
-          url?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          position?: number
-          roblox_universe_id?: string | null
-          thumbnail_url?: string | null
-          url?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       matches: {
         Row: {
           conversation_id: string | null
@@ -390,14 +357,12 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           birth_date: string | null
-          country: string | null
           created_at: string
           deletion_requested_at: string | null
           frame_style: string
           id: string
           language: string
           last_active_at: string
-          link_url: string | null
           notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null
@@ -410,7 +375,6 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
-          sparks_enabled: boolean
           sticker: string | null
           theme: string
           updated_at: string
@@ -426,14 +390,12 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
-          country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
           frame_style?: string
           id: string
           language?: string
           last_active_at?: string
-          link_url?: string | null
           notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
@@ -446,7 +408,6 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
-          sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
           updated_at?: string
@@ -462,14 +423,12 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
-          country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
           frame_style?: string
           id?: string
           language?: string
           last_active_at?: string
-          link_url?: string | null
           notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
@@ -482,7 +441,6 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
-          sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
           updated_at?: string
@@ -506,7 +464,6 @@ export type Database = {
           reporter_id: string
           status: string
           target_user_id: string | null
-          video_id: string | null
         }
         Insert: {
           created_at?: string
@@ -520,7 +477,6 @@ export type Database = {
           reporter_id: string
           status?: string
           target_user_id?: string | null
-          video_id?: string | null
         }
         Update: {
           created_at?: string
@@ -534,7 +490,6 @@ export type Database = {
           reporter_id?: string
           status?: string
           target_user_id?: string | null
-          video_id?: string | null
         }
         Relationships: [
           {
@@ -542,13 +497,6 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reports_video_id_fkey"
-            columns: ["video_id"]
-            isOneToOne: false
-            referencedRelation: "videos"
             referencedColumns: ["id"]
           },
         ]
@@ -646,18 +594,6 @@ export type Database = {
         }
         Relationships: []
       }
-      stories: {
-        Row: { caption: string | null; created_at: string; expires_at: string; id: string; media_type: string; media_url: string; user_id: string }
-        Insert: { caption?: string | null; created_at?: string; expires_at?: string; id?: string; media_type?: string; media_url: string; user_id: string }
-        Update: { caption?: string | null; created_at?: string; expires_at?: string; id?: string; media_type?: string; media_url?: string; user_id?: string }
-        Relationships: []
-      }
-      story_views: {
-        Row: { story_id: string; user_id: string; viewed_at: string }
-        Insert: { story_id: string; user_id: string; viewed_at?: string }
-        Update: { story_id?: string; user_id?: string; viewed_at?: string }
-        Relationships: [{ foreignKeyName: "story_views_story_id_fkey"; columns: ["story_id"]; isOneToOne: false; referencedRelation: "stories"; referencedColumns: ["id"] }]
-      }
       user_roles: {
         Row: {
           created_at: string
@@ -684,9 +620,6 @@ export type Database = {
           content: string
           created_at: string
           id: string
-          media_type: string | null
-          media_url: string | null
-          parent_id: string | null
           user_id: string
           video_id: string
         }
@@ -694,9 +627,6 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
-          media_type?: string | null
-          media_url?: string | null
-          parent_id?: string | null
           user_id: string
           video_id: string
         }
@@ -704,20 +634,10 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
-          media_type?: string | null
-          media_url?: string | null
-          parent_id?: string | null
           user_id?: string
           video_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "video_comments_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "video_comments"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "video_comments_video_id_fkey"
             columns: ["video_id"]
@@ -841,10 +761,8 @@ export type Database = {
           created_at: string
           duration_seconds: number | null
           favorites_count: number
-          hashtags: string[]
           id: string
           likes_count: number
-          recommendation_eligible: boolean
           reposts_count: number
           shares_count: number
           sound_name: string | null
@@ -861,10 +779,8 @@ export type Database = {
           created_at?: string
           duration_seconds?: number | null
           favorites_count?: number
-          hashtags?: string[]
           id?: string
           likes_count?: number
-          recommendation_eligible?: boolean
           reposts_count?: number
           shares_count?: number
           sound_name?: string | null
@@ -881,10 +797,8 @@ export type Database = {
           created_at?: string
           duration_seconds?: number | null
           favorites_count?: number
-          hashtags?: string[]
           id?: string
           likes_count?: number
-          recommendation_eligible?: boolean
           reposts_count?: number
           shares_count?: number
           sound_name?: string | null
@@ -894,149 +808,6 @@ export type Database = {
           user_id?: string
           views_count?: number
           visibility?: string
-        }
-        Relationships: []
-      }
-      video_categories: {
-        Row: { category: string; video_id: string; weight: number }
-        Insert: { category: string; video_id: string; weight?: number }
-        Update: { category?: string; video_id?: string; weight?: number }
-        Relationships: [
-          {
-            foreignKeyName: "video_categories_video_id_fkey"
-            columns: ["video_id"]
-            isOneToOne: false
-            referencedRelation: "videos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      video_watch_events: {
-        Row: {
-          completed: boolean
-          created_at: string
-          id: string
-          replayed: boolean
-          skipped: boolean
-          time_before_skip_ms: number | null
-          user_id: string
-          video_id: string
-          watch_ms: number
-          watch_ratio: number
-        }
-        Insert: {
-          completed?: boolean
-          created_at?: string
-          id?: string
-          replayed?: boolean
-          skipped?: boolean
-          time_before_skip_ms?: number | null
-          user_id: string
-          video_id: string
-          watch_ms?: number
-          watch_ratio?: number
-        }
-        Update: {
-          completed?: boolean
-          created_at?: string
-          id?: string
-          replayed?: boolean
-          skipped?: boolean
-          time_before_skip_ms?: number | null
-          user_id?: string
-          video_id?: string
-          watch_ms?: number
-          watch_ratio?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "video_watch_events_video_id_fkey"
-            columns: ["video_id"]
-            isOneToOne: false
-            referencedRelation: "videos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      video_not_interested: {
-        Row: { created_at: string; user_id: string; video_id: string }
-        Insert: { created_at?: string; user_id: string; video_id: string }
-        Update: { created_at?: string; user_id?: string; video_id?: string }
-        Relationships: [
-          {
-            foreignKeyName: "video_not_interested_video_id_fkey"
-            columns: ["video_id"]
-            isOneToOne: false
-            referencedRelation: "videos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      hidden_creators: {
-        Row: { created_at: string; creator_id: string; user_id: string }
-        Insert: { created_at?: string; creator_id: string; user_id: string }
-        Update: { created_at?: string; creator_id?: string; user_id?: string }
-        Relationships: []
-      }
-      hidden_categories: {
-        Row: { category: string; created_at: string; user_id: string }
-        Insert: { category: string; created_at?: string; user_id: string }
-        Update: { category?: string; created_at?: string; user_id?: string }
-        Relationships: []
-      }
-      user_topic_affinity: {
-        Row: { affinity: number; category: string; updated_at: string; user_id: string }
-        Insert: {
-          affinity?: number
-          category: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          affinity?: number
-          category?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_creator_affinity: {
-        Row: { affinity: number; creator_id: string; updated_at: string; user_id: string }
-        Insert: {
-          affinity?: number
-          creator_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          affinity?: number
-          creator_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      recommendation_config: {
-        Row: {
-          decay: Json
-          exploration_ratio: number
-          id: string
-          updated_at: string
-          weights: Json
-        }
-        Insert: {
-          decay?: Json
-          exploration_ratio?: number
-          id?: string
-          updated_at?: string
-          weights?: Json
-        }
-        Update: {
-          decay?: Json
-          exploration_ratio?: number
-          id?: string
-          updated_at?: string
-          weights?: Json
         }
         Relationships: []
       }
@@ -1069,19 +840,6 @@ export type Database = {
         }
         Returns: Json
       }
-      recommendation_analytics_summary: {
-        Args: { _since?: string }
-        Returns: {
-          avg_watch_ratio: number
-          comment_rate: number
-          completion_rate: number
-          like_rate: number
-          report_rate: number
-          share_rate: number
-          skip_rate: number
-          watch_events: number
-        }[]
-      }
       spark_deck: {
         Args: {
           _lang?: string
@@ -1096,14 +854,12 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           birth_date: string | null
-          country: string | null
           created_at: string
           deletion_requested_at: string | null
           frame_style: string
           id: string
           language: string
           last_active_at: string
-          link_url: string | null
           notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null
@@ -1116,7 +872,6 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
-          sparks_enabled: boolean
           sticker: string | null
           theme: string
           updated_at: string
