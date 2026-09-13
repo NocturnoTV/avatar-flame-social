@@ -25,11 +25,7 @@ export function Logo({
   );
 }
 
-/**
- * BloxSpark wordmark — "BL◇XSPARK", the O stylized as a tilted diamond.
- * Reserved for the top-left nav headers and the onboarding banner; every
- * other spot keeps the square B mark above.
- */
+/** Official BloxSpark wordmark, switched to match the active light or dark theme. */
 export function LogoWordmark({
   className,
   forceVariant,
@@ -40,45 +36,11 @@ export function LogoWordmark({
   const { theme } = useTheme();
   const variant = forceVariant ?? theme;
   return (
-    <svg
-      viewBox="0 0 300 62"
-      className={cn("w-auto select-none", className)}
-      style={{ color: variant === "light" ? "#0b0b14" : "#ffffff" }}
-      role="img"
-      aria-label="BloxSpark"
-    >
-      <text
-        x="0"
-        y="46"
-        fill="currentColor"
-        fontFamily="var(--font-display), ui-sans-serif, sans-serif"
-        fontWeight={700}
-        fontSize={50}
-        letterSpacing={-1.5}
-        textLength={68}
-        lengthAdjust="spacingAndGlyphs"
-      >
-        BL
-      </text>
-      <path
-        d="M22 0 L44 22 L22 44 L0 22 Z M22 11 L33 22 L22 33 L11 22 Z"
-        fill="currentColor"
-        fillRule="evenodd"
-        transform="translate(76 9) rotate(12 22 22)"
-      />
-      <text
-        x="128"
-        y="46"
-        fill="currentColor"
-        fontFamily="var(--font-display), ui-sans-serif, sans-serif"
-        fontWeight={700}
-        fontSize={50}
-        letterSpacing={-1.5}
-        textLength={172}
-        lengthAdjust="spacingAndGlyphs"
-      >
-        XSPARK
-      </text>
-    </svg>
+    <img
+      src={variant === "light" ? "/bloxspark-wordmark-black.png" : "/bloxspark-wordmark-white.png"}
+      alt="BloxSpark"
+      className={cn("w-auto select-none object-contain", className)}
+      draggable={false}
+    />
   );
 }
