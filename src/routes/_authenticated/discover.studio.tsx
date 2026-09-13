@@ -1,57 +1,51 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  ArrowRight,
   BarChart3,
-  Bookmark,
+  Check,
+  Clock3,
   Eye,
+  Globe2,
+  Hash,
   Heart,
   MessageCircle,
-  Repeat2,
-  Send,
+  Play,
+  Sparkles,
   Trash2,
+  TrendingUp,
   Upload,
   Users,
+  UsersRound,
   Video as VideoIcon,
+  WalletCards,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
-import { Button, Card, Input, Label, Textarea } from "@/components/ui-kit";
+import { Button, Card, Input, Label } from "@/components/ui-kit";
 import { uploadFile } from "@/lib/media";
 import { useSignedUrl } from "@/components/Media";
+import { getCreatorAnalytics } from "@/lib/creator-analytics.functions";
 import { formatCount } from "./discover.index";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/discover/studio")({
-  head: () => ({
-    meta: [
-      { title: "Studio créateur — Bloxspark" },
-      {
-        name: "description",
-        content:
-          "Publie tes vidéos Roblox et suis tes vues, likes, favoris et abonnés en un coup d'œil.",
-      },
-      { property: "og:title", content: "Studio créateur — Bloxspark" },
-      {
-        property: "og:description",
-        content: "Tableau de bord complet pour les créateurs Bloxspark.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Creator Studio — Bloxspark" }] }),
   component: StudioPage,
 });
 
-type Tab = "stats" | "videos" | "publier";
+type Tab = "stats" | "videos" | "earnings";
+type Point = { date: string; views: number; likes: number; retention: number };
 
 function StudioPage() {
   const { user } = useSession();
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("stats");
-
+  const [uploadOpen, setUploadOpen] = useState(false);
   const videos = useQuery({
     queryKey: ["my-videos", user?.id],
     enabled: !!user,
@@ -65,7 +59,6 @@ function StudioPage() {
       return data ?? [];
     },
   });
-
   const followers = useQuery({
     queryKey: ["followers", user?.id],
     enabled: !!user,
@@ -77,177 +70,271 @@ function StudioPage() {
       return count ?? 0;
     },
   });
-
+  const analytics = useQuery({
+    queryKey: ["creator-analytics", user?.id],
+    enabled: !!user,
+    queryFn: () => getCreatorAnalytics(),
+  });
   const rows = videos.data ?? [];
   const sum = (
-    k:
+    key:
       | "views_count"
       | "likes_count"
       | "comments_count"
       | "favorites_count"
       | "reposts_count"
       | "shares_count",
-  ) => rows.reduce((a, v) => a + (v[k] ?? 0), 0);
-
-  const totalViews = sum("views_count");
-  const totalLikes = sum("likes_count");
-  const engagement = totalViews
-    ? ((totalLikes + sum("comments_count") + sum("favorites_count")) / totalViews) * 100
-    : 0;
-  const best = [...rows].sort((a, b) => b.views_count - a.views_count)[0];
-
+  ) => rows.reduce((total, video) => total + (video[key] ?? 0), 0);
+  const views = sum("views_count");
+  const likes = sum("likes_count");
+  const interactions =
+    likes +
+    sum("comments_count") +
+    sum("favorites_count") +
+    sum("reposts_count") +
+    sum("shares_count");
   const stats = [
-    { label: "Vues", value: totalViews, icon: Eye },
-    { label: "J'aime", value: totalLikes, icon: Heart },
-    { label: "Commentaires", value: sum("comments_count"), icon: MessageCircle },
-    { label: "Favoris", value: sum("favorites_count"), icon: Bookmark },
-    { label: "Republications", value: sum("reposts_count"), icon: Repeat2 },
-    { label: "Partages", value: sum("shares_count"), icon: Send },
-    { label: "Abonnés", value: followers.data ?? 0, icon: Users },
-    { label: "Vidéos", value: rows.length, icon: VideoIcon },
-  ];
-
-  const maxViews = Math.max(1, ...rows.map((r) => r.views_count));
-
+    ["Total views", views, Eye],
+    ["Unique viewers", analytics.data?.uniqueViewers ?? 0, Users],
+    ["Likes", likes, Heart],
+    ["Comments", sum("comments_count"), MessageCircle],
+    [
+      "Average retention",
+      Math.round((analytics.data?.averageRetention ?? 0) * 100) + "%",
+      TrendingUp,
+    ],
+    ["Completion rate", Math.round((analytics.data?.completionRate ?? 0) * 100) + "%", Play],
+    ["Average watch time", formatWatchTime(analytics.data?.averageWatchMs ?? 0), Clock3],
+    ["Followers", followers.data ?? 0, UsersRound],
+  ] as const;
+  const refresh = () => {
+    setUploadOpen(false);
+    setTab("videos");
+    void Promise.all([
+      qc.invalidateQueries({ queryKey: ["my-videos"] }),
+      qc.invalidateQueries({ queryKey: ["creator-analytics"] }),
+      qc.invalidateQueries({ queryKey: ["feed"] }),
+    ]);
+  };
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-28 pt-6 lg:pb-12">
-      <div className="mb-6 flex items-center gap-3">
+    <div className="mx-auto max-w-5xl px-4 pb-28 pt-6 lg:pb-12">
+      <header className="mb-7 flex items-center gap-3">
         <Link
           to="/discover"
-          aria-label="Retour"
-          className="grid h-10 w-10 place-items-center rounded-full border border-border"
+          aria-label="Back"
+          className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <div className="min-w-0">
-          <h1 className="truncate text-2xl font-black">Studio créateur</h1>
-          <p className="text-sm text-muted-foreground">Tes vidéos, tes stats, ta communauté.</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-2xl font-black">Creator Studio</h1>
+          <p className="text-sm text-muted-foreground">Performance, content, and audience.</p>
         </div>
-      </div>
-
-      <div className="mb-6 flex gap-1 rounded-full bg-surface-2 p-1">
+        <Button onClick={() => setUploadOpen(true)}>
+          <Upload className="h-4 w-4" />
+          <span className="hidden sm:inline">Post a video</span>
+        </Button>
+      </header>
+      <nav className="mb-6 grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1">
         {(
           [
-            ["stats", "Statistiques", BarChart3],
-            ["videos", "Mes vidéos", VideoIcon],
-            ["publier", "Publier", Upload],
+            ["stats", "Analytics", BarChart3],
+            ["videos", "Content", VideoIcon],
+            ["earnings", "Earnings", WalletCards],
           ] as const
         ).map(([value, label, Icon]) => (
           <button
             key={value}
             onClick={() => setTab(value)}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-bold transition",
-              tab === value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+              "flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold",
+              tab === value ? "bg-background shadow-sm" : "text-muted-foreground",
             )}
           >
             <Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">{label}</span>
+            {label}
           </button>
         ))}
-      </div>
-
+      </nav>
       {tab === "stats" ? (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {stats.map((s) => (
-              <Card key={s.label} className="p-4">
-                <s.icon className="mb-2 h-5 w-5 text-primary" />
-                <p className="text-2xl font-black">{formatCount(s.value)}</p>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {stats.map(([label, value, Icon]) => (
+              <Card key={label} className="p-4">
+                <Icon className="mb-4 h-5 w-5 text-primary" />
+                <p className="text-2xl font-black">
+                  {typeof value === "number" ? formatCount(value) : value}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{label}</p>
               </Card>
             ))}
-          </div>
-
-          <Card>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Taux d'engagement
-            </p>
-            <p className="text-3xl font-black">{engagement.toFixed(1)}%</p>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-2">
-              <div
-                className="h-full spark-gradient"
-                style={{ width: `${Math.min(100, engagement)}%` }}
-              />
-            </div>
-            {best ? (
-              <p className="mt-4 text-sm text-muted-foreground">
-                Meilleure vidéo :{" "}
-                <span className="font-semibold text-foreground">
-                  {best.caption || "Sans titre"}
-                </span>{" "}
-                — {formatCount(best.views_count)} vues
-              </p>
-            ) : null}
-          </Card>
-
-          <Card>
-            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Vues par vidéo
-            </p>
-            {rows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Publie ta première vidéo pour voir tes stats.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {rows.slice(0, 8).map((v) => (
-                  <div key={v.id} className="space-y-1">
-                    <div className="flex justify-between gap-3 text-xs">
-                      <span className="truncate text-muted-foreground">
-                        {v.caption || "Sans titre"}
-                      </span>
-                      <span className="shrink-0 font-bold">{formatCount(v.views_count)}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-surface-2">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${(v.views_count / maxViews) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+          </section>
+          <section className="grid gap-5 lg:grid-cols-2">
+            <Chart
+              title="Views"
+              subtitle="Last 14 days"
+              points={analytics.data?.daily ?? []}
+              metric="views"
+              color="#168bff"
+            />
+            <Chart
+              title="Audience retention"
+              subtitle="Average percentage watched"
+              points={analytics.data?.daily ?? []}
+              metric="retention"
+              color="#8b5cf6"
+              percent
+            />
+            <Chart
+              title="Likes"
+              subtitle="Last 14 days"
+              points={analytics.data?.daily ?? []}
+              metric="likes"
+              color="#ec4899"
+            />
+            <Card className="p-5">
+              <p className="font-black">Performance details</p>
+              <div className="mt-5 space-y-4">
+                <Progress
+                  label="Completed views"
+                  value={(analytics.data?.completionRate ?? 0) * 100}
+                />
+                <Progress label="Skipped early" value={(analytics.data?.skipRate ?? 0) * 100} />
+                <p className="flex justify-between border-t border-border pt-4 text-sm">
+                  <span className="text-muted-foreground">Replays</span>
+                  <b>{formatCount(analytics.data?.replays ?? 0)}</b>
+                </p>
+                <p className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Engagement</span>
+                  <b>{views ? ((interactions / views) * 100).toFixed(1) : "0.0"}%</b>
+                </p>
               </div>
-            )}
-          </Card>
+            </Card>
+          </section>
         </div>
       ) : null}
-
       {tab === "videos" ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {rows.length === 0 ? (
-            <p className="col-span-full py-10 text-center text-sm text-muted-foreground">
-              Aucune vidéo pour l'instant.
-            </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {!rows.length ? (
+            <Card className="col-span-full py-14 text-center">
+              <VideoIcon className="mx-auto h-8 w-8 text-muted-foreground" />
+              <p className="mt-3 font-bold">No videos yet</p>
+              <Button className="mt-4" onClick={() => setUploadOpen(true)}>
+                Post your first video
+              </Button>
+            </Card>
           ) : (
-            rows.map((v) => (
-              <MyVideoCard
-                key={v.id}
-                video={v}
-                onDeleted={() => {
-                  void qc.invalidateQueries({ queryKey: ["my-videos"] });
-                  void qc.invalidateQueries({ queryKey: ["feed"] });
-                }}
-              />
-            ))
+            rows.map((video) => <VideoCard key={video.id} video={video} onDeleted={refresh} />)
           )}
         </div>
       ) : null}
-
-      {tab === "publier" ? (
-        <UploadForm
-          onDone={() => {
-            setTab("videos");
-            void qc.invalidateQueries({ queryKey: ["my-videos"] });
-            void qc.invalidateQueries({ queryKey: ["feed"] });
-          }}
-        />
+      {tab === "earnings" ? (
+        <Card className="relative overflow-hidden px-6 py-16 text-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-violet-500/10" />
+          <div className="relative">
+            <span className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-primary text-white">
+              <WalletCards className="h-8 w-8" />
+            </span>
+            <span className="mt-6 inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-black uppercase tracking-[.2em] text-primary">
+              Coming soon
+            </span>
+            <h2 className="mt-4 text-3xl font-black">Creator earnings</h2>
+            <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+              Estimated revenue, payouts, and creator rewards are being prepared.
+            </p>
+          </div>
+        </Card>
       ) : null}
+      {uploadOpen ? <UploadWizard onClose={() => setUploadOpen(false)} onDone={refresh} /> : null}
     </div>
   );
 }
 
-function MyVideoCard({
+function Chart({
+  title,
+  subtitle,
+  points,
+  metric,
+  color,
+  percent = false,
+}: {
+  title: string;
+  subtitle: string;
+  points: Point[];
+  metric: "views" | "likes" | "retention";
+  color: string;
+  percent?: boolean;
+}) {
+  const values = points.map((point) => point[metric]);
+  const max = Math.max(1, ...values);
+  const coords = values.map((value, index) => ({
+    x: values.length < 2 ? 300 : (index / (values.length - 1)) * 600,
+    y: 168 - (value / max) * 145,
+  }));
+  const line = coords.map((point) => point.x + "," + point.y).join(" ");
+  const total = percent
+    ? (values.reduce((a, b) => a + b, 0) / Math.max(1, values.length)) * 100
+    : values.reduce((a, b) => a + b, 0);
+  return (
+    <Card className="p-5">
+      <div className="flex justify-between">
+        <div>
+          <h2 className="font-black">{title}</h2>
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
+        </div>
+        <b style={{ color }}>{percent ? Math.round(total) + "%" : formatCount(total)}</b>
+      </div>
+      <svg viewBox="0 0 600 180" className="mt-5 h-44 w-full">
+        {[45, 90, 135].map((y) => (
+          <line
+            key={y}
+            x1="0"
+            x2="600"
+            y1={y}
+            y2={y}
+            stroke="currentColor"
+            strokeOpacity=".08"
+            strokeDasharray="5 7"
+          />
+        ))}
+        <polyline
+          points={line}
+          fill="none"
+          stroke={color}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {coords.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="4" fill={color} />
+        ))}
+      </svg>
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>14 days ago</span>
+        <span>Today</span>
+      </div>
+    </Card>
+  );
+}
+
+function Progress({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="mb-2 flex justify-between text-sm">
+        <span className="text-muted-foreground">{label}</span>
+        <b>{Math.round(value)}%</b>
+      </p>
+      <div className="h-2 overflow-hidden rounded-full bg-surface-2">
+        <div
+          className="h-full rounded-full bg-primary"
+          style={{ width: Math.min(100, value) + "%" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function VideoCard({
   video,
   onDeleted,
 }: {
@@ -257,12 +344,12 @@ function MyVideoCard({
     caption: string | null;
     views_count: number;
     likes_count: number;
+    visibility: string;
   };
   onDeleted: () => void;
 }) {
   const url = useSignedUrl(video.storage_path);
   const [busy, setBusy] = useState(false);
-
   async function remove() {
     setBusy(true);
     const { error } = await supabase.from("videos").delete().eq("id", video.id);
@@ -271,28 +358,29 @@ function MyVideoCard({
       toast.error(error.message);
       return;
     }
-    toast.success("Vidéo supprimée");
+    toast.success("Video deleted");
     onDeleted();
   }
-
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border bg-black">
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-black">
       {url ? (
         <video src={url} muted playsInline className="aspect-[9/16] w-full object-cover" />
       ) : (
-        <div className="aspect-[9/16] w-full animate-pulse bg-surface-2" />
+        <div className="aspect-[9/16] animate-pulse bg-surface-2" />
       )}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-        <p className="truncate text-xs text-white">{video.caption || "Sans titre"}</p>
-        <p className="flex items-center gap-2 text-[11px] font-bold text-white/80">
-          <Eye className="h-3 w-3" /> {formatCount(video.views_count)}
-          <Heart className="ml-1 h-3 w-3" /> {formatCount(video.likes_count)}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10 text-white">
+        <p className="truncate text-xs font-bold">{video.caption || "Untitled"}</p>
+        <p className="mt-1 text-[11px]">
+          ◉ {formatCount(video.views_count)} · ♥ {formatCount(video.likes_count)}
+        </p>
+        <p className="mt-1 text-[10px] uppercase text-white/60">
+          {video.visibility === "sparks" ? "My Sparks" : "Everyone"}
         </p>
       </div>
       <button
         onClick={remove}
         disabled={busy}
-        aria-label="Supprimer"
+        aria-label="Delete"
         className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white"
       >
         <Trash2 className="h-4 w-4" />
@@ -301,122 +389,244 @@ function MyVideoCard({
   );
 }
 
-function UploadForm({ onDone }: { onDone: () => void }) {
+function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
   const { user } = useSession();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [file, setFile] = useState<File | null>(null);
-  const [caption, setCaption] = useState("");
-  const [sound, setSound] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [title, setTitle] = useState("");
+  const [tag, setTag] = useState("");
+  const [hashtags, setHashtags] = useState<string[]>([]);
+  const [visibility, setVisibility] = useState<"public" | "sparks">("public");
   const [busy, setBusy] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const preview = file ? URL.createObjectURL(file) : null;
-
+  const input = useRef<HTMLInputElement>(null);
+  const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview);
+    },
+    [preview],
+  );
+  function choose(selected: File | null) {
+    if (!selected) return;
+    if (selected.size > 200 * 1024 * 1024) {
+      toast.error("Maximum file size is 200 MB.");
+      return;
+    }
+    setFile(selected);
+  }
+  function addTag() {
+    const value = tag.trim().replace(/^#+/, "").replace(/\s+/g, "");
+    if (!value || hashtags.includes(value)) {
+      setTag("");
+      return;
+    }
+    if (hashtags.length >= 5) {
+      toast.error("You can add up to 5 hashtags.");
+      return;
+    }
+    setHashtags((current) => [...current, value]);
+    setTag("");
+  }
   async function publish() {
-    if (!file || !user) return;
+    if (!file || !user || !title.trim()) return;
     setBusy(true);
     try {
-      const ext = file.name.split(".").pop() || "mp4";
-      const path = await uploadFile("videos", user.id, file, ext);
+      const path = await uploadFile("videos", user.id, file, file.name.split(".").pop() || "mp4");
       const { error } = await supabase.from("videos").insert({
         user_id: user.id,
         storage_path: path,
-        caption: caption.trim() || null,
-        sound_name: sound.trim() || null,
+        caption: title.trim(),
+        sound_name: null,
+        hashtags,
         visibility,
       });
       if (error) throw error;
-      toast.success("Vidéo publiée 🎉");
-      setFile(null);
-      setCaption("");
-      setSound("");
+      toast.success("Video published 🎉");
       onDone();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Échec de la publication");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Publishing failed");
     } finally {
       setBusy(false);
     }
   }
-
   return (
-    <Card className="space-y-5">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="video/*"
-        hidden
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-      />
-      {preview ? (
-        <video
-          src={preview}
-          controls
-          playsInline
-          className="mx-auto max-h-80 rounded-2xl bg-black"
-        />
-      ) : (
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-border py-12 text-muted-foreground transition hover:border-primary hover:text-foreground"
-        >
-          <Upload className="h-8 w-8" />
-          <span className="text-sm font-semibold">Choisir une vidéo (max 200 Mo)</span>
-        </button>
-      )}
-      {file ? (
-        <Button variant="outline" className="w-full" onClick={() => inputRef.current?.click()}>
-          Changer de vidéo
-        </Button>
-      ) : null}
-
-      <div>
-        <Label>Légende</Label>
-        <Textarea
-          rows={3}
-          value={caption}
-          maxLength={300}
-          onChange={(e) => setCaption(e.target.value)}
-          placeholder="Décris ta vidéo, ajoute des #hashtags et mentionne @quelqu’un…"
-        />
-      </div>
-      <div>
-        <Label>Son</Label>
-        <Input
-          value={sound}
-          onChange={(e) => setSound(e.target.value)}
-          placeholder="Son original"
-        />
-      </div>
-      <div>
-        <Label>Visibilité</Label>
-        <div className="flex gap-2">
-          {(
-            [
-              ["public", "Public"],
-              ["private", "Privé"],
-            ] as const
-          ).map(([value, label]) => (
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/65 backdrop-blur-sm sm:items-center sm:p-5">
+      <div className="bx-pop flex max-h-[94dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[32px] border border-border bg-background sm:rounded-[32px]">
+        <header className="flex items-center border-b border-border px-5 py-4">
+          {step > 1 ? (
             <button
-              key={value}
-              onClick={() => setVisibility(value)}
-              className={cn(
-                "flex-1 rounded-2xl border py-3 text-sm font-bold transition",
-                visibility === value
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground",
-              )}
+              onClick={() => setStep((step - 1) as 1 | 2)}
+              className="grid h-9 w-9 place-items-center"
             >
-              {label}
+              <ArrowLeft />
             </button>
+          ) : (
+            <span className="h-9 w-9" />
+          )}
+          <div className="flex-1 text-center">
+            <b>Post a video</b>
+            <p className="text-xs text-muted-foreground">Step {step} of 3</p>
+          </div>
+          <button onClick={onClose} className="grid h-9 w-9 place-items-center">
+            <X />
+          </button>
+        </header>
+        <div className="grid grid-cols-3 gap-2 px-5 pt-4">
+          {[1, 2, 3].map((n) => (
+            <span
+              key={n}
+              className={cn("h-1.5 rounded-full", n <= step ? "bg-primary" : "bg-surface-2")}
+            />
           ))}
         </div>
+        <main className="overflow-y-auto px-5 py-6">
+          {step === 1 ? (
+            <section>
+              <h2 className="text-2xl font-black">Choose your video</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Select a video file up to 200 MB.
+              </p>
+              <input
+                ref={input}
+                type="file"
+                accept="video/*"
+                hidden
+                onChange={(e) => choose(e.target.files?.[0] ?? null)}
+              />
+              {preview ? (
+                <button
+                  onClick={() => input.current?.click()}
+                  className="relative mx-auto mt-6 block overflow-hidden rounded-3xl bg-black"
+                >
+                  <video src={preview} muted playsInline className="max-h-[48dvh]" />
+                  <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-xs font-bold text-white">
+                    Change video
+                  </span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => input.current?.click()}
+                  className="mt-6 flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-primary/40 bg-primary/5 py-16"
+                >
+                  <Upload className="h-9 w-9 text-primary" />
+                  <b>Select a video file</b>
+                </button>
+              )}
+            </section>
+          ) : null}
+          {step === 2 ? (
+            <section>
+              <h2 className="text-2xl font-black">Give it a title</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                A clear title helps people find your video.
+              </p>
+              <Label className="mt-7">Video title</Label>
+              <Input
+                autoFocus
+                value={title}
+                maxLength={120}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What is your video about?"
+                className="h-14 text-base"
+              />
+              <p className="mt-2 text-right text-xs text-muted-foreground">{title.length}/120</p>
+            </section>
+          ) : null}
+          {step === 3 ? (
+            <section className="space-y-7">
+              <div>
+                <h2 className="text-2xl font-black">Hashtags and visibility</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Add up to 5 hashtags and choose your audience.
+                </p>
+              </div>
+              <div>
+                <Label>Hashtags ({hashtags.length}/5)</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={tag}
+                      disabled={hashtags.length >= 5}
+                      onChange={(e) => setTag(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTag();
+                        }
+                      }}
+                      placeholder="roblox"
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button variant="outline" onClick={addTag}>
+                    Add
+                  </Button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {hashtags.map((h) => (
+                    <button
+                      key={h}
+                      onClick={() => setHashtags((all) => all.filter((x) => x !== h))}
+                      className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary"
+                    >
+                      #{h} ×
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label>Visibility</Label>
+                <div className="mt-2 grid gap-3">
+                  {(
+                    [
+                      ["public", "Everyone", "Visible across Discover", Globe2],
+                      ["sparks", "My Sparks only", "Only people who follow you", UsersRound],
+                    ] as const
+                  ).map(([value, label, desc, Icon]) => (
+                    <button
+                      key={value}
+                      onClick={() => setVisibility(value)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl border p-4 text-left",
+                        visibility === value ? "border-primary bg-primary/10" : "border-border",
+                      )}
+                    >
+                      <Icon className="h-5 w-5 text-primary" />
+                      <span className="flex-1">
+                        <b className="block">{label}</b>
+                        <small className="text-muted-foreground">{desc}</small>
+                      </span>
+                      {visibility === value ? <Check className="h-5 w-5 text-primary" /> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+          ) : null}
+        </main>
+        <footer className="border-t border-border p-5">
+          {step < 3 ? (
+            <Button
+              className="w-full"
+              size="lg"
+              disabled={(step === 1 && !file) || (step === 2 && !title.trim())}
+              onClick={() => setStep((step + 1) as 2 | 3)}
+            >
+              Continue <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button className="w-full" size="lg" disabled={busy} onClick={publish}>
+              {busy ? "Publishing…" : "Publish video"}
+            </Button>
+          )}
+        </footer>
       </div>
-      <Button className="w-full" size="lg" disabled={!file || busy} onClick={publish}>
-        {busy ? "Publication…" : "Publier"}
-      </Button>
-      <p className="text-center text-[11px] text-muted-foreground">
-        En publiant, tu confirmes respecter les règles de la communauté. Bloxspark n'est pas affilié
-        à Roblox Corporation.
-      </p>
-    </Card>
+    </div>
   );
+}
+
+function formatWatchTime(ms: number) {
+  const seconds = Math.round(ms / 1000);
+  return seconds < 60 ? seconds + "s" : Math.floor(seconds / 60) + "m " + (seconds % 60) + "s";
 }

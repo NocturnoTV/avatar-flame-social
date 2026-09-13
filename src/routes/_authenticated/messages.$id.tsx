@@ -15,6 +15,7 @@ import {
   Play,
   Reply,
   Send,
+  ShieldCheck,
   Smile,
   Square,
   Trash2,
@@ -28,7 +29,13 @@ import { StoredImage, useSignedUrl } from "@/components/Media";
 import { PresenceDot, presenceStatus } from "@/components/PresenceDot";
 import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
 import { useCall } from "@/components/CallProvider";
-import { BUBBLE_THEMES, WALLPAPERS, getBubbleTheme, getWallpaper, resolveWallpaperCss } from "@/lib/chatTheme";
+import {
+  BUBBLE_THEMES,
+  WALLPAPERS,
+  getBubbleTheme,
+  getWallpaper,
+  resolveWallpaperCss,
+} from "@/lib/chatTheme";
 import { isSparkPlusActive } from "@/lib/sparkPlus";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
@@ -65,7 +72,7 @@ export const Route = createFileRoute("/_authenticated/messages/$id")({
       { property: "og:description", content: "Text, photo and voice messages." },
     ],
   }),
-  component: Conversation,
+  component: ConversationPage,
 });
 
 type Message = {
@@ -104,6 +111,11 @@ function formatLastSeen(value: string, lang: string) {
   if (absolute < 86_400_000) return formatter.format(Math.round(elapsed / 3_600_000), "hour");
   if (absolute < 604_800_000) return formatter.format(Math.round(elapsed / 86_400_000), "day");
   return new Date(value).toLocaleDateString(lang, { day: "numeric", month: "short" });
+}
+
+function ConversationPage() {
+  const { id } = Route.useParams();
+  return id === "team-spark" ? <TeamSparkConversation /> : <Conversation />;
 }
 
 function Conversation() {
@@ -563,7 +575,10 @@ function Conversation() {
               fallback={header.data.title?.[0]?.toUpperCase() ?? "?"}
             />
             {header.data.otherPresence ? (
-              <PresenceDot profile={header.data.otherPresence} className="absolute bottom-0 right-0 h-3 w-3" />
+              <PresenceDot
+                profile={header.data.otherPresence}
+                className="absolute bottom-0 right-0 h-3 w-3"
+              />
             ) : null}
           </Link>
         )}
@@ -1072,6 +1087,158 @@ function Conversation() {
           }}
         />
       ) : null}
+    </div>
+  );
+}
+
+type TeamSparkNotification = {
+  id: string;
+  body: string | null;
+  read: boolean;
+  created_at: string;
+};
+
+function TeamSparkConversation() {
+  const { user } = useSession();
+  const { t, lang } = useI18n();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const announcements = useQuery({
+    queryKey: ["team-spark-notifications", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<TeamSparkNotification[]> => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id,body,read,created_at")
+        .eq("user_id", user!.id)
+        .eq("kind", "system")
+        .order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    if (!user || !announcements.data?.some((item) => !item.read)) return;
+    void (async () => {
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("kind", "system")
+        .eq("read", false);
+      await Promise.all([
+        announcements.refetch(),
+        qc.invalidateQueries({ queryKey: ["notifications", user.id] }),
+        qc.invalidateQueries({ queryKey: ["unread-notifications", user.id] }),
+      ]);
+    })();
+  }, [announcements.data, qc, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`team-spark-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => void announcements.refetch(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [announcements, user]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [announcements.data?.length]);
+
+  return (
+    <div className="app-background flex h-[calc(100dvh-6rem)] flex-col text-foreground lg:h-screen">
+      <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border bg-background px-3">
+        <button
+          onClick={() => void navigate({ to: "/messages" })}
+          aria-label={t("back")}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-violet-800 p-2 shadow-md shadow-violet-500/25">
+          <img src="/team-spark-avatar.png" alt="" className="h-full w-full object-contain" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 text-[16px] font-black">
+            Team Spark <ShieldCheck className="h-4 w-4 fill-primary text-primary-foreground" />
+          </p>
+          <p className="truncate text-xs text-muted-foreground">{t("systemNotifications")}</p>
+        </div>
+      </header>
+
+      <main className="flex-1 overflow-y-auto px-4 py-5">
+        <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-end">
+          <div className="mb-6 text-center">
+            <div className="mx-auto grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-violet-800 p-3 shadow-xl shadow-violet-500/20">
+              <img src="/team-spark-avatar.png" alt="" className="h-full w-full object-contain" />
+            </div>
+            <h1 className="mt-3 text-xl font-black">Team Spark</h1>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+              {t("systemNotifications")}
+            </p>
+          </div>
+
+          {announcements.isLoading ? (
+            <div className="space-y-3">
+              {[0, 1, 2].map((item) => (
+                <div
+                  key={item}
+                  className="h-20 w-[min(88%,34rem)] animate-pulse rounded-[24px] bg-muted"
+                />
+              ))}
+            </div>
+          ) : announcements.data?.length ? (
+            <div className="space-y-4">
+              {announcements.data.map((announcement) => (
+                <article key={announcement.id} className="flex items-end gap-2">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-violet-800 p-1.5">
+                    <img
+                      src="/team-spark-avatar.png"
+                      alt=""
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                  <div className="max-w-[82%]">
+                    <div className="rounded-[24px] rounded-bl-md bg-gradient-to-br from-violet-600 to-violet-800 px-4 py-3 text-white shadow-sm">
+                      <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                        {announcement.body === "safety_alert"
+                          ? t("safetyAlertNotif")
+                          : announcement.body}
+                      </p>
+                    </div>
+                    <p className="mt-1 px-1 text-[10px] text-muted-foreground">
+                      {formatLastSeen(announcement.created_at, lang)}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="my-auto rounded-3xl border border-dashed border-violet-500/30 bg-violet-500/5 px-6 py-10 text-center">
+              <ShieldCheck className="mx-auto h-8 w-8 text-violet-500" />
+              <p className="mt-3 text-sm font-semibold">{t("noNotifications")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("notificationEmptyHint")}</p>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+      </main>
     </div>
   );
 }

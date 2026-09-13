@@ -79,7 +79,7 @@ function PublicProfile() {
             .from("videos")
             .select("id,storage_path,caption,views_count")
             .eq("user_id", id!)
-            .eq("visibility", "public")
+            .in("visibility", ["public", "sparks"])
             .order("created_at", { ascending: false })
             .limit(12),
         ]);
@@ -136,7 +136,7 @@ function PublicProfile() {
         .from("videos")
         .select("id,storage_path,caption,views_count")
         .in("id", ids)
-        .eq("visibility", "public");
+        .in("visibility", ["public", "sparks"]);
       const byId = new Map((vids ?? []).map((v) => [v.id, v]));
       return ids.map((vid) => byId.get(vid)).filter((v): v is TabVideo => Boolean(v));
     },
