@@ -749,7 +749,7 @@ function MessagesPage() {
               <div key={c.id} className="flex items-center gap-3 rounded-2xl p-2">
                 <Link
                   to="/users/$id"
-                  params={{ id: person?.id ?? "" }}
+                  params={{ id: person?.username || person?.id || "" }}
                   onClick={() => setShowRequests(false)}
                 >
                   <StoredImage

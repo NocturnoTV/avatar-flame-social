@@ -379,7 +379,16 @@ function Conversation() {
             👥
           </div>
         ) : (
-          <Link to="/users/$id" params={{ id: header.data.otherId }} className="relative shrink-0">
+          <Link
+            to="/users/$id"
+            params={{
+              id:
+                header.data.realUsername && header.data.realUsername !== "?"
+                  ? header.data.realUsername
+                  : header.data.otherId,
+            }}
+            className="relative shrink-0"
+          >
             <StoredImage
               path={header.data.people[header.data.otherId]?.avatar_url}
               alt={header.data.title ?? ""}

@@ -12,7 +12,7 @@ export type Wallpaper = {
 };
 
 export const WALLPAPERS: Wallpaper[] = [
-  { id: "default", label: "Default", css: "#ffffff", darkCss: "#000000" },
+  { id: "default", label: "Default", css: "#faf7fe", darkCss: "#08090d" },
   { id: "sunset", label: "Sunset", css: "linear-gradient(160deg,#FFE5EC 0%,#FFF3E0 100%)" },
   { id: "ocean", label: "Ocean", css: "linear-gradient(160deg,#E3F6FF 0%,#EAF2FF 100%)" },
   { id: "nebula", label: "Nebula", css: "linear-gradient(160deg,#F1E9FF 0%,#E7EEFF 100%)" },

@@ -23,17 +23,38 @@ export const Route = createFileRoute("/_authenticated/users/$id")({
   component: PublicProfile,
 });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function PublicProfile() {
-  const { id } = Route.useParams();
+  const { id: param } = Route.useParams();
   const { t } = useI18n();
   const { user } = useSession();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [messaging, setMessaging] = useState(false);
-  const isMe = user?.id === id;
+
+  // The URL uses the username (e.g. /users/arthur); resolve it to the real
+  // id once here so every other query below can stay UUID-based. A raw
+  // UUID in the URL (old links, or a username that never got resolved)
+  // still works — we just use it as-is.
+  const resolved = useQuery({
+    queryKey: ["resolve-profile-id", param],
+    queryFn: async () => {
+      if (UUID_RE.test(param)) return param;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", param)
+        .maybeSingle();
+      return data?.id ?? null;
+    },
+  });
+  const id = resolved.data ?? undefined;
+  const isMe = !!user && user.id === id;
 
   const profile = useQuery({
     queryKey: ["public-profile", id],
+    enabled: !!id,
     queryFn: async () => {
       const [{ data: person }, { data: photos }, { data: games }, { data: videos }] =
         await Promise.all([
@@ -42,22 +63,22 @@ function PublicProfile() {
             .select(
               "id,username,roblox_username,roblox_display_name,bio,link_url,banner_style,banner_url,avatar_url,verified",
             )
-            .eq("id", id)
+            .eq("id", id!)
             .maybeSingle(),
           supabase
             .from("profile_photos")
             .select("id,url,position")
-            .eq("user_id", id)
+            .eq("user_id", id!)
             .order("position"),
           supabase
             .from("favorite_games")
             .select("id,name,url,thumbnail_url,position")
-            .eq("user_id", id)
+            .eq("user_id", id!)
             .order("position"),
           supabase
             .from("videos")
             .select("id,storage_path,caption,views_count")
-            .eq("user_id", id)
+            .eq("user_id", id!)
             .eq("visibility", "public")
             .order("created_at", { ascending: false })
             .limit(12),
@@ -68,11 +89,12 @@ function PublicProfile() {
 
   const sparkPlusStyle = useQuery({
     queryKey: ["public-profile-spark-plus", id],
+    enabled: !!id,
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
         .select("spark_plus_active,spark_plus_expires_at,profile_font,profile_glow")
-        .eq("id", id)
+        .eq("id", id!)
         .maybeSingle();
       return data?.spark_plus_active &&
         (!data.spark_plus_expires_at || new Date(data.spark_plus_expires_at).getTime() > Date.now())
@@ -83,11 +105,12 @@ function PublicProfile() {
 
   const reposts = useQuery({
     queryKey: ["public-reposts", id],
+    enabled: !!id,
     queryFn: async () => {
       const { data: rows } = await supabase
         .from("video_reposts")
         .select("video_id,created_at")
-        .eq("user_id", id)
+        .eq("user_id", id!)
         .order("created_at", { ascending: false });
       const ids = (rows ?? []).map((r) => r.video_id);
       if (!ids.length) return [] as TabVideo[];
@@ -103,16 +126,17 @@ function PublicProfile() {
 
   const counts = useQuery({
     queryKey: ["profile-counts", id],
+    enabled: !!id,
     queryFn: async () => {
       const [followers, following] = await Promise.all([
         supabase
           .from("follows")
           .select("follower_id", { count: "exact", head: true })
-          .eq("following_id", id),
+          .eq("following_id", id!),
         supabase
           .from("follows")
           .select("following_id", { count: "exact", head: true })
-          .eq("follower_id", id),
+          .eq("follower_id", id!),
       ]);
       return { followers: followers.count ?? 0, following: following.count ?? 0 };
     },
@@ -120,20 +144,20 @@ function PublicProfile() {
 
   const relation = useQuery({
     queryKey: ["profile-relation", id, user?.id],
-    enabled: !!user && !isMe,
+    enabled: !!user && !isMe && !!id,
     queryFn: async () => {
       const { data } = await supabase
         .from("follows")
         .select("following_id")
         .eq("follower_id", user!.id)
-        .eq("following_id", id)
+        .eq("following_id", id!)
         .maybeSingle();
       return { following: !!data };
     },
   });
 
   async function toggleFollow() {
-    if (!user || isMe) return;
+    if (!user || isMe || !id) return;
     if (relation.data?.following) {
       await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", id);
     } else {
@@ -144,7 +168,7 @@ function PublicProfile() {
   }
 
   async function message() {
-    if (!user || isMe || messaging) return;
+    if (!user || isMe || messaging || !id) return;
     setMessaging(true);
     try {
       const { data: conversationId, error } = await supabase.rpc("start_direct_message", {
@@ -215,7 +239,7 @@ function PublicProfile() {
         >
           {p?.username ?? "Profil"}
           {sparkPlusStyle.data ? (
-            <Crown className="h-5 w-5 text-blue-500" aria-label="Spark Plus" />
+            <Crown className="h-5 w-5 text-primary" aria-label="Spark Plus" />
           ) : null}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
         </h1>

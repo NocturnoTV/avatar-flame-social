@@ -412,7 +412,7 @@ function DiscoverSearch({
                     <Link
                       key={creator.id}
                       to="/users/$id"
-                      params={{ id: creator.id }}
+                      params={{ id: creator.username || creator.id }}
                       onClick={onClose}
                       className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 hover:border-primary/40"
                     >
@@ -708,7 +708,7 @@ function VideoSlide({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-4 pb-6 pr-24">
           <Link
             to="/users/$id"
-            params={{ id: video.user_id }}
+            params={{ id: username || video.user_id }}
             className="pointer-events-auto text-[15px] font-extrabold text-white drop-shadow hover:underline"
           >
             @{username}
@@ -740,7 +740,7 @@ function VideoSlide({
           <div className="relative">
             <Link
               to="/users/$id"
-              params={{ id: video.user_id }}
+              params={{ id: username || video.user_id }}
               className="block h-10 w-10 overflow-hidden rounded-full border-2 border-white"
               aria-label={`Profil de ${username}`}
             >
@@ -1341,7 +1341,7 @@ function CommentItem({
   return (
     <div className="space-y-3">
       <div className="flex gap-3">
-        <Link to="/users/$id" params={{ id: comment.user_id }}>
+        <Link to="/users/$id" params={{ id: comment.username || comment.user_id }}>
           <StoredImage
             path={comment.avatar_url}
             alt={comment.username}
@@ -1352,7 +1352,7 @@ function CommentItem({
         <div className="min-w-0 flex-1">
           <Link
             to="/users/$id"
-            params={{ id: comment.user_id }}
+            params={{ id: comment.username || comment.user_id }}
             className="text-xs font-bold text-muted-foreground hover:text-primary"
           >
             @{comment.username}
@@ -1400,7 +1400,7 @@ function CommentItem({
       </div>
       {replies.map((r) => (
         <div key={r.id} className="ml-12 flex gap-2 pl-3">
-          <Link to="/users/$id" params={{ id: r.user_id }}>
+          <Link to="/users/$id" params={{ id: r.username || r.user_id }}>
             <StoredImage
               path={r.avatar_url}
               alt={r.username}
@@ -1411,7 +1411,7 @@ function CommentItem({
           <div className="min-w-0 flex-1">
             <Link
               to="/users/$id"
-              params={{ id: r.user_id }}
+              params={{ id: r.username || r.user_id }}
               className="text-[11px] font-bold text-muted-foreground"
             >
               @{r.username}

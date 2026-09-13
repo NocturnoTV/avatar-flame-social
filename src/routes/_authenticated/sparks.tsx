@@ -904,7 +904,7 @@ function SparkCard({
             )}
             <Link
               to="/users/$id"
-              params={{ id: profile.id }}
+              params={{ id: profile.username || profile.id }}
               onPointerDown={stop}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-bold text-black shadow-lg"
             >
