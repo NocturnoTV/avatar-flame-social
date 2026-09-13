@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Contact,
   Flag,
+  LogOut,
   MessageSquare,
   Paintbrush,
   Pin,
@@ -154,6 +155,18 @@ export function ConversationInfoSheet({
     if (!user || !otherId) return;
     await supabase.from("blocks").insert({ blocker_id: user.id, blocked_id: otherId });
     toast.success(t("blocked"));
+    onClose();
+    await navigate({ to: "/messages" });
+  }
+
+  async function leaveGroup() {
+    if (!user) return;
+    await supabase
+      .from("conversation_participants")
+      .delete()
+      .eq("conversation_id", conversationId)
+      .eq("user_id", user.id);
+    toast.success(t("leftGroup"));
     onClose();
     await navigate({ to: "/messages" });
   }
@@ -377,7 +390,9 @@ export function ConversationInfoSheet({
               <Row icon={Ban} label={t("block")} onClick={() => void block()} chevron />
               <Row icon={Flag} label={t("report")} onClick={() => setReporting(true)} chevron />
             </>
-          ) : null}
+          ) : (
+            <Row icon={LogOut} label={t("leaveGroup")} onClick={() => void leaveGroup()} chevron />
+          )}
         </div>
 
         {reporting ? (

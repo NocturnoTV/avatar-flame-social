@@ -54,6 +54,7 @@ type Row = {
   pinned: boolean;
   muted: boolean;
   last_message_at: string;
+  unread_count: number;
 };
 type Story = {
   id: string;
@@ -125,7 +126,7 @@ function MessagesPage() {
     queryFn: async (): Promise<Row[]> => {
       const { data: mine } = await supabase
         .from("conversation_participants")
-        .select("conversation_id,pinned,muted")
+        .select("conversation_id,pinned,muted,last_read_at")
         .eq("user_id", user!.id);
       const ids = (mine ?? []).map((p) => p.conversation_id);
       if (!ids.length) return [];
@@ -140,7 +141,7 @@ function MessagesPage() {
           .in("conversation_id", ids),
         supabase
           .from("messages")
-          .select("conversation_id,content,kind,created_at")
+          .select("conversation_id,sender_id,content,kind,created_at")
           .in("conversation_id", ids)
           .order("created_at", { ascending: false }),
       ]);
@@ -164,6 +165,13 @@ function MessagesPage() {
             : last?.kind === "image"
               ? `🖼️ ${t("photo")}`
               : (last?.content ?? "");
+        const lastReadAt = mineById.get(c.id)?.last_read_at;
+        const unreadCount = (lastMessages ?? []).filter(
+          (m) =>
+            m.conversation_id === c.id &&
+            m.sender_id !== user!.id &&
+            (!lastReadAt || new Date(m.created_at).getTime() > new Date(lastReadAt).getTime()),
+        ).length;
         return {
           id: c.id,
           is_group: c.is_group,
@@ -175,10 +183,14 @@ function MessagesPage() {
           pinned: mineById.get(c.id)?.pinned ?? false,
           muted: mineById.get(c.id)?.muted ?? false,
           last_message_at: c.last_message_at,
+          unread_count: unreadCount,
         };
       });
       return rows.sort((a, b) => {
         if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        const aUnread = a.unread_count > 0;
+        const bUnread = b.unread_count > 0;
+        if (aUnread !== bUnread) return aUnread ? -1 : 1;
         return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
       });
     },
@@ -629,6 +641,11 @@ function MessagesPage() {
                       className="absolute bottom-0 right-0 h-3.5 w-3.5"
                     />
                   ) : null}
+                  {c.unread_count > 0 ? (
+                    <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-background">
+                      {c.unread_count > 9 ? "9+" : c.unread_count}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
@@ -682,7 +699,7 @@ function MessagesPage() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
-                {t("systemNotifications")}
+                {t("teamSparks")}
                 <Pin className="h-3.5 w-3.5 text-[#929292]" />
               </p>
               <p className="truncate text-sm text-[#929292]">
