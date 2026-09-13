@@ -540,6 +540,36 @@ export type Database = {
         }
         Relationships: []
       }
+      roblox_oauth_states: {
+        Row: {
+          created_at: string
+          expires_at: string
+          nonce: string
+          return_to: string
+          state: string
+          user_id: string
+          verifier: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          nonce: string
+          return_to?: string
+          state: string
+          user_id: string
+          verifier: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          nonce?: string
+          return_to?: string
+          state?: string
+          user_id?: string
+          verifier?: string
+        }
+        Relationships: []
+      }
       swipes: {
         Row: {
           action: Database["public"]["Enums"]["swipe_action"]
