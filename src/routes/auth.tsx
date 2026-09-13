@@ -42,21 +42,34 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
+  async function continueAfterAuthentication(userId: string) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", userId)
+      .maybeSingle();
+    navigate({ to: profile?.onboarding_completed ? "/home" : "/onboarding", replace: true });
+  }
+
   useEffect(() => {
-    if (session) navigate({ to: "/home", replace: true });
-  }, [session, navigate]);
+    if (session?.user.id) void continueAfterAuthentication(session.user.id);
+  }, [session?.user.id]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     try {
       if (isSignup) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: `${window.location.origin}/onboarding` },
         });
         if (error) throw error;
+        if (data.session?.user.id) {
+          await continueAfterAuthentication(data.session.user.id);
+          return;
+        }
         toast.success(t("checkEmail"));
         setIsSignup(false);
       } else {
@@ -66,7 +79,9 @@ function AuthPage() {
           refresh_token: tokens.refresh_token,
         });
         if (error) throw error;
-        navigate({ to: "/home" });
+        const { data } = await supabase.auth.getUser();
+        if (!data.user) throw new Error("invalid_credentials");
+        await continueAfterAuthentication(data.user.id);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
@@ -84,7 +99,8 @@ function AuthPage() {
       });
       if (!result.error) {
         if (result.redirected) return;
-        navigate({ to: "/home" });
+        const { data } = await supabase.auth.getUser();
+        if (data.user) await continueAfterAuthentication(data.user.id);
         return;
       }
 

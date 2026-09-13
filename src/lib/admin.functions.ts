@@ -1,0 +1,255 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+async function requireStaff(userId: string, adminOnly = false) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  if (error) throw error;
+  const roles = (data ?? []).map((row) => row.role);
+  if (
+    adminOnly
+      ? !roles.includes("admin")
+      : !roles.some((role) => role === "admin" || role === "moderator")
+  ) {
+    throw new Error("forbidden");
+  }
+  return { supabaseAdmin, roles };
+}
+
+export const adminListMembers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin, roles: callerRoles } = await requireStaff(context.userId);
+    const canManageCredentials = callerRoles.includes("admin");
+    const [{ data: authPage, error: authError }, profilesResult, { data: roles }] =
+      await Promise.all([
+        supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+        (supabaseAdmin as any)
+          .from("profiles")
+          .select(
+            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,moderation_status,warning_count,banned_until,moderation_note",
+          )
+          .order("created_at", { ascending: false }),
+        supabaseAdmin.from("user_roles").select("user_id,role"),
+      ]);
+    const profiles = profilesResult.data as Array<Record<string, unknown>> | null;
+    const profileError = profilesResult.error;
+    if (authError) throw authError;
+    if (profileError) throw profileError;
+
+    const authById = new Map((authPage?.users ?? []).map((user) => [user.id, user]));
+    const rolesById = new Map<string, string[]>();
+    for (const row of roles ?? []) {
+      const list = rolesById.get(row.user_id) ?? [];
+      list.push(row.role);
+      rolesById.set(row.user_id, list);
+    }
+
+    return (profiles ?? []).map((profile) => {
+      const auth = authById.get(String(profile["id"]));
+      return {
+        id: String(profile["id"]),
+        username: (profile["username"] as string | null) ?? null,
+        avatar_url: (profile["avatar_url"] as string | null) ?? null,
+        roblox_username: (profile["roblox_username"] as string | null) ?? null,
+        roblox_display_name: (profile["roblox_display_name"] as string | null) ?? null,
+        language: String(profile["language"] ?? "en"),
+        verified: Boolean(profile["verified"]),
+        onboarding_completed: Boolean(profile["onboarding_completed"]),
+        created_at: String(profile["created_at"] ?? ""),
+        last_active_at: (profile["last_active_at"] as string | null) ?? null,
+        moderation_status: String(profile["moderation_status"] ?? "active"),
+        warning_count: Number(profile["warning_count"] ?? 0),
+        moderation_note: (profile["moderation_note"] as string | null) ?? null,
+        email: canManageCredentials ? (auth?.email ?? null) : null,
+        emailConfirmedAt: auth?.email_confirmed_at ?? null,
+        lastSignInAt: auth?.last_sign_in_at ?? null,
+        bannedUntil: auth?.banned_until ?? (profile["banned_until"] as string | null) ?? null,
+        roles: rolesById.get(String(profile["id"])) ?? [],
+      };
+    });
+  });
+
+const detailSchema = z.object({ userId: z.string().uuid() });
+
+export const adminGetMemberDetail = createServerFn({ method: "GET" })
+  .validator(detailSchema)
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await requireStaff(context.userId);
+    const [videos, messages, notifications, reports, audit] = await Promise.all([
+      supabaseAdmin
+        .from("videos")
+        .select("id,storage_path,caption,visibility,views_count,created_at")
+        .eq("user_id", data.userId)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabaseAdmin
+        .from("messages")
+        .select("id,conversation_id,kind,content,media_url,created_at")
+        .eq("sender_id", data.userId)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabaseAdmin
+        .from("notifications")
+        .select("id,kind,body,read,created_at")
+        .eq("user_id", data.userId)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabaseAdmin
+        .from("reports")
+        .select("id,reason,details,status,created_at,reporter_id,target_user_id")
+        .or(`reporter_id.eq.${data.userId},target_user_id.eq.${data.userId}`)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabaseAdmin
+        .from("admin_audit_log")
+        .select("id,action,details,created_at,admin_id")
+        .eq("target_user_id", data.userId)
+        .order("created_at", { ascending: false })
+        .limit(100),
+    ]);
+    for (const result of [videos, messages, notifications, reports, audit]) {
+      if (result.error) throw result.error;
+    }
+    return {
+      videos: videos.data ?? [],
+      messages: messages.data ?? [],
+      notifications: notifications.data ?? [],
+      reports: reports.data ?? [],
+      audit: audit.data ?? [],
+    };
+  });
+
+const actionSchema = z.object({
+  action: z.enum([
+    "warn",
+    "notify",
+    "ban",
+    "unban",
+    "update_email",
+    "update_password",
+    "hide_video",
+    "restore_video",
+    "delete_video",
+  ]),
+  userId: z.string().uuid(),
+  value: z.string().max(500).optional(),
+  targetId: z.string().uuid().optional(),
+});
+
+export const adminManageMember = createServerFn({ method: "POST" })
+  .validator(actionSchema)
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const adminOnly = ["ban", "unban", "update_email", "update_password"].includes(data.action);
+    const { supabaseAdmin } = await requireStaff(context.userId, adminOnly);
+    if (data.userId === context.userId && data.action === "ban") throw new Error("cannot_ban_self");
+
+    const db = supabaseAdmin as any;
+    const value = data.value?.trim() ?? "";
+    let details = value || data.targetId || null;
+
+    if (data.action === "warn") {
+      if (!value) throw new Error("warning_required");
+      const { data: profile } = await db
+        .from("profiles")
+        .select("warning_count")
+        .eq("id", data.userId)
+        .single();
+      await db
+        .from("profiles")
+        .update({
+          moderation_status: "warned",
+          warning_count: Number(profile?.warning_count ?? 0) + 1,
+          moderation_note: value,
+        })
+        .eq("id", data.userId);
+      await db
+        .from("notifications")
+        .insert({ user_id: data.userId, kind: "system", body: `Moderation warning: ${value}` });
+    }
+
+    if (data.action === "notify") {
+      if (!value) throw new Error("notification_required");
+      await db.from("notifications").insert({ user_id: data.userId, kind: "system", body: value });
+    }
+
+    if (data.action === "ban") {
+      const duration = value || "876000h";
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+        ban_duration: duration,
+      });
+      if (error) throw error;
+      await db
+        .from("profiles")
+        .update({
+          moderation_status: "banned",
+          banned_until: "9999-12-31T23:59:59Z",
+          moderation_note: value || "Permanent ban",
+        })
+        .eq("id", data.userId);
+      details = value || "permanent";
+    }
+
+    if (data.action === "unban") {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+        ban_duration: "none",
+      });
+      if (error) throw error;
+      await db
+        .from("profiles")
+        .update({ moderation_status: "active", banned_until: null })
+        .eq("id", data.userId);
+    }
+
+    if (data.action === "update_email") {
+      const email = z.string().email().parse(value);
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+        email,
+        email_confirm: true,
+      });
+      if (error) throw error;
+      details = "email_updated";
+    }
+
+    if (data.action === "update_password") {
+      const password = z.string().min(8).max(200).parse(value);
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password });
+      if (error) throw error;
+      details = "password_reset";
+    }
+
+    if (["hide_video", "restore_video", "delete_video"].includes(data.action)) {
+      if (!data.targetId) throw new Error("video_required");
+      if (data.action === "delete_video") {
+        const { error } = await supabaseAdmin
+          .from("videos")
+          .delete()
+          .eq("id", data.targetId)
+          .eq("user_id", data.userId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabaseAdmin
+          .from("videos")
+          .update({ visibility: data.action === "hide_video" ? "private" : "public" })
+          .eq("id", data.targetId)
+          .eq("user_id", data.userId);
+        if (error) throw error;
+      }
+    }
+
+    const { error: auditError } = await supabaseAdmin.from("admin_audit_log").insert({
+      admin_id: context.userId,
+      action: data.action,
+      target_user_id: data.userId,
+      target_id: data.targetId ?? null,
+      details,
+    });
+    if (auditError) throw auditError;
+    return { success: true };
+  });

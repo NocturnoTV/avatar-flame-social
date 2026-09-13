@@ -26,6 +26,7 @@ import { useSession } from "@/lib/session";
 import { useRoles } from "@/lib/roles";
 import { BANNERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
+import { RobloxIdentity } from "@/components/RobloxIdentity";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -278,9 +279,7 @@ function ProfilePage() {
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
         </h2>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Gamepad2 className="h-4 w-4" /> {p?.roblox_username}
-          </span>
+          <RobloxIdentity displayName={p?.roblox_display_name} username={p?.roblox_username} />
           {age ? (
             <span>
               · {age} {t("years")}

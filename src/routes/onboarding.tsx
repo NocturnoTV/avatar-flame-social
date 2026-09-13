@@ -72,6 +72,11 @@ function Onboarding() {
     },
   });
 
+  useEffect(() => {
+    const robloxUsername = robloxProfile.data?.roblox_username;
+    if (robloxUsername && !username.trim()) setUsername(robloxUsername);
+  }, [robloxProfile.data?.roblox_username]);
+
   const age = ageFrom(birth);
   const minor = age !== null && age < 18;
   const tooYoung = age !== null && age < 13;
@@ -191,7 +196,6 @@ function Onboarding() {
             {t("haveAccount")} <span className="spark-text">{t("signIn")}</span>
           </Link>
           <p className="mt-5 text-center text-xs text-muted-foreground">{t("notAffiliated")}</p>
-
         </div>
       </div>
     );

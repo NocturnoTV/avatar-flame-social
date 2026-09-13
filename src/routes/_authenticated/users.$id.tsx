@@ -6,6 +6,7 @@ import { StoredImage, useSignedUrl } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { BANNERS } from "@/lib/decorations";
 import { useI18n } from "@/lib/i18n";
+import { RobloxIdentity } from "@/components/RobloxIdentity";
 
 export const Route = createFileRoute("/_authenticated/users/$id")({
   head: () => ({ meta: [{ title: "Profil — Bloxspark" }] }),
@@ -22,7 +23,9 @@ function PublicProfile() {
         await Promise.all([
           supabase
             .from("profiles")
-            .select("id,username,roblox_username,bio,banner_style,banner_url,avatar_url,verified")
+            .select(
+              "id,username,roblox_username,roblox_display_name,bio,banner_style,banner_url,avatar_url,verified",
+            )
             .eq("id", id)
             .maybeSingle(),
           supabase
@@ -76,7 +79,11 @@ function PublicProfile() {
           {p?.username ?? "Profil"}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
         </h1>
-        <p className="text-sm text-muted-foreground">🎮 {p?.roblox_username}</p>
+        <RobloxIdentity
+          displayName={p?.roblox_display_name}
+          username={p?.roblox_username}
+          className="text-sm text-muted-foreground"
+        />
         {p?.bio ? (
           <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{p.bio}</p>
         ) : null}

@@ -57,8 +57,7 @@ export async function consumeOAuthState(state: string) {
     verifier: data.verifier,
     userId: data.user_id,
     returnTo: (data.return_to === "/onboarding" ? "/onboarding" : "/settings") as
-      | "/onboarding"
-      | "/settings",
+      "/onboarding" | "/settings",
   };
 }
 
@@ -118,11 +117,12 @@ export async function fetchRobloxIdentity(accessToken: string): Promise<RobloxId
   });
   if (!info.sub || !info.preferred_username)
     throw new Error("Roblox returned an incomplete profile.");
+  const publicIdentity = info.picture ? null : await fetchPublicRobloxIdentity(info.sub);
   return {
     id: info.sub,
     username: info.preferred_username,
     displayName: info.name ?? info.nickname ?? info.preferred_username,
-    avatarUrl: info.picture ?? null,
+    avatarUrl: info.picture ?? publicIdentity?.avatarUrl ?? null,
   };
 }
 

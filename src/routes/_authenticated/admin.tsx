@@ -3,14 +3,21 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   AlertTriangle,
+  Ban,
   BadgeCheck,
+  Bell,
   Eye,
+  KeyRound,
+  Mail,
   MessagesSquare,
   Newspaper,
   Plus,
   Search,
   ShieldCheck,
   Trash2,
+  Unlock,
+  UserRound,
+  Video,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +27,9 @@ import { Verified } from "@/components/Verified";
 import { useSession } from "@/lib/session";
 import { useRoles, type AppRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
+import { StoredImage } from "@/components/Media";
+import { RobloxIdentity } from "@/components/RobloxIdentity";
+import { adminGetMemberDetail, adminListMembers, adminManageMember } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -85,7 +95,9 @@ function AdminPage() {
             onClick={() => setTab(x.id)}
             className={cn(
               "shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition",
-              tab === x.id ? "spark-gradient text-white" : "border border-border text-muted-foreground",
+              tab === x.id
+                ? "spark-gradient text-white"
+                : "border border-border text-muted-foreground",
             )}
           >
             {x.label}
@@ -152,31 +164,45 @@ type LogFn = (action: string, targetUserId?: string, details?: string) => Promis
 
 function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
   const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const members = useQuery({
-    queryKey: ["admin-members", search],
-    queryFn: async () => {
-      let q = supabase
-        .from("profiles")
-        .select("id,username,roblox_username,language,verified,onboarding_completed,created_at")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (search.trim()) q = q.ilike("username", `%${search.trim()}%`);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
+  const members = useQuery({ queryKey: ["admin-members-v2"], queryFn: () => adminListMembers() });
+  const detail = useQuery({
+    queryKey: ["admin-member-detail", selectedId],
+    enabled: !!selectedId,
+    queryFn: () => adminGetMemberDetail({ data: { userId: selectedId! } }),
   });
 
-  const roles = useQuery({
-    queryKey: ["admin-roles"],
-    queryFn: async () => {
-      const { data } = await supabase.from("user_roles").select("user_id,role");
-      const map: Record<string, AppRole[]> = {};
-      for (const r of data ?? []) (map[r.user_id] ??= []).push(r.role as AppRole);
-      return map;
-    },
+  const rows = (members.data ?? []).filter((member) => {
+    const haystack =
+      `${member.username ?? ""} ${member.roblox_username ?? ""} ${member.email ?? ""}`.toLowerCase();
+    return haystack.includes(search.trim().toLowerCase());
   });
+  const selected = (members.data ?? []).find((member) => member.id === selectedId);
+
+  async function act(
+    action: Parameters<typeof adminManageMember>[0]["data"]["action"],
+    value?: string,
+    targetId?: string,
+  ) {
+    if (!selectedId) return;
+    setBusy(true);
+    try {
+      await adminManageMember({ data: { action, userId: selectedId, value, targetId } });
+      toast.success("Action enregistrée et journalisée");
+      setNote("");
+      setNewPassword("");
+      await Promise.all([members.refetch(), detail.refetch()]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function toggleVerified(id: string, next: boolean) {
     const { error } = await supabase.from("profiles").update({ verified: next }).eq("id", id);
@@ -190,9 +216,8 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
   }
 
   async function toggleRole(id: string, role: AppRole, has: boolean) {
-    if (has) {
-      await supabase.from("user_roles").delete().eq("user_id", id).eq("role", role);
-    } else {
+    if (has) await supabase.from("user_roles").delete().eq("user_id", id).eq("role", role);
+    else {
       const { error } = await supabase.from("user_roles").insert({ user_id: id, role });
       if (error) {
         toast.error(error.message);
@@ -200,67 +225,392 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
       }
     }
     await log(has ? "revoke_role" : "grant_role", id, role);
-    void roles.refetch();
+    void members.refetch();
   }
 
   return (
-    <div className="space-y-3">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher un pseudo"
-          className="pl-10"
-        />
+    <div className="space-y-4">
+      <div className="rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">
+          Centre de contrôle
+        </p>
+        <h2 className="mt-1 text-2xl font-black">Gestion complète des membres</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Identité, accès, sanctions et activité réunis dans un dossier de modération journalisé.
+        </p>
+        <div className="relative mt-4">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Pseudo, Roblox ou e-mail"
+            className="bg-background/70 pl-10"
+          />
+        </div>
       </div>
-      {(members.data ?? []).map((m) => {
-        const userRoles = roles.data?.[m.id] ?? [];
-        return (
-          <div key={m.id} className="rounded-3xl border border-border bg-card p-4">
-            <div className="flex items-start justify-between gap-3">
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {rows.map((member) => {
+          const banned =
+            member.moderation_status === "banned" ||
+            (!!member.bannedUntil && new Date(String(member.bannedUntil)) > new Date());
+          return (
+            <article
+              key={member.id}
+              className="rounded-3xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40"
+            >
+              <div className="flex gap-3">
+                <StoredImage
+                  path={member.avatar_url as string | null}
+                  alt=""
+                  className="h-14 w-14 rounded-2xl"
+                  fallback="🎮"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 truncate font-black">
+                    {member.username ?? "Profil incomplet"} {member.verified ? <Verified /> : null}
+                  </p>
+                  <RobloxIdentity
+                    displayName={member.roblox_display_name as string | null}
+                    username={member.roblox_username as string | null}
+                    className="mt-0.5 max-w-full text-xs text-muted-foreground"
+                  />
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {member.email ?? "E-mail indisponible"}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "h-fit rounded-full px-2.5 py-1 text-[10px] font-black uppercase",
+                    banned
+                      ? "bg-destructive/15 text-destructive"
+                      : member.moderation_status === "warned"
+                        ? "bg-amber-500/15 text-amber-500"
+                        : "bg-primary/10 text-primary",
+                  )}
+                >
+                  {banned
+                    ? "Banni"
+                    : member.moderation_status === "warned"
+                      ? `${member.warning_count} avert.`
+                      : "Actif"}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                <span>
+                  {member.onboarding_completed ? "✓ Profil terminé" : "○ Onboarding requis"}
+                </span>
+                <span>
+                  {member.emailConfirmedAt ? "✓ E-mail confirmé" : "○ E-mail non confirmé"}
+                </span>
+                <span>
+                  Vu{" "}
+                  {member.last_active_at
+                    ? new Date(String(member.last_active_at)).toLocaleDateString("fr-FR")
+                    : "—"}
+                </span>
+                <span>{(member.roles as string[]).join(", ") || "membre"}</span>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setSelectedId(String(member.id));
+                    setNewEmail(String(member.email ?? ""));
+                  }}
+                >
+                  <Eye className="mr-1 h-3.5 w-3.5" /> Ouvrir le dossier
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => toggleVerified(String(member.id), !member.verified)}
+                >
+                  {member.verified ? "Décertifier" : "Certifier"}
+                </Button>
+              </div>
+              {isAdmin ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(["moderator", "admin"] as AppRole[]).map((role) => {
+                    const has = (member.roles as string[]).includes(role);
+                    return (
+                      <button
+                        key={role}
+                        onClick={() => toggleRole(String(member.id), role, has)}
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs font-semibold",
+                          has
+                            ? "border-primary text-primary"
+                            : "border-border text-muted-foreground",
+                        )}
+                      >
+                        {has ? `− ${role}` : `+ ${role}`}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+
+      {!rows.length ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">Aucun membre trouvé.</p>
+      ) : null}
+
+      <Sheet
+        open={!!selected}
+        onClose={() => setSelectedId(null)}
+        title={`Dossier · ${selected?.username ?? "membre"}`}
+      >
+        {selected ? (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3 rounded-2xl bg-surface p-3">
+              <StoredImage
+                path={selected.avatar_url as string | null}
+                alt=""
+                className="h-16 w-16 rounded-2xl"
+                fallback="🎮"
+              />
               <div className="min-w-0">
-                <p className="flex items-center gap-1.5 truncate font-semibold">
-                  {m.username ?? "(sans pseudo)"}
-                  {m.verified ? <Verified /> : null}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {m.roblox_username ?? "—"} · {m.language} ·{" "}
-                  {m.onboarding_completed ? "profil complet" : "inscription incomplète"}
-                </p>
-                {userRoles.length ? (
-                  <p className="mt-1 text-xs font-semibold text-primary">{userRoles.join(", ")}</p>
+                <p className="font-black">{selected.username ?? "Profil incomplet"}</p>
+                <p className="truncate text-xs text-muted-foreground">{selected.email}</p>
+                <RobloxIdentity
+                  displayName={selected.roblox_display_name as string | null}
+                  username={selected.roblox_username as string | null}
+                  className="mt-1 max-w-full text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                [detail.data?.videos.length ?? 0, "vidéos"],
+                [detail.data?.messages.length ?? 0, "messages"],
+                [detail.data?.reports.length ?? 0, "signalements"],
+                [detail.data?.notifications.length ?? 0, "notifications"],
+              ].map(([value, label]) => (
+                <div key={String(label)} className="rounded-2xl bg-primary/10 p-2 text-center">
+                  <p className="font-black text-primary">{value}</p>
+                  <p className="truncate text-[9px] text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            <section className="space-y-3">
+              <h3 className="flex items-center gap-2 font-black">
+                <AlertTriangle className="h-4 w-4 text-amber-500" /> Modération
+              </h3>
+              <Textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                placeholder="Motif de l’avertissement ou contenu de la notification…"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  disabled={busy || !note.trim()}
+                  onClick={() => act("warn", note)}
+                >
+                  <AlertTriangle className="mr-1 h-4 w-4" /> Avertir
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={busy || !note.trim()}
+                  onClick={() => act("notify", note)}
+                >
+                  <Bell className="mr-1 h-4 w-4" /> Notifier
+                </Button>
+                {isAdmin ? (
+                  selected.moderation_status === "banned" ? (
+                    <Button className="col-span-2" disabled={busy} onClick={() => act("unban")}>
+                      <Unlock className="mr-1 h-4 w-4" /> Débannir
+                    </Button>
+                  ) : (
+                    <Button
+                      className="col-span-2"
+                      variant="danger"
+                      disabled={busy}
+                      onClick={() => act("ban", note || "Permanent ban")}
+                    >
+                      <Ban className="mr-1 h-4 w-4" /> Bannir le compte
+                    </Button>
+                  )
                 ) : null}
               </div>
-              <Button size="sm" variant={m.verified ? "outline" : "primary"} onClick={() => toggleVerified(m.id, !m.verified)}>
-                {m.verified ? "Retirer" : "Certifier"}
-              </Button>
-            </div>
+              {selected.moderation_note ? (
+                <p className="rounded-2xl bg-amber-500/10 p-3 text-xs text-amber-600">
+                  Dernière note : {String(selected.moderation_note)}
+                </p>
+              ) : null}
+            </section>
+
             {isAdmin ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(["moderator", "admin"] as AppRole[]).map((r) => {
-                  const has = userRoles.includes(r);
-                  return (
-                    <button
-                      key={r}
-                      onClick={() => toggleRole(m.id, r, has)}
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-xs font-semibold",
-                        has ? "border-primary text-primary" : "border-border text-muted-foreground",
-                      )}
-                    >
-                      {has ? `− ${r}` : `+ ${r}`}
-                    </button>
-                  );
-                })}
-              </div>
+              <section className="space-y-3 border-t border-border pt-4">
+                <h3 className="flex items-center gap-2 font-black">
+                  <UserRound className="h-4 w-4 text-primary" /> Accès au compte
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Le mot de passe actuel reste invisible. Tu peux uniquement en définir un nouveau.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                  />
+                  <Button
+                    variant="outline"
+                    disabled={busy || !newEmail}
+                    onClick={() => act("update_email", newEmail)}
+                  >
+                    <Mail className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    minLength={8}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Nouveau mot de passe (8 caractères min.)"
+                  />
+                  <Button
+                    variant="outline"
+                    disabled={busy || newPassword.length < 8}
+                    onClick={() => act("update_password", newPassword)}
+                  >
+                    <KeyRound className="h-4 w-4" />
+                  </Button>
+                </div>
+              </section>
             ) : null}
+
+            <section className="border-t border-border pt-4">
+              <h3 className="flex items-center gap-2 font-black">
+                <Video className="h-4 w-4 text-primary" /> Vidéos ({detail.data?.videos.length ?? 0}
+                )
+              </h3>
+              <div className="mt-3 space-y-2">
+                {detail.data?.videos.map((video) => (
+                  <div key={video.id} className="rounded-2xl bg-surface p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">
+                          {video.caption || "Vidéo sans légende"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {video.views_count} vues · {video.visibility} ·{" "}
+                          {new Date(video.created_at).toLocaleString("fr-FR")}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          className="rounded-full border border-border p-2"
+                          aria-label={video.visibility === "public" ? "Masquer" : "Restaurer"}
+                          onClick={() =>
+                            act(
+                              video.visibility === "public" ? "hide_video" : "restore_video",
+                              undefined,
+                              video.id,
+                            )
+                          }
+                        >
+                          {video.visibility === "public" ? (
+                            <Eye className="h-3.5 w-3.5" />
+                          ) : (
+                            <Unlock className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                        <button
+                          className="rounded-full border border-border p-2 text-destructive"
+                          aria-label="Supprimer"
+                          onClick={() => act("delete_video", undefined, video.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {detail.isLoading ? (
+                  <p className="text-xs text-muted-foreground">Chargement de l’activité…</p>
+                ) : null}
+              </div>
+            </section>
+
+            <section className="border-t border-border pt-4">
+              <h3 className="flex items-center gap-2 font-black">
+                <Bell className="h-4 w-4 text-primary" /> Historique des notifications (
+                {detail.data?.notifications.length ?? 0})
+              </h3>
+              <div className="mt-3 max-h-56 space-y-2 overflow-y-auto">
+                {detail.data?.notifications.map((notification) => (
+                  <div key={notification.id} className="rounded-2xl bg-surface p-3">
+                    <p className="text-[10px] text-muted-foreground">
+                      {notification.kind} · {notification.read ? "lue" : "non lue"} ·{" "}
+                      {new Date(notification.created_at).toLocaleString("fr-FR")}
+                    </p>
+                    <p className="mt-1 break-words text-sm">{notification.body || "—"}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="border-t border-border pt-4">
+              <h3 className="flex items-center gap-2 font-black">
+                <AlertTriangle className="h-4 w-4 text-primary" /> Signalements liés au membre (
+                {detail.data?.reports.length ?? 0})
+              </h3>
+              <div className="mt-3 space-y-2">
+                {detail.data?.reports.map((report) => (
+                  <div key={report.id} className="rounded-2xl border border-border p-3 text-xs">
+                    <p className="font-bold">{report.reason}</p>
+                    <p className="text-muted-foreground">
+                      {report.status} · {new Date(report.created_at).toLocaleString("fr-FR")}
+                    </p>
+                    {report.details ? <p className="mt-1">{report.details}</p> : null}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="border-t border-border pt-4">
+              <h3 className="flex items-center gap-2 font-black">
+                <MessagesSquare className="h-4 w-4 text-primary" /> Historique des messages (
+                {detail.data?.messages.length ?? 0})
+              </h3>
+              <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+                {detail.data?.messages.map((message) => (
+                  <div key={message.id} className="rounded-2xl bg-surface p-3">
+                    <p className="text-[10px] text-muted-foreground">
+                      {message.kind} · {new Date(message.created_at).toLocaleString("fr-FR")}
+                    </p>
+                    <p className="mt-1 break-words text-sm">{message.content || "(média)"}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="border-t border-border pt-4">
+              <h3 className="font-black">Journal du membre</h3>
+              <div className="mt-3 space-y-2">
+                {detail.data?.audit.map((entry) => (
+                  <div key={entry.id} className="rounded-2xl border border-border p-3 text-xs">
+                    <p className="font-bold">{entry.action}</p>
+                    <p className="text-muted-foreground">
+                      {new Date(entry.created_at).toLocaleString("fr-FR")}
+                      {entry.details ? ` · ${entry.details}` : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
-        );
-      })}
-      {members.data?.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun membre trouvé.</p>
-      ) : null}
+        ) : null}
+      </Sheet>
     </div>
   );
 }
@@ -280,7 +630,10 @@ function Reports({ log }: { log: LogFn }) {
   });
 
   async function setStatus(id: string, status: string) {
-    await supabase.from("reports").update({ status, handled_at: new Date().toISOString() }).eq("id", id);
+    await supabase
+      .from("reports")
+      .update({ status, handled_at: new Date().toISOString() })
+      .eq("id", id);
     await log("handle_report", undefined, `${id} → ${status}`);
     void reports.refetch();
   }
@@ -297,7 +650,9 @@ function Reports({ log }: { log: LogFn }) {
             <span
               className={cn(
                 "rounded-full px-2.5 py-1 text-[11px] font-bold",
-                r.status === "pending" ? "bg-destructive/15 text-destructive" : "bg-surface-2 text-muted-foreground",
+                r.status === "pending"
+                  ? "bg-destructive/15 text-destructive"
+                  : "bg-surface-2 text-muted-foreground",
               )}
             >
               {r.status}
@@ -382,7 +737,8 @@ function Conversations({ log }: { log: LogFn }) {
           {(messages.data ?? []).map((m) => (
             <div key={m.id} className="rounded-2xl bg-surface p-3">
               <p className="text-[11px] text-muted-foreground">
-                {m.sender_id.slice(0, 8)} · {new Date(m.created_at).toLocaleString("fr-FR")} · {m.kind}
+                {m.sender_id.slice(0, 8)} · {new Date(m.created_at).toLocaleString("fr-FR")} ·{" "}
+                {m.kind}
               </p>
               <p className="mt-1 break-words">{m.content ?? "(média)"}</p>
             </div>
@@ -525,7 +881,10 @@ function NewsAdmin({ log }: { log: (a: string, u?: string, d?: string) => Promis
         </div>
         <div>
           <Label>Sous-titre</Label>
-          <Input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} />
+          <Input
+            value={form.subtitle}
+            onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+          />
         </div>
         <div>
           <Label>Article</Label>

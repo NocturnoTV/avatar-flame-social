@@ -7,6 +7,16 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", data.user.id)
+      .maybeSingle();
+    if ((profile as { moderation_status?: string } | null)?.moderation_status === "banned") {
+      await supabase.auth.signOut();
+      throw redirect({ to: "/auth" });
+    }
+    if (!profile?.onboarding_completed) throw redirect({ to: "/onboarding" });
     return { user: data.user };
   },
   component: AppLayout,
