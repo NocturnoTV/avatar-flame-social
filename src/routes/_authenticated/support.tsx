@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LogoWordmark } from "@/components/Logo";
 import { StoredImage } from "@/components/Media";
 import { Button, Input, Select, Textarea } from "@/components/ui-kit";
+import { useI18n, type LangCode } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { errorMessage, cn } from "@/lib/utils";
 
@@ -30,105 +31,350 @@ export const Route = createFileRoute("/_authenticated/support")({
   head: () => ({
     meta: [
       { title: "Support — Bloxspark" },
-      { name: "description", content: "Aide, FAQ, tickets et statut des services Bloxspark." },
+      { name: "description", content: "Help, FAQ, tickets and Bloxspark service status." },
     ],
   }),
   component: SupportPage,
 });
 
-const CATEGORIES = [
-  { id: "account", label: "Compte" },
-  { id: "roblox", label: "Roblox" },
-  { id: "payment", label: "Achat" },
-  { id: "sparks", label: "Sparks" },
-  { id: "report", label: "Signaler un problème" },
-  { id: "bug", label: "Bug" },
-  { id: "copyright", label: "Droits d'auteur / DMCA" },
-  { id: "other", label: "Autre" },
-] as const;
-
-const SERVICES: { id: string; label: string; icon: typeof Server }[] = [
-  { id: "website", label: "Site web", icon: Server },
-  { id: "api", label: "API", icon: Database },
-  { id: "roblox_auth", label: "Authentification Roblox", icon: Key },
-  { id: "payments", label: "Paiements (Stripe)", icon: CreditCard },
-  { id: "sparks", label: "Sparks", icon: Sparkles },
-  { id: "storage", label: "Stockage de fichiers", icon: Paperclip },
-];
-
-const STATUS_LABEL: Record<string, string> = {
-  operational: "Opérationnel",
-  degraded: "Perturbations",
-  outage: "Incident",
-  maintenance: "Maintenance",
-};
-const STATUS_DOT: Record<string, string> = {
-  operational: "bg-[#22C55E]",
-  degraded: "bg-[#F59E0B]",
-  outage: "bg-[#EF4444]",
-  maintenance: "bg-primary",
-};
-const STATUS_TEXT: Record<string, string> = {
-  operational: "text-[#22C55E]",
-  degraded: "text-[#F59E0B]",
-  outage: "text-[#EF4444]",
-  maintenance: "text-primary",
+const SERVICE_IDS = ["website", "api", "roblox_auth", "payments", "sparks", "storage"] as const;
+const SERVICE_ICONS: Record<(typeof SERVICE_IDS)[number], typeof Server> = {
+  website: Server,
+  api: Database,
+  roblox_auth: Key,
+  payments: CreditCard,
+  sparks: Sparkles,
+  storage: Paperclip,
 };
 
-const FAQ_FALLBACK: { category: string; question: string; answer: string }[] = [
-  {
-    category: "Compte",
-    question: "Comment lier mon compte Roblox ?",
-    answer:
-      "Va dans Réglages → Compte Roblox, puis clique sur \"Connecter mon compte Roblox\" et autorise Bloxspark.",
-  },
-  {
-    category: "Compte",
-    question: "Comment modifier mon profil ?",
-    answer: "Depuis l'onglet Profil, clique sur ta photo ou ta bannière pour tout modifier directement.",
-  },
-  {
-    category: "Roblox",
-    question: "Pourquoi la connexion Roblox ne fonctionne pas ?",
-    answer:
-      "Vérifie que tu autorises bien la fenêtre Roblox à s'ouvrir (pas de bloqueur de pop-up), puis réessaie. Si le problème persiste, crée un ticket.",
-  },
-  {
-    category: "Sparks",
-    question: "Comment fonctionne Sparks ?",
-    answer:
-      "Sparks te propose des joueurs qui partagent tes jeux favoris, ta tranche d'âge et ton pays. Swipe à droite pour Like, à gauche pour Passer.",
-  },
-  {
-    category: "Sparks",
-    question: "Comment annuler un Like ?",
-    answer: "Ce n'est pas possible pour l'instant — réfléchis bien avant de swiper !",
-  },
-  {
-    category: "Paiements",
-    question: "Comment fonctionne Bloxspark Premium ?",
-    answer:
-      "Bloxspark Premium (Spark Plus) débloque la personnalisation de profil et des bulles de discussion, entre autres avantages.",
-  },
-  {
-    category: "Sécurité",
-    question: "Comment signaler un utilisateur ?",
-    answer:
-      "Depuis son profil ou une conversation, ouvre le menu \"...\" puis \"Signaler\". Notre équipe Trust & Safety traite chaque signalement.",
-  },
-  {
-    category: "Sécurité",
-    question: "Comment bloquer quelqu'un ?",
-    answer: "Depuis le menu \"...\" d'une conversation ou d'un profil, sélectionne \"Bloquer\".",
-  },
-];
+const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answer: string }[]> = {
+  en: [
+    {
+      category: "Account",
+      question: "How do I link my Roblox account?",
+      answer: 'Go to Settings → Roblox account, then tap "Connect my Roblox account" and authorize Bloxspark.',
+    },
+    {
+      category: "Account",
+      question: "How do I edit my profile?",
+      answer: "From the Profile tab, tap your photo or banner to edit everything directly.",
+    },
+    {
+      category: "Roblox",
+      question: "Why doesn't the Roblox login work?",
+      answer:
+        "Make sure pop-ups aren't blocked so the Roblox window can open, then try again. If it still fails, create a ticket.",
+    },
+    {
+      category: "Sparks",
+      question: "How does Sparks work?",
+      answer:
+        "Sparks suggests players who share your favorite games, age range and country. Swipe right to Like, left to Pass.",
+    },
+    {
+      category: "Sparks",
+      question: "Can I undo a Like?",
+      answer: "Not yet — think it through before you swipe!",
+    },
+    {
+      category: "Payments",
+      question: "How does Bloxspark Premium work?",
+      answer: "Bloxspark Premium (Spark Plus) unlocks profile customization and chat bubble themes, among other perks.",
+    },
+    {
+      category: "Security",
+      question: "How do I report a user?",
+      answer:
+        'From their profile or a conversation, open the "..." menu, then "Report". Our Trust & Safety team reviews every report.',
+    },
+    {
+      category: "Security",
+      question: "How do I block someone?",
+      answer: 'From the "..." menu on a conversation or profile, select "Block".',
+    },
+  ],
+  fr: [
+    {
+      category: "Compte",
+      question: "Comment lier mon compte Roblox ?",
+      answer:
+        "Va dans Réglages → Compte Roblox, puis clique sur \"Connecter mon compte Roblox\" et autorise Bloxspark.",
+    },
+    {
+      category: "Compte",
+      question: "Comment modifier mon profil ?",
+      answer: "Depuis l'onglet Profil, clique sur ta photo ou ta bannière pour tout modifier directement.",
+    },
+    {
+      category: "Roblox",
+      question: "Pourquoi la connexion Roblox ne fonctionne pas ?",
+      answer:
+        "Vérifie que tu autorises bien la fenêtre Roblox à s'ouvrir (pas de bloqueur de pop-up), puis réessaie. Si le problème persiste, crée un ticket.",
+    },
+    {
+      category: "Sparks",
+      question: "Comment fonctionne Sparks ?",
+      answer:
+        "Sparks te propose des joueurs qui partagent tes jeux favoris, ta tranche d'âge et ton pays. Swipe à droite pour Like, à gauche pour Passer.",
+    },
+    {
+      category: "Sparks",
+      question: "Comment annuler un Like ?",
+      answer: "Ce n'est pas possible pour l'instant — réfléchis bien avant de swiper !",
+    },
+    {
+      category: "Paiements",
+      question: "Comment fonctionne Bloxspark Premium ?",
+      answer:
+        "Bloxspark Premium (Spark Plus) débloque la personnalisation de profil et des bulles de discussion, entre autres avantages.",
+    },
+    {
+      category: "Sécurité",
+      question: "Comment signaler un utilisateur ?",
+      answer:
+        "Depuis son profil ou une conversation, ouvre le menu \"...\" puis \"Signaler\". Notre équipe Trust & Safety traite chaque signalement.",
+    },
+    {
+      category: "Sécurité",
+      question: "Comment bloquer quelqu'un ?",
+      answer: "Depuis le menu \"...\" d'une conversation ou d'un profil, sélectionne \"Bloquer\".",
+    },
+  ],
+  es: [
+    {
+      category: "Cuenta",
+      question: "¿Cómo vinculo mi cuenta de Roblox?",
+      answer:
+        'Ve a Ajustes → Cuenta de Roblox, luego toca "Conectar mi cuenta de Roblox" y autoriza Bloxspark.',
+    },
+    {
+      category: "Cuenta",
+      question: "¿Cómo edito mi perfil?",
+      answer: "Desde la pestaña Perfil, toca tu foto o tu banner para editar todo directamente.",
+    },
+    {
+      category: "Roblox",
+      question: "¿Por qué no funciona el inicio de sesión con Roblox?",
+      answer:
+        "Asegúrate de que los pop-ups no estén bloqueados para que la ventana de Roblox pueda abrirse, luego vuelve a intentarlo. Si persiste, crea un ticket.",
+    },
+    {
+      category: "Sparks",
+      question: "¿Cómo funciona Sparks?",
+      answer:
+        "Sparks te sugiere jugadores que comparten tus juegos favoritos, tu rango de edad y tu país. Desliza a la derecha para Like, a la izquierda para Pasar.",
+    },
+    {
+      category: "Sparks",
+      question: "¿Puedo deshacer un Like?",
+      answer: "Todavía no — ¡piénsalo bien antes de deslizar!",
+    },
+    {
+      category: "Pagos",
+      question: "¿Cómo funciona Bloxspark Premium?",
+      answer: "Bloxspark Premium (Spark Plus) desbloquea la personalización de perfil y temas de burbujas de chat, entre otras ventajas.",
+    },
+    {
+      category: "Seguridad",
+      question: "¿Cómo reporto a un usuario?",
+      answer:
+        'Desde su perfil o una conversación, abre el menú "..." y luego "Reportar". Nuestro equipo de Confianza y Seguridad revisa cada reporte.',
+    },
+    {
+      category: "Seguridad",
+      question: "¿Cómo bloqueo a alguien?",
+      answer: 'Desde el menú "..." de una conversación o perfil, selecciona "Bloquear".',
+    },
+  ],
+  pt: [
+    {
+      category: "Conta",
+      question: "Como vincular minha conta Roblox?",
+      answer:
+        'Vá em Configurações → Conta Roblox e toque em "Conectar minha conta Roblox" para autorizar o Bloxspark.',
+    },
+    {
+      category: "Conta",
+      question: "Como edito meu perfil?",
+      answer: "Na aba Perfil, toque na sua foto ou banner para editar tudo diretamente.",
+    },
+    {
+      category: "Roblox",
+      question: "Por que o login com Roblox não funciona?",
+      answer:
+        "Verifique se os pop-ups não estão bloqueados para que a janela do Roblox possa abrir e tente novamente. Se persistir, crie um ticket.",
+    },
+    {
+      category: "Sparks",
+      question: "Como funciona o Sparks?",
+      answer:
+        "O Sparks sugere jogadores que compartilham seus jogos favoritos, faixa etária e país. Deslize para a direita para curtir, para a esquerda para passar.",
+    },
+    {
+      category: "Sparks",
+      question: "Posso desfazer uma curtida?",
+      answer: "Ainda não — pense bem antes de deslizar!",
+    },
+    {
+      category: "Pagamentos",
+      question: "Como funciona o Bloxspark Premium?",
+      answer: "O Bloxspark Premium (Spark Plus) libera a personalização de perfil e temas de bolhas de chat, entre outras vantagens.",
+    },
+    {
+      category: "Segurança",
+      question: "Como denuncio um usuário?",
+      answer:
+        'No perfil dele ou em uma conversa, abra o menu "..." e depois "Denunciar". Nossa equipe de Confiança e Segurança analisa cada denúncia.',
+    },
+    {
+      category: "Segurança",
+      question: "Como bloqueio alguém?",
+      answer: 'No menu "..." de uma conversa ou perfil, selecione "Bloquear".',
+    },
+  ],
+  de: [
+    {
+      category: "Konto",
+      question: "Wie verknüpfe ich mein Roblox-Konto?",
+      answer:
+        'Gehe zu Einstellungen → Roblox-Konto, tippe auf "Mein Roblox-Konto verbinden" und autorisiere Bloxspark.',
+    },
+    {
+      category: "Konto",
+      question: "Wie bearbeite ich mein Profil?",
+      answer: "Tippe im Tab Profil auf dein Foto oder Banner, um alles direkt zu bearbeiten.",
+    },
+    {
+      category: "Roblox",
+      question: "Warum funktioniert der Roblox-Login nicht?",
+      answer:
+        "Stelle sicher, dass Pop-ups nicht blockiert werden, damit sich das Roblox-Fenster öffnen kann, und versuche es erneut. Bei weiteren Problemen erstelle ein Ticket.",
+    },
+    {
+      category: "Sparks",
+      question: "Wie funktioniert Sparks?",
+      answer:
+        "Sparks schlägt Spieler vor, die deine Lieblingsspiele, Altersgruppe und dein Land teilen. Wische nach rechts für Like, nach links für Weiter.",
+    },
+    {
+      category: "Sparks",
+      question: "Kann ich einen Like rückgängig machen?",
+      answer: "Noch nicht — überlege gut, bevor du wischst!",
+    },
+    {
+      category: "Zahlungen",
+      question: "Wie funktioniert Bloxspark Premium?",
+      answer: "Bloxspark Premium (Spark Plus) schaltet unter anderem Profilanpassung und Chat-Bubble-Designs frei.",
+    },
+    {
+      category: "Sicherheit",
+      question: "Wie melde ich einen Nutzer?",
+      answer:
+        'Öffne im Profil oder einer Unterhaltung das "..."-Menü und dann "Melden". Unser Trust & Safety-Team prüft jede Meldung.',
+    },
+    {
+      category: "Sicherheit",
+      question: "Wie blockiere ich jemanden?",
+      answer: 'Wähle im "..."-Menü einer Unterhaltung oder eines Profils "Blockieren".',
+    },
+  ],
+  ko: [
+    {
+      category: "계정",
+      question: "Roblox 계정을 어떻게 연결하나요?",
+      answer: '설정 → Roblox 계정으로 이동한 다음 "내 Roblox 계정 연결"을 눌러 Bloxspark를 승인하세요.',
+    },
+    {
+      category: "계정",
+      question: "프로필은 어떻게 수정하나요?",
+      answer: "프로필 탭에서 사진이나 배너를 눌러 바로 수정할 수 있습니다.",
+    },
+    {
+      category: "Roblox",
+      question: "Roblox 로그인이 안 되는 이유는 무엇인가요?",
+      answer: "팝업 차단이 되어 있지 않은지 확인한 후 다시 시도해 주세요. 계속되면 티켓을 생성해 주세요.",
+    },
+    {
+      category: "Sparks",
+      question: "Sparks는 어떻게 작동하나요?",
+      answer:
+        "Sparks는 좋아하는 게임, 나이대, 국가가 비슷한 플레이어를 추천합니다. 오른쪽으로 스와이프하면 좋아요, 왼쪽이면 패스입니다.",
+    },
+    {
+      category: "Sparks",
+      question: "좋아요를 취소할 수 있나요?",
+      answer: "아직은 불가능합니다 — 스와이프하기 전에 신중히 생각하세요!",
+    },
+    {
+      category: "결제",
+      question: "Bloxspark 프리미엄은 어떻게 작동하나요?",
+      answer: "Bloxspark 프리미엄(Spark Plus)은 프로필 커스터마이징과 채팅 버블 테마 등을 제공합니다.",
+    },
+    {
+      category: "보안",
+      question: "사용자를 어떻게 신고하나요?",
+      answer: '프로필이나 대화방에서 "..." 메뉴를 열고 "신고"를 선택하세요. 저희 신뢰 및 안전팀이 모든 신고를 검토합니다.',
+    },
+    {
+      category: "보안",
+      question: "누군가를 어떻게 차단하나요?",
+      answer: '대화방이나 프로필의 "..." 메뉴에서 "차단"을 선택하세요.',
+    },
+  ],
+};
 
 function SupportPage() {
+  const { t, lang } = useI18n();
   const { user } = useSession();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [view, setView] = useState<"home" | "newTicket" | "myTickets">("home");
   const [openFaq, setOpenFaq] = useState<string | null>(null);
+
+  const CATEGORIES = [
+    { id: "account", label: t("supportCatAccount") },
+    { id: "roblox", label: t("supportCatRoblox") },
+    { id: "payment", label: t("supportCatPayment") },
+    { id: "sparks", label: t("supportCatSparks") },
+    { id: "report", label: t("supportCatReport") },
+    { id: "bug", label: t("supportCatBug") },
+    { id: "copyright", label: t("supportCatCopyright") },
+    { id: "other", label: t("supportCatOther") },
+  ] as const;
+
+  const SERVICES = SERVICE_IDS.map((id) => ({
+    id,
+    icon: SERVICE_ICONS[id],
+    label: t(
+      {
+        website: "supportSvcWebsite",
+        api: "supportSvcApi",
+        roblox_auth: "supportSvcRobloxAuth",
+        payments: "supportSvcPayments",
+        sparks: "supportSvcSparks",
+        storage: "supportSvcStorage",
+      }[id] as Parameters<typeof t>[0],
+    ),
+  }));
+
+  const STATUS_LABEL: Record<string, string> = {
+    operational: t("statusOperational"),
+    degraded: t("statusDegraded"),
+    outage: t("statusOutage"),
+    maintenance: t("statusMaintenance"),
+  };
+  const STATUS_DOT: Record<string, string> = {
+    operational: "bg-[#22C55E]",
+    degraded: "bg-[#F59E0B]",
+    outage: "bg-[#EF4444]",
+    maintenance: "bg-primary",
+  };
+  const STATUS_TEXT: Record<string, string> = {
+    operational: "text-[#22C55E]",
+    degraded: "text-[#F59E0B]",
+    outage: "text-[#EF4444]",
+    maintenance: "text-primary",
+  };
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -210,7 +456,7 @@ function SupportPage() {
 
   async function submitTicket() {
     if (!user || !title.trim() || description.trim().length < 10) {
-      toast.error("Ajoute un sujet et une description d'au moins 10 caractères.");
+      toast.error(t("supportTicketValidation"));
       return;
     }
     setSending(true);
@@ -224,12 +470,12 @@ function SupportPage() {
     });
     setSending(false);
     if (error) {
-      toast.error(errorMessage(error, "Une erreur est survenue."));
+      toast.error(errorMessage(error, t("errorGeneric")));
       return;
     }
     setTitle("");
     setDescription("");
-    toast.success("Ticket envoyé. Notre équipe te répondra bientôt.");
+    toast.success(t("supportTicketSent"));
     void tickets.refetch();
     setView("myTickets");
   }
@@ -242,23 +488,24 @@ function SupportPage() {
   const allOperational = perService.every((s) => s.status === "operational");
 
   const filteredFaq = useMemo(() => {
+    const localFaq = FAQ_FALLBACK[lang] ?? FAQ_FALLBACK.en;
     const source =
       (faq.data?.length ?? 0) > 0
         ? faq.data!.map((f) => ({ id: f.id, category: "", question: f.question, answer: f.answer }))
-        : FAQ_FALLBACK.map((f, i) => ({ id: `fallback-${i}`, ...f }));
+        : localFaq.map((f, i) => ({ id: `fallback-${i}`, ...f }));
     let filtered = source;
     if (category) {
-      const keywords: Record<string, string[]> = {
-        account: ["compte", "profil", "mot de passe"],
+      const keywordsByCategory: Record<string, string[]> = {
+        account: ["compte", "account", "cuenta", "conta", "konto", "계정", "profil", "profile", "perfil"],
         roblox: ["roblox"],
-        payment: ["paiement", "premium", "facture", "abonnement"],
+        payment: ["premium", "paiement", "payment", "pago", "pagamento", "zahlung", "결제"],
         sparks: ["sparks", "spark", "like", "match"],
-        report: ["signaler", "bloquer", "sécurité"],
-        bug: ["bug"],
-        copyright: ["droit", "dmca", "auteur"],
+        report: ["signaler", "report", "reportar", "denunciar", "melde", "신고", "bloquer", "block", "차단"],
+        bug: ["bug", "error", "fehler", "버그"],
+        copyright: ["droit", "copyright", "dmca", "auteur", "urheberrecht", "저작권"],
         other: [],
       };
-      const words = keywords[category] ?? [];
+      const words = keywordsByCategory[category] ?? [];
       if (words.length) {
         filtered = filtered.filter((f) =>
           words.some(
@@ -275,11 +522,20 @@ function SupportPage() {
     return filtered.filter(
       (f) => f.question.toLowerCase().includes(q) || f.answer.toLowerCase().includes(q),
     );
-  }, [faq.data, search, category]);
+  }, [faq.data, search, category, lang]);
 
   const filteredTickets = (tickets.data ?? []).filter(
-    (t) => ticketFilter === "all" || t.status === ticketFilter,
+    (ticket) => ticketFilter === "all" || ticket.status === ticketFilter,
   );
+
+  const ticketStatusLabel = (status: string) =>
+    status === "pending"
+      ? t("supportStatusPending")
+      : status === "in_progress"
+        ? t("supportStatusInProgress")
+        : status === "resolved"
+          ? t("supportStatusResolved")
+          : t("supportStatusWontFix");
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-28 pt-4">
@@ -288,7 +544,7 @@ function SupportPage() {
         <div className="flex items-center gap-2">
           <Link
             to="/notifications"
-            aria-label="Notifications"
+            aria-label={t("notifications")}
             className="relative grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-surface-2"
           >
             <Bell className="h-5 w-5" />
@@ -298,7 +554,7 @@ function SupportPage() {
               </span>
             ) : null}
           </Link>
-          <Link to="/profile" aria-label="Profil">
+          <Link to="/profile" aria-label={t("profile")}>
             <StoredImage
               path={myProfile.data?.avatar_url}
               alt=""
@@ -316,25 +572,20 @@ function SupportPage() {
               <Headphones className="h-6 w-6" />
             </span>
             <div>
-              <h1 className="text-2xl font-black">Support</h1>
-              <p className="text-sm text-muted-foreground">Nous sommes là pour vous aider.</p>
+              <h1 className="text-2xl font-black">{t("support")}</h1>
+              <p className="text-sm text-muted-foreground">{t("supportHeroLine")}</p>
             </div>
           </div>
           <p className="hidden shrink-0 -rotate-2 text-xs font-semibold text-[#C084FC] sm:block">
-            Une communauté toujours à vos côtés. ♡
+            {t("supportTagline")}
           </p>
         </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Obtenez de l'aide, consultez nos guides ou contactez notre équipe.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("supportIntro")}</p>
       </div>
 
       {view !== "home" ? (
-        <button
-          onClick={() => setView("home")}
-          className="mt-4 text-sm font-semibold text-primary"
-        >
-          ← Retour au centre d'aide
+        <button onClick={() => setView("home")} className="mt-4 text-sm font-semibold text-primary">
+          {t("supportBackHome")}
         </button>
       ) : null}
 
@@ -345,7 +596,7 @@ function SupportPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher une réponse..."
+              placeholder={t("supportSearchPlaceholder")}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
           </label>
@@ -370,8 +621,8 @@ function SupportPage() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             <FeatureCard
               icon={MessageCircle}
-              title="Créer un ticket"
-              description="Obtenez de l'aide de notre équipe."
+              title={t("supportTicketCardTitle")}
+              description={t("supportTicketCardDesc")}
               onClick={() => {
                 if (category) setTicketCategory(category);
                 setView("newTicket");
@@ -379,22 +630,22 @@ function SupportPage() {
             />
             <FeatureCard
               icon={BookOpen}
-              title="Consulter la FAQ"
-              description="Trouvez rapidement des réponses."
+              title={t("supportFaqCardTitle")}
+              description={t("supportFaqCardDesc")}
               onClick={() => document.getElementById("faq-section")?.scrollIntoView({ behavior: "smooth" })}
             />
             <FeatureCard
               icon={Server}
-              title="Statut des services"
-              description="État de nos services en temps réel."
+              title={t("supportStatusCardTitle")}
+              description={t("supportStatusCardDesc")}
               badge={allOperational ? "🟢" : undefined}
               onClick={() => document.getElementById("status-section")?.scrollIntoView({ behavior: "smooth" })}
             />
             <FeatureCard
               icon={Users}
-              title="Communauté"
-              description="Obtenez de l'aide entre joueurs."
-              onClick={() => toast("Lien Discord bientôt disponible.")}
+              title={t("supportCommunityCardTitle")}
+              description={t("supportCommunityCardDesc")}
+              onClick={() => toast(t("supportDiscordSoon"))}
             />
           </div>
 
@@ -402,11 +653,11 @@ function SupportPage() {
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-lg font-bold">
                 <span className={cn("h-2.5 w-2.5 rounded-full", allOperational ? "bg-[#22C55E]" : "bg-[#F59E0B]")} />
-                État des services
+                {t("supportServicesTitle")}
               </h2>
             </div>
             <p className={cn("mt-1 text-sm font-semibold", allOperational ? "text-[#22C55E]" : "text-[#F59E0B]")}>
-              {allOperational ? "Tous les systèmes opérationnels" : overall?.message || "Perturbations en cours"}
+              {allOperational ? t("supportAllOperational") : overall?.message || t("supportDegradedOngoing")}
             </p>
             <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
               {perService.map((s) => (
@@ -432,20 +683,21 @@ function SupportPage() {
             {(incidents.data ?? []).length > 0 ? (
               <div className="mt-3">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Historique
+                  {t("supportHistory")}
                 </p>
                 <div className="space-y-2">
                   {incidents.data!.map((incident) => (
                     <div key={incident.id} className="rounded-2xl border border-border bg-card p-3 text-sm">
                       <p className="text-xs text-muted-foreground">
-                        {new Date(incident.started_at).toLocaleDateString("fr-FR", {
+                        {new Date(incident.started_at).toLocaleDateString(lang, {
                           day: "numeric",
                           month: "long",
                           year: "numeric",
                         })}
                       </p>
                       <p className="mt-0.5 font-semibold">
-                        {incident.status === "resolved" ? "🟢 Résolu" : "🟠 En cours"} — {incident.title}
+                        {incident.status === "resolved" ? `🟢 ${t("supportStatusResolved")}` : `🟠 ${t("supportStatusInProgress")}`} —{" "}
+                        {incident.title}
                       </p>
                     </div>
                   ))}
@@ -455,10 +707,10 @@ function SupportPage() {
           </section>
 
           <section id="faq-section" className="mt-8">
-            <h2 className="text-lg font-bold">Articles populaires</h2>
+            <h2 className="text-lg font-bold">{t("supportPopularArticles")}</h2>
             <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
               {filteredFaq.length === 0 ? (
-                <p className="p-6 text-center text-sm text-muted-foreground">Aucun résultat.</p>
+                <p className="p-6 text-center text-sm text-muted-foreground">{t("supportNoResults")}</p>
               ) : (
                 filteredFaq.map((f) => (
                   <div key={f.id}>
@@ -475,9 +727,7 @@ function SupportPage() {
                       />
                     </button>
                     {openFaq === f.id ? (
-                      <p className="bx-pop px-4 pb-4 text-sm leading-relaxed text-muted-foreground">
-                        {f.answer}
-                      </p>
+                      <p className="bx-pop px-4 pb-4 text-sm leading-relaxed text-muted-foreground">{f.answer}</p>
                     ) : null}
                   </div>
                 ))
@@ -498,14 +748,14 @@ function SupportPage() {
               className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-4 text-center"
             >
               <BookOpen className="h-5 w-5 text-primary" />
-              <span className="text-xs font-semibold text-muted-foreground">Mes tickets</span>
+              <span className="text-xs font-semibold text-muted-foreground">{t("supportMyTicketsCard")}</span>
             </button>
             <button
-              onClick={() => toast("Lien Discord bientôt disponible.")}
+              onClick={() => toast(t("supportDiscordSoon"))}
               className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-4 text-center"
             >
               <Users className="h-5 w-5 text-primary" />
-              <span className="text-xs font-semibold text-muted-foreground">Discord</span>
+              <span className="text-xs font-semibold text-muted-foreground">{t("supportDiscordCard")}</span>
             </button>
           </section>
         </>
@@ -513,20 +763,20 @@ function SupportPage() {
 
       {view === "newTicket" ? (
         <section className="mt-4 space-y-4 rounded-3xl border border-border bg-card p-5">
-          <h2 className="text-lg font-black">Nouveau ticket</h2>
+          <h2 className="text-lg font-black">{t("supportNewTicket")}</h2>
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Sujet
+              {t("supportSubject")}
             </label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Décrivez brièvement votre problème"
+              placeholder={t("supportTicketSubjectPlaceholder")}
             />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Catégorie
+              {t("supportCategory")}
             </label>
             <Select value={ticketCategory} onChange={(e) => setTicketCategory(e.target.value)}>
               {CATEGORIES.map((c) => (
@@ -538,24 +788,24 @@ function SupportPage() {
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Priorité
+              {t("priority")}
             </label>
             <Select value={severity} onChange={(e) => setSeverity(e.target.value)}>
-              <option value="low">Basse</option>
-              <option value="medium">Moyenne</option>
-              <option value="high">Haute</option>
-              <option value="critical">Critique</option>
+              <option value="low">{t("priorityLow")}</option>
+              <option value="medium">{t("priorityMedium")}</option>
+              <option value="high">{t("priorityHigh")}</option>
+              <option value="critical">{t("priorityCritical")}</option>
             </Select>
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Description
+              {t("supportDetails")}
             </label>
             <Textarea
               rows={6}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Expliquez votre problème en détail..."
+              placeholder={t("supportDescriptionPlaceholder")}
             />
           </div>
           <Button
@@ -563,7 +813,7 @@ function SupportPage() {
             disabled={sending || !title.trim() || description.trim().length < 10}
             onClick={() => void submitTicket()}
           >
-            <Send className="h-4 w-4" /> {sending ? "Envoi..." : "Envoyer le ticket"}
+            <Send className="h-4 w-4" /> {sending ? t("sending") : t("sendSupportRequest")}
           </Button>
         </section>
       ) : null}
@@ -571,23 +821,23 @@ function SupportPage() {
       {view === "myTickets" ? (
         <section className="mt-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-black">Mes tickets</h2>
+            <h2 className="text-lg font-black">{t("myRequests")}</h2>
             <button
               onClick={() => setView("newTicket")}
               className="rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground"
             >
-              + Nouveau ticket
+              + {t("supportNewTicket")}
             </button>
           </div>
 
           <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
             {(
               [
-                ["all", "Tous"],
-                ["pending", "Ouverts"],
-                ["in_progress", "En cours"],
-                ["resolved", "Résolus"],
-                ["wont_fix", "Fermés"],
+                ["all", t("filterAll")],
+                ["pending", t("supportStatusPending")],
+                ["in_progress", t("supportStatusInProgress")],
+                ["resolved", t("supportStatusResolved")],
+                ["wont_fix", t("supportStatusWontFix")],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -607,36 +857,30 @@ function SupportPage() {
 
           <div className="mt-3 space-y-2">
             {filteredTickets.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">Aucun ticket.</p>
+              <p className="py-10 text-center text-sm text-muted-foreground">{t("supportNoTickets")}</p>
             ) : (
-              filteredTickets.map((t) => (
-                <div key={t.id} className="rounded-2xl border border-border bg-card p-4">
+              filteredTickets.map((ticket) => (
+                <div key={ticket.id} className="rounded-2xl border border-border bg-card p-4">
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
                         "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
-                        t.status === "pending" && "bg-primary/10 text-primary",
-                        t.status === "in_progress" && "bg-[#F59E0B]/10 text-[#F59E0B]",
-                        t.status === "resolved" && "bg-[#22C55E]/10 text-[#22C55E]",
-                        t.status === "wont_fix" && "bg-surface-2 text-muted-foreground",
+                        ticket.status === "pending" && "bg-primary/10 text-primary",
+                        ticket.status === "in_progress" && "bg-[#F59E0B]/10 text-[#F59E0B]",
+                        ticket.status === "resolved" && "bg-[#22C55E]/10 text-[#22C55E]",
+                        ticket.status === "wont_fix" && "bg-surface-2 text-muted-foreground",
                       )}
                     >
-                      {t.status === "pending"
-                        ? "Ouvert"
-                        : t.status === "in_progress"
-                          ? "En cours"
-                          : t.status === "resolved"
-                            ? "Résolu"
-                            : "Fermé"}
+                      {ticketStatusLabel(ticket.status)}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {CATEGORIES.find((c) => c.id === t.category)?.label ?? t.category}
+                      {CATEGORIES.find((c) => c.id === ticket.category)?.label ?? ticket.category}
                     </span>
                   </div>
-                  <p className="mt-2 font-bold">{t.title}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{t.description}</p>
+                  <p className="mt-2 font-bold">{ticket.title}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{ticket.description}</p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    {new Date(t.created_at).toLocaleString("fr-FR")}
+                    {new Date(ticket.created_at).toLocaleString(lang)}
                   </p>
                 </div>
               ))
@@ -645,12 +889,10 @@ function SupportPage() {
 
           <div className="mt-6 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5">
             <Headphones className="h-8 w-8 text-primary" />
-            <p className="mt-3 font-black">Besoin d'une aide immédiate ?</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Notre équipe est disponible pour vous aider.
-            </p>
+            <p className="mt-3 font-black">{t("supportUrgentTitle")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("supportUrgentText")}</p>
             <Button className="mt-4 w-full" onClick={() => setView("newTicket")}>
-              Créer un nouveau ticket →
+              {t("supportCreateNewTicket")}
             </Button>
           </div>
         </section>
