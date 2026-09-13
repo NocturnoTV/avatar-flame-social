@@ -1,45 +1,45 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ImagePlus, Mic, Send, Square } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  Copy,
+  Forward,
+  ImagePlus,
+  Mic,
+  MoreVertical,
+  Pause,
+  Phone,
+  Play,
+  Reply,
+  Send,
+  Smile,
+  Square,
+  Trash2,
+  X,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
-import { StoredAudio, StoredImage } from "@/components/Media";
+import { StoredImage, useSignedUrl } from "@/components/Media";
+import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-const EMOJIS = [
-  "😀",
-  "😂",
-  "🥰",
-  "😎",
-  "😭",
-  "🔥",
-  "✨",
-  "💖",
-  "👀",
-  "🎮",
-  "🧱",
-  "🚀",
-  "👍",
-  "🙏",
-  "💀",
-  "🤝",
-];
+const EMOJIS = ["😀", "😂", "🥰", "😎", "😭", "🔥", "✨", "💖", "👀", "🎮", "🧱", "🚀", "👍", "🙏", "💀", "🤝"];
+const REACTIONS = ["❤️", "😂", "😮", "😢", "🙏", "🔥"];
 
 export const Route = createFileRoute("/_authenticated/messages/$id")({
   head: () => ({
     meta: [
-      { title: "Discussion — Bloxspark" },
-      {
-        name: "description",
-        content: "Discussion privée Bloxspark avec messages vocaux et photos.",
-      },
-      { property: "og:title", content: "Discussion — Bloxspark" },
-      { property: "og:description", content: "Messages texte, photos et vocaux." },
+      { title: "Chat — Bloxspark" },
+      { name: "description", content: "Private Bloxspark chat with voice messages and photos." },
+      { property: "og:title", content: "Chat — Bloxspark" },
+      { property: "og:description", content: "Text, photo and voice messages." },
     ],
   }),
   component: Conversation,
@@ -54,17 +54,25 @@ type Message = {
   created_at: string;
 };
 
+const QUICK_REPLIES = ["😂", "👍 Ok", "On se capte quand ?", "Trop bien !", "😍", "Envoie une photo"];
+
 function Conversation() {
   const { id } = Route.useParams();
   const { t } = useI18n();
   const { user } = useSession();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [info, setInfo] = useState(false);
+  const [activeMessage, setActiveMessage] = useState<Message | null>(null);
+  const [lightbox, setLightbox] = useState<Message | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   const header = useQuery({
     queryKey: ["conversation", id],
@@ -76,7 +84,7 @@ function Conversation() {
         .maybeSingle();
       const { data: members } = await supabase
         .from("conversation_participants")
-        .select("user_id")
+        .select("user_id,last_read_at,pinned,muted")
         .eq("conversation_id", id);
       const otherIds = (members ?? []).map((m) => m.user_id).filter((uid) => uid !== user?.id);
       const allIds = [
@@ -84,26 +92,37 @@ function Conversation() {
       ] as string[];
       const { data: people } = await supabase
         .from("profiles")
-        .select("id,username,avatar_url")
+        .select("id,username,avatar_url,last_active_at")
         .in("id", allIds.length > 0 ? allIds : ["00000000-0000-0000-0000-000000000000"]);
-      const byId: Record<string, { username: string; avatar_url: string | null }> = {};
+      const byId: Record<string, { username: string; avatar_url: string | null; last_active_at: string | null }> = {};
       for (const p of (people ?? []) as {
         id: string;
         username: string;
         avatar_url: string | null;
+        last_active_at: string | null;
       }[]) {
-        byId[p.id] = { username: p.username, avatar_url: p.avatar_url };
+        byId[p.id] = { username: p.username, avatar_url: p.avatar_url, last_active_at: p.last_active_at };
       }
       const others = otherIds.map((uid) => byId[uid]?.username ?? "?");
+      const otherId = otherIds[0] ?? null;
+      const otherRead = (members ?? []).find((m) => m.user_id === otherId)?.last_read_at ?? null;
+      const online = otherId && byId[otherId]?.last_active_at
+        ? Date.now() - new Date(byId[otherId]!.last_active_at!).getTime() < 5 * 60 * 1000
+        : false;
+      const mine = (members ?? []).find((m) => m.user_id === user?.id);
 
       return {
         title: convo?.is_group ? convo.name : (others[0] ?? "?"),
         isGroup: !!convo?.is_group,
         members: others.length + 1,
         people: byId,
-        otherId: otherIds[0] ?? null,
+        otherId,
+        online,
+        otherReadAt: otherRead,
         requestStatus: convo?.request_status ?? "accepted",
         isRequester: convo?.created_by === user?.id,
+        pinned: mine?.pinned ?? false,
+        muted: mine?.muted ?? false,
       };
     },
   });
@@ -135,15 +154,8 @@ function Conversation() {
       .channel(`messages-${id}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${id}`,
-        },
-        () => {
-          void messages.refetch();
-        },
+        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` },
+        () => void messages.refetch(),
       )
       .subscribe();
     return () => {
@@ -179,18 +191,14 @@ function Conversation() {
       return;
     }
     if (kind === "text") setText("");
+    setShowQuickReplies(false);
     void messages.refetch();
   }
 
   async function pickImage(file: File) {
     if (!user) return;
     try {
-      const path = await uploadFile(
-        "profile-photos",
-        user.id,
-        file,
-        file.name.split(".").pop() ?? "jpg",
-      );
+      const path = await uploadFile("profile-photos", user.id, file, file.name.split(".").pop() ?? "jpg");
       await send("image", path);
     } catch {
       toast.error(t("errorGeneric"));
@@ -224,34 +232,68 @@ function Conversation() {
     }
   }
 
+  async function deleteMessage(m: Message) {
+    await supabase.from("messages").delete().eq("id", m.id);
+    setActiveMessage(null);
+    void messages.refetch();
+  }
+
+  async function copyMessage(m: Message) {
+    if (m.content) await navigator.clipboard.writeText(m.content);
+    setActiveMessage(null);
+    toast.success(t("saved"));
+  }
+
+  const list = messages.data ?? [];
+
   return (
-    <div className="mx-auto flex h-[calc(100vh-5rem)] w-full max-w-md flex-col">
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <Link to="/messages" aria-label={t("back")}>
+    <div className="mx-auto flex h-[calc(100vh-5rem)] w-full max-w-md flex-col bg-white text-[#050505]">
+      {/* En-tête fixe */}
+      <header className="flex h-[74px] shrink-0 items-center gap-3 border-b border-black/5 bg-white px-4">
+        <Link to="/messages" aria-label={t("back")} className="text-[#050505]">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         {header.data?.isGroup || !header.data?.otherId ? (
-          <div className="spark-gradient flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white">
+          <div className="spark-gradient flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white">
             👥
           </div>
         ) : (
-          <Link to="/users/$id" params={{ id: header.data.otherId }}>
+          <Link to="/users/$id" params={{ id: header.data.otherId }} className="relative shrink-0">
             <StoredImage
               path={header.data.people[header.data.otherId]?.avatar_url}
               alt={header.data.title ?? ""}
-              className="h-9 w-9 rounded-full"
+              className="h-11 w-11 rounded-full object-cover"
               fallback={header.data.title?.[0]?.toUpperCase() ?? "?"}
             />
+            {header.data.online ? (
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-[#20D778]" />
+            ) : null}
           </Link>
         )}
-        <div>
-          <p className="font-semibold leading-tight">{header.data?.title}</p>
-          {header.data?.isGroup ? (
-            <p className="text-xs text-muted-foreground">
-              {header.data.members} {t("members")}
-            </p>
-          ) : null}
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-bold leading-tight text-[#050505]">{header.data?.title}</p>
+          <p className="truncate text-xs text-[#929292]">
+            {header.data?.isGroup
+              ? `${header.data.members} ${t("members")}`
+              : header.data?.online
+                ? t("online")
+                : ""}
+          </p>
         </div>
+        <button
+          onClick={() => toast.message(t("callUnavailable"))}
+          aria-label={t("call")}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#050505] hover:bg-black/5"
+        >
+          <Phone className="h-5 w-5" />
+        </button>
+        <button
+          onClick={() => setInfo(true)}
+          aria-label={t("more")}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#050505] hover:bg-black/5"
+        >
+          <MoreVertical className="h-5 w-5" />
+        </button>
       </header>
 
       {header.data?.requestStatus === "pending" ? (
@@ -274,53 +316,96 @@ function Conversation() {
         )
       ) : null}
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {(messages.data ?? []).map((m) => {
+      {/* Liste défilante */}
+      <div className="flex-1 space-y-1 overflow-y-auto bg-white px-3 py-4">
+        {list.map((m, i) => {
           const mine = m.sender_id === user?.id;
           const sender = header.data?.people?.[m.sender_id];
+          const prev = list[i - 1];
+          const next = list[i + 1];
+          const sameAsPrev = prev?.sender_id === m.sender_id;
+          const sameAsNext = next?.sender_id === m.sender_id;
+          const isLastOfGroup = !sameAsNext;
+          const isRead =
+            mine && header.data?.otherReadAt
+              ? new Date(header.data.otherReadAt).getTime() >= new Date(m.created_at).getTime()
+              : false;
+
           return (
-            <div
-              key={m.id}
-              className={cn("flex items-end gap-2", mine ? "justify-end" : "justify-start")}
-            >
-              {!mine ? (
-                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border bg-surface-2">
-                  <StoredImage
-                    path={sender?.avatar_url ?? null}
-                    alt={sender?.username ?? ""}
-                    className="h-full w-full"
-                    fallback="🎮"
-                  />
-                </div>
-              ) : null}
-              <div
-                className={cn(
-                  "max-w-[78%] rounded-3xl px-4 py-2.5 text-sm",
-                  mine ? "spark-gradient text-white" : "bg-surface-2 text-foreground",
-                )}
-              >
-                {!mine && header.data?.isGroup ? (
-                  <p className="mb-0.5 text-xs font-bold text-muted-foreground">
-                    {sender?.username ?? "?"}
-                  </p>
+            <div key={m.id} className={cn(sameAsPrev ? "mt-1" : "mt-4")}>
+              <div className={cn("flex items-end gap-2", mine ? "justify-end" : "justify-start")}>
+                {!mine ? (
+                  <div className="h-7 w-7 shrink-0">
+                    {isLastOfGroup ? (
+                      <StoredImage
+                        path={sender?.avatar_url ?? null}
+                        alt={sender?.username ?? ""}
+                        className="h-7 w-7 rounded-full object-cover"
+                        fallback="🎮"
+                      />
+                    ) : null}
+                  </div>
                 ) : null}
-                {m.kind === "text" ? (
-                  <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                ) : null}
-                {m.kind === "image" ? (
-                  <StoredImage path={m.media_url} alt="" className="h-48 w-48 rounded-2xl" />
-                ) : null}
-                {m.kind === "voice" ? <StoredAudio path={m.media_url} /> : null}
+
+                <button
+                  onClick={() => {
+                    if (m.kind === "image") setLightbox(m);
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    if (m.kind === "text") setActiveMessage(m);
+                  }}
+                  onTouchStart={(e) => {
+                    if (m.kind !== "text") return;
+                    const timer = setTimeout(() => setActiveMessage(m), 450);
+                    const clear = () => clearTimeout(timer);
+                    e.currentTarget.addEventListener("touchend", clear, { once: true });
+                    e.currentTarget.addEventListener("touchmove", clear, { once: true });
+                  }}
+                  className={cn(
+                    "max-w-[70%] text-left",
+                    mine ? "max-w-[72%]" : "max-w-[68%]",
+                  )}
+                >
+                  {m.kind === "text" ? (
+                    mine ? (
+                      <p
+                        className="whitespace-pre-wrap break-words rounded-[26px] px-[30px] py-[18px] text-[15px] text-white"
+                        style={{ background: "linear-gradient(90deg, #2878F5 0%, #6744FF 100%)" }}
+                      >
+                        {m.content}
+                      </p>
+                    ) : (
+                      <ReceivedBubble>{m.content}</ReceivedBubble>
+                    )
+                  ) : null}
+
+                  {m.kind === "image" ? <ImageBubble path={m.media_url} mine={mine} /> : null}
+
+                  {m.kind === "voice" ? (
+                    mine ? (
+                      <div
+                        className="rounded-[26px] px-4 py-3"
+                        style={{ background: "linear-gradient(90deg, #2878F5 0%, #6744FF 100%)" }}
+                      >
+                        <VoicePlayer path={m.media_url} light />
+                      </div>
+                    ) : (
+                      <ReceivedBubble padded={false}>
+                        <div className="px-4 py-3">
+                          <VoicePlayer path={m.media_url} />
+                        </div>
+                      </ReceivedBubble>
+                    )
+                  ) : null}
+                </button>
+
+                {mine ? <div className="w-7 shrink-0" /> : null}
               </div>
-              {mine ? (
-                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border bg-surface-2">
-                  <StoredImage
-                    path={sender?.avatar_url ?? null}
-                    alt=""
-                    className="h-full w-full"
-                    fallback="🙂"
-                  />
-                </div>
+              {mine && isLastOfGroup ? (
+                <p className="mt-0.5 pr-1 text-right text-[10px] text-[#929292]">
+                  {isRead ? t("read") : t("sent")}
+                </p>
               ) : null}
             </div>
           );
@@ -328,61 +413,331 @@ function Conversation() {
         <div ref={bottomRef} />
       </div>
 
-      {showEmoji ? (
-        <div className="grid grid-cols-8 gap-1 border-t border-border p-2 text-2xl">
-          {EMOJIS.map((e) => (
-            <button
-              key={e}
-              onClick={() => setText((v) => v + e)}
-              className="rounded-lg p-1 hover:bg-surface-2"
-            >
-              {e}
+      {/* Réponses rapides */}
+      <div className="border-t border-black/5 bg-white px-3 pt-2">
+        {showQuickReplies ? (
+          <div className="no-scrollbar mb-2 flex gap-2 overflow-x-auto">
+            {QUICK_REPLIES.map((q) => (
+              <button
+                key={q}
+                onClick={() => {
+                  setText(q);
+                  setShowQuickReplies(false);
+                }}
+                className="shrink-0 rounded-full bg-[#F5F5F5] px-3.5 py-2 text-sm font-medium text-[#050505]"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowQuickReplies(true)}
+            className="mb-2 flex items-center gap-2 rounded-full bg-[#F5F5F5] px-3.5 py-2 text-sm text-[#929292]"
+          >
+            <span className="grid h-5 w-5 place-items-center rounded-full bg-[#18BFE2] text-white">
+              <Zap className="h-3 w-3 fill-white" />
+            </span>
+            {t("quickReplies")}
+          </button>
+        )}
+
+        {showEmoji ? (
+          <div className="mb-2 grid grid-cols-8 gap-1 text-2xl">
+            {EMOJIS.map((e) => (
+              <button key={e} onClick={() => setText((v) => v + e)} className="rounded-lg p-1 hover:bg-black/5">
+                {e}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Barre de composition */}
+        <div className="flex items-center gap-2 pb-3">
+          <button
+            onClick={() => cameraRef.current?.click()}
+            aria-label={t("photo")}
+            className="grid h-11 w-11 shrink-0 place-items-center text-[#050505]"
+          >
+            <Camera className="h-6 w-6" />
+          </button>
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void pickImage(file);
+              e.target.value = "";
+            }}
+          />
+
+          <div className="flex min-h-[64px] flex-1 items-center gap-2 rounded-[32px] bg-[#F5F5F5] px-4 py-2">
+            <textarea
+              rows={1}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void send("text");
+                }
+              }}
+              placeholder={t("typeMessage")}
+              className="max-h-28 min-w-0 flex-1 resize-none bg-transparent text-[15px] text-[#050505] outline-none placeholder:text-[#929292]"
+            />
+            <button onClick={() => fileRef.current?.click()} aria-label={t("addPhoto")} className="shrink-0 text-[#050505]">
+              <ImagePlus className="h-5 w-5" />
             </button>
-          ))}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void pickImage(file);
+                e.target.value = "";
+              }}
+            />
+            <button onClick={() => setShowEmoji((v) => !v)} aria-label="emoji" className="shrink-0 text-[#050505]">
+              <Smile className="h-5 w-5" />
+            </button>
+          </div>
+
+          {text.trim() ? (
+            <Button size="icon" onClick={() => send("text")} aria-label={t("send")} className="shrink-0">
+              <Send className="h-4 w-4" />
+            </Button>
+          ) : (
+            <button
+              onClick={toggleRecording}
+              className={cn(
+                "grid h-11 w-11 shrink-0 place-items-center rounded-full",
+                recording ? "bg-destructive text-white" : "text-[#050505]",
+              )}
+              aria-label={t("recordVoice")}
+            >
+              {recording ? <Square className="h-5 w-5" /> : <Mic className="h-6 w-6" />}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Menu contextuel appui long */}
+      {activeMessage ? (
+        <div className="fixed inset-0 z-[75] flex items-end justify-center bg-black/40 sm:items-center" onClick={() => setActiveMessage(null)}>
+          <div className="w-full max-w-xs rounded-t-3xl bg-white p-4 sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center gap-3 border-b border-black/5 pb-3">
+              {REACTIONS.map((r) => (
+                <button key={r} onClick={() => setActiveMessage(null)} className="text-2xl transition active:scale-90">
+                  {r}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 space-y-1">
+              <MenuRow icon={Reply} label={t("reply")} onClick={() => setActiveMessage(null)} />
+              <MenuRow icon={Copy} label={t("copy")} onClick={() => void copyMessage(activeMessage)} />
+              <MenuRow icon={Forward} label={t("forward")} onClick={() => setActiveMessage(null)} />
+              {activeMessage.sender_id === user?.id ? (
+                <MenuRow
+                  icon={Trash2}
+                  label={t("delete")}
+                  destructive
+                  onClick={() => void deleteMessage(activeMessage)}
+                />
+              ) : null}
+            </div>
+          </div>
         </div>
       ) : null}
 
-      <div className="flex items-center gap-2 border-t border-border px-3 py-3">
-        <button onClick={() => setShowEmoji((v) => !v)} className="text-xl" aria-label="emoji">
-          😀
-        </button>
-        <button onClick={() => fileRef.current?.click()} aria-label={t("addPhoto")}>
-          <ImagePlus className="h-5 w-5 text-muted-foreground" />
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void pickImage(file);
-            e.target.value = "";
+      {lightbox ? (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-black/95 p-3" onClick={() => setLightbox(null)}>
+          <button className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white" aria-label="Close">
+            <X className="h-6 w-6" />
+          </button>
+          <LightboxImage path={lightbox.media_url} />
+        </div>
+      ) : null}
+
+      {info && header.data ? (
+        <ConversationInfoSheet
+          conversationId={id}
+          otherId={header.data.otherId}
+          title={header.data.title ?? "?"}
+          avatarUrl={header.data.otherId ? header.data.people[header.data.otherId]?.avatar_url ?? null : null}
+          pinned={header.data.pinned}
+          muted={header.data.muted}
+          onClose={() => setInfo(false)}
+          onChanged={() => {
+            void header.refetch();
+            void qc.invalidateQueries({ queryKey: ["conversations"] });
           }}
         />
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void send("text");
-          }}
-          placeholder={t("typeMessage")}
-          className="h-11 flex-1 rounded-full border border-border bg-surface-2 px-4 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-        <button
-          onClick={toggleRecording}
-          className={cn(
-            "rounded-full p-2",
-            recording ? "bg-destructive text-white" : "text-muted-foreground",
-          )}
-          aria-label={t("recordVoice")}
-        >
-          {recording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-        </button>
-        <Button size="icon" onClick={() => send("text")} aria-label={t("send")}>
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
+      ) : null}
     </div>
   );
+}
+
+function MenuRow({
+  icon: Icon,
+  label,
+  onClick,
+  destructive,
+}: {
+  icon: typeof Reply;
+  label: string;
+  onClick: () => void;
+  destructive?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-black/5",
+        destructive ? "text-destructive" : "text-[#050505]",
+      )}
+    >
+      <Icon className="h-4.5 w-4.5" /> {label}
+    </button>
+  );
+}
+
+/** Original hand-drawn "note" bubble — thin black outline, doodle face + hands at the corners. */
+function ReceivedBubble({ children, padded = true }: { children: React.ReactNode; padded?: boolean }) {
+  return (
+    <div className="relative">
+      <div className="rounded-[26px] border-2 border-[#050505] bg-white">
+        {padded ? (
+          <p className="whitespace-pre-wrap break-words px-[22px] py-[16px] pr-8 text-[15px] text-[#050505]">
+            {children}
+          </p>
+        ) : (
+          children
+        )}
+      </div>
+      <DoodleFace className="absolute -right-1.5 -top-2.5 h-6 w-9" />
+      <DoodleHand className="absolute -bottom-2 -left-1.5 h-5 w-5 -scale-x-100" />
+      <DoodleHand className="absolute -bottom-2 -right-1.5 h-5 w-5" />
+    </div>
+  );
+}
+
+function DoodleFace({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 40 26" className={className} fill="none" aria-hidden="true">
+      <ellipse cx="10" cy="12" rx="3.4" ry="5" fill="#050505" transform="rotate(-12 10 12)" />
+      <ellipse cx="21" cy="10" rx="3.4" ry="5" fill="#050505" transform="rotate(-6 21 10)" />
+      <path
+        d="M14 20c3-3 9-3 14-1"
+        stroke="#050505"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+function DoodleHand({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <path
+        d="M4 20c0-5 1-8 2-10M8 20c0-6 .5-9 1.5-11M12 20c0-6 0-10 1-12M16 20c0-5-.5-8 .5-10c1-2 3-1.5 3 .5c0 4-1 8-3 11.5"
+        stroke="#050505"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+function ImageBubble({ path, mine }: { path: string | null; mine: boolean }) {
+  const url = useSignedUrl(path);
+  return (
+    <div className={cn("relative overflow-hidden rounded-[22px]", !mine && "border-2 border-[#050505]")}>
+      {url ? <img src={url} alt="" className="h-48 w-48 object-cover" /> : <div className="h-48 w-48 animate-pulse bg-black/5" />}
+    </div>
+  );
+}
+
+function LightboxImage({ path }: { path: string | null }) {
+  const url = useSignedUrl(path);
+  return url ? (
+    <img src={url} alt="" className="max-h-full max-w-full rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+  ) : null;
+}
+
+/** Real play/pause with a decorative (non-analyzed) waveform, per the voice-message spec. */
+function VoicePlayer({ path, light = false }: { path: string | null; light?: boolean }) {
+  const url = useSignedUrl(path);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const bars = [6, 10, 14, 9, 16, 11, 7, 13, 8, 15, 10, 6];
+
+  function toggle() {
+    const el = audioRef.current;
+    if (!el) return;
+    if (playing) {
+      el.pause();
+    } else {
+      void el.play();
+    }
+  }
+
+  return (
+    <div className="flex min-w-[170px] items-center gap-2">
+      {url ? (
+        <audio
+          ref={audioRef}
+          src={url}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+          onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || 1))}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+          hidden
+        />
+      ) : null}
+      <button
+        onClick={toggle}
+        className={cn(
+          "grid h-9 w-9 shrink-0 place-items-center rounded-full",
+          light ? "bg-white/25 text-white" : "bg-[#E5E5E5] text-[#050505]",
+        )}
+      >
+        {playing ? <Pause className="h-4 w-4 fill-current" /> : <Play className="ml-0.5 h-4 w-4 fill-current" />}
+      </button>
+      <div className="flex flex-1 items-center gap-[3px]">
+        {bars.map((h, i) => (
+          <span
+            key={i}
+            className={cn("w-[3px] rounded-full", light ? "bg-white/85" : "bg-[#050505]")}
+            style={{
+              height: h,
+              opacity: progress * bars.length > i ? 1 : light ? 0.45 : 0.35,
+            }}
+          />
+        ))}
+      </div>
+      <span className={cn("shrink-0 text-xs tabular-nums", light ? "text-white/90" : "text-[#050505]")}>
+        {formatDuration(duration)}
+      </span>
+    </div>
+  );
+}
+
+function formatDuration(seconds: number) {
+  if (!seconds || Number.isNaN(seconds)) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60)
+    .toString()
+    .padStart(2, "0");
+  return `${m}:${s}`;
 }
