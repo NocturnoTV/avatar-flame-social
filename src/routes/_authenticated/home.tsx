@@ -7,10 +7,10 @@ import {
   Bell,
   Compass,
   Flame,
-  MessageCircle,
-  Play,
+  Newspaper,
   Sparkles,
   Users,
+  Video,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
@@ -18,6 +18,7 @@ import { Card } from "@/components/ui-kit";
 import { Logo } from "@/components/Logo";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
+import { Reveal } from "@/components/Reveal";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import heroAsset from "@/assets/onboarding-hero.png.asset.json";
@@ -25,19 +26,46 @@ import heroAsset from "@/assets/onboarding-hero.png.asset.json";
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
     meta: [
-      { title: "Accueil — Bloxspark" },
+      { title: "Home — Bloxspark" },
       {
         name: "description",
-        content: "Ton fil Bloxspark : amis connectés, vidéos du moment et actus Roblox du jour.",
+        content: "Your Bloxspark feed: friends, trending videos and today's Roblox news.",
       },
-      { property: "og:title", content: "Accueil — Bloxspark" },
-      { property: "og:description", content: "Amis connectés, vidéos du moment et actus Roblox." },
+      { property: "og:title", content: "Home — Bloxspark" },
+      { property: "og:description", content: "Friends, trending videos and Roblox news." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
   component: HomePage,
 });
+
+/** Small icon chip + title used to open every feed section, per design spec. */
+function SectionHeader({
+  icon: Icon,
+  title,
+  action,
+}: {
+  icon: typeof Compass;
+  title: string;
+  action?: { to: "/discover" | "/sparks" | "/messages"; label: string };
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <div className="flex items-center gap-2.5">
+        <span className="spark-gradient grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white">
+          <Icon className="h-4 w-4" />
+        </span>
+        <h2 className="text-lg font-black">{title}</h2>
+      </div>
+      {action ? (
+        <Link to={action.to} className="text-sm font-semibold text-primary">
+          {action.label}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
 
 type NewsItem = {
   id: string;
@@ -73,8 +101,8 @@ function NewsSection() {
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-7">
-      <h2 className="mb-3 text-lg font-black">{t("newsTitle")}</h2>
+    <section>
+      <SectionHeader icon={Newspaper} title={t("newsTitle")} />
       <div className="grid gap-3 sm:grid-cols-3">
         {items.map((n, i) => {
           const open = openId === n.id;
@@ -196,7 +224,7 @@ function HomePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("username,avatar_url,verified")
+        .select("username,avatar_url,verified,roblox_avatar_url,roblox_username")
         .eq("id", user!.id)
         .maybeSingle();
       return data;
@@ -227,28 +255,48 @@ function HomePage() {
     },
   });
 
-  const friends = useQuery({
-    queryKey: ["home-friends", user?.id],
+  // Amis / Abonnements — people the user follows.
+  const following = useQuery({
+    queryKey: ["home-following", user?.id],
     enabled: !!user,
     refetchInterval: 60000,
     queryFn: async () => {
       const { data: follows } = await supabase.from("follows").select("following_id");
-      const { data: matches } = await supabase.from("matches").select("user_a,user_b");
-      const ids = new Set<string>();
-      for (const f of follows ?? []) ids.add(f.following_id);
-      for (const m of matches ?? []) {
-        if (m.user_a !== user!.id) ids.add(m.user_a);
-        if (m.user_b !== user!.id) ids.add(m.user_b);
-      }
-      ids.delete(user!.id);
-      if (ids.size === 0) return [];
+      const ids = [...new Set((follows ?? []).map((f) => f.following_id))].filter(
+        (id) => id !== user!.id,
+      );
+      if (ids.length === 0) return [];
       const { data } = await supabase
         .from("profiles")
         .select("id,username,avatar_url,verified,last_active_at")
-        .in("id", [...ids])
+        .in("id", ids)
         .order("last_active_at", { ascending: false })
         .limit(12);
       return data ?? [];
+    },
+  });
+
+  // Mes matchs Sparks — mutual matches from the swipe deck.
+  const sparkMatches = useQuery({
+    queryKey: ["home-spark-matches", user?.id],
+    enabled: !!user,
+    refetchInterval: 60000,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from("matches")
+        .select("user_a,user_b,conversation_id,created_at")
+        .order("created_at", { ascending: false })
+        .limit(12);
+      const others = (rows ?? []).map((m) => (m.user_a === user!.id ? m.user_b : m.user_a));
+      if (others.length === 0) return [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,verified")
+        .in("id", others);
+      const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+      return (rows ?? [])
+        .map((m) => byId.get(m.user_a === user!.id ? m.user_b : m.user_a))
+        .filter((p): p is NonNullable<typeof p> => Boolean(p));
     },
   });
 
@@ -268,11 +316,11 @@ function HomePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-28 pt-4 lg:pb-12">
-      {/* Hero */}
+      {/* Hero — stays pinned at the top */}
       <header className="bx-rise relative overflow-hidden rounded-[2rem] border border-border">
         <img
           src={heroAsset.url}
-          alt="Avatar Roblox en action"
+          alt="Roblox avatar in action"
           className="h-44 w-full object-cover sm:h-56"
           loading="eager"
         />
@@ -300,10 +348,15 @@ function HomePage() {
               {hello.emoji} {hello.text}
             </p>
             <h1 className="flex items-center gap-2 text-2xl font-black text-white drop-shadow sm:text-3xl">
-              <span className="truncate">
-                {me.data?.username ? `@${me.data.username}` : "joueur"}
-              </span>
-              {me.data?.verified ? <Verified className="h-5 w-5" /> : null}
+              <span className="truncate">{me.data?.username ? `@${me.data.username}` : "player"}</span>
+              {me.data?.roblox_avatar_url ? (
+                <img
+                  src={me.data.roblox_avatar_url}
+                  alt={me.data.roblox_username ?? "Roblox avatar"}
+                  className="h-6 w-6 shrink-0 rounded-full object-cover ring-2 ring-white/50"
+                />
+              ) : null}
+              {me.data?.verified ? <Verified className="h-5 w-5 shrink-0" /> : null}
             </h1>
             <p className="text-xs text-white/75">{t("homeToday")}</p>
           </div>
@@ -311,139 +364,160 @@ function HomePage() {
       </header>
 
       {/* Stats */}
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        {[
-          { label: t("matches"), value: counters.data?.matches ?? 0, icon: Sparkles },
-          { label: t("followers"), value: counters.data?.followers ?? 0, icon: Users },
-          { label: t("notifications"), value: counters.data?.unread ?? 0, icon: Bell },
-        ].map((s, i) => (
-          <Card
-            key={s.label}
-            className={cn(
-              "bx-rise p-4 text-center transition hover:-translate-y-0.5",
-              `bx-delay-${i + 1}`,
-            )}
-          >
-            <s.icon className="mx-auto mb-1.5 h-5 w-5 text-primary" />
-            <p className="text-xl font-black">{s.value}</p>
-            <p className="text-[11px] text-muted-foreground">{s.label}</p>
-          </Card>
-        ))}
-      </div>
+      <Reveal>
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          {[
+            { label: t("matches"), value: counters.data?.matches ?? 0, icon: Sparkles },
+            { label: t("followers"), value: counters.data?.followers ?? 0, icon: Users },
+            { label: t("notifications"), value: counters.data?.unread ?? 0, icon: Bell },
+          ].map((s, i) => (
+            <Card
+              key={s.label}
+              className={cn(
+                "bx-rise p-4 text-center transition hover:-translate-y-0.5",
+                `bx-delay-${i + 1}`,
+              )}
+            >
+              <s.icon className="mx-auto mb-1.5 h-5 w-5 text-primary" />
+              <p className="text-xl font-black">{s.value}</p>
+              <p className="text-[11px] text-muted-foreground">{s.label}</p>
+            </Card>
+          ))}
+        </div>
+      </Reveal>
 
-      {/* Amis connectés */}
-      <section className="mt-6">
-        <h2 className="mb-3 text-lg font-black">{t("friends")}</h2>
-        {friends.data?.length ? (
-          <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-            {friends.data.map((f) => {
-              const online = f.last_active_at
-                ? Date.now() - new Date(f.last_active_at).getTime() < 5 * 60 * 1000
-                : false;
-              return (
+      {/* 1. Découvrir — vidéos du moment */}
+      <Reveal className="mt-8">
+        <section>
+          <SectionHeader icon={Compass} title={t("discover")} action={{ to: "/discover", label: t("seeAll") }} />
+          {latest.data?.length ? (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {latest.data.map((v) => (
+                <VideoThumb key={v.id} path={v.storage_path} views={v.views_count} />
+              ))}
+            </div>
+          ) : (
+            <Card className="text-center text-sm text-muted-foreground">
+              {t("noVideos")}{" "}
+              <Link to="/discover" className="font-semibold text-primary">
+                {t("publishFirst")}
+              </Link>
+            </Card>
+          )}
+        </section>
+      </Reveal>
+
+      {/* 2. Amis / Abonnements */}
+      <Reveal className="mt-8">
+        <section>
+          <SectionHeader icon={Users} title={t("friends")} />
+          {following.data?.length ? (
+            <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+              {following.data.map((f) => {
+                const online = f.last_active_at
+                  ? Date.now() - new Date(f.last_active_at).getTime() < 5 * 60 * 1000
+                  : false;
+                return (
+                  <Link
+                    key={f.id}
+                    to="/messages"
+                    className="bx-pop flex w-16 shrink-0 flex-col items-center gap-1.5"
+                  >
+                    <span className="relative">
+                      <span className="block h-14 w-14 overflow-hidden rounded-full spark-gradient p-[2px]">
+                        <StoredImage
+                          path={f.avatar_url}
+                          alt={f.username ?? ""}
+                          className="h-full w-full rounded-full"
+                          fallback="🎮"
+                        />
+                      </span>
+                      <span
+                        className={cn(
+                          "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background",
+                          online ? "bg-sky-400" : "bg-muted-foreground/50",
+                        )}
+                      />
+                    </span>
+                    <span className="w-full truncate text-center text-[11px] font-semibold">
+                      {f.username ?? "player"}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="text-center text-sm text-muted-foreground">
+              {t("noFriendsYet")}{" "}
+              <Link to="/sparks" className="font-semibold text-primary">
+                {t("findFirstSpark")}
+              </Link>
+            </Card>
+          )}
+        </section>
+      </Reveal>
+
+      {/* 3. Mes matchs Sparks */}
+      <Reveal className="mt-8">
+        <section>
+          <SectionHeader icon={Flame} title={t("matches")} action={{ to: "/sparks", label: t("seeAll") }} />
+          {sparkMatches.data?.length ? (
+            <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+              {sparkMatches.data.map((m) => (
                 <Link
-                  key={f.id}
+                  key={m.id}
                   to="/messages"
                   className="bx-pop flex w-16 shrink-0 flex-col items-center gap-1.5"
                 >
-                  <span className="relative">
-                    <span className="block h-14 w-14 overflow-hidden rounded-full spark-gradient p-[2px]">
-                      <StoredImage
-                        path={f.avatar_url}
-                        alt={f.username ?? ""}
-                        className="h-full w-full rounded-full"
-                        fallback="🎮"
-                      />
-                    </span>
-                    <span
-                      className={cn(
-                        "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background",
-                        online ? "bg-sky-400" : "bg-muted-foreground/50",
-                      )}
+                  <span className="block h-14 w-14 overflow-hidden rounded-full spark-gradient p-[2px]">
+                    <StoredImage
+                      path={m.avatar_url}
+                      alt={m.username ?? ""}
+                      className="h-full w-full rounded-full"
+                      fallback="🔥"
                     />
                   </span>
                   <span className="w-full truncate text-center text-[11px] font-semibold">
-                    {f.username ?? "joueur"}
+                    {m.username ?? "player"}
                   </span>
                 </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <Card className="text-center text-sm text-muted-foreground">
-            Pas encore d'amis.{" "}
-            <Link to="/sparks" className="font-semibold text-primary">
-              Trouve ton premier spark !
-            </Link>
-          </Card>
-        )}
-      </section>
+              ))}
+            </div>
+          ) : (
+            <Card className="text-center text-sm text-muted-foreground">
+              {t("noSparkMatches")}{" "}
+              <Link to="/sparks" className="font-semibold text-primary">
+                {t("swipeMatch")}
+              </Link>
+            </Card>
+          )}
+        </section>
+      </Reveal>
 
-      {/* Raccourcis */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <QuickLink to="/sparks" icon={Flame} title="Sparks" sub={t("swipeMatch")} />
-        <QuickLink to="/discover" icon={Compass} title={t("discover")} sub={t("videoFeed")} />
-        <QuickLink to="/messages" icon={MessageCircle} title="Messages" sub={t("chatFeatures")} />
-      </div>
+      {/* 4. Actualités Roblox */}
+      <Reveal className="mt-8">
+        <NewsSection />
+      </Reveal>
 
-      {/* Vidéos du moment */}
-      <section className="mt-7">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-black">{t("trendingVideos")}</h2>
-          <Link to="/discover" className="text-sm font-semibold text-primary">
-            {t("seeAll")}
-          </Link>
-        </div>
-        {latest.data?.length ? (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {latest.data.map((v) => (
-              <VideoThumb key={v.id} path={v.storage_path} views={v.views_count} />
-            ))}
-          </div>
-        ) : (
-          <Card className="text-center text-sm text-muted-foreground">
-            {t("noVideos")}{" "}
-            <Link to="/discover" className="font-semibold text-primary">
-              {t("publishFirst")}
-            </Link>
-          </Card>
-        )}
-      </section>
+      {/* 5. CTA — poster du contenu */}
+      <Reveal className="mt-8 mb-4">
+        <Link
+          to="/discover/studio"
+          className="spark-gradient bx-glow group relative flex items-center gap-4 overflow-hidden rounded-[1.75rem] p-5 text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
+        >
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/20">
+            <Video className="h-6 w-6" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-lg font-black">{t("postCtaTitle")}</span>
+            <span className="block text-sm text-white/85">{t("postCtaText")}</span>
+          </span>
+          <ArrowUpRight className="h-5 w-5 shrink-0 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </Link>
+      </Reveal>
 
-      {/* Actus Roblox gérées depuis l'administration */}
-      <NewsSection />
-
-      <p className="mt-8 text-center text-[11px] text-muted-foreground">
-        Bloxspark n'est ni affilié, ni approuvé, ni sponsorisé par Roblox Corporation.
-      </p>
+      <p className="mt-4 text-center text-[11px] text-muted-foreground">{t("notAffiliated")}</p>
     </div>
-  );
-}
-
-function QuickLink({
-  to,
-  icon: Icon,
-  title,
-  sub,
-}: {
-  to: "/sparks" | "/discover" | "/messages";
-  icon: typeof Flame;
-  title: string;
-  sub: string;
-}) {
-  return (
-    <Link
-      to={to}
-      className="flex items-center gap-3 rounded-3xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:border-primary"
-    >
-      <span className="spark-gradient grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white">
-        <Icon className="h-5 w-5" />
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate font-bold">{title}</span>
-        <span className="block truncate text-xs text-muted-foreground">{sub}</span>
-      </span>
-    </Link>
   );
 }
 
@@ -465,7 +539,7 @@ function VideoThumb({ path, views }: { path: string; views: number }) {
         <div className="aspect-[9/16] w-full animate-pulse bg-surface-2" />
       )}
       <span className="absolute bottom-1 left-1 flex items-center gap-1 text-[10px] font-bold text-white drop-shadow">
-        <Play className="h-3 w-3" /> {views}
+        <Video className="h-3 w-3" /> {views}
       </span>
     </Link>
   );

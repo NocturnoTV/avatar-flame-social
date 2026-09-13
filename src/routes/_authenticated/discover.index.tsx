@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
   BarChart3,
   Bookmark,
+  EyeOff,
   Heart,
   MessageCircle,
   Music2,
@@ -23,6 +24,7 @@ import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Button } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
+import { getPersonalizedFeed, logPositiveAction, logVideoWatch, markNotInterested } from "@/lib/recommendation.functions";
 
 export const Route = createFileRoute("/_authenticated/discover/")({
   head: () => ({
@@ -55,6 +57,7 @@ type VideoRow = {
   reposts_count: number;
   shares_count: number;
   views_count: number;
+  reason?: string;
 };
 
 export function formatCount(n: number) {
@@ -66,6 +69,7 @@ export function formatCount(n: number) {
 function DiscoverPage() {
   const { user } = useSession();
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"foryou" | "following">("foryou");
   const [muted, setMuted] = useState(
     () => window.localStorage.getItem("bloxspark-discover-muted") === "true",
@@ -85,22 +89,26 @@ function DiscoverPage() {
     queryKey: ["feed", tab, following.data?.join(",")],
     enabled: !!user && following.isFetched,
     queryFn: async () => {
-      let q = supabase
-        .from("videos")
-        .select(
-          "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count",
-        )
-        .eq("visibility", "public")
-        .order("created_at", { ascending: false })
-        .limit(30);
-      if (tab === "following") {
+      let videos: VideoRow[];
+      if (tab === "foryou") {
+        // Personalized ranking — see src/lib/recommendation-engine.server.ts
+        const rows = await getPersonalizedFeed({ data: { limit: 30 } });
+        videos = rows.map((v) => ({ ...v, thumbnail_path: null }));
+      } else {
         const ids = following.data ?? [];
         if (ids.length === 0) return { videos: [] as VideoRow[], profiles: {} };
-        q = q.in("user_id", ids);
+        const { data, error } = await supabase
+          .from("videos")
+          .select(
+            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count",
+          )
+          .eq("visibility", "public")
+          .in("user_id", ids)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        if (error) throw error;
+        videos = (data ?? []) as VideoRow[];
       }
-      const { data, error } = await q;
-      if (error) throw error;
-      const videos = (data ?? []) as VideoRow[];
       const ids = [...new Set(videos.map((v) => v.user_id))];
       const profiles: Record<string, { username: string | null; avatar_url: string | null }> = {};
       if (ids.length) {
@@ -205,6 +213,17 @@ function DiscoverPage() {
               username={feed.data?.profiles[video.user_id]?.username ?? "joueur"}
               avatar={feed.data?.profiles[video.user_id]?.avatar_url ?? null}
               onComments={() => setComments(video)}
+              onNotInterested={() => {
+                void markNotInterested({ data: { videoId: video.id } });
+                queryClient.setQueryData<typeof feed.data>(
+                  ["feed", tab, following.data?.join(",")],
+                  (current) =>
+                    current
+                      ? { ...current, videos: current.videos.filter((v) => v.id !== video.id) }
+                      : current,
+                );
+                toast.success(t("notInterestedDone"));
+              }}
             />
           ))}
         </div>
@@ -221,12 +240,14 @@ function VideoSlide({
   username,
   avatar,
   onComments,
+  onNotInterested,
 }: {
   video: VideoRow;
   muted: boolean;
   username: string;
   avatar: string | null;
   onComments: () => void;
+  onNotInterested: () => void;
 }) {
   const { user } = useSession();
   const { t } = useI18n();
@@ -237,6 +258,27 @@ function VideoSlide({
   const [visible, setVisible] = useState(false);
   const viewed = useRef(false);
   const isMine = user?.id === video.user_id;
+
+  // --- Watch-time tracking for the recommendation engine (section 2) ---
+  const watchStartRef = useRef<number | null>(null);
+  const accumulatedMsRef = useRef(0);
+  const loopedRef = useRef(false);
+
+  function flushWatch() {
+    const el = ref.current;
+    const accumulated = accumulatedMsRef.current;
+    accumulatedMsRef.current = 0;
+    if (!user || accumulated < 150 || !el?.duration) return;
+    void logVideoWatch({
+      data: {
+        videoId: video.id,
+        watchMs: accumulated,
+        durationSeconds: el.duration,
+        replayed: loopedRef.current,
+      },
+    });
+    loopedRef.current = false;
+  }
 
   const state = useQuery({
     queryKey: ["video-state", video.id, user?.id],
@@ -296,6 +338,7 @@ function VideoSlide({
     el.muted = muted;
     if (visible) {
       void el.play().catch(() => undefined);
+      watchStartRef.current = performance.now();
       if (!viewed.current && user) {
         viewed.current = true;
         void supabase
@@ -307,8 +350,37 @@ function VideoSlide({
       }
     } else {
       el.pause();
+      if (watchStartRef.current != null) {
+        accumulatedMsRef.current += performance.now() - watchStartRef.current;
+        watchStartRef.current = null;
+      }
+      flushWatch();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, muted, url, user, video.id]);
+
+  // Full loop = a completed watch; keep counting subsequent loops as replays.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onEnded = () => {
+      loopedRef.current = true;
+    };
+    el.addEventListener("ended", onEnded);
+    return () => el.removeEventListener("ended", onEnded);
+  }, [url]);
+
+  // Flush any in-progress watch session when the slide unmounts entirely.
+  useEffect(() => {
+    return () => {
+      if (watchStartRef.current != null) {
+        accumulatedMsRef.current += performance.now() - watchStartRef.current;
+        watchStartRef.current = null;
+      }
+      flushWatch();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function toggle(table: "video_likes" | "video_favorites" | "video_reposts", on: boolean) {
     if (!user) return;
@@ -316,6 +388,9 @@ function VideoSlide({
       await supabase.from(table).delete().eq("video_id", video.id).eq("user_id", user.id);
     } else {
       await supabase.from(table).insert({ video_id: video.id, user_id: user.id });
+      if (table === "video_likes") void logPositiveAction({ data: { videoId: video.id, action: "like" } });
+      if (table === "video_reposts")
+        void logPositiveAction({ data: { videoId: video.id, action: "share" } });
     }
     await qc.invalidateQueries({ queryKey: ["video-state", video.id] });
     await qc.invalidateQueries({ queryKey: ["feed"] });
@@ -331,6 +406,7 @@ function VideoSlide({
         .eq("following_id", video.user_id);
     } else {
       await supabase.from("follows").insert({ follower_id: user.id, following_id: video.user_id });
+      void logPositiveAction({ data: { videoId: video.id, action: "follow" } });
     }
     await qc.invalidateQueries({ queryKey: ["video-state"] });
     await qc.invalidateQueries({ queryKey: ["following"] });
@@ -464,6 +540,15 @@ function VideoSlide({
             label={t("repost")}
           />
           <RailButton icon={Send} count={video.shares_count} onClick={share} label={t("share")} />
+          {!isMine ? (
+            <button
+              onClick={onNotInterested}
+              aria-label={t("notInterested")}
+              className="flex flex-col items-center gap-1 opacity-80 transition active:scale-90"
+            >
+              <EyeOff className="h-6 w-6 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.5)]" />
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -553,6 +638,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
       media_type: media?.type ?? null,
     });
     if (error) toast.error(error.message);
+    else void logPositiveAction({ data: { videoId: video.id, action: "comment" } });
     setReplyingTo(null);
     setMedia(null);
     setShowExtras(false);
