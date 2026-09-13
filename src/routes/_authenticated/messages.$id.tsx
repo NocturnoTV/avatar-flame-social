@@ -157,7 +157,7 @@ function Conversation() {
     queryFn: async () => {
       const { data: convo } = await supabase
         .from("conversations")
-        .select("id,is_group,name,request_status,created_by")
+        .select("id,is_group,name,request_status,created_by,streak_count")
         .eq("id", id)
         .maybeSingle();
       const { data: members } = await supabase
@@ -231,6 +231,7 @@ function Conversation() {
         isRequester: convo?.created_by === user?.id,
         pinned: mine?.pinned ?? false,
         muted: mine?.muted ?? false,
+        streakCount: convo?.streak_count ?? 0,
       };
     },
   });
@@ -334,13 +335,14 @@ function Conversation() {
         () => {
           setOtherTyping(false);
           void messages.refetch();
+          void header.refetch();
         },
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [id, messages]);
+  }, [id, messages, header]);
 
   // "typing…" indicator — a lightweight realtime broadcast, no table needed.
   useEffect(() => {
@@ -564,8 +566,13 @@ function Conversation() {
           </Link>
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-bold leading-tight text-[#050505] dark:text-white">
-            {header.data?.title}
+          <p className="flex items-center gap-1.5 truncate font-bold leading-tight text-[#050505] dark:text-white">
+            <span className="truncate">{header.data?.title}</span>
+            {!header.data?.isGroup && header.data?.streakCount ? (
+              <span className="flex shrink-0 items-center gap-0.5 text-xs font-bold text-orange-500">
+                🔥{header.data.streakCount}
+              </span>
+            ) : null}
           </p>
           <p className="truncate text-xs text-[#929292]">
             {otherTyping ? (

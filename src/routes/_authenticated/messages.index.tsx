@@ -55,6 +55,7 @@ type Row = {
   muted: boolean;
   last_message_at: string;
   unread_count: number;
+  streak_count: number;
 };
 type Story = {
   id: string;
@@ -133,7 +134,7 @@ function MessagesPage() {
       const [{ data: convos }, { data: members }, { data: lastMessages }] = await Promise.all([
         supabase
           .from("conversations")
-          .select("id,is_group,name,last_message_at,request_status,created_by")
+          .select("id,is_group,name,last_message_at,request_status,created_by,streak_count")
           .in("id", ids),
         supabase
           .from("conversation_participants")
@@ -184,6 +185,7 @@ function MessagesPage() {
           muted: mineById.get(c.id)?.muted ?? false,
           last_message_at: c.last_message_at,
           unread_count: unreadCount,
+          streak_count: c.streak_count ?? 0,
         };
       });
       return rows.sort((a, b) => {
@@ -651,6 +653,11 @@ function MessagesPage() {
                   <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
                     <span className="truncate">{name || "Discussion"}</span>
                     {!c.is_group && person?.verified ? <Verified /> : null}
+                    {!c.is_group && c.streak_count > 0 ? (
+                      <span className="flex shrink-0 items-center gap-0.5 text-xs font-bold text-orange-500">
+                        🔥{c.streak_count}
+                      </span>
+                    ) : null}
                     {c.pinned ? <Pin className="h-3.5 w-3.5 shrink-0 text-[#929292]" /> : null}
                   </p>
                   <p className="truncate text-sm text-[#929292]">

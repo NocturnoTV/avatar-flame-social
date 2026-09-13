@@ -536,6 +536,7 @@ export type Database = {
           conversation_id: string
           joined_at: string
           last_read_at: string
+          last_message_date: string | null
           muted: boolean
           pinned: boolean
           user_id: string
@@ -544,6 +545,7 @@ export type Database = {
           conversation_id: string
           joined_at?: string
           last_read_at?: string
+          last_message_date?: string | null
           muted?: boolean
           pinned?: boolean
           user_id: string
@@ -552,6 +554,7 @@ export type Database = {
           conversation_id?: string
           joined_at?: string
           last_read_at?: string
+          last_message_date?: string | null
           muted?: boolean
           pinned?: boolean
           user_id?: string
@@ -575,6 +578,8 @@ export type Database = {
           last_message_at: string
           name: string | null
           request_status: string
+          streak_count: number
+          streak_date: string | null
         }
         Insert: {
           created_at?: string
@@ -584,6 +589,8 @@ export type Database = {
           last_message_at?: string
           name?: string | null
           request_status?: string
+          streak_count?: number
+          streak_date?: string | null
         }
         Update: {
           created_at?: string
@@ -593,6 +600,8 @@ export type Database = {
           last_message_at?: string
           name?: string | null
           request_status?: string
+          streak_count?: number
+          streak_date?: string | null
         }
         Relationships: []
       }
