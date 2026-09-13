@@ -1,10 +1,14 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Ban,
   BellOff,
   ChevronRight,
+  Contact,
   Flag,
+  MessageSquare,
+  Paintbrush,
   Pin,
   Search,
   UserPlus,
@@ -14,9 +18,18 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
+import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import {
+  BUBBLE_THEMES,
+  WALLPAPERS,
+  getBubbleTheme,
+  getWallpaper,
+  setBubbleTheme,
+  setWallpaper,
+} from "@/lib/chatTheme";
 
 /**
  * The conversation "..." menu: quick actions (view profile / search / create
@@ -51,6 +64,48 @@ export function ConversationInfoSheet({
   const [results, setResults] = useState<{ id: string; content: string | null }[]>([]);
   const [reporting, setReporting] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pickingWallpaper, setPickingWallpaper] = useState(false);
+  const [pickingBubble, setPickingBubble] = useState(false);
+  const [wallpaper, setWallpaperState] = useState(() => getWallpaper(conversationId));
+  const [bubble, setBubbleState] = useState(() => getBubbleTheme(conversationId));
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameDraft, setNicknameDraft] = useState("");
+
+  const contact = useQuery({
+    queryKey: ["contact-info", otherId, user?.id],
+    enabled: !!otherId && !!user,
+    queryFn: async () => {
+      const [{ data: profile }, { data: nick }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("roblox_user_id,roblox_username,roblox_display_name,roblox_avatar_url")
+          .eq("id", otherId!)
+          .maybeSingle(),
+        supabase
+          .from("contact_nicknames")
+          .select("nickname")
+          .eq("owner_id", user!.id)
+          .eq("contact_id", otherId!)
+          .maybeSingle(),
+      ]);
+      return { profile, nickname: nick?.nickname ?? null };
+    },
+  });
+
+  async function saveNickname() {
+    if (!user || !otherId) return;
+    const value = nicknameDraft.trim();
+    if (value) {
+      await supabase
+        .from("contact_nicknames")
+        .upsert({ owner_id: user.id, contact_id: otherId, nickname: value });
+    } else {
+      await supabase.from("contact_nicknames").delete().eq("owner_id", user.id).eq("contact_id", otherId);
+    }
+    setEditingNickname(false);
+    void contact.refetch();
+    onChanged();
+  }
 
   async function toggle(field: "muted" | "pinned", value: boolean) {
     if (!user) return;
@@ -118,7 +173,59 @@ export function ConversationInfoSheet({
           ) : (
             <div className="grid h-20 w-20 place-items-center rounded-full bg-[#F5F5F5] text-3xl">👥</div>
           )}
-          <p className="mt-2 text-lg font-bold">{title}</p>
+          <p className="mt-2 text-lg font-bold">{contact.data?.nickname || title}</p>
+          {contact.data?.nickname ? (
+            <p className="text-xs text-[#929292]">@{title}</p>
+          ) : null}
+
+          {otherId ? (
+            editingNickname ? (
+              <div className="mt-2 flex w-full items-center gap-2 px-2">
+                <input
+                  autoFocus
+                  value={nicknameDraft}
+                  onChange={(e) => setNicknameDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && void saveNickname()}
+                  placeholder={t("addNickname")}
+                  className="min-w-0 flex-1 rounded-full bg-[#F5F5F5] px-3 py-1.5 text-sm outline-none"
+                />
+                <button onClick={() => void saveNickname()} className="text-sm font-bold text-primary">
+                  {t("save")}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setNicknameDraft(contact.data?.nickname ?? "");
+                  setEditingNickname(true);
+                }}
+                className="mt-1 text-xs font-semibold text-primary"
+              >
+                {contact.data?.nickname ? t("editNickname") : t("addNickname")}
+              </button>
+            )
+          ) : null}
+
+          {contact.data?.profile?.roblox_user_id ? (
+            <div className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#F5F5F5] p-3 text-left">
+              <img
+                src={contact.data.profile.roblox_avatar_url ?? undefined}
+                alt=""
+                className="h-11 w-11 rounded-full bg-white object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1 text-xs font-bold text-[#929292]">
+                  <Contact className="h-3 w-3" /> {t("linkedRobloxAccount")}
+                </p>
+                <RobloxIdentity
+                  displayName={contact.data.profile.roblox_display_name}
+                  username={contact.data.profile.roblox_username}
+                  className="text-sm font-semibold text-[#050505]"
+                />
+                <p className="truncate text-[11px] text-[#929292]">ID: {contact.data.profile.roblox_user_id}</p>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2 text-center">
@@ -162,6 +269,72 @@ export function ConversationInfoSheet({
         ) : null}
 
         <div className="mt-5 space-y-1 border-t border-black/5 pt-3">
+          <Row
+            icon={MessageSquare}
+            label={t("chatBubble")}
+            onClick={() => setPickingBubble((v) => !v)}
+            right={
+              <span
+                className="h-6 w-6 shrink-0 rounded-full"
+                style={{ background: `linear-gradient(90deg, ${bubble.from}, ${bubble.to})` }}
+              />
+            }
+            chevron
+          />
+          {pickingBubble ? (
+            <div className="flex flex-wrap gap-3 rounded-2xl bg-[#F5F5F5] p-3">
+              {BUBBLE_THEMES.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => {
+                    setBubbleTheme(conversationId, b.id);
+                    setBubbleState(b);
+                    onChanged();
+                  }}
+                  aria-label={b.label}
+                  className={cn(
+                    "h-9 w-9 rounded-full ring-offset-2",
+                    bubble.id === b.id && "ring-2 ring-[#050505]",
+                  )}
+                  style={{ background: `linear-gradient(135deg, ${b.from}, ${b.to})` }}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          <Row
+            icon={Paintbrush}
+            label={t("chatWallpaper")}
+            onClick={() => setPickingWallpaper((v) => !v)}
+            right={
+              <span
+                className="h-6 w-6 shrink-0 rounded-full border border-black/10"
+                style={{ background: wallpaper.css }}
+              />
+            }
+            chevron
+          />
+          {pickingWallpaper ? (
+            <div className="flex flex-wrap gap-3 rounded-2xl bg-[#F5F5F5] p-3">
+              {WALLPAPERS.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => {
+                    setWallpaper(conversationId, w.id);
+                    setWallpaperState(w);
+                    onChanged();
+                  }}
+                  aria-label={w.label}
+                  className={cn(
+                    "h-9 w-9 rounded-full border border-black/10 ring-offset-2",
+                    wallpaper.id === w.id && "ring-2 ring-[#050505]",
+                  )}
+                  style={{ background: w.css }}
+                />
+              ))}
+            </div>
+          ) : null}
+
           <Row
             icon={BellOff}
             label={t("muteMessages")}

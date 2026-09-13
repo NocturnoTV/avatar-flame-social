@@ -62,6 +62,22 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_nicknames: {
+        Row: { contact_id: string; nickname: string; owner_id: string; updated_at: string }
+        Insert: {
+          contact_id: string
+          nickname: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          nickname?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversation_participants: {
         Row: {
           conversation_id: string

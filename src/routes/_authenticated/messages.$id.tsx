@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
+import { getBubbleTheme, getWallpaper } from "@/lib/chatTheme";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -69,6 +70,9 @@ function Conversation() {
   const [info, setInfo] = useState(false);
   const [activeMessage, setActiveMessage] = useState<Message | null>(null);
   const [lightbox, setLightbox] = useState<Message | null>(null);
+  const [wallpaper, setWallpaperLocal] = useState(() => getWallpaper(id));
+  const [bubble, setBubbleLocal] = useState(() => getBubbleTheme(id));
+  const bubbleGradient = `linear-gradient(90deg, ${bubble.from} 0%, ${bubble.to} 100%)`;
   const recorderRef = useRef<MediaRecorder | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -110,9 +114,21 @@ function Conversation() {
         ? Date.now() - new Date(byId[otherId]!.last_active_at!).getTime() < 5 * 60 * 1000
         : false;
       const mine = (members ?? []).find((m) => m.user_id === user?.id);
+      const nickname =
+        otherId && user
+          ? (
+              await supabase
+                .from("contact_nicknames")
+                .select("nickname")
+                .eq("owner_id", user.id)
+                .eq("contact_id", otherId)
+                .maybeSingle()
+            ).data?.nickname ?? null
+          : null;
 
       return {
-        title: convo?.is_group ? convo.name : (others[0] ?? "?"),
+        title: convo?.is_group ? convo.name : (nickname ?? others[0] ?? "?"),
+        realUsername: others[0] ?? "?",
         isGroup: !!convo?.is_group,
         members: others.length + 1,
         people: byId,
@@ -317,7 +333,7 @@ function Conversation() {
       ) : null}
 
       {/* Liste défilante */}
-      <div className="flex-1 space-y-1 overflow-y-auto bg-white px-3 py-4">
+      <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4" style={{ background: wallpaper.css }}>
         {list.map((m, i) => {
           const mine = m.sender_id === user?.id;
           const sender = header.data?.people?.[m.sender_id];
@@ -371,7 +387,7 @@ function Conversation() {
                     mine ? (
                       <p
                         className="whitespace-pre-wrap break-words rounded-[26px] px-[30px] py-[18px] text-[15px] text-white"
-                        style={{ background: "linear-gradient(90deg, #2878F5 0%, #6744FF 100%)" }}
+                        style={{ background: bubbleGradient }}
                       >
                         {m.content}
                       </p>
@@ -386,7 +402,7 @@ function Conversation() {
                     mine ? (
                       <div
                         className="rounded-[26px] px-4 py-3"
-                        style={{ background: "linear-gradient(90deg, #2878F5 0%, #6744FF 100%)" }}
+                        style={{ background: bubbleGradient }}
                       >
                         <VoicePlayer path={m.media_url} light />
                       </div>
@@ -567,12 +583,14 @@ function Conversation() {
         <ConversationInfoSheet
           conversationId={id}
           otherId={header.data.otherId}
-          title={header.data.title ?? "?"}
+          title={header.data.realUsername ?? header.data.title ?? "?"}
           avatarUrl={header.data.otherId ? header.data.people[header.data.otherId]?.avatar_url ?? null : null}
           pinned={header.data.pinned}
           muted={header.data.muted}
           onClose={() => setInfo(false)}
           onChanged={() => {
+            setWallpaperLocal(getWallpaper(id));
+            setBubbleLocal(getBubbleTheme(id));
             void header.refetch();
             void qc.invalidateQueries({ queryKey: ["conversations"] });
           }}
