@@ -169,6 +169,39 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_games: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          roblox_universe_id: string | null
+          thumbnail_url: string | null
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          roblox_universe_id?: string | null
+          thumbnail_url?: string | null
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          roblox_universe_id?: string | null
+          thumbnail_url?: string | null
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           conversation_id: string | null
@@ -357,12 +390,14 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           birth_date: string | null
+          country: string | null
           created_at: string
           deletion_requested_at: string | null
           frame_style: string
           id: string
           language: string
           last_active_at: string
+          link_url: string | null
           notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null
@@ -375,6 +410,7 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
+          sparks_enabled: boolean
           sticker: string | null
           theme: string
           updated_at: string
@@ -390,12 +426,14 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
+          country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
           frame_style?: string
           id: string
           language?: string
           last_active_at?: string
+          link_url?: string | null
           notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
@@ -408,6 +446,7 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
           updated_at?: string
@@ -423,12 +462,14 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
+          country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
           frame_style?: string
           id?: string
           language?: string
           last_active_at?: string
+          link_url?: string | null
           notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
@@ -441,6 +482,7 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
           updated_at?: string
@@ -1054,12 +1096,14 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           birth_date: string | null
+          country: string | null
           created_at: string
           deletion_requested_at: string | null
           frame_style: string
           id: string
           language: string
           last_active_at: string
+          link_url: string | null
           notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null
@@ -1072,6 +1116,7 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
+          sparks_enabled: boolean
           sticker: string | null
           theme: string
           updated_at: string

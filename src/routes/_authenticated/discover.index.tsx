@@ -7,6 +7,7 @@ import {
   EyeOff,
   Heart,
   MessageCircle,
+  MoreHorizontal,
   Music2,
   Play,
   Plus,
@@ -484,13 +485,13 @@ function VideoSlide({
           </div>
         </div>
 
-        {/* action rail */}
-        <div className="absolute bottom-24 right-2 z-20 flex flex-col items-center gap-5">
+        {/* action rail — compact, TikTok/Instagram-style */}
+        <div className="absolute bottom-20 right-2.5 z-20 flex flex-col items-center gap-3.5">
           <div className="relative">
             <Link
               to="/users/$id"
               params={{ id: video.user_id }}
-              className="block h-12 w-12 overflow-hidden rounded-full border-2 border-white"
+              className="block h-10 w-10 overflow-hidden rounded-full border-2 border-white"
               aria-label={`Profil de ${username}`}
             >
               <StoredImage path={avatar} alt={username} className="h-full w-full" fallback="🎮" />
@@ -500,11 +501,11 @@ function VideoSlide({
                 onClick={toggleFollow}
                 aria-label="S'abonner"
                 className={cn(
-                  "absolute -bottom-2 left-1/2 grid h-6 w-6 -translate-x-1/2 place-items-center rounded-full text-white transition",
+                  "absolute -bottom-1.5 left-1/2 grid h-5 w-5 -translate-x-1/2 place-items-center rounded-full text-white transition",
                   state.data?.following ? "bg-surface-2 text-foreground" : "spark-gradient",
                 )}
               >
-                {state.data?.following ? "✓" : <Plus className="h-4 w-4" />}
+                {state.data?.following ? "✓" : <Plus className="h-3 w-3" />}
               </button>
             ) : null}
           </div>
@@ -540,15 +541,7 @@ function VideoSlide({
             label={t("repost")}
           />
           <RailButton icon={Send} count={video.shares_count} onClick={share} label={t("share")} />
-          {!isMine ? (
-            <button
-              onClick={onNotInterested}
-              aria-label={t("notInterested")}
-              className="flex flex-col items-center gap-1 opacity-80 transition active:scale-90"
-            >
-              <EyeOff className="h-6 w-6 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.5)]" />
-            </button>
-          ) : null}
+          {!isMine ? <RailOverflow onNotInterested={onNotInterested} /> : null}
         </div>
       </div>
     </div>
@@ -574,17 +567,50 @@ function RailButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="flex flex-col items-center gap-1 transition active:scale-90"
+      className="flex flex-col items-center gap-0.5 transition active:scale-90"
     >
       <Icon
         className={cn(
-          "h-8 w-8 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.5)] transition-transform duration-200",
+          "h-[26px] w-[26px] text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.5)] transition-transform duration-200",
           active && activeClass,
           active && "scale-110",
         )}
       />
-      <span className="text-xs font-bold text-white drop-shadow">{formatCount(count)}</span>
+      <span className="text-[11px] font-bold text-white drop-shadow">{formatCount(count)}</span>
     </button>
+  );
+}
+
+/** Compact "..." menu — keeps rarer actions (Not interested) off the main rail. */
+function RailOverflow({ onNotInterested }: { onNotInterested: () => void }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label={t("more")}
+        className="flex flex-col items-center gap-0.5 transition active:scale-90"
+      >
+        <MoreHorizontal className="h-[26px] w-[26px] text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.5)]" />
+      </button>
+      {open ? (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute bottom-full right-0 z-40 mb-2 w-44 overflow-hidden rounded-2xl bg-card text-foreground shadow-xl ring-1 ring-border">
+            <button
+              onClick={() => {
+                onNotInterested();
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-3.5 py-3 text-left text-sm font-semibold hover:bg-surface-2"
+            >
+              <EyeOff className="h-4 w-4" /> {t("notInterested")}
+            </button>
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }
 

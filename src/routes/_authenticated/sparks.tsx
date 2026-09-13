@@ -69,6 +69,8 @@ function useLiveProfiles() {
 
 function SparksPage() {
   const { t } = useI18n();
+  const { user } = useSession();
+  const queryClient = useQueryClient();
   useLiveProfiles();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"deck" | "matches">("deck");
@@ -77,9 +79,41 @@ function SparksPage() {
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState(0);
   const [match, setMatch] = useState<{ name: string; conversationId: string } | null>(null);
+  const [enabling, setEnabling] = useState(false);
+
+  const myGate = useQuery({
+    queryKey: ["sparks-gate", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [{ data: profile }, { count }] = await Promise.all([
+        supabase.from("profiles").select("sparks_enabled").eq("id", user!.id).maybeSingle(),
+        supabase
+          .from("favorite_games")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user!.id),
+      ]);
+      return { sparksEnabled: profile?.sparks_enabled ?? false, gameCount: count ?? 0 };
+    },
+  });
+
+  async function enableSparks() {
+    if (!user) return;
+    setEnabling(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ sparks_enabled: true })
+      .eq("id", user.id);
+    setEnabling(false);
+    if (error) {
+      toast.error(t("errorGeneric"));
+      return;
+    }
+    void queryClient.invalidateQueries({ queryKey: ["sparks-gate", user.id] });
+  }
 
   const { data: deck = [], refetch } = useQuery({
     queryKey: ["deck", filters],
+    enabled: myGate.data?.sparksEnabled === true,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("spark_deck", {
         _limit: 30,
@@ -118,7 +152,7 @@ function SparksPage() {
     enabled: deck.length > 0,
     queryFn: async () => {
       const { data } = await supabase
-        .from("roblox_games")
+        .from("favorite_games")
         .select("user_id,name,position")
         .in(
           "user_id",
@@ -160,6 +194,39 @@ function SparksPage() {
     }),
     [drag],
   );
+
+  if (myGate.isLoading) {
+    return (
+      <div className="mx-auto w-full max-w-md px-4 pt-4">
+        <Logo className="h-11" />
+      </div>
+    );
+  }
+
+  if (myGate.data?.sparksEnabled === false) {
+    return (
+      <div className="mx-auto flex min-h-[80vh] w-full max-w-md flex-col items-center justify-center px-6 text-center">
+        <Logo className="mb-6 h-11" />
+        <span className="spark-gradient grid h-16 w-16 place-items-center rounded-3xl text-3xl text-white">
+          🔥
+        </span>
+        <h1 className="mt-5 text-xl font-black">{t("sparksGateTitle")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("sparksGateBody")}</p>
+        {myGate.data && myGate.data.gameCount === 0 ? (
+          <>
+            <p className="mt-4 text-sm font-semibold text-primary">{t("sparksGateNoGames")}</p>
+            <Link to="/profile" className="mt-4 w-full">
+              <Button className="w-full">{t("addAGame")}</Button>
+            </Link>
+          </>
+        ) : (
+          <Button className="mt-6 w-full" disabled={enabling} onClick={() => void enableSparks()}>
+            {enabling ? t("loading") : t("enableSparks")}
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-md px-4 pt-4">

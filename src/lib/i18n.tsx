@@ -50,6 +50,29 @@ const en: Dict = {
   findFirstSpark: "Find your first spark!",
   noSparkMatches: "No Sparks matches yet.",
   notInterestedDone: "Got it, we'll show you less of this.",
+  leavingBloxsparkTitle: "You're leaving BloxSpark",
+  leavingBloxsparkBody:
+    "This site isn't managed by BloxSpark — we're not responsible for third-party content.",
+  continueAnyway: "Continue",
+  externalLink: "External link",
+  externalLinkPlaceholder: "https://...",
+  country: "Country",
+  countryPlaceholder: "Your country",
+  favoriteGames: "Favorite games",
+  addFavoriteGame: "Add a favorite game",
+  favoriteGamePlaceholder: "Game name",
+  noFavoriteGames: "No favorite games yet.",
+  maxFiveGames: "You can add up to 5 games.",
+  videosTab: "Videos",
+  repostsTab: "Reposts",
+  photosTab: "Photos",
+  noReposts: "No reposts yet.",
+  sparksGateTitle: "Create your Spark profile",
+  sparksGateBody:
+    "Add at least one favorite game so we can match you with players who share it, your age range and your country.",
+  sparksGateNoGames: "Add a favorite game on your profile first.",
+  enableSparks: "Enable Sparks",
+  addAGame: "Add a game",
   postCtaTitle: "Share your moment",
   postCtaText: "Post a video and light up your profile.",
   swipeMatch: "Swipe and find your match",
@@ -155,6 +178,7 @@ const en: Dict = {
   unblock: "Unblock",
   report: "Report",
   notInterested: "Not interested",
+  more: "More options",
   reportReason: "Why are you reporting this?",
   send: "Send",
   cancel: "Cancel",
@@ -256,6 +280,29 @@ const fr: Dict = {
   findFirstSpark: "Trouve ton premier spark !",
   noSparkMatches: "Aucun match Sparks pour l'instant.",
   notInterestedDone: "Compris, tu en verras moins.",
+  leavingBloxsparkTitle: "Tu quittes BloxSpark",
+  leavingBloxsparkBody:
+    "Ce site n'est pas géré par BloxSpark — nous ne sommes pas responsables du contenu des sites tiers.",
+  continueAnyway: "Continuer",
+  externalLink: "Lien externe",
+  externalLinkPlaceholder: "https://...",
+  country: "Pays",
+  countryPlaceholder: "Ton pays",
+  favoriteGames: "Jeux favoris",
+  addFavoriteGame: "Ajouter un jeu favori",
+  favoriteGamePlaceholder: "Nom du jeu",
+  noFavoriteGames: "Aucun jeu favori pour l'instant.",
+  maxFiveGames: "Tu peux ajouter jusqu'à 5 jeux.",
+  videosTab: "Vidéos",
+  repostsTab: "Republications",
+  photosTab: "Photos",
+  noReposts: "Aucune republication pour l'instant.",
+  sparksGateTitle: "Crée ton profil Sparks",
+  sparksGateBody:
+    "Ajoute au moins un jeu favori pour qu'on te propose des joueurs qui le partagent, de ta tranche d'âge et de ton pays.",
+  sparksGateNoGames: "Ajoute d'abord un jeu favori sur ton profil.",
+  enableSparks: "Activer Sparks",
+  addAGame: "Ajouter un jeu",
   postCtaTitle: "Partage ton moment",
   postCtaText: "Publie une vidéo et fais briller ton profil.",
   swipeMatch: "Swipe et trouve ton match",
@@ -361,6 +408,7 @@ const fr: Dict = {
   unblock: "Débloquer",
   report: "Signaler",
   notInterested: "Pas intéressé",
+  more: "Plus d'options",
   reportReason: "Pourquoi signales-tu ce contenu ?",
   send: "Envoyer",
   cancel: "Annuler",
@@ -461,6 +509,29 @@ const es: Dict = {
   findFirstSpark: "¡Encuentra tu primer spark!",
   noSparkMatches: "Todavía no hay matches de Sparks.",
   notInterestedDone: "Entendido, verás menos de esto.",
+  leavingBloxsparkTitle: "Estás saliendo de BloxSpark",
+  leavingBloxsparkBody:
+    "Este sitio no está gestionado por BloxSpark — no somos responsables del contenido de sitios de terceros.",
+  continueAnyway: "Continuar",
+  externalLink: "Enlace externo",
+  externalLinkPlaceholder: "https://...",
+  country: "País",
+  countryPlaceholder: "Tu país",
+  favoriteGames: "Juegos favoritos",
+  addFavoriteGame: "Añadir un juego favorito",
+  favoriteGamePlaceholder: "Nombre del juego",
+  noFavoriteGames: "Aún no hay juegos favoritos.",
+  maxFiveGames: "Puedes añadir hasta 5 juegos.",
+  videosTab: "Vídeos",
+  repostsTab: "Republicaciones",
+  photosTab: "Fotos",
+  noReposts: "Aún no hay republicaciones.",
+  sparksGateTitle: "Crea tu perfil de Sparks",
+  sparksGateBody:
+    "Añade al menos un juego favorito para conectarte con jugadores que lo comparten, de tu edad y tu país.",
+  sparksGateNoGames: "Añade primero un juego favorito en tu perfil.",
+  enableSparks: "Activar Sparks",
+  addAGame: "Añadir un juego",
   postCtaTitle: "Comparte tu momento",
   postCtaText: "Publica un vídeo y haz brillar tu perfil.",
   swipeMatch: "Desliza y encuentra tu match",
@@ -566,6 +637,7 @@ const es: Dict = {
   unblock: "Desbloquear",
   report: "Reportar",
   notInterested: "No me interesa",
+  more: "Más opciones",
   reportReason: "¿Por qué lo reportas?",
   send: "Enviar",
   cancel: "Cancelar",
@@ -667,6 +739,29 @@ const pt: Dict = {
   findFirstSpark: "Encontre seu primeiro spark!",
   noSparkMatches: "Ainda não há matches de Sparks.",
   notInterestedDone: "Entendido, você verá menos disso.",
+  leavingBloxsparkTitle: "Você está saindo do BloxSpark",
+  leavingBloxsparkBody:
+    "Este site não é gerenciado pelo BloxSpark — não somos responsáveis pelo conteúdo de sites de terceiros.",
+  continueAnyway: "Continuar",
+  externalLink: "Link externo",
+  externalLinkPlaceholder: "https://...",
+  country: "País",
+  countryPlaceholder: "Seu país",
+  favoriteGames: "Jogos favoritos",
+  addFavoriteGame: "Adicionar um jogo favorito",
+  favoriteGamePlaceholder: "Nome do jogo",
+  noFavoriteGames: "Ainda não há jogos favoritos.",
+  maxFiveGames: "Você pode adicionar até 5 jogos.",
+  videosTab: "Vídeos",
+  repostsTab: "Republicações",
+  photosTab: "Fotos",
+  noReposts: "Ainda não há republicações.",
+  sparksGateTitle: "Crie seu perfil de Sparks",
+  sparksGateBody:
+    "Adicione pelo menos um jogo favorito para te conectarmos com jogadores que o compartilham, da sua idade e do seu país.",
+  sparksGateNoGames: "Adicione primeiro um jogo favorito no seu perfil.",
+  enableSparks: "Ativar Sparks",
+  addAGame: "Adicionar um jogo",
   postCtaTitle: "Compartilhe seu momento",
   postCtaText: "Publique um vídeo e dê brilho ao seu perfil.",
   swipeMatch: "Deslize e encontre seu match",
@@ -772,6 +867,7 @@ const pt: Dict = {
   unblock: "Desbloquear",
   report: "Denunciar",
   notInterested: "Não tenho interesse",
+  more: "Mais opções",
   reportReason: "Por que está denunciando?",
   send: "Enviar",
   cancel: "Cancelar",
@@ -873,6 +969,29 @@ const de: Dict = {
   findFirstSpark: "Finde deinen ersten Spark!",
   noSparkMatches: "Noch keine Sparks-Matches.",
   notInterestedDone: "Alles klar, du siehst weniger davon.",
+  leavingBloxsparkTitle: "Du verlässt BloxSpark",
+  leavingBloxsparkBody:
+    "Diese Seite wird nicht von BloxSpark verwaltet — wir sind nicht für Inhalte Dritter verantwortlich.",
+  continueAnyway: "Weiter",
+  externalLink: "Externer Link",
+  externalLinkPlaceholder: "https://...",
+  country: "Land",
+  countryPlaceholder: "Dein Land",
+  favoriteGames: "Lieblingsspiele",
+  addFavoriteGame: "Lieblingsspiel hinzufügen",
+  favoriteGamePlaceholder: "Spielname",
+  noFavoriteGames: "Noch keine Lieblingsspiele.",
+  maxFiveGames: "Du kannst bis zu 5 Spiele hinzufügen.",
+  videosTab: "Videos",
+  repostsTab: "Reposts",
+  photosTab: "Fotos",
+  noReposts: "Noch keine Reposts.",
+  sparksGateTitle: "Erstelle dein Sparks-Profil",
+  sparksGateBody:
+    "Füge mindestens ein Lieblingsspiel hinzu, damit wir dich mit Spielern zusammenbringen, die es teilen, in deinem Alter und Land.",
+  sparksGateNoGames: "Füge zuerst ein Lieblingsspiel in deinem Profil hinzu.",
+  enableSparks: "Sparks aktivieren",
+  addAGame: "Spiel hinzufügen",
   postCtaTitle: "Teile deinen Moment",
   postCtaText: "Poste ein Video und bring dein Profil zum Strahlen.",
   swipeMatch: "Swipe und finde dein Match",
@@ -979,6 +1098,7 @@ const de: Dict = {
   unblock: "Entsperren",
   report: "Melden",
   notInterested: "Kein Interesse",
+  more: "Weitere Optionen",
   reportReason: "Warum meldest du das?",
   send: "Senden",
   cancel: "Abbrechen",
@@ -1082,6 +1202,27 @@ const ko: Dict = {
   findFirstSpark: "첫 스파크를 찾아보세요!",
   noSparkMatches: "아직 Sparks 매치가 없어요.",
   notInterestedDone: "알겠어요, 이런 콘텐츠를 줄일게요.",
+  leavingBloxsparkTitle: "BloxSpark를 떠납니다",
+  leavingBloxsparkBody: "이 사이트는 BloxSpark가 관리하지 않으며, 제3자 콘텐츠에 대해 책임지지 않습니다.",
+  continueAnyway: "계속하기",
+  externalLink: "외부 링크",
+  externalLinkPlaceholder: "https://...",
+  country: "국가",
+  countryPlaceholder: "당신의 국가",
+  favoriteGames: "즐겨찾는 게임",
+  addFavoriteGame: "즐겨찾는 게임 추가",
+  favoriteGamePlaceholder: "게임 이름",
+  noFavoriteGames: "아직 즐겨찾는 게임이 없어요.",
+  maxFiveGames: "게임은 최대 5개까지 추가할 수 있어요.",
+  videosTab: "동영상",
+  repostsTab: "리포스트",
+  photosTab: "사진",
+  noReposts: "아직 리포스트가 없어요.",
+  sparksGateTitle: "Sparks 프로필 만들기",
+  sparksGateBody: "즐겨찾는 게임을 하나 이상 추가하면 같은 게임, 나이대, 국가의 플레이어와 매칭해 드려요.",
+  sparksGateNoGames: "먼저 프로필에 즐겨찾는 게임을 추가하세요.",
+  enableSparks: "Sparks 활성화",
+  addAGame: "게임 추가",
   postCtaTitle: "순간을 공유하세요",
   postCtaText: "동영상을 올리고 프로필을 빛내보세요.",
   swipeMatch: "스와이프하고 매치 찾기",
@@ -1186,6 +1327,7 @@ const ko: Dict = {
   unblock: "차단 해제",
   report: "신고",
   notInterested: "관심 없음",
+  more: "더 보기",
   reportReason: "신고 사유는 무엇인가요?",
   send: "보내기",
   cancel: "취소",
@@ -1302,8 +1444,28 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
+function fallbackT(key: keyof typeof en, vars?: Record<string, string | number>) {
+  let str = en[key] ?? String(key);
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) str = str.replace(`{${k}}`, String(v));
+  }
+  return str;
+}
+
+/**
+ * Falls back to English instead of throwing when no I18nProvider is found.
+ * This can legitimately happen for a moment during a hot-reload (Vite can
+ * re-evaluate this module independently of its consumers, temporarily
+ * pointing them at a stale I18nContext) — throwing here used to blank the
+ * whole app, which is worse than briefly showing English text.
+ */
 export function useI18n() {
   const ctx = useContext(I18nContext);
-  if (!ctx) throw new Error("useI18n must be used inside I18nProvider");
+  if (!ctx) {
+    if (import.meta.env.DEV) {
+      console.warn("useI18n() called outside I18nProvider — falling back to English.");
+    }
+    return { lang: "en" as LangCode, setLang: () => {}, t: fallbackT };
+  }
   return ctx;
 }

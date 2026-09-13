@@ -2,16 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-  ArrowUpRight,
-  Bell,
-  Compass,
-  Flame,
-  Newspaper,
-  Sparkles,
-  Users,
-  Video,
-} from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Card } from "@/components/ui-kit";
@@ -40,21 +31,21 @@ export const Route = createFileRoute("/_authenticated/home")({
   component: HomePage,
 });
 
-/** Small icon chip + title used to open every feed section, per design spec. */
+/** Small emoji chip + title used to open every feed section, per design spec. */
 function SectionHeader({
-  icon: Icon,
+  emoji,
   title,
   action,
 }: {
-  icon: typeof Compass;
+  emoji: string;
   title: string;
   action?: { to: "/discover" | "/sparks" | "/messages"; label: string };
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
       <div className="flex items-center gap-2.5">
-        <span className="spark-gradient grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white">
-          <Icon className="h-4 w-4" />
+        <span className="spark-gradient grid h-8 w-8 shrink-0 place-items-center rounded-xl text-base">
+          {emoji}
         </span>
         <h2 className="text-lg font-black">{title}</h2>
       </div>
@@ -102,7 +93,7 @@ function NewsSection() {
 
   return (
     <section>
-      <SectionHeader icon={Newspaper} title={t("newsTitle")} />
+      <SectionHeader emoji="📰" title={t("newsTitle")} />
       <div className="grid gap-3 sm:grid-cols-3">
         {items.map((n, i) => {
           const open = openId === n.id;
@@ -140,7 +131,7 @@ function NewsSection() {
                   onClick={() => void translateArticle(n)}
                   className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary disabled:opacity-50"
                 >
-                  <Sparkles className="h-3.5 w-3.5" />
+                  <span className="text-sm leading-none">✨</span>
                   {translations[n.id] ? t("showOriginal") : t("translateWithAi")}
                 </button>
               ) : null}
@@ -334,7 +325,7 @@ function HomePage() {
                 aria-label="Notifications"
                 className="relative grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90"
               >
-                <Bell className="h-5 w-5" />
+                <span className="text-lg leading-none">🔔</span>
                 {counters.data?.unread ? (
                   <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
                     {counters.data.unread > 9 ? "9+" : counters.data.unread}
@@ -367,9 +358,9 @@ function HomePage() {
       <Reveal>
         <div className="mt-4 grid grid-cols-3 gap-3">
           {[
-            { label: t("matches"), value: counters.data?.matches ?? 0, icon: Sparkles },
-            { label: t("followers"), value: counters.data?.followers ?? 0, icon: Users },
-            { label: t("notifications"), value: counters.data?.unread ?? 0, icon: Bell },
+            { label: t("matches"), value: counters.data?.matches ?? 0, emoji: "🔥" },
+            { label: t("followers"), value: counters.data?.followers ?? 0, emoji: "👥" },
+            { label: t("notifications"), value: counters.data?.unread ?? 0, emoji: "🔔" },
           ].map((s, i) => (
             <Card
               key={s.label}
@@ -378,7 +369,7 @@ function HomePage() {
                 `bx-delay-${i + 1}`,
               )}
             >
-              <s.icon className="mx-auto mb-1.5 h-5 w-5 text-primary" />
+              <span className="mb-1.5 block text-xl leading-none">{s.emoji}</span>
               <p className="text-xl font-black">{s.value}</p>
               <p className="text-[11px] text-muted-foreground">{s.label}</p>
             </Card>
@@ -389,7 +380,7 @@ function HomePage() {
       {/* 1. Découvrir — vidéos du moment */}
       <Reveal className="mt-8">
         <section>
-          <SectionHeader icon={Compass} title={t("discover")} action={{ to: "/discover", label: t("seeAll") }} />
+          <SectionHeader emoji="🧭" title={t("discover")} action={{ to: "/discover", label: t("seeAll") }} />
           {latest.data?.length ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               {latest.data.map((v) => (
@@ -410,7 +401,7 @@ function HomePage() {
       {/* 2. Amis / Abonnements */}
       <Reveal className="mt-8">
         <section>
-          <SectionHeader icon={Users} title={t("friends")} />
+          <SectionHeader emoji="👥" title={t("friends")} />
           {following.data?.length ? (
             <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
               {following.data.map((f) => {
@@ -460,7 +451,7 @@ function HomePage() {
       {/* 3. Mes matchs Sparks */}
       <Reveal className="mt-8">
         <section>
-          <SectionHeader icon={Flame} title={t("matches")} action={{ to: "/sparks", label: t("seeAll") }} />
+          <SectionHeader emoji="🔥" title={t("matches")} action={{ to: "/sparks", label: t("seeAll") }} />
           {sparkMatches.data?.length ? (
             <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
               {sparkMatches.data.map((m) => (
@@ -505,8 +496,8 @@ function HomePage() {
           to="/discover/studio"
           className="spark-gradient bx-glow group relative flex items-center gap-4 overflow-hidden rounded-[1.75rem] p-5 text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
         >
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/20">
-            <Video className="h-6 w-6" />
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/20 text-2xl">
+            🎬
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-lg font-black">{t("postCtaTitle")}</span>
@@ -539,7 +530,7 @@ function VideoThumb({ path, views }: { path: string; views: number }) {
         <div className="aspect-[9/16] w-full animate-pulse bg-surface-2" />
       )}
       <span className="absolute bottom-1 left-1 flex items-center gap-1 text-[10px] font-bold text-white drop-shadow">
-        <Video className="h-3 w-3" /> {views}
+        ▶️ {views}
       </span>
     </Link>
   );
