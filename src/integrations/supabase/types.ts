@@ -917,6 +917,35 @@ export type Database = {
           },
         ]
       }
+      video_comment_reactions: {
+        Row: {
+          comment_id: string
+          user_id: string
+          reaction: string
+          created_at: string
+        }
+        Insert: {
+          comment_id: string
+          user_id: string
+          reaction: string
+          created_at?: string
+        }
+        Update: {
+          comment_id?: string
+          user_id?: string
+          reaction?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_comment_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_favorites: {
         Row: {
           created_at: string

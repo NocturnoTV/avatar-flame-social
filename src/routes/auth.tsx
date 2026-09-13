@@ -46,8 +46,17 @@ function AuthPage() {
   async function continueAfterAuthentication() {
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", data.user.id)
+      .maybeSingle();
+    const completed = profile?.onboarding_completed === true;
+    await supabase.auth.updateUser({
+      data: { onboarding_completed: completed, onboarding_required: !completed },
+    });
     navigate({
-      to: data.user.user_metadata["onboarding_required"] === true ? "/onboarding" : "/home",
+      to: completed ? "/home" : "/onboarding",
       replace: true,
     });
   }
@@ -66,7 +75,7 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/onboarding`,
-            data: { onboarding_required: true },
+            data: { onboarding_completed: false, onboarding_required: true },
           },
         });
         if (error) throw error;

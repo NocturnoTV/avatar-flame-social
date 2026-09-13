@@ -137,6 +137,22 @@
   );
 }
 
+@utility app-background {
+  background-color: var(--color-background);
+  background-image:
+    radial-gradient(
+      circle at 8% 0%,
+      color-mix(in oklab, var(--spark) 12%, transparent) 0,
+      transparent 32rem
+    ),
+    radial-gradient(
+      circle at 92% 8%,
+      color-mix(in oklab, var(--spark-2) 11%, transparent) 0,
+      transparent 28rem
+    );
+  background-attachment: fixed;
+}
+
 @utility spark-text {
   background-image: linear-gradient(135deg, var(--spark), var(--spark-2));
   background-clip: text;

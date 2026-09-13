@@ -6,7 +6,10 @@ import {
   Camera,
   Gamepad2,
   ImagePlus,
+  LoaderCircle,
+  Plus,
   Save,
+  Search,
   Settings,
   ShieldCheck,
   Trash2,
@@ -26,6 +29,10 @@ import { useRoles } from "@/lib/roles";
 import { BANNERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
+import {
+  searchPopularRobloxGames,
+  type RobloxGameSearchResult,
+} from "@/lib/roblox-games.functions";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -56,8 +63,8 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
-  const [newGameName, setNewGameName] = useState("");
-  const [newGameUrl, setNewGameUrl] = useState("");
+  const [gameSearch, setGameSearch] = useState("");
+  const [gamePickerOpen, setGamePickerOpen] = useState(false);
 
   const profile = useQuery({
     queryKey: ["my-profile"],
@@ -91,12 +98,19 @@ function ProfilePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("favorite_games")
-        .select("id,name,url,position,thumbnail_url")
+        .select("id,name,url,position,thumbnail_url,roblox_universe_id")
         .eq("user_id", user?.id ?? "")
         .order("position");
       return data ?? [];
     },
     enabled: !!user,
+  });
+
+  const gameResults = useQuery({
+    queryKey: ["roblox-game-search", gameSearch.trim()],
+    enabled: gamePickerOpen && gameSearch.trim().length >= 2,
+    queryFn: () => searchPopularRobloxGames({ data: { query: gameSearch.trim() } }),
+    staleTime: 5 * 60 * 1000,
   });
 
   const videos = useQuery({
@@ -208,20 +222,26 @@ function ProfilePage() {
     void photos.refetch();
   }
 
-  async function addFavoriteGame() {
-    if (!user || !newGameName.trim()) return;
+  async function addFavoriteGame(game: RobloxGameSearchResult) {
+    if (!user || gameList.length >= MAX_GAMES) return;
+    if (gameList.some((current) => current.roblox_universe_id === game.universeId)) {
+      toast.error(t("duplicateGame"));
+      return;
+    }
     const { error } = await supabase.from("favorite_games").insert({
       user_id: user.id,
-      name: newGameName.trim(),
-      url: newGameUrl.trim() || null,
-      position: games.data?.length ?? 0,
+      name: game.name,
+      url: game.url,
+      position: gameList.length,
+      roblox_universe_id: game.universeId,
+      thumbnail_url: game.thumbnailUrl,
     });
     if (error) {
       toast.error(error.message.includes("max_five_games") ? t("maxFiveGames") : t("errorGeneric"));
       return;
     }
-    setNewGameName("");
-    setNewGameUrl("");
+    setGameSearch("");
+    setGamePickerOpen(false);
     void games.refetch();
     void qc.invalidateQueries({ queryKey: ["deck-games"] });
   }
@@ -389,11 +409,86 @@ function ProfilePage() {
 
         <div>
           <Label>
-            {t("favoriteGames")} ({gameList.length}/{MAX_GAMES})
+            {t("favoriteRobloxGames")} ({gameList.length}/{MAX_GAMES})
           </Label>
+          <button
+            type="button"
+            disabled={gameList.length >= MAX_GAMES}
+            onClick={() => setGamePickerOpen((open) => !open)}
+            className="mb-3 flex w-full items-center justify-between rounded-2xl border border-input bg-background/75 px-4 py-3 text-left text-sm transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span className="flex items-center gap-2 font-semibold">
+              <Search className="h-4 w-4 text-primary" /> {t("popularGameSearch")}
+            </span>
+            <Plus className="h-4 w-4" />
+          </button>
+          {gamePickerOpen ? (
+            <div className="mb-3 overflow-hidden rounded-2xl border border-primary/30 bg-popover shadow-xl">
+              <div className="flex items-center gap-2 border-b border-border px-3">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  autoFocus
+                  value={gameSearch}
+                  onChange={(event) => setGameSearch(event.target.value)}
+                  placeholder="Brookhaven, Adopt Me, Blox Fruits…"
+                  className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
+                />
+                {gameResults.isFetching ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
+                ) : null}
+              </div>
+              <div className="max-h-72 overflow-y-auto p-2">
+                {gameSearch.trim().length < 2 ? (
+                  <p className="px-3 py-8 text-center text-xs text-muted-foreground">
+                    {t("gameSearchHint")}
+                  </p>
+                ) : null}
+                {(gameResults.data ?? []).map((game) => (
+                  <button
+                    key={game.universeId}
+                    type="button"
+                    onClick={() => void addFavoriteGame(game)}
+                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-primary/10"
+                  >
+                    {game.thumbnailUrl ? (
+                      <img
+                        src={game.thumbnailUrl}
+                        alt=""
+                        className="h-11 w-11 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <span className="grid h-11 w-11 place-items-center rounded-xl bg-surface-2">
+                        <Gamepad2 className="h-4 w-4" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold">{game.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {t("playersOnline", { count: game.playerCount.toLocaleString() })}
+                      </span>
+                    </span>
+                    <Plus className="h-4 w-4 text-primary" />
+                  </button>
+                ))}
+                {gameResults.isError ? (
+                  <p className="px-3 py-6 text-center text-xs text-destructive">
+                    {t("robloxSearchUnavailable")}
+                  </p>
+                ) : null}
+                {gameResults.isSuccess && !gameResults.data.length ? (
+                  <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    {t("noGamesFound")}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <div className="space-y-2">
             {gameList.map((g) => (
-              <div key={g.id} className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm">
+              <div
+                key={g.id}
+                className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm"
+              >
                 {g.thumbnail_url ? (
                   <img src={g.thumbnail_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
                 ) : (
@@ -401,7 +496,14 @@ function ProfilePage() {
                     <Gamepad2 className="h-4 w-4" />
                   </span>
                 )}
-                <span className="min-w-0 flex-1 truncate font-semibold">{g.name}</span>
+                <a
+                  href={g.url ?? undefined}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="min-w-0 flex-1 truncate font-semibold"
+                >
+                  {g.name}
+                </a>
                 <button
                   onClick={() => void deleteFavoriteGame(g.id)}
                   aria-label={t("delete")}
@@ -413,30 +515,6 @@ function ProfilePage() {
             ))}
             {gameList.length === 0 ? (
               <p className="text-xs text-muted-foreground">{t("noFavoriteGames")}</p>
-            ) : null}
-            {gameList.length < MAX_GAMES ? (
-              <div className="flex gap-2">
-                <Input
-                  value={newGameName}
-                  onChange={(e) => setNewGameName(e.target.value)}
-                  placeholder={t("favoriteGamePlaceholder")}
-                  className="flex-1"
-                />
-                <Input
-                  value={newGameUrl}
-                  onChange={(e) => setNewGameUrl(e.target.value)}
-                  placeholder="https:// (optional)"
-                  className="flex-1"
-                />
-                <Button
-                  size="icon"
-                  onClick={() => void addFavoriteGame()}
-                  disabled={!newGameName.trim()}
-                  aria-label={t("addFavoriteGame")}
-                >
-                  <Gamepad2 className="h-4 w-4" />
-                </Button>
-              </div>
             ) : null}
           </div>
         </div>
