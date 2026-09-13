@@ -8,6 +8,7 @@ import { Button, Input, Label } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
+import { signInWithIdentifier } from "@/lib/login-identifier.functions";
 
 type Search = { mode?: "signup" | "signin" | undefined };
 
