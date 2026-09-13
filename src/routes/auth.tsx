@@ -117,16 +117,28 @@ function AuthPage() {
         </div>
 
         <form onSubmit={submit} className="space-y-4">
-          <div>
-            <Label>{t("email")}</Label>
-            <Input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="toi@exemple.com"
-            />
-          </div>
+          {isSignup ? (
+            <div>
+              <Label>{t("email")}</Label>
+              <Input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="toi@exemple.com"
+              />
+            </div>
+          ) : (
+            <div>
+              <Label>{t("identifierLabel")}</Label>
+              <Input
+                required
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={t("identifierPlaceholder")}
+              />
+            </div>
+          )}
           <div>
             <Label>{t("password")}</Label>
             <Input
