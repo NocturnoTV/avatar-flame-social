@@ -77,15 +77,27 @@ function AuthPage() {
   }
 
   async function google() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error(t("errorGeneric"));
-      return;
+    setBusy(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/auth`,
+      });
+      if (!result.error) {
+        if (result.redirected) return;
+        navigate({ to: "/home" });
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth` },
+      });
+      if (error) throw error;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("errorGeneric"));
+    } finally {
+      setBusy(false);
     }
-    if (result.redirected) return;
-    navigate({ to: "/home" });
   }
 
   function continueAsGuest() {
@@ -106,7 +118,7 @@ function AuthPage() {
         <h1 className="text-2xl font-bold">{isSignup ? t("signUp") : t("signIn")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("tagline")}</p>
 
-        <Button className="mt-6 w-full" variant="outline" onClick={google}>
+        <Button className="mt-6 w-full" variant="outline" onClick={google} disabled={busy}>
           <span className="text-base">🇬</span> {t("continueGoogle")}
         </Button>
 

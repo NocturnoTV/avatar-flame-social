@@ -4,12 +4,13 @@
   "start_url": "/home",
   "display": "standalone",
   "background_color": "#07070a",
-  "theme_color": "#ff5f6d",
+  "theme_color": "#38bdf8",
   "icons": [
     {
-      "src": "/favicon.png",
+      "src": "/bloxspark-icon.svg",
       "sizes": "any",
-      "type": "image/png"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
