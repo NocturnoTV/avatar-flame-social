@@ -15,7 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Card } from "@/components/ui-kit";
 import { Logo } from "@/components/Logo";
-import { BrandIcon } from "@/components/BrandIcon";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { cn } from "@/lib/utils";
@@ -223,9 +222,8 @@ function HomePage() {
           <div className="flex items-start justify-between">
             <Logo className="h-8 w-auto bx-float" forceVariant="dark" />
             <div className="flex items-center gap-2">
-              <BrandIcon className="h-10 w-10 ring-1 ring-white/25" />
               <Link
-                to="/notifications"
+                to="/messages"
                 aria-label="Notifications"
                 className="relative grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90"
               >
@@ -301,7 +299,7 @@ function HomePage() {
                     <span
                       className={cn(
                         "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background",
-                        online ? "bg-emerald-400" : "bg-muted-foreground/50",
+                        online ? "bg-sky-400" : "bg-muted-foreground/50",
                       )}
                     />
                   </span>

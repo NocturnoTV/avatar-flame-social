@@ -16,14 +16,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button, Label, Select, Textarea } from "@/components/ui-kit";
+import { Button, Label, Textarea } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useRoles } from "@/lib/roles";
-import { ACCENTS, BANNERS, FRAMES, STICKERS, ageFrom } from "@/lib/decorations";
+import { BANNERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/profile")({
@@ -232,10 +232,7 @@ function ProfilePage() {
       {/* Avatar */}
       <div className="-mt-12 px-1">
         <div className="relative inline-block">
-          <div
-            className={cn("inline-block rounded-full p-1", FRAMES[p?.frame_style ?? "none"] ?? "")}
-            style={{ boxShadow: `0 0 0 3px ${ACCENTS[p?.accent_color ?? "spark"] ?? "#ff5f6d"}` }}
-          >
+          <div className="inline-block rounded-full bg-background p-1">
             <StoredImage
               path={p?.avatar_url ?? photos.data?.[0]?.url}
               alt={p?.username ?? ""}
@@ -265,7 +262,6 @@ function ProfilePage() {
         <h2 className="mt-3 flex items-center gap-2 text-xl font-bold">
           {p?.username}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
-          {p?.sticker ? <span>{p.sticker}</span> : null}
         </h2>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1">
@@ -430,52 +426,6 @@ function ProfilePage() {
                 )}
                 style={{ backgroundImage: value }}
               />
-            ))}
-          </div>
-        </div>
-        <div>
-          <Label>{t("accent")}</Label>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(ACCENTS).map(([key, value]) => (
-              <button
-                key={key}
-                onClick={() => patch({ accent_color: key })}
-                className={cn(
-                  "h-8 w-8 rounded-full border-2",
-                  p?.accent_color === key ? "border-foreground" : "border-transparent",
-                )}
-                style={{ backgroundColor: value }}
-              />
-            ))}
-          </div>
-        </div>
-        <div>
-          <Label>{t("frame")}</Label>
-          <Select
-            defaultValue={p?.frame_style ?? "none"}
-            onChange={(e) => patch({ frame_style: e.target.value })}
-          >
-            {Object.keys(FRAMES).map((key) => (
-              <option key={key} value={key}>
-                {key}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <Label>{t("sticker")}</Label>
-          <div className="flex flex-wrap gap-2 text-2xl">
-            {STICKERS.map((s) => (
-              <button
-                key={s}
-                onClick={() => patch({ sticker: s })}
-                className={cn(
-                  "rounded-xl border-2 px-2",
-                  p?.sticker === s ? "border-primary" : "border-transparent",
-                )}
-              >
-                {s}
-              </button>
             ))}
           </div>
         </div>

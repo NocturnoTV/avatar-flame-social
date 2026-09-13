@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,9 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/notifications")({
+  beforeLoad: () => {
+    throw redirect({ to: "/messages" });
+  },
   head: () => ({
     meta: [
       { title: "Notifications — Bloxspark" },

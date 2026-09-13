@@ -375,7 +375,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
           value={caption}
           maxLength={300}
           onChange={(e) => setCaption(e.target.value)}
-          placeholder="Décris ta vidéo, ajoute des #hashtags…"
+          placeholder="Décris ta vidéo, ajoute des #hashtags et mentionne @quelqu’un…"
         />
       </div>
       <div>

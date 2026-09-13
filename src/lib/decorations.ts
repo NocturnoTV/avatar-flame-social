@@ -1,10 +1,10 @@
 export const BANNERS: Record<string, string> = {
-  nebula: "linear-gradient(135deg,#ff4d5e,#7b2bff)",
-  lava: "linear-gradient(135deg,#ff9d00,#ff2d55)",
+  nebula: "linear-gradient(135deg,#1d4ed8,#38bdf8)",
+  lava: "linear-gradient(135deg,#075985,#2563eb)",
   ocean: "linear-gradient(135deg,#00c6ff,#0072ff)",
-  matrix: "linear-gradient(135deg,#00ff87,#0f2027)",
-  candy: "linear-gradient(135deg,#ff9a9e,#fad0c4)",
-  midnight: "linear-gradient(135deg,#232526,#414345)",
+  matrix: "linear-gradient(135deg,#0c4a6e,#0284c7)",
+  candy: "linear-gradient(135deg,#60a5fa,#dbeafe)",
+  midnight: "linear-gradient(135deg,#0f172a,#1e40af)",
 };
 
 export const FRAMES: Record<string, string> = {
@@ -16,12 +16,12 @@ export const FRAMES: Record<string, string> = {
 };
 
 export const ACCENTS: Record<string, string> = {
-  spark: "#ff3b4e",
-  violet: "#8b5cf6",
+  spark: "#2563eb",
+  violet: "#3b82f6",
   cyan: "#22d3ee",
-  lime: "#a3e635",
-  amber: "#f59e0b",
-  pink: "#ec4899",
+  lime: "#0ea5e9",
+  amber: "#1d4ed8",
+  pink: "#60a5fa",
 };
 
 export const STICKERS = ["🔥", "🎮", "⭐", "🐱", "👾", "🍕", "🏆", "💎", "🎧", "🚀"];

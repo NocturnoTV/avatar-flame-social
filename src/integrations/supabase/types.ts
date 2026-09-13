@@ -594,6 +594,18 @@ export type Database = {
         }
         Relationships: []
       }
+      stories: {
+        Row: { caption: string | null; created_at: string; expires_at: string; id: string; media_type: string; media_url: string; user_id: string }
+        Insert: { caption?: string | null; created_at?: string; expires_at?: string; id?: string; media_type?: string; media_url: string; user_id: string }
+        Update: { caption?: string | null; created_at?: string; expires_at?: string; id?: string; media_type?: string; media_url?: string; user_id?: string }
+        Relationships: []
+      }
+      story_views: {
+        Row: { story_id: string; user_id: string; viewed_at: string }
+        Insert: { story_id: string; user_id: string; viewed_at?: string }
+        Update: { story_id?: string; user_id?: string; viewed_at?: string }
+        Relationships: [{ foreignKeyName: "story_views_story_id_fkey"; columns: ["story_id"]; isOneToOne: false; referencedRelation: "stories"; referencedColumns: ["id"] }]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -620,6 +632,9 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          media_type: string | null
+          media_url: string | null
+          parent_id: string | null
           user_id: string
           video_id: string
         }
@@ -627,6 +642,9 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
+          parent_id?: string | null
           user_id: string
           video_id: string
         }
@@ -634,10 +652,20 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
+          parent_id?: string | null
           user_id?: string
           video_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "video_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "video_comments_video_id_fkey"
             columns: ["video_id"]

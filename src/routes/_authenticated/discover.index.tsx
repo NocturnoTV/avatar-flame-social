@@ -9,6 +9,7 @@ import {
   Music2,
   Play,
   Plus,
+  Reply,
   Repeat2,
   Send,
   Volume2,
@@ -369,9 +370,17 @@ function VideoSlide({
 
         {/* bottom info */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-4 pb-6 pr-24">
-          <p className="text-[15px] font-extrabold text-white drop-shadow">@{username}</p>
+          <Link
+            to="/users/$id"
+            params={{ id: video.user_id }}
+            className="pointer-events-auto text-[15px] font-extrabold text-white drop-shadow hover:underline"
+          >
+            @{username}
+          </Link>
           {video.caption ? (
-            <p className="mt-1 line-clamp-3 text-sm text-white/95 drop-shadow">{video.caption}</p>
+            <p className="mt-1 line-clamp-3 text-sm text-white/95 drop-shadow">
+              <MentionText text={video.caption} />
+            </p>
           ) : null}
           <p className="mt-2 flex items-center gap-2 overflow-hidden text-xs font-medium text-white/90">
             <Music2 className="h-3.5 w-3.5 shrink-0 animate-pulse" />
@@ -389,9 +398,14 @@ function VideoSlide({
         {/* action rail */}
         <div className="absolute bottom-24 right-2 z-20 flex flex-col items-center gap-5">
           <div className="relative">
-            <div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white">
+            <Link
+              to="/users/$id"
+              params={{ id: video.user_id }}
+              className="block h-12 w-12 overflow-hidden rounded-full border-2 border-white"
+              aria-label={`Profil de ${username}`}
+            >
               <StoredImage path={avatar} alt={username} className="h-full w-full" fallback="🎮" />
-            </div>
+            </Link>
             {!isMine ? (
               <button
                 onClick={toggleFollow}
@@ -423,7 +437,7 @@ function VideoSlide({
           <RailButton
             icon={Bookmark}
             active={state.data?.faved}
-            activeClass="fill-yellow-400 text-yellow-400"
+            activeClass="fill-primary text-primary"
             count={video.favorites_count}
             onClick={() => toggle("video_favorites", !!state.data?.faved)}
             label="Favoris"
@@ -431,7 +445,7 @@ function VideoSlide({
           <RailButton
             icon={Repeat2}
             active={state.data?.reposted}
-            activeClass="text-emerald-400"
+            activeClass="text-sky-400"
             count={video.reposts_count}
             onClick={() => toggle("video_reposts", !!state.data?.reposted)}
             label="Republier"
@@ -480,36 +494,55 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const { user } = useSession();
   const qc = useQueryClient();
   const [text, setText] = useState("");
+  const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
+  const [showExtras, setShowExtras] = useState(false);
+  const [gifUrl, setGifUrl] = useState("");
+  const [media, setMedia] = useState<{ url: string; type: "gif" | "sticker" } | null>(null);
 
   const comments = useQuery({
     queryKey: ["video-comments", video.id],
     queryFn: async () => {
       const { data } = await supabase
         .from("video_comments")
-        .select("id,user_id,content,created_at")
+        .select("id,user_id,content,created_at,parent_id,media_url,media_type")
         .eq("video_id", video.id)
         .order("created_at", { ascending: false });
       const rows = data ?? [];
       const ids = [...new Set(rows.map((r) => r.user_id))];
-      const names: Record<string, string> = {};
+      const people: Record<string, { username: string; avatar_url: string | null }> = {};
       if (ids.length) {
-        const { data: p } = await supabase.from("profiles").select("id,username").in("id", ids);
-        for (const row of p ?? []) names[row.id] = row.username ?? "joueur";
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("id,username,avatar_url")
+          .in("id", ids);
+        for (const row of p ?? [])
+          people[row.id] = { username: row.username ?? "joueur", avatar_url: row.avatar_url };
       }
-      return rows.map((r) => ({ ...r, username: names[r.user_id] ?? "joueur" }));
+      return rows.map((r) => ({
+        ...r,
+        username: people[r.user_id]?.username ?? "joueur",
+        avatar_url: people[r.user_id]?.avatar_url ?? null,
+      }));
     },
   });
 
   async function send() {
     const content = text.trim();
-    if (!content || !user) return;
+    if ((!content && !media) || !user) return;
     setText("");
     const { error } = await supabase.from("video_comments").insert({
       video_id: video.id,
       user_id: user.id,
-      content,
+      content: content || (media?.type === "sticker" ? "Autocollant" : "GIF"),
+      parent_id: replyingTo?.id ?? null,
+      media_url: media?.url ?? null,
+      media_type: media?.type ?? null,
     });
     if (error) toast.error(error.message);
+    setReplyingTo(null);
+    setMedia(null);
+    setShowExtras(false);
+    setGifUrl("");
     await comments.refetch();
     await qc.invalidateQueries({ queryKey: ["feed"] });
   }
@@ -532,29 +565,88 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {comments.data?.length ? (
-            comments.data.map((c) => (
-              <div key={c.id} className="flex gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-2 text-sm">
-                  🎮
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-muted-foreground">@{c.username}</p>
-                  <p className="text-sm text-foreground">{c.content}</p>
-                </div>
-              </div>
-            ))
+            comments.data
+              .filter((c) => !c.parent_id)
+              .map((c) => (
+                <CommentItem
+                  key={c.id}
+                  comment={c}
+                  replies={comments.data.filter((r) => r.parent_id === c.id)}
+                  onReply={(id, username) => {
+                    setReplyingTo({ id, username });
+                    setText(`@${username} `);
+                  }}
+                />
+              ))
           ) : (
             <p className="py-10 text-center text-sm text-muted-foreground">
               Sois le premier à commenter ✨
             </p>
           )}
         </div>
+        {showExtras ? (
+          <div className="border-t border-border bg-surface px-4 py-3">
+            <div className="flex gap-2">
+              <input
+                value={gifUrl}
+                onChange={(e) => setGifUrl(e.target.value)}
+                placeholder="Colle le lien d’un GIF"
+                className="h-10 min-w-0 flex-1 rounded-full border border-input bg-background px-4 text-sm outline-none focus:border-primary"
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (gifUrl.trim()) setMedia({ url: gifUrl.trim(), type: "gif" });
+                }}
+              >
+                Ajouter
+              </Button>
+            </div>
+            <div className="mt-3 flex gap-2 text-3xl">
+              {["🔥", "😂", "💙", "🎮", "👀", "🏆"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setMedia({ url: s, type: "sticker" })}
+                  className="rounded-xl bg-background p-2 transition active:scale-90"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {replyingTo || media ? (
+          <div className="flex items-center justify-between border-t border-border bg-primary/10 px-4 py-2 text-xs">
+            <span>
+              {replyingTo
+                ? `Réponse à @${replyingTo.username}`
+                : media?.type === "gif"
+                  ? "GIF ajouté"
+                  : `Autocollant ${media?.url}`}
+            </span>
+            <button
+              onClick={() => {
+                setReplyingTo(null);
+                setMedia(null);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
         <div className="flex items-center gap-2 border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <button
+            onClick={() => setShowExtras((v) => !v)}
+            className="grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-lg"
+            aria-label="GIF et autocollants"
+          >
+            GIF
+          </button>
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Ajoute un commentaire…"
+            placeholder="Commente ou mentionne @quelqu’un…"
             className="h-11 flex-1 rounded-full border border-input bg-surface px-4 text-sm outline-none focus:border-primary"
           />
           <Button size="icon" onClick={send} aria-label="Envoyer">
@@ -563,5 +655,116 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         </div>
       </div>
     </div>
+  );
+}
+
+type RichComment = {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  parent_id: string | null;
+  media_url: string | null;
+  media_type: string | null;
+  username: string;
+  avatar_url: string | null;
+};
+
+function CommentItem({
+  comment,
+  replies,
+  onReply,
+}: {
+  comment: RichComment;
+  replies: RichComment[];
+  onReply: (id: string, username: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-3">
+        <Link to="/users/$id" params={{ id: comment.user_id }}>
+          <StoredImage
+            path={comment.avatar_url}
+            alt={comment.username}
+            className="h-10 w-10 shrink-0 rounded-full"
+            fallback={comment.username[0]?.toUpperCase() ?? "?"}
+          />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <Link
+            to="/users/$id"
+            params={{ id: comment.user_id }}
+            className="text-xs font-bold text-muted-foreground hover:text-primary"
+          >
+            @{comment.username}
+          </Link>
+          <p className="mt-0.5 text-sm leading-relaxed text-foreground">
+            <MentionText text={comment.content} />
+          </p>
+          {comment.media_type === "gif" && comment.media_url ? (
+            <img
+              src={comment.media_url}
+              alt="GIF"
+              className="mt-2 max-h-44 rounded-2xl object-cover"
+            />
+          ) : null}
+          {comment.media_type === "sticker" && comment.media_url ? (
+            <span className="mt-2 block text-5xl">{comment.media_url}</span>
+          ) : null}
+          <button
+            onClick={() => onReply(comment.id, comment.username)}
+            className="mt-1.5 flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"
+          >
+            <Reply className="h-3.5 w-3.5" /> Répondre
+          </button>
+        </div>
+      </div>
+      {replies.map((r) => (
+        <div key={r.id} className="ml-12 flex gap-2 border-l-2 border-primary/25 pl-3">
+          <Link to="/users/$id" params={{ id: r.user_id }}>
+            <StoredImage
+              path={r.avatar_url}
+              alt={r.username}
+              className="h-8 w-8 rounded-full"
+              fallback={r.username[0] ?? "?"}
+            />
+          </Link>
+          <div>
+            <Link
+              to="/users/$id"
+              params={{ id: r.user_id }}
+              className="text-[11px] font-bold text-muted-foreground"
+            >
+              @{r.username}
+            </Link>
+            <p className="text-sm">
+              <MentionText text={r.content} />
+            </p>
+            {r.media_type === "gif" && r.media_url ? (
+              <img src={r.media_url} alt="GIF" className="mt-1 max-h-32 rounded-xl" />
+            ) : null}
+            {r.media_type === "sticker" && r.media_url ? (
+              <span className="block text-4xl">{r.media_url}</span>
+            ) : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MentionText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(@[\w.]+)/g).map((part, index) =>
+        part.startsWith("@") ? (
+          <span key={index} className="font-bold text-sky-400">
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
   );
 }

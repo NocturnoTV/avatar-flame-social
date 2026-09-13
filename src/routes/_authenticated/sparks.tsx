@@ -11,7 +11,7 @@ import { StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { LANGUAGES, useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
-import { ACCENTS, BANNERS, FRAMES, STICKERS, ageFrom } from "@/lib/decorations";
+import { BANNERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/sparks")({
@@ -34,9 +34,6 @@ type DeckProfile = {
   language: string;
   birth_date: string | null;
   banner_style: string;
-  frame_style: string;
-  accent_color: string;
-  sticker: string | null;
   avatar_url: string | null;
   verified: boolean | null;
 };
@@ -168,22 +165,31 @@ function SparksPage() {
     <div className="mx-auto w-full max-w-md px-4 pt-4">
       <header className="flex items-center justify-between">
         <Logo className="h-11" />
-        <Button variant="ghost" size="icon" onClick={() => setShowFilters(true)} aria-label={t("filters")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowFilters(true)}
+          aria-label={t("filters")}
+        >
           <SlidersHorizontal className="h-5 w-5" />
         </Button>
       </header>
 
       <div className="mt-3 flex gap-2">
-        {([
-          ["deck", t("sparks")],
-          ["matches", "Mes matchs"],
-        ] as const).map(([id, label]) => (
+        {(
+          [
+            ["deck", t("sparks")],
+            ["matches", "Mes matchs"],
+          ] as const
+        ).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
             className={cn(
               "flex-1 rounded-full px-4 py-2 text-sm font-semibold transition",
-              tab === id ? "spark-gradient text-white" : "border border-border text-muted-foreground",
+              tab === id
+                ? "spark-gradient text-white"
+                : "border border-border text-muted-foreground",
             )}
           >
             {label}
@@ -194,72 +200,75 @@ function SparksPage() {
       {tab === "matches" ? <MatchesTab /> : null}
 
       <div className={cn(tab === "deck" ? "" : "hidden")}>
-      <div className="relative mt-4 h-[62vh] min-h-100">
-        {!current ? (
-          <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-border text-center text-muted-foreground">
-            <p className="px-8">{t("noMoreProfiles")}</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
-              {t("loading")}
-            </Button>
-          </div>
-        ) : (
-          <>
-            {next ? (
-              <SparkCard
-                profile={next}
-                photos={photos[next.id] ?? []}
-                games={deckGames[next.id] ?? []}
-                className="scale-95 opacity-60"
-              />
-            ) : null}
-            <div
-              style={cardStyle}
-              onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
-              onPointerMove={(e) => {
-                if (e.buttons === 1) setDrag((d) => d + e.movementX);
-              }}
-              onPointerUp={() => {
-                if (drag > 110) void swipe("like");
-                else if (drag < -110) void swipe("pass");
-                else setDrag(0);
-              }}
-              className="absolute inset-0 touch-none"
-            >
-              <SparkCard
-                profile={current}
-                photos={photos[current.id] ?? []}
-                games={deckGames[current.id] ?? []}
-              />
+        <div className="relative mt-4 h-[62vh] min-h-100">
+          {!current ? (
+            <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-border text-center text-muted-foreground">
+              <p className="px-8">{t("noMoreProfiles")}</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
+                {t("loading")}
+              </Button>
             </div>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              {next ? (
+                <SparkCard
+                  profile={next}
+                  photos={photos[next.id] ?? []}
+                  games={deckGames[next.id] ?? []}
+                  className="scale-95 opacity-60"
+                />
+              ) : null}
+              <div
+                style={cardStyle}
+                onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
+                onPointerMove={(e) => {
+                  if (e.buttons === 1) setDrag((d) => d + e.movementX);
+                }}
+                onPointerUp={() => {
+                  if (drag > 110) void swipe("like");
+                  else if (drag < -110) void swipe("pass");
+                  else setDrag(0);
+                }}
+                className="absolute inset-0 touch-none"
+              >
+                <SparkCard
+                  profile={current}
+                  photos={photos[current.id] ?? []}
+                  games={deckGames[current.id] ?? []}
+                />
+              </div>
+            </>
+          )}
+        </div>
 
-      <div className="mt-5 flex items-center justify-center gap-5">
-        <button
-          onClick={() => swipe("pass")}
-          className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-95"
-        >
-          <X className="h-7 w-7" />
-        </button>
-        <button
-          onClick={() => swipe("super")}
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-spark-2 active:scale-95"
-        >
-          <Star className="h-6 w-6" />
-        </button>
-        <button
-          onClick={() => swipe("like")}
-          className="spark-gradient flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg shadow-primary/30 active:scale-95"
-        >
-          <Heart className="h-8 w-8" fill="currentColor" />
-        </button>
-      </div>
+        <div className="mt-5 flex items-center justify-center gap-5">
+          <button
+            onClick={() => swipe("pass")}
+            className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-95"
+          >
+            <X className="h-7 w-7" />
+          </button>
+          <button
+            onClick={() => swipe("super")}
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-spark-2 active:scale-95"
+          >
+            <Star className="h-6 w-6" />
+          </button>
+          <button
+            onClick={() => swipe("like")}
+            className="spark-gradient flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg shadow-primary/30 active:scale-95"
+          >
+            <Heart className="h-8 w-8" fill="currentColor" />
+          </button>
+        </div>
       </div>
 
       <Sheet open={showFilters} onClose={() => setShowFilters(false)} title={t("filters")}>
         <div className="space-y-4">
-          <Select value={filters.lang} onChange={(e) => setFilters((f) => ({ ...f, lang: e.target.value }))}>
+          <Select
+            value={filters.lang}
+            onChange={(e) => setFilters((f) => ({ ...f, lang: e.target.value }))}
+          >
             <option value="">{t("allLanguages")}</option>
             {LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
@@ -415,8 +424,6 @@ function SparkCard({
 }) {
   const { t } = useI18n();
   const age = ageFrom(profile.birth_date);
-  
-  const accent = ACCENTS[profile.accent_color] ?? ACCENTS["spark"];
 
   return (
     <div
@@ -448,12 +455,11 @@ function SparkCard({
               </span>
             ) : null}
             <Flag code={profile.language ?? ""} className="h-4 w-6" />
-            {profile.sticker && STICKERS.includes(profile.sticker) ? (
-              <span className="text-xl">{profile.sticker}</span>
-            ) : null}
           </div>
           <p className="mt-1 text-sm opacity-90">🎮 {profile.roblox_username}</p>
-          {profile.bio ? <p className="mt-2 line-clamp-3 text-sm opacity-90">{profile.bio}</p> : null}
+          {profile.bio ? (
+            <p className="mt-2 line-clamp-3 text-sm opacity-90">{profile.bio}</p>
+          ) : null}
           {games.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {games.slice(0, 5).map((g) => (
@@ -466,10 +472,7 @@ function SparkCard({
               ))}
             </div>
           ) : null}
-          <span
-            className={cn("mt-3 inline-block h-1.5 w-16 rounded-full", FRAMES[profile.frame_style] ? "" : "")}
-            style={{ backgroundColor: accent }}
-          />
+          <span className="mt-3 inline-block h-1.5 w-16 rounded-full bg-primary" />
         </div>
       </div>
     </div>

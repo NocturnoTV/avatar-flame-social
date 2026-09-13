@@ -11,13 +11,33 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-const EMOJIS = ["😀", "😂", "🥰", "😎", "😭", "🔥", "✨", "💖", "👀", "🎮", "🧱", "🚀", "👍", "🙏", "💀", "🤝"];
+const EMOJIS = [
+  "😀",
+  "😂",
+  "🥰",
+  "😎",
+  "😭",
+  "🔥",
+  "✨",
+  "💖",
+  "👀",
+  "🎮",
+  "🧱",
+  "🚀",
+  "👍",
+  "🙏",
+  "💀",
+  "🤝",
+];
 
 export const Route = createFileRoute("/_authenticated/messages/$id")({
   head: () => ({
     meta: [
       { title: "Discussion — Bloxspark" },
-      { name: "description", content: "Discussion privée Bloxspark avec messages vocaux et photos." },
+      {
+        name: "description",
+        content: "Discussion privée Bloxspark avec messages vocaux et photos.",
+      },
       { property: "og:title", content: "Discussion — Bloxspark" },
       { property: "og:description", content: "Messages texte, photos et vocaux." },
     ],
@@ -58,13 +78,19 @@ function Conversation() {
         .select("user_id")
         .eq("conversation_id", id);
       const otherIds = (members ?? []).map((m) => m.user_id).filter((uid) => uid !== user?.id);
-      const allIds = [...new Set([...(members ?? []).map((m) => m.user_id), user?.id].filter(Boolean))] as string[];
+      const allIds = [
+        ...new Set([...(members ?? []).map((m) => m.user_id), user?.id].filter(Boolean)),
+      ] as string[];
       const { data: people } = await supabase
         .from("profiles")
         .select("id,username,avatar_url")
         .in("id", allIds.length > 0 ? allIds : ["00000000-0000-0000-0000-000000000000"]);
       const byId: Record<string, { username: string; avatar_url: string | null }> = {};
-      for (const p of (people ?? []) as { id: string; username: string; avatar_url: string | null }[]) {
+      for (const p of (people ?? []) as {
+        id: string;
+        username: string;
+        avatar_url: string | null;
+      }[]) {
         byId[p.id] = { username: p.username, avatar_url: p.avatar_url };
       }
       const others = otherIds.map((uid) => byId[uid]?.username ?? "?");
@@ -74,6 +100,7 @@ function Conversation() {
         isGroup: !!convo?.is_group,
         members: others.length + 1,
         people: byId,
+        otherId: otherIds[0] ?? null,
       };
     },
   });
@@ -96,7 +123,12 @@ function Conversation() {
       .channel(`messages-${id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${id}`,
+        },
         () => {
           void messages.refetch();
         },
@@ -141,7 +173,12 @@ function Conversation() {
   async function pickImage(file: File) {
     if (!user) return;
     try {
-      const path = await uploadFile("profile-photos", user.id, file, file.name.split(".").pop() ?? "jpg");
+      const path = await uploadFile(
+        "profile-photos",
+        user.id,
+        file,
+        file.name.split(".").pop() ?? "jpg",
+      );
       await send("image", path);
     } catch {
       toast.error(t("errorGeneric"));
@@ -181,9 +218,20 @@ function Conversation() {
         <Link to="/messages" aria-label={t("back")}>
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <div className="spark-gradient flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white">
-          {header.data?.isGroup ? "👥" : (header.data?.title?.[0]?.toUpperCase() ?? "?")}
-        </div>
+        {header.data?.isGroup || !header.data?.otherId ? (
+          <div className="spark-gradient flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white">
+            👥
+          </div>
+        ) : (
+          <Link to="/users/$id" params={{ id: header.data.otherId }}>
+            <StoredImage
+              path={header.data.people[header.data.otherId]?.avatar_url}
+              alt={header.data.title ?? ""}
+              className="h-9 w-9 rounded-full"
+              fallback={header.data.title?.[0]?.toUpperCase() ?? "?"}
+            />
+          </Link>
+        )}
         <div>
           <p className="font-semibold leading-tight">{header.data?.title}</p>
           {header.data?.isGroup ? (
@@ -220,9 +268,13 @@ function Conversation() {
                 )}
               >
                 {!mine && header.data?.isGroup ? (
-                  <p className="mb-0.5 text-xs font-bold text-muted-foreground">{sender?.username ?? "?"}</p>
+                  <p className="mb-0.5 text-xs font-bold text-muted-foreground">
+                    {sender?.username ?? "?"}
+                  </p>
                 ) : null}
-                {m.kind === "text" ? <p className="whitespace-pre-wrap break-words">{m.content}</p> : null}
+                {m.kind === "text" ? (
+                  <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                ) : null}
                 {m.kind === "image" ? (
                   <StoredImage path={m.media_url} alt="" className="h-48 w-48 rounded-2xl" />
                 ) : null}
@@ -247,7 +299,11 @@ function Conversation() {
       {showEmoji ? (
         <div className="grid grid-cols-8 gap-1 border-t border-border p-2 text-2xl">
           {EMOJIS.map((e) => (
-            <button key={e} onClick={() => setText((v) => v + e)} className="rounded-lg p-1 hover:bg-surface-2">
+            <button
+              key={e}
+              onClick={() => setText((v) => v + e)}
+              className="rounded-lg p-1 hover:bg-surface-2"
+            >
               {e}
             </button>
           ))}
@@ -283,7 +339,10 @@ function Conversation() {
         />
         <button
           onClick={toggleRecording}
-          className={cn("rounded-full p-2", recording ? "bg-destructive text-white" : "text-muted-foreground")}
+          className={cn(
+            "rounded-full p-2",
+            recording ? "bg-destructive text-white" : "text-muted-foreground",
+          )}
           aria-label={t("recordVoice")}
         >
           {recording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
