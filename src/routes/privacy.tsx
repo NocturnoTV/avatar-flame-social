@@ -4,170 +4,156 @@ import { LegalPage, LegalSection } from "@/components/LegalPage";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Politique de confidentialité — Bloxspark" },
+      { title: "Privacy Policy — Bloxspark" },
       {
         name: "description",
         content:
-          "Comment Bloxspark collecte, utilise, protège et conserve vos données personnelles, et quels sont vos droits.",
+          "How Bloxspark collects, uses, protects, and retains your personal data, and the rights available to you.",
       },
-      { property: "og:title", content: "Politique de confidentialité — Bloxspark" },
-      { property: "og:description", content: "Vos données, vos droits, en toute transparence." },
+      { property: "og:title", content: "Privacy Policy — Bloxspark" },
+      { property: "og:description", content: "Your data and your rights, explained clearly." },
     ],
   }),
   component: () => (
-    <LegalPage
-      title="Politique de confidentialité"
-      updated="Dernière mise à jour : 12 septembre 2026"
-    >
-      <LegalSection title="1. Qui est responsable de vos données ?">
+    <LegalPage title="Privacy Policy" updated="Last updated: September 12, 2026">
+      <LegalSection title="1. Who is responsible for your data?">
         <p>
-          Bloxspark est responsable du traitement des données personnelles collectées via
-          l'application. Bloxspark est un service indépendant, sans lien d'affiliation avec Roblox
-          Corporation. Cette politique explique de manière détaillée quelles données nous traitons,
-          pourquoi, pendant combien de temps, avec qui elles sont partagées et comment vous pouvez
-          exercer vos droits.
+          Bloxspark is responsible for processing the personal data collected through the app.
+          Bloxspark is an independent service and is not affiliated with Roblox Corporation. This
+          policy explains which data we process, why we process it, how long we retain it, who we
+          share it with, and how you can exercise your rights.
         </p>
       </LegalSection>
 
-      <LegalSection title="2. Données que nous collectons">
-        <p>Nous collectons uniquement les données nécessaires au fonctionnement du Service :</p>
+      <LegalSection title="2. Data we collect">
+        <p>We collect only the data needed to operate the Service:</p>
         <ul>
           <li>
-            <strong>Données de compte</strong> : adresse e-mail, identifiant technique, méthode de
-            connexion (e-mail ou Google), date de création du compte.
+            <strong>Account data</strong>: email address, technical identifier, sign-in method
+            (email or Google), and account creation date.
           </li>
           <li>
-            <strong>Données de profil</strong> : pseudonyme Bloxspark, nom d'utilisateur Roblox
-            déclaré, langue, date de naissance (utilisée pour calculer l'âge et appliquer les
-            protections liées à la minorité), biographie, décorations de profil, thème choisi.
+            <strong>Profile data</strong>: Bloxspark username, Roblox username you provide,
+            language, date of birth (used to calculate age and apply protections for minors), bio,
+            profile decorations, and selected theme.
           </li>
           <li>
-            <strong>Données parentales</strong> : pour les utilisateurs de 13 à 17 ans, nom et
-            adresse e-mail du parent ou représentant légal, ainsi que la preuve du consentement
-            donné.
+            <strong>Parental data</strong>: for users aged 13 to 17, the name and email address of a
+            parent or legal guardian and proof of their consent.
           </li>
           <li>
-            <strong>Contenus</strong> : photos d'avatar téléversées, messages texte, messages
-            vocaux, images envoyées en conversation.
+            <strong>Content</strong>: uploaded avatar photos, text messages, voice messages, and
+            images sent in conversations.
           </li>
           <li>
-            <strong>Données d'usage</strong> : swipes (like, passe, super spark), matchs,
-            participations aux conversations, horodatage de dernière activité et de dernière
-            lecture, signalements et blocages.
+            <strong>Usage data</strong>: swipes (like, pass, and Super Spark), matches, conversation
+            activity, last active and last read timestamps, reports, and blocks.
           </li>
           <li>
-            <strong>Données techniques</strong> : journaux de connexion et données strictement
-            nécessaires à la sécurité et à la lutte contre les abus.
+            <strong>Technical data</strong>: sign-in logs and data strictly required for security
+            and abuse prevention.
           </li>
         </ul>
         <p>
-          Nous ne demandons ni votre mot de passe Roblox, ni vos coordonnées bancaires, ni votre
-          adresse postale. Ne communiquez jamais ces informations à un autre utilisateur.
+          We do not ask for your Roblox password, banking information, or postal address. Never
+          share this information with another user.
         </p>
       </LegalSection>
 
-      <LegalSection title="3. Finalités et bases légales">
+      <LegalSection title="3. Purposes and legal bases">
         <ul>
           <li>
-            <strong>Fourniture du Service</strong> (exécution du contrat) : création du compte,
-            affichage du profil, recommandation de profils, matchs, messagerie, notifications.
+            <strong>Providing the Service</strong> (performance of a contract): account creation,
+            profile display, profile recommendations, matches, messaging, and notifications.
           </li>
           <li>
-            <strong>Protection des mineurs et sécurité</strong> (obligation légale et intérêt
-            légitime) : vérification de l'âge déclaré, recueil du consentement parental, modération,
-            prévention des abus et des fraudes.
+            <strong>Protecting minors and maintaining safety</strong> (legal obligation and
+            legitimate interest): verifying declared age, obtaining parental consent, moderation,
+            and preventing abuse and fraud.
           </li>
           <li>
-            <strong>Amélioration du Service</strong> (intérêt légitime) : mesure agrégée et
-            anonymisée de l'utilisation des fonctionnalités.
+            <strong>Improving the Service</strong> (legitimate interest): aggregated and anonymized
+            measurement of feature usage.
           </li>
           <li>
-            <strong>Communications de service</strong> (exécution du contrat) : e-mails de
-            confirmation, réinitialisation de mot de passe, alertes de sécurité.
+            <strong>Service communications</strong> (performance of a contract): confirmation
+            emails, password resets, and security alerts.
           </li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="4. Visibilité de vos informations">
+      <LegalSection title="4. Visibility of your information">
         <p>
-          Votre pseudonyme, votre nom d'utilisateur Roblox, votre âge, votre langue, votre
-          biographie, vos décorations et vos photos sont visibles par les autres utilisateurs dans
-          le fil Sparks et sur votre profil. Votre adresse e-mail, votre date de naissance exacte et
-          les coordonnées parentales ne sont jamais affichées publiquement.
+          Your username, Roblox username, age, language, bio, decorations, and photos are visible to
+          other users in the Sparks feed and on your profile. Your email address, exact date of
+          birth, and parental contact information are never displayed publicly.
         </p>
         <p>
-          Les messages privés et de groupe ne sont accessibles qu'aux participants de la
-          conversation, ainsi qu'à l'équipe de modération en cas de signalement justifié.
-        </p>
-      </LegalSection>
-
-      <LegalSection title="5. Destinataires et sous-traitants">
-        <p>
-          Les données sont hébergées et traitées par nos prestataires d'infrastructure (hébergement
-          de la base de données, stockage des fichiers, authentification, envoi d'e-mails
-          transactionnels), agissant en qualité de sous-traitants et liés par des engagements de
-          confidentialité et de sécurité. Nous ne vendons jamais vos données personnelles et ne les
-          utilisons pas à des fins de publicité ciblée.
-        </p>
-        <p>
-          Des données peuvent être transmises aux autorités compétentes lorsque la loi l'exige ou
-          lorsque cela est nécessaire pour protéger l'intégrité physique d'une personne, en
-          particulier d'un mineur.
+          Private and group messages are accessible only to conversation participants and, when a
+          valid report is submitted, to the moderation team.
         </p>
       </LegalSection>
 
-      <LegalSection title="6. Sécurité">
+      <LegalSection title="5. Recipients and service providers">
         <p>
-          Les accès aux données sont protégés par une authentification, par un chiffrement des
-          échanges (HTTPS) et par des règles de sécurité au niveau de la base de données qui
-          limitent chaque utilisateur à ses propres données et à celles des conversations dont il
-          est membre. Les photos et les messages vocaux sont stockés dans des espaces privés
-          accessibles uniquement via des liens temporaires signés.
+          Data is hosted and processed by our infrastructure providers, including database hosting,
+          file storage, authentication, and transactional email services. They act as processors and
+          are bound by confidentiality and security commitments. We never sell your personal data or
+          use it for targeted advertising.
+        </p>
+        <p>
+          Data may be disclosed to competent authorities when required by law or when necessary to
+          protect a person's physical safety, especially that of a minor.
         </p>
       </LegalSection>
 
-      <LegalSection title="7. Durées de conservation">
+      <LegalSection title="6. Security">
+        <p>
+          Access to data is protected through authentication, encrypted communications (HTTPS), and
+          database-level security rules that limit each user to their own data and to conversations
+          in which they participate. Photos and voice messages are stored in private locations that
+          can be accessed only through temporary signed links.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="7. Retention periods">
         <ul>
-          <li>Données de compte et de profil : conservées tant que le compte est actif.</li>
-          <li>Messages et médias : conservés jusqu'à leur suppression ou celle du compte.</li>
+          <li>Account and profile data: retained while the account remains active.</li>
+          <li>Messages and media: retained until they or the account are deleted.</li>
+          <li>Security logs and reports: retained for up to twelve (12) months after review.</li>
           <li>
-            Journaux de sécurité et signalements : jusqu'à douze (12) mois après leur traitement.
-          </li>
-          <li>
-            Après suppression du compte : effacement sous trente (30) jours, hors obligations
-            légales de conservation et hors données nécessaires à la prévention d'une récidive
-            d'abus grave.
+            After account deletion: erased within thirty (30) days, except where retention is
+            required by law or needed to prevent repeated serious abuse.
           </li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="8. Vos droits">
+      <LegalSection title="8. Your rights">
         <p>
-          Conformément au RGPD et aux réglementations applicables, vous disposez d'un droit d'accès,
-          de rectification, d'effacement, de limitation, d'opposition et de portabilité de vos
-          données, ainsi que du droit de retirer votre consentement à tout moment. Les représentants
-          légaux peuvent exercer ces droits pour le compte d'un mineur.
+          Under the GDPR and other applicable regulations, you have the right to access, correct,
+          erase, restrict, object to the processing of, and receive a portable copy of your data.
+          You may also withdraw your consent at any time. Legal guardians may exercise these rights
+          on behalf of a minor.
         </p>
         <p>
-          La plupart de ces droits s'exercent directement depuis l'application : modification du
-          profil, suppression de photos ou de messages, suppression définitive du compte depuis les
-          paramètres. Pour toute autre demande, contactez-nous via le formulaire intégré. Vous
-          pouvez également introduire une réclamation auprès de l'autorité de contrôle compétente.
-        </p>
-      </LegalSection>
-
-      <LegalSection title="9. Cookies et stockage local">
-        <p>
-          Bloxspark n'utilise pas de cookies publicitaires ni de traceurs tiers. Nous utilisons
-          uniquement le stockage local du navigateur pour conserver votre session, votre langue et
-          votre thème (clair ou sombre).
+          You can exercise most of these rights directly in the app by editing your profile,
+          deleting photos or messages, or permanently deleting your account from Settings. For any
+          other request, contact us through the in-app form. You may also lodge a complaint with the
+          competent supervisory authority.
         </p>
       </LegalSection>
 
-      <LegalSection title="10. Modifications">
+      <LegalSection title="9. Cookies and local storage">
         <p>
-          Cette politique peut évoluer. Toute modification substantielle vous sera notifiée dans
-          l'application avant son entrée en vigueur.
+          Bloxspark does not use advertising cookies or third-party trackers. We use browser local
+          storage only to maintain your session, language, and light or dark theme preference.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="10. Changes to this policy">
+        <p>
+          We may update this policy. We will notify you in the app before any material change takes
+          effect.
         </p>
       </LegalSection>
     </LegalPage>

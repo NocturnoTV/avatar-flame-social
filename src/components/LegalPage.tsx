@@ -28,19 +28,19 @@ export function LegalPage({
         <div className="mt-8 space-y-8">{children}</div>
 
         <p className="mt-12 border-t border-border pt-6 text-xs text-muted-foreground">
-          Bloxspark n'est pas affilié à Roblox Corporation. « Roblox » est une marque déposée de
+          Bloxspark is not affiliated with Roblox Corporation. “Roblox” is a registered trademark of
           Roblox Corporation.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <Link to="/terms" className="underline">
-            Conditions
+            Terms of Use
           </Link>
           <Link to="/privacy" className="underline">
-            Confidentialité
+            Privacy Policy
           </Link>
           <Link to="/community-guidelines" className="underline">
-            Règles de la communauté
+            Community Guidelines
           </Link>
         </div>
       </div>

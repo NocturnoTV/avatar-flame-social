@@ -4,92 +4,90 @@ import { LegalPage, LegalSection } from "@/components/LegalPage";
 export const Route = createFileRoute("/community-guidelines")({
   head: () => ({
     meta: [
-      { title: "Règles de la communauté — Bloxspark" },
+      { title: "Community Guidelines — Bloxspark" },
       {
         name: "description",
-        content: "Les règles de respect, de sécurité et de bienveillance à suivre sur Bloxspark.",
+        content: "The respect, safety, and kindness guidelines everyone must follow on Bloxspark.",
       },
-      { property: "og:title", content: "Règles de la communauté — Bloxspark" },
-      { property: "og:description", content: "Une communauté Roblox sûre et respectueuse." },
+      { property: "og:title", content: "Community Guidelines — Bloxspark" },
+      {
+        property: "og:description",
+        content: "A safe and respectful community for Roblox players.",
+      },
     ],
   }),
   component: () => (
-    <LegalPage title="Règles de la communauté" updated="Dernière mise à jour : 12 septembre 2026">
-      <LegalSection title="L'esprit Bloxspark">
+    <LegalPage title="Community Guidelines" updated="Last updated: September 12, 2026">
+      <LegalSection title="The Bloxspark spirit">
         <p>
-          Bloxspark est fait pour rencontrer d'autres joueuses et joueurs de Roblox, parler de vos
-          jeux préférés, former des équipes et créer des amitiés. Tout le monde doit s'y sentir en
-          sécurité, quel que soit son âge, son pays, sa langue ou son style de jeu.
+          Bloxspark is a place to meet other Roblox players, talk about your favorite games, build
+          teams, and make friends. Everyone should feel safe here, regardless of age, country,
+          language, or play style.
         </p>
       </LegalSection>
 
-      <LegalSection title="1. Respect avant tout">
+      <LegalSection title="1. Respect comes first">
         <ul>
-          <li>Pas d'insultes, de moqueries, de harcèlement ni de menaces.</li>
-          <li>Pas de racisme, de sexisme, d'homophobie, de transphobie ni de discrimination.</li>
-          <li>Accepte un refus : si quelqu'un ne répond pas ou te bloque, passe à autre chose.</li>
+          <li>No insults, ridicule, harassment, or threats.</li>
+          <li>No racism, sexism, homophobia, transphobia, ableism, or discrimination.</li>
+          <li>If someone does not reply or blocks you, respect their decision and move on.</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="2. Protection des mineurs">
+      <LegalSection title="2. Protecting minors">
         <ul>
           <li>
-            Interdit aux moins de 13 ans. De 13 à 17 ans, l'accord d'un parent est obligatoire.
+            The Service is not available to anyone under 13. Users aged 13 to 17 need permission
+            from a parent or legal guardian.
           </li>
-          <li>Aucun contenu sexuel ou suggestif, jamais, sous aucune forme.</li>
+          <li>Sexual or suggestive content is never allowed in any form.</li>
           <li>
-            Un adulte qui tient des propos déplacés à un mineur est exclu définitivement et peut
-            être signalé aux autorités.
+            An adult who behaves inappropriately toward a minor will be permanently banned and may
+            be reported to the authorities.
           </li>
-          <li>Ne propose jamais de rencontre en dehors de l'application à un mineur.</li>
+          <li>Never ask a minor to meet outside the app.</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="3. Protège tes informations">
+      <LegalSection title="3. Protect your information">
         <ul>
-          <li>Ne partage jamais ton mot de passe Roblox ou Bloxspark.</li>
-          <li>
-            Ne donne pas ton adresse, ton école, ton numéro de téléphone ni tes coordonnées
-            bancaires.
-          </li>
-          <li>
-            Méfie-toi des liens envoyés en message : les arnaques aux Robux gratuits sont
-            fréquentes.
-          </li>
+          <li>Never share your Roblox or Bloxspark password.</li>
+          <li>Do not share your address, school, phone number, or banking details.</li>
+          <li>Be careful with links sent in messages. Free Robux scams are common.</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="4. Sois toi-même">
+      <LegalSection title="4. Be yourself">
         <ul>
-          <li>Utilise ton vrai pseudo Roblox et des photos de ton avatar.</li>
-          <li>Pas d'usurpation d'identité, de faux âge ni de faux profil.</li>
-          <li>Le changement de pseudo est limité à une fois tous les 7 jours.</li>
+          <li>Use your real Roblox username and photos of your avatar.</li>
+          <li>Do not impersonate others or use a false age or fake profile.</li>
+          <li>You can change your username only once every 7 days.</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="5. Pas de commerce ni de spam">
+      <LegalSection title="5. No trading or spam">
         <ul>
-          <li>Pas de vente ou d'échange de comptes, de Robux, d'objets ou de services.</li>
-          <li>Pas de publicité, de chaînes de messages ni de promotion massive.</li>
-          <li>Pas de bots, de scripts ni d'automatisation.</li>
+          <li>Do not sell or trade accounts, Robux, items, or services.</li>
+          <li>No advertising, chain messages, or mass promotion.</li>
+          <li>No bots, scripts, or automation.</li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="6. Signaler et bloquer">
+      <LegalSection title="6. Reporting and blocking">
         <p>
-          Si un comportement te met mal à l'aise, utilise le bouton de signalement sur le profil ou
-          la conversation, puis bloque la personne. Les signalements sont examinés et peuvent
-          entraîner un avertissement, une suspension ou une exclusion définitive. Si tu es en
-          danger, parles-en à un adulte de confiance et contacte les services d'urgence de ton pays.
+          If someone's behavior makes you uncomfortable, use the report button on their profile or
+          in the conversation, then block them. We review reports and may issue a warning, suspend
+          the account, or permanently ban the user. If you are in danger, tell a trusted adult and
+          contact your country's emergency services.
         </p>
       </LegalSection>
 
-      <LegalSection title="7. Conséquences">
+      <LegalSection title="7. Consequences">
         <p>
-          Selon la gravité : avertissement, suppression du contenu, limitation des fonctionnalités,
-          suspension temporaire ou suppression définitive du compte. Les infractions les plus graves
-          (contenus impliquant des mineurs, menaces, arnaques organisées) entraînent une exclusion
-          immédiate et sans avertissement.
+          Depending on the severity of the violation, enforcement may include a warning, content
+          removal, feature restrictions, temporary suspension, or permanent account deletion. The
+          most serious violations, including content involving minors, threats, or organized scams,
+          result in an immediate ban without warning.
         </p>
       </LegalSection>
     </LegalPage>
