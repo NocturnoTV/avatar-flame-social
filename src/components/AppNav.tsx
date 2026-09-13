@@ -109,8 +109,8 @@ export function BottomNav() {
   const unread = useUnread();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-      <div className="mx-auto flex max-w-lg items-end justify-around px-1">
+    <nav className="fixed inset-x-3 bottom-[max(0.65rem,env(safe-area-inset-bottom))] z-40 rounded-[1.65rem] border border-border/80 bg-background/90 p-1.5 shadow-[0_14px_45px_-12px_rgba(0,0,0,.35)] backdrop-blur-2xl lg:hidden">
+      <div className="mx-auto flex max-w-lg items-end justify-around gap-1">
         {items.map((item) => {
           const active = isActive(item.to);
           const isSpark = item.to === "/sparks";
@@ -140,17 +140,26 @@ export function BottomNav() {
               key={item.to}
               to={item.to}
               className={cn(
-                "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-semibold transition-colors",
-                active ? "text-primary" : "text-muted-foreground",
+                "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 text-[10px] font-bold transition-all duration-200 active:scale-95",
+                active
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
               )}
             >
-              <item.icon className="h-6 w-6" strokeWidth={active ? 2.6 : 2} />
-              {item.to === "/messages" && unread ? (
-                <span className="absolute right-[24%] top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              ) : null}
-              <span className="truncate">{item.label}</span>
+              <span
+                className={cn(
+                  "relative grid h-8 w-10 place-items-center rounded-xl transition-all",
+                  active && "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+                )}
+              >
+                <item.icon className="h-5 w-5" strokeWidth={active ? 2.7 : 2.1} />
+                {item.to === "/messages" && unread ? (
+                  <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white ring-2 ring-background">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                ) : null}
+              </span>
+              <span className="w-full truncate text-center leading-tight">{item.label}</span>
             </Link>
           );
         })}

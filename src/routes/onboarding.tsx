@@ -122,7 +122,7 @@ function Onboarding() {
       return;
     }
     const { error: markerError } = await supabase.auth.updateUser({
-      data: { onboarding_required: false },
+      data: { onboarding_completed: true, onboarding_required: false },
     });
     if (markerError) {
       toast.error(markerError.message);

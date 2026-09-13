@@ -2,10 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
-  BarChart3,
   Bookmark,
+  AtSign,
   EyeOff,
+  Eye,
   Heart,
+  ImagePlus,
   MessageCircle,
   MoreHorizontal,
   Music2,
@@ -13,7 +15,11 @@ import {
   Plus,
   Reply,
   Repeat2,
+  Search,
   Send,
+  SlidersHorizontal,
+  Smile,
+  ThumbsDown,
   Volume2,
   VolumeX,
   X,
@@ -25,7 +31,12 @@ import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Button } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
-import { getPersonalizedFeed, logPositiveAction, logVideoWatch, markNotInterested } from "@/lib/recommendation.functions";
+import {
+  getPersonalizedFeed,
+  logPositiveAction,
+  logVideoWatch,
+  markNotInterested,
+} from "@/lib/recommendation.functions";
 
 export const Route = createFileRoute("/_authenticated/discover/")({
   head: () => ({
@@ -76,6 +87,13 @@ function DiscoverPage() {
     () => window.localStorage.getItem("bloxspark-discover-muted") === "true",
   );
   const [comments, setComments] = useState<VideoRow | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [spotlight, setSpotlight] = useState<{
+    video: VideoRow;
+    username: string;
+    avatar: string | null;
+  } | null>(null);
 
   const following = useQuery({
     queryKey: ["following", user?.id],
@@ -119,15 +137,77 @@ function DiscoverPage() {
           .in("id", ids);
         for (const row of p ?? [])
           profiles[row.id] = { username: row.username, avatar_url: row.avatar_url };
+        const { data: plusProfiles } = await supabase
+          .from("profiles")
+          .select("id,spark_plus_active,spark_plus_expires_at")
+          .in("id", ids);
+        const boosted = new Set(
+          (plusProfiles ?? [])
+            .filter(
+              (profile) =>
+                profile.spark_plus_active &&
+                (!profile.spark_plus_expires_at ||
+                  new Date(profile.spark_plus_expires_at).getTime() > Date.now()),
+            )
+            .map((profile) => profile.id),
+        );
+        videos = videos
+          .map((video, index) => ({ video, index }))
+          .sort((a, b) => {
+            const boostDifference =
+              Number(boosted.has(b.video.user_id)) - Number(boosted.has(a.video.user_id));
+            return boostDifference || a.index - b.index;
+          })
+          .map(({ video }) => video);
       }
       return { videos, profiles };
     },
   });
 
+  const searchResults = useQuery({
+    queryKey: ["discover-search", searchQuery.trim().toLowerCase()],
+    enabled: searchOpen && searchQuery.trim().length >= 2,
+    queryFn: async () => {
+      const query = searchQuery.trim();
+      const [{ data: creators }, { data: foundVideos }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id,username,avatar_url,verified")
+          .ilike("username", `%${query}%`)
+          .limit(12),
+        supabase
+          .from("videos")
+          .select(
+            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count",
+          )
+          .eq("visibility", "public")
+          .ilike("caption", `%${query}%`)
+          .order("views_count", { ascending: false })
+          .limit(12),
+      ]);
+      const creatorIds = [...new Set((foundVideos ?? []).map((video) => video.user_id))];
+      const { data: videoCreators } = creatorIds.length
+        ? await supabase.from("profiles").select("id,username,avatar_url").in("id", creatorIds)
+        : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] };
+      const creatorById = new Map((videoCreators ?? []).map((creator) => [creator.id, creator]));
+      return {
+        creators: creators ?? [],
+        videos: ((foundVideos ?? []) as VideoRow[]).map((video) => ({
+          video,
+          username: creatorById.get(video.user_id)?.username ?? t("someone"),
+          avatar: creatorById.get(video.user_id)?.avatar_url ?? null,
+        })),
+      };
+    },
+  });
+
   const videos = feed.data?.videos ?? [];
+  const displayedVideos = spotlight
+    ? [spotlight.video, ...videos.filter((video) => video.id !== spotlight.video.id)]
+    : videos;
 
   return (
-    <div className="relative h-[calc(100dvh-4.5rem)] w-full overflow-hidden bg-black lg:h-dvh">
+    <div className="relative h-[calc(100dvh-5.75rem)] w-full overflow-hidden bg-background lg:h-dvh">
       {/* top bar — style TikTok : onglets centrés, actions à droite */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 via-black/25 to-transparent px-3 pb-8 pt-3">
         <div className="pointer-events-auto flex w-20 items-center gap-1">
@@ -172,27 +252,20 @@ function DiscoverPage() {
           ))}
         </div>
 
-        <div className="pointer-events-auto flex w-20 items-center justify-end gap-1">
-          <Link
-            to="/discover/studio"
-            className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
-            aria-label="Studio créateur"
+        <div className="pointer-events-auto flex w-20 items-center justify-end">
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="grid h-10 w-10 place-items-center rounded-full bg-black/25 text-white transition active:scale-90"
+            aria-label={t("searchCreatorsAndVideos")}
           >
-            <BarChart3 className="h-5 w-5" />
-          </Link>
-          <Link
-            to="/discover/studio"
-            className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition active:scale-90"
-            aria-label="Publier une vidéo"
-          >
-            <Plus className="h-6 w-6" />
-          </Link>
+            <Search className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
       {feed.isLoading ? (
         <div className="grid h-full place-items-center text-white/60">Chargement…</div>
-      ) : videos.length === 0 ? (
+      ) : displayedVideos.length === 0 ? (
         <div className="grid h-full place-items-center px-8 text-center">
           <div className="space-y-4">
             <Play className="mx-auto h-12 w-12 text-white/40" />
@@ -206,31 +279,204 @@ function DiscoverPage() {
         </div>
       ) : (
         <div className="h-full snap-y snap-mandatory overflow-y-scroll overscroll-contain">
-          {videos.map((video) => (
-            <VideoSlide
-              key={video.id}
-              video={video}
-              muted={muted}
-              username={feed.data?.profiles[video.user_id]?.username ?? "joueur"}
-              avatar={feed.data?.profiles[video.user_id]?.avatar_url ?? null}
-              onComments={() => setComments(video)}
-              onNotInterested={() => {
-                void markNotInterested({ data: { videoId: video.id } });
-                queryClient.setQueryData<typeof feed.data>(
-                  ["feed", tab, following.data?.join(",")],
-                  (current) =>
-                    current
-                      ? { ...current, videos: current.videos.filter((v) => v.id !== video.id) }
-                      : current,
-                );
-                toast.success(t("notInterestedDone"));
-              }}
-            />
-          ))}
+          {displayedVideos.map((video) => {
+            const highlighted = spotlight?.video.id === video.id ? spotlight : null;
+            return (
+              <VideoSlide
+                key={video.id}
+                video={video}
+                muted={muted}
+                username={
+                  highlighted?.username ??
+                  feed.data?.profiles[video.user_id]?.username ??
+                  t("someone")
+                }
+                avatar={
+                  highlighted?.avatar ?? feed.data?.profiles[video.user_id]?.avatar_url ?? null
+                }
+                onComments={() => setComments(video)}
+                onNotInterested={() => {
+                  void markNotInterested({ data: { videoId: video.id } });
+                  queryClient.setQueryData<typeof feed.data>(
+                    ["feed", tab, following.data?.join(",")],
+                    (current) =>
+                      current
+                        ? { ...current, videos: current.videos.filter((v) => v.id !== video.id) }
+                        : current,
+                  );
+                  toast.success(t("notInterestedDone"));
+                }}
+              />
+            );
+          })}
         </div>
       )}
 
       {comments ? <CommentsSheet video={comments} onClose={() => setComments(null)} /> : null}
+      {searchOpen ? (
+        <DiscoverSearch
+          query={searchQuery}
+          onQuery={setSearchQuery}
+          results={searchResults.data}
+          loading={searchResults.isFetching}
+          onClose={() => setSearchOpen(false)}
+          onVideo={(result) => {
+            setSpotlight(result);
+            setSearchOpen(false);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+type DiscoverSearchResults = {
+  creators: Array<{
+    id: string;
+    username: string | null;
+    avatar_url: string | null;
+    verified: boolean | null;
+  }>;
+  videos: Array<{ video: VideoRow; username: string; avatar: string | null }>;
+};
+
+function DiscoverSearch({
+  query,
+  onQuery,
+  results,
+  loading,
+  onClose,
+  onVideo,
+}: {
+  query: string;
+  onQuery: (value: string) => void;
+  results: DiscoverSearchResults | undefined;
+  loading: boolean;
+  onClose: () => void;
+  onVideo: (result: DiscoverSearchResults["videos"][number]) => void;
+}) {
+  const { t } = useI18n();
+  const hasQuery = query.trim().length >= 2;
+
+  return (
+    <div className="fixed inset-0 z-[80] bg-background/95 text-foreground backdrop-blur-xl">
+      <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pb-8 pt-4">
+        <div className="flex items-center gap-2">
+          <label className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 focus-within:border-primary">
+            <Search className="h-5 w-5 shrink-0 text-primary" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(event) => onQuery(event.target.value)}
+              placeholder={t("searchCreatorsAndVideos")}
+              className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
+            />
+            {query ? (
+              <button onClick={() => onQuery("")} aria-label={t("cancel")}>
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            ) : null}
+          </label>
+          <button
+            onClick={onClose}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full hover:bg-surface-2"
+            aria-label={t("close")}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-5 flex-1 overflow-y-auto">
+          {!hasQuery ? (
+            <div className="grid h-2/3 place-items-center text-center text-muted-foreground">
+              <div>
+                <Search className="mx-auto h-12 w-12 text-primary/45" />
+                <p className="mt-3 text-sm">{t("discoverSearchHint")}</p>
+              </div>
+            </div>
+          ) : loading ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">{t("loading")}</p>
+          ) : (
+            <div className="space-y-7">
+              <section>
+                <h2 className="mb-3 text-sm font-black uppercase tracking-wider text-primary">
+                  {t("creators")}
+                </h2>
+                <div className="space-y-2">
+                  {(results?.creators ?? []).map((creator) => (
+                    <Link
+                      key={creator.id}
+                      to="/users/$id"
+                      params={{ id: creator.id }}
+                      onClick={onClose}
+                      className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 hover:border-primary/40"
+                    >
+                      <StoredImage
+                        path={creator.avatar_url}
+                        alt={creator.username ?? ""}
+                        className="h-12 w-12 rounded-full object-cover"
+                        fallback={creator.username?.[0]?.toUpperCase() ?? "?"}
+                      />
+                      <span className="font-bold">@{creator.username ?? t("someone")}</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+              <section>
+                <h2 className="mb-3 text-sm font-black uppercase tracking-wider text-primary">
+                  {t("videos")}
+                </h2>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {(results?.videos ?? []).map((result) => (
+                    <button
+                      key={result.video.id}
+                      onClick={() => onVideo(result)}
+                      className="overflow-hidden rounded-2xl border border-border bg-card text-left hover:border-primary/40"
+                    >
+                      <SearchVideoThumb video={result.video} />
+                      <span className="block truncate px-3 pt-2 text-xs font-bold">
+                        @{result.username}
+                      </span>
+                      <span className="line-clamp-2 min-h-10 px-3 pb-3 text-xs text-muted-foreground">
+                        {result.video.caption || t("videoWithoutCaption")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+              {!results?.creators.length && !results?.videos.length ? (
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  {t("noSearchResults")}
+                </p>
+              ) : null}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SearchVideoThumb({ video }: { video: VideoRow }) {
+  const url = useSignedUrl(video.thumbnail_path || video.storage_path);
+  return (
+    <div className="relative aspect-[9/12] bg-black">
+      {url ? (
+        video.thumbnail_path ? (
+          <img src={url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <video
+            src={url}
+            muted
+            playsInline
+            preload="metadata"
+            className="h-full w-full object-cover"
+          />
+        )
+      ) : null}
+      <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-bold text-white">
+        <Eye className="h-3 w-3" /> {formatCount(video.views_count)}
+      </span>
     </div>
   );
 }
@@ -257,6 +503,7 @@ function VideoSlide({
   const ref = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+  const [viewCount, setViewCount] = useState(video.views_count);
   const viewed = useRef(false);
   const isMine = user?.id === video.user_id;
 
@@ -347,7 +594,15 @@ function VideoSlide({
           .upsert(
             { video_id: video.id, viewer_id: user.id },
             { onConflict: "video_id,viewer_id", ignoreDuplicates: true },
-          );
+          )
+          .then(async () => {
+            const { data } = await supabase
+              .from("videos")
+              .select("views_count")
+              .eq("id", video.id)
+              .maybeSingle();
+            if (data) setViewCount(data.views_count);
+          });
       }
     } else {
       el.pause();
@@ -389,7 +644,8 @@ function VideoSlide({
       await supabase.from(table).delete().eq("video_id", video.id).eq("user_id", user.id);
     } else {
       await supabase.from(table).insert({ video_id: video.id, user_id: user.id });
-      if (table === "video_likes") void logPositiveAction({ data: { videoId: video.id, action: "like" } });
+      if (table === "video_likes")
+        void logPositiveAction({ data: { videoId: video.id, action: "like" } });
       if (table === "video_reposts")
         void logPositiveAction({ data: { videoId: video.id, action: "share" } });
     }
@@ -433,7 +689,7 @@ function VideoSlide({
   return (
     <div
       ref={containerRef}
-      className="flex h-full w-full snap-start snap-always items-center justify-center bg-black"
+      className="flex h-full w-full snap-start snap-always items-center justify-center bg-background"
     >
       <div className="relative aspect-[9/16] h-full max-h-full w-full max-w-full overflow-hidden bg-black lg:w-auto lg:rounded-2xl lg:shadow-2xl lg:shadow-black/60 lg:ring-1 lg:ring-white/10">
         {url ? (
@@ -472,6 +728,10 @@ function VideoSlide({
               <MentionText text={video.caption} />
             </p>
           ) : null}
+          <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-white/90">
+            <Eye className="h-3.5 w-3.5" />
+            {t("uniqueViews", { count: formatCount(viewCount) })}
+          </p>
           <p className="mt-2 flex items-center gap-2 overflow-hidden text-xs font-medium text-white/90">
             <Music2 className="h-3.5 w-3.5 shrink-0 animate-pulse" />
             <span className="truncate">{video.sound_name || `Son original — @${username}`}</span>
@@ -623,6 +883,21 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const [showExtras, setShowExtras] = useState(false);
   const [gifUrl, setGifUrl] = useState("");
   const [media, setMedia] = useState<{ url: string; type: "gif" | "sticker" } | null>(null);
+  const [sort, setSort] = useState<"popular" | "recent">("popular");
+  const [commentSearch, setCommentSearch] = useState("");
+
+  const myProfile = useQuery({
+    queryKey: ["comment-composer-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username,avatar_url")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
 
   const comments = useQuery({
     queryKey: ["video-comments", video.id],
@@ -643,10 +918,31 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         for (const row of p ?? [])
           people[row.id] = { username: row.username ?? "joueur", avatar_url: row.avatar_url };
       }
+      const reactions: Array<{ comment_id: string; user_id: string; reaction: string }> = [];
+      if (rows.length) {
+        const { data: reactionRows } = await supabase
+          .from("video_comment_reactions")
+          .select("comment_id,user_id,reaction")
+          .in(
+            "comment_id",
+            rows.map((row) => row.id),
+          );
+        reactions.push(...(reactionRows ?? []));
+      }
       return rows.map((r) => ({
         ...r,
         username: people[r.user_id]?.username ?? "joueur",
         avatar_url: people[r.user_id]?.avatar_url ?? null,
+        likes_count: reactions.filter(
+          (reaction) => reaction.comment_id === r.id && reaction.reaction === "like",
+        ).length,
+        dislikes_count: reactions.filter(
+          (reaction) => reaction.comment_id === r.id && reaction.reaction === "dislike",
+        ).length,
+        my_reaction:
+          reactions.find(
+            (reaction) => reaction.comment_id === r.id && reaction.user_id === user?.id,
+          )?.reaction ?? null,
       }));
     },
   });
@@ -673,26 +969,93 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     await qc.invalidateQueries({ queryKey: ["feed"] });
   }
 
+  async function react(commentId: string, reaction: "like" | "dislike") {
+    if (!user) return;
+    const current = comments.data?.find((comment) => comment.id === commentId)?.my_reaction;
+    if (current === reaction) {
+      const { error } = await supabase
+        .from("video_comment_reactions")
+        .delete()
+        .eq("comment_id", commentId)
+        .eq("user_id", user.id);
+      if (error) {
+        toast.error(t("errorGeneric"));
+        return;
+      }
+    } else {
+      const { error } = await supabase
+        .from("video_comment_reactions")
+        .upsert({ comment_id: commentId, user_id: user.id, reaction });
+      if (error) {
+        toast.error(t("errorGeneric"));
+        return;
+      }
+    }
+    await comments.refetch();
+  }
+
   const total = comments.data?.length ?? 0;
 
   return (
-    <div className="absolute inset-0 z-40 flex items-end bg-black/50" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
       <div
-        className="flex h-[70%] w-full flex-col rounded-t-3xl bg-background"
+        className="app-background flex h-[78dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[2rem] border border-b-0 border-border shadow-[0_-24px_70px_-30px_rgba(0,0,0,.8)] sm:h-[82dvh] sm:rounded-[2rem] sm:border-b"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border px-5 py-3">
-          <span className="text-sm font-bold">
-            {total} commentaire{total > 1 ? "s" : ""}
-          </span>
-          <button onClick={onClose} aria-label="Fermer">
-            <X className="h-5 w-5 text-muted-foreground" />
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
+        <label className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-blue-400/30 bg-blue-500/15 px-4 py-2.5 text-sm shadow-[0_10px_30px_-20px_rgba(37,99,235,.8)] focus-within:border-blue-500">
+          <Search className="h-4 w-4 shrink-0 text-blue-500" />
+          <span className="sr-only">{t("commentSearchTopic")}</span>
+          <input
+            value={commentSearch}
+            onChange={(event) => setCommentSearch(event.target.value)}
+            placeholder={video.caption || t("search")}
+            className="min-w-0 flex-1 bg-transparent font-semibold text-blue-600 outline-none placeholder:text-blue-500/75 dark:text-blue-300"
+          />
+          {commentSearch ? (
+            <button type="button" onClick={() => setCommentSearch("")} aria-label={t("cancel")}>
+              <X className="h-4 w-4 text-blue-500" />
+            </button>
+          ) : null}
+        </label>
+        <div className="relative flex items-center justify-center border-b border-border px-5 py-4">
+          <button
+            type="button"
+            onClick={() => setSort((value) => (value === "popular" ? "recent" : "popular"))}
+            className="flex items-center gap-2 text-base font-black"
+            aria-label={t("changeCommentOrder")}
+          >
+            {total} {t("comments").toLocaleLowerCase()}
+            <SlidersHorizontal className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onClose}
+            aria-label="Fermer"
+            className="absolute right-5 rounded-full p-1.5 text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
+          >
+            <X className="h-6 w-6" />
           </button>
         </div>
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
           {comments.data?.length ? (
-            comments.data
-              .filter((c) => !c.parent_id)
+            [...comments.data]
+              .filter((comment) => !comment.parent_id)
+              .filter((comment) => {
+                const query = commentSearch.trim().toLocaleLowerCase();
+                return (
+                  !query ||
+                  comment.content.toLocaleLowerCase().includes(query) ||
+                  comment.username.toLocaleLowerCase().includes(query)
+                );
+              })
+              .sort((a, b) =>
+                sort === "popular"
+                  ? b.likes_count - a.likes_count
+                  : Date.parse(b.created_at) - Date.parse(a.created_at),
+              )
               .map((c) => (
                 <CommentItem
                   key={c.id}
@@ -702,6 +1065,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                     setReplyingTo({ id, username });
                     setText(`@${username} `);
                   }}
+                  onReact={react}
                 />
               ))
           ) : (
@@ -709,7 +1073,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
           )}
         </div>
         {showExtras ? (
-          <div className="border-t border-border bg-surface px-4 py-3">
+          <div className="border-t border-border bg-card/95 px-4 py-3 backdrop-blur-xl">
             <div className="flex gap-2">
               <input
                 value={gifUrl}
@@ -758,22 +1122,36 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             </button>
           </div>
         ) : null}
-        <div className="flex items-center gap-2 border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center gap-2 border-t border-border bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+          <StoredImage
+            path={myProfile.data?.avatar_url}
+            alt={myProfile.data?.username ?? ""}
+            fallback={myProfile.data?.username?.[0]?.toUpperCase() ?? "?"}
+            className="h-10 w-10 shrink-0 rounded-full"
+          />
+          <div className="flex min-w-0 flex-1 items-center rounded-full bg-surface-2 px-3">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder={t("addComment")}
+              className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none"
+            />
+            <button type="button" className="p-1.5" aria-label="Mentionner quelqu’un">
+              <AtSign className="h-5 w-5" />
+            </button>
+            <button type="button" className="p-1.5" aria-label="Ajouter un emoji">
+              <Smile className="h-5 w-5" />
+            </button>
+          </div>
           <button
             onClick={() => setShowExtras((v) => !v)}
-            className="grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-lg"
+            className="grid h-10 w-10 place-items-center rounded-full text-primary"
             aria-label="GIF et autocollants"
           >
-            GIF
+            <ImagePlus className="h-5 w-5" />
           </button>
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={t("addComment")}
-            className="h-11 flex-1 rounded-full border border-input bg-surface px-4 text-sm outline-none focus:border-primary"
-          />
-          <Button size="icon" onClick={send} aria-label="Envoyer">
+          <Button size="icon" onClick={send} aria-label="Envoyer" disabled={!text.trim() && !media}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
@@ -792,18 +1170,32 @@ type RichComment = {
   media_type: string | null;
   username: string;
   avatar_url: string | null;
+  likes_count: number;
+  dislikes_count: number;
+  my_reaction: string | null;
 };
+
+function commentAge(value: string, lang: string) {
+  const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(value)) / 1000));
+  const formatter = new Intl.RelativeTimeFormat(lang, { numeric: "auto", style: "narrow" });
+  if (seconds < 60) return formatter.format(0, "second");
+  if (seconds < 3600) return formatter.format(-Math.floor(seconds / 60), "minute");
+  if (seconds < 86400) return formatter.format(-Math.floor(seconds / 3600), "hour");
+  return formatter.format(-Math.floor(seconds / 86400), "day");
+}
 
 function CommentItem({
   comment,
   replies,
   onReply,
+  onReact,
 }: {
   comment: RichComment;
   replies: RichComment[];
   onReply: (id: string, username: string) => void;
+  onReact: (id: string, reaction: "like" | "dislike") => void;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   return (
     <div className="space-y-3">
       <div className="flex gap-3">
@@ -836,16 +1228,36 @@ function CommentItem({
           {comment.media_type === "sticker" && comment.media_url ? (
             <span className="mt-2 block text-5xl">{comment.media_url}</span>
           ) : null}
+          <div className="mt-2 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
+            <span>{commentAge(comment.created_at, lang)}</span>
+            <button
+              onClick={() => onReply(comment.id, comment.username)}
+              className="hover:text-primary"
+            >
+              {t("reply")}
+            </button>
+          </div>
+        </div>
+        <div className="flex w-9 shrink-0 flex-col items-center gap-3 pt-2 text-muted-foreground">
           <button
-            onClick={() => onReply(comment.id, comment.username)}
-            className="mt-1.5 flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"
+            onClick={() => void onReact(comment.id, "like")}
+            className={cn("flex flex-col items-center text-blue-500 transition active:scale-90")}
+            aria-label="J’aime"
           >
-            <Reply className="h-3.5 w-3.5" /> {t("reply")}
+            <Heart className={cn("h-6 w-6", comment.my_reaction === "like" && "fill-current")} />
+            <span className="text-[11px]">{comment.likes_count || ""}</span>
+          </button>
+          <button
+            onClick={() => void onReact(comment.id, "dislike")}
+            className={cn(comment.my_reaction === "dislike" && "text-primary")}
+            aria-label="Je n’aime pas"
+          >
+            <ThumbsDown className="h-5 w-5" />
           </button>
         </div>
       </div>
       {replies.map((r) => (
-        <div key={r.id} className="ml-12 flex gap-2 border-l-2 border-primary/25 pl-3">
+        <div key={r.id} className="ml-12 flex gap-2 pl-3">
           <Link to="/users/$id" params={{ id: r.user_id }}>
             <StoredImage
               path={r.avatar_url}
@@ -854,7 +1266,7 @@ function CommentItem({
               fallback={r.username[0] ?? "?"}
             />
           </Link>
-          <div>
+          <div className="min-w-0 flex-1">
             <Link
               to="/users/$id"
               params={{ id: r.user_id }}
@@ -871,7 +1283,24 @@ function CommentItem({
             {r.media_type === "sticker" && r.media_url ? (
               <span className="block text-4xl">{r.media_url}</span>
             ) : null}
+            <div className="mt-1.5 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
+              <span>{commentAge(r.created_at, lang)}</span>
+              <button
+                onClick={() => onReply(comment.id, r.username)}
+                className="hover:text-primary"
+              >
+                {t("reply")}
+              </button>
+            </div>
           </div>
+          <button
+            onClick={() => void onReact(r.id, "like")}
+            className="flex w-9 shrink-0 flex-col items-center pt-2 text-blue-500 transition active:scale-90"
+            aria-label="J’aime"
+          >
+            <Heart className={cn("h-5 w-5", r.my_reaction === "like" && "fill-current")} />
+            <span className="text-[11px]">{r.likes_count || ""}</span>
+          </button>
         </div>
       ))}
     </div>

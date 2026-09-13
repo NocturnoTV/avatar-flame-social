@@ -26,13 +26,13 @@ import { RobloxConnection } from "@/components/RobloxConnection";
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
-      { title: "Paramètres — Bloxspark" },
+      { title: "Settings — Bloxspark" },
       {
         name: "description",
-        content: "Compte, notifications, confidentialité, sécurité et gestion de tes données.",
+        content: "Manage your Bloxspark account, notifications, privacy and security.",
       },
-      { property: "og:title", content: "Paramètres — Bloxspark" },
-      { property: "og:description", content: "Gère ton compte Bloxspark." },
+      { property: "og:title", content: "Settings — Bloxspark" },
+      { property: "og:description", content: "Manage your Bloxspark account." },
     ],
   }),
   component: SettingsPage,
@@ -57,13 +57,17 @@ type PrivacyPrefs = {
   messages_from: string;
 };
 
-const NOTIF_LABELS: { key: keyof NotifPrefs; label: string; hint: string }[] = [
-  { key: "matches", label: "Nouveaux matchs", hint: "Quand un Spark est réciproque" },
-  { key: "likes", label: "J'aime et Super Sparks", hint: "Quand quelqu'un t'aime" },
-  { key: "messages", label: "Messages", hint: "Messages privés et de groupe" },
-  { key: "followers", label: "Nouveaux abonnés", hint: "Sur tes vidéos Découvrir" },
-  { key: "comments", label: "Commentaires", hint: "Réactions sur tes vidéos" },
-  { key: "announcements", label: "Annonces Bloxspark", hint: "Nouveautés et sécurité" },
+const NOTIF_LABELS: { key: keyof NotifPrefs; labelKey: string; hintKey: string }[] = [
+  { key: "matches", labelKey: "notifPrefMatches", hintKey: "notifPrefMatchesHint" },
+  { key: "likes", labelKey: "notifPrefLikes", hintKey: "notifPrefLikesHint" },
+  { key: "messages", labelKey: "notifPrefMessages", hintKey: "notifPrefMessagesHint" },
+  { key: "followers", labelKey: "notifPrefFollowers", hintKey: "notifPrefFollowersHint" },
+  { key: "comments", labelKey: "notifPrefComments", hintKey: "notifPrefCommentsHint" },
+  {
+    key: "announcements",
+    labelKey: "notifPrefAnnouncements",
+    hintKey: "notifPrefAnnouncementsHint",
+  },
 ];
 
 function Section({
@@ -237,7 +241,7 @@ function SettingsPage() {
 
   async function changePassword() {
     if (newPassword.length < 8) {
-      toast.error("8 caractères minimum.");
+      toast.error(t("passwordMinError"));
       return;
     }
     const { error } = await supabase.auth.updateUser({
@@ -250,7 +254,7 @@ function SettingsPage() {
     }
     setNewPassword("");
     setCurrentPassword("");
-    toast.success("Mot de passe mis à jour.");
+    toast.success(t("passwordUpdated"));
   }
 
   async function downloadData() {
@@ -288,14 +292,14 @@ function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `bloxspark-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `bloxspark-data-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       await supabase
         .from("data_requests")
         .insert({ user_id: user.id, kind: "export", status: "completed" });
       void requests.refetch();
-      toast.success("Export téléchargé.");
+      toast.success(t("exportDownloaded"));
     } catch {
       toast.error(t("errorGeneric"));
     } finally {
@@ -305,10 +309,7 @@ function SettingsPage() {
 
   async function requestDeletion() {
     if (!user) return;
-    if (
-      !confirm("Demander la suppression définitive de ton compte et de tes données dans 30 jours ?")
-    )
-      return;
+    if (!confirm(t("deletionConfirm"))) return;
     const scheduled = new Date(Date.now() + 30 * DAY).toISOString();
     const { error } = await supabase
       .from("data_requests")
@@ -319,7 +320,7 @@ function SettingsPage() {
     }
     await patch({ deletion_requested_at: new Date().toISOString() });
     void requests.refetch();
-    toast.success("Demande enregistrée. Tu peux l'annuler pendant 30 jours.");
+    toast.success(t("deletionRequestSaved"));
   }
 
   async function cancelDeletion() {
@@ -330,7 +331,7 @@ function SettingsPage() {
       .eq("id", pendingDeletion.id);
     await patch({ deletion_requested_at: null });
     void requests.refetch();
-    toast.success("Demande annulée.");
+    toast.success(t("deletionRequestCancelled"));
   }
 
   async function signOut() {
@@ -375,16 +376,16 @@ function SettingsPage() {
 
       {pendingDeletion ? (
         <div className="mt-4 rounded-3xl border border-destructive/40 bg-destructive/10 p-4 text-sm">
-          <p className="font-semibold text-destructive">Suppression programmée</p>
+          <p className="font-semibold text-destructive">{t("deletionScheduled")}</p>
           <p className="mt-1 text-muted-foreground">
-            Tes données seront effacées le{" "}
-            {pendingDeletion.scheduled_for
-              ? new Date(pendingDeletion.scheduled_for).toLocaleDateString("fr-FR")
-              : "—"}
-            . Tu peux annuler à tout moment d'ici là.
+            {t("deletionScheduledText", {
+              date: pendingDeletion.scheduled_for
+                ? new Date(pendingDeletion.scheduled_for).toLocaleDateString(lang)
+                : "—",
+            })}
           </p>
           <Button size="sm" variant="outline" className="mt-3" onClick={cancelDeletion}>
-            Annuler la demande
+            {t("cancelRequest")}
           </Button>
         </div>
       ) : null}
@@ -394,16 +395,22 @@ function SettingsPage() {
           to="/admin"
           className="mt-4 flex items-center gap-2 rounded-3xl border border-primary/40 bg-primary/5 p-4 text-sm font-semibold"
         >
-          <ShieldCheck className="h-5 w-5 text-primary" /> Espace administration
+          <ShieldCheck className="h-5 w-5 text-primary" /> {t("adminArea")}
         </Link>
       ) : null}
 
-      <Section icon={UserCog} title="Compte" description="Identité et accès">
+      <Section
+        icon={UserCog}
+        title={t("settingsAccountTitle")}
+        description={t("settingsAccountDesc")}
+      >
         <div>
           <Label>{t("username")}</Label>
           <Input value={username} onChange={(e) => setUsername(e.target.value)} />
           <p className="mt-1 text-xs text-muted-foreground">
-            {daysLeft > 0 ? `${t("usernameCooldown")} (${daysLeft} j)` : t("usernameChangeInfo")}
+            {daysLeft > 0
+              ? `${t("usernameCooldown")} (${t("daysCount", { count: daysLeft })})`
+              : t("usernameChangeInfo")}
           </p>
           <Button size="sm" className="mt-2" onClick={saveUsername} disabled={daysLeft > 0}>
             {t("save")}
@@ -416,33 +423,33 @@ function SettingsPage() {
           onChanged={() => void profile.refetch()}
         />
         <div>
-          <Label>Adresse e-mail</Label>
+          <Label>{t("emailAddress")}</Label>
           <Input value={user?.email ?? ""} readOnly className="opacity-70" />
         </div>
         <div>
-          <Label>Changer de mot de passe</Label>
+          <Label>{t("changePassword")}</Label>
           <Input
             type="password"
-            placeholder="Mot de passe actuel"
+            placeholder={t("currentPassword")}
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             autoComplete="current-password"
           />
           <Input
             type="password"
-            placeholder="Nouveau mot de passe (8 caractères min.)"
+            placeholder={t("newPasswordHint")}
             className="mt-2"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             autoComplete="new-password"
           />
           <Button size="sm" className="mt-2" onClick={changePassword} disabled={!newPassword}>
-            Mettre à jour
+            {t("updatePassword")}
           </Button>
         </div>
       </Section>
 
-      <Section icon={Palette} title="Apparence" description="Thème et langue">
+      <Section icon={Palette} title={t("appearanceTitle")} description={t("appearanceDesc")}>
         <div>
           <Label>{t("theme")}</Label>
           <div className="flex gap-3">
@@ -483,10 +490,10 @@ function SettingsPage() {
         </div>
       </Section>
 
-      <Section icon={Bell} title="Notifications" description="Choisis ce qui te fait vibrer">
+      <Section icon={Bell} title={t("notifications")} description={t("notificationSettingsDesc")}>
         <Toggle
-          label="Mettre toutes les notifications en pause"
-          hint="Rien ne te sera envoyé tant que c'est activé"
+          label={t("pauseAllNotifications")}
+          hint={t("pauseAllHint")}
           checked={notif.paused === true}
           onChange={(v) => setNotif("paused", v)}
         />
@@ -494,8 +501,8 @@ function SettingsPage() {
           {NOTIF_LABELS.map((n) => (
             <Toggle
               key={n.key}
-              label={n.label}
-              hint={n.hint}
+              label={t(n.labelKey)}
+              hint={t(n.hintKey)}
               checked={notif[n.key] !== false}
               onChange={(v) => setNotif(n.key, v)}
             />
@@ -503,37 +510,37 @@ function SettingsPage() {
         </div>
       </Section>
 
-      <Section icon={Eye} title="Confidentialité" description="Qui voit quoi">
+      <Section icon={Eye} title={t("privacyTitle")} description={t("privacyDesc")}>
         <Toggle
-          label="Apparaître dans les Sparks"
-          hint="Désactive pour ne plus être proposé au swipe"
+          label={t("appearInSparks")}
+          hint={t("appearInSparksHint")}
           checked={privacy.discoverable !== false}
           onChange={(v) => setPrivacy("discoverable", v)}
         />
         <Toggle
-          label="Afficher mon âge"
+          label={t("showMyAge")}
           checked={privacy.show_age !== false}
           onChange={(v) => setPrivacy("show_age", v)}
         />
         <Toggle
-          label="Afficher ma dernière activité"
+          label={t("showMyActivity")}
           checked={privacy.show_activity !== false}
           onChange={(v) => setPrivacy("show_activity", v)}
         />
         <div>
-          <Label>Qui peut m'écrire</Label>
+          <Label>{t("whoCanMessage")}</Label>
           <Select
             value={privacy.messages_from ?? "matches"}
             onChange={(e) => setPrivacy("messages_from", e.target.value)}
           >
-            <option value="matches">Uniquement mes matchs</option>
-            <option value="everyone">Tout le monde</option>
-            <option value="nobody">Personne</option>
+            <option value="matches">{t("messagesMatchesOnly")}</option>
+            <option value="everyone">{t("messagesEveryone")}</option>
+            <option value="nobody">{t("messagesNobody")}</option>
           </Select>
         </div>
       </Section>
 
-      <Section icon={Lock} title="Sécurité" description="Blocages et sessions">
+      <Section icon={Lock} title={t("securityTitle")} description={t("securityDesc")}>
         <div>
           <Label>{t("blockedUsers")}</Label>
           {(blocked.data ?? []).length === 0 ? (
@@ -559,23 +566,14 @@ function SettingsPage() {
           )}
         </div>
         <Button variant="outline" className="w-full" onClick={signOutEverywhere}>
-          Déconnecter tous mes appareils
+          {t("signOutAllDevices")}
         </Button>
       </Section>
 
-      <Section
-        icon={Database}
-        title="Mes données"
-        description="RGPD (UE), UK GDPR, CCPA et lois équivalentes"
-      >
-        <p className="text-sm text-muted-foreground">
-          Tu disposes d'un droit d'accès, de rectification, d'effacement, de portabilité, de
-          limitation et d'opposition sur tes données. Les demandes sont traitées sous 30 jours
-          maximum.
-        </p>
+      <Section icon={Database} title={t("myDataTitle")} description={t("myDataDesc")}>
+        <p className="text-sm text-muted-foreground">{t("dataRightsText")}</p>
         <Button variant="outline" className="w-full" onClick={downloadData} disabled={exporting}>
-          <Download className="h-4 w-4" />{" "}
-          {exporting ? "Préparation…" : "Télécharger toutes mes données (JSON)"}
+          <Download className="h-4 w-4" /> {exporting ? t("preparingExport") : t("downloadAllData")}
         </Button>
         <Button
           variant="ghost"
@@ -583,21 +581,22 @@ function SettingsPage() {
           onClick={requestDeletion}
           disabled={!!pendingDeletion}
         >
-          <Trash2 className="h-4 w-4" /> Demander la suppression de mes données
+          <Trash2 className="h-4 w-4" /> {t("requestDataDeletion")}
         </Button>
         {(requests.data ?? []).length > 0 ? (
           <div className="space-y-1 text-xs text-muted-foreground">
             {(requests.data ?? []).slice(0, 5).map((r) => (
               <p key={r.id}>
-                {r.kind === "export" ? "Export" : "Suppression"} · {r.status} ·{" "}
-                {new Date(r.created_at).toLocaleDateString("fr-FR")}
+                {r.kind === "export" ? t("requestExport") : t("requestDeletion")} ·{" "}
+                {t(`requestStatus${r.status[0]?.toUpperCase()}${r.status.slice(1)}`)} ·{" "}
+                {new Date(r.created_at).toLocaleDateString(lang)}
               </p>
             ))}
           </div>
         ) : null}
       </Section>
 
-      <Section icon={ShieldCheck} title="À propos">
+      <Section icon={ShieldCheck} title={t("aboutTitle")}>
         <div className="space-y-2 text-sm">
           <Link to="/terms" className="block py-1.5">
             {t("terms")}

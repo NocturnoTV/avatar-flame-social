@@ -1,15 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
   Camera,
   CheckCheck,
   ChevronRight,
+  Heart,
   Inbox,
+  MessageCircle,
   Newspaper,
   Pin,
   Plus,
   Search,
+  ShieldCheck,
+  Sparkles,
   UserPlus,
   Users,
   X,
@@ -58,17 +62,44 @@ type Story = {
   avatar_url: string | null;
   unread: boolean;
 };
-const ICONS: Record<string, string> = {
-  match: "✨",
-  like: "💙",
-  message: "💬",
-  system: "📣",
+type NotificationRow = {
+  id: string;
+  kind: string;
+  body: string | null;
+  read: boolean;
+  created_at: string;
+  actor_id: string | null;
+  conversation_id: string | null;
+  actor: Person | null;
+};
+type FollowerRow = Person & {
+  followed_at: string;
 };
 
+const NOTIFICATION_ICONS = {
+  match: Sparkles,
+  like: Heart,
+  super: Sparkles,
+  message: MessageCircle,
+  system: ShieldCheck,
+} as const;
+
+function formatNotificationTime(value: string, lang: string) {
+  const elapsed = new Date(value).getTime() - Date.now();
+  const absolute = Math.abs(elapsed);
+  const formatter = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
+  if (absolute < 60_000) return formatter.format(Math.round(elapsed / 1000), "second");
+  if (absolute < 3_600_000) return formatter.format(Math.round(elapsed / 60_000), "minute");
+  if (absolute < 86_400_000) return formatter.format(Math.round(elapsed / 3_600_000), "hour");
+  if (absolute < 604_800_000) return formatter.format(Math.round(elapsed / 86_400_000), "day");
+  return new Date(value).toLocaleDateString(lang, { day: "numeric", month: "short" });
+}
+
 function MessagesPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user } = useSession();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [newGroup, setNewGroup] = useState(false);
@@ -76,7 +107,11 @@ function MessagesPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [showRequests, setShowRequests] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState<
+    "all" | "unread" | "social" | "system"
+  >("all");
   const storyInput = useRef<HTMLInputElement>(null);
   const cameraInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -186,14 +221,27 @@ function MessagesPage() {
   const notifications = useQuery({
     queryKey: ["notifications", user?.id],
     enabled: !!user,
-    queryFn: async () =>
-      (
-        await supabase
-          .from("notifications")
-          .select("id,kind,body,read,created_at,actor_id")
-          .order("created_at", { ascending: false })
-          .limit(100)
-      ).data ?? [],
+    queryFn: async (): Promise<NotificationRow[]> => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id,kind,body,read,created_at,actor_id,conversation_id")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      const actorIds = [
+        ...new Set((data ?? []).map((item) => item.actor_id).filter(Boolean)),
+      ] as string[];
+      const { data: actors } = actorIds.length
+        ? await supabase
+            .from("profiles")
+            .select("id,username,avatar_url,verified")
+            .in("id", actorIds)
+        : { data: [] as Person[] };
+      return (data ?? []).map((item) => ({
+        ...item,
+        actor: (actors ?? []).find((actor) => actor.id === item.actor_id) ?? null,
+      }));
+    },
   });
 
   const matches = useQuery({
@@ -213,24 +261,28 @@ function MessagesPage() {
     },
   });
 
-  const latestFollower = useQuery({
-    queryKey: ["latest-follower", user?.id],
+  const recentFollowers = useQuery({
+    queryKey: ["recent-followers", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
+    queryFn: async (): Promise<FollowerRow[]> => {
+      const { data, error } = await supabase
         .from("follows")
         .select("follower_id,created_at")
         .eq("following_id", user!.id)
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!data) return null;
-      const { data: p } = await supabase
+        .limit(100);
+      if (error) throw error;
+      const ids = (data ?? []).map((follow) => follow.follower_id);
+      if (!ids.length) return [];
+      const { data: people } = await supabase
         .from("profiles")
-        .select("username")
-        .eq("id", data.follower_id)
-        .maybeSingle();
-      return { username: p?.username ?? "?", created_at: data.created_at };
+        .select("id,username,avatar_url,verified")
+        .in("id", ids);
+      const peopleById = new Map((people ?? []).map((person) => [person.id, person]));
+      return (data ?? []).flatMap((follow) => {
+        const person = peopleById.get(follow.follower_id);
+        return person ? [{ ...person, followed_at: follow.created_at }] : [];
+      });
     },
   });
 
@@ -247,11 +299,16 @@ function MessagesPage() {
         { event: "INSERT", schema: "public", table: "notifications" },
         () => void notifications.refetch(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows" },
+        () => void recentFollowers.refetch(),
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [conversations, notifications]);
+  }, [conversations, notifications, recentFollowers]);
 
   async function createGroup() {
     if (!groupTitle.trim() || !selected.length) return;
@@ -304,6 +361,19 @@ function MessagesPage() {
     void notifications.refetch();
   }
 
+  async function openNotification(notification: NotificationRow) {
+    if (!notification.read) {
+      await supabase.from("notifications").update({ read: true }).eq("id", notification.id);
+      void notifications.refetch();
+    }
+    setShowNotifications(false);
+    if (notification.conversation_id) {
+      void navigate({ to: "/messages/$id", params: { id: notification.conversation_id } });
+    } else if (notification.actor_id) {
+      void navigate({ to: "/users/$id", params: { id: notification.actor_id } });
+    }
+  }
+
   async function quickSendPhoto(conversationId: string, file: File) {
     if (!user) return;
     try {
@@ -334,18 +404,21 @@ function MessagesPage() {
   );
   const visible = (conversations.data ?? []).filter(
     (c) =>
-      c.request_status === "accepted" || (c.request_status === "pending" && c.created_by === user?.id),
+      c.request_status === "accepted" ||
+      (c.request_status === "pending" && c.created_by === user?.id),
   );
   const filtered = visible.filter((c) =>
     (c.is_group ? c.name : c.others[0]?.username)?.toLowerCase().includes(search.toLowerCase()),
   );
-  const activity = (notifications.data ?? []).filter((n) => n.kind !== "system" || n.body !== "safety_alert");
+  const activity = (notifications.data ?? []).filter(
+    (n) => n.kind !== "system" || n.body !== "safety_alert",
+  );
   const latestActivity = activity[0];
   const systemNotif = (notifications.data ?? []).find((n) => n.kind === "system");
   const unreadCount = activity.filter((n) => !n.read).length;
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-lg bg-white px-4 pb-28 pt-5 text-[#050505] dark:bg-black dark:text-white">
+    <div className="app-background mx-auto min-h-screen w-full max-w-lg px-4 pb-28 pt-5 text-[#050505] dark:text-white">
       <header className="flex h-[52px] items-center justify-between">
         <button
           onClick={() => setNewGroup(true)}
@@ -373,7 +446,10 @@ function MessagesPage() {
       </header>
 
       <section className="no-scrollbar -mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2">
-        <button onClick={() => storyInput.current?.click()} className="w-[72px] shrink-0 text-center">
+        <button
+          onClick={() => storyInput.current?.click()}
+          className="w-[72px] shrink-0 text-center"
+        >
           <span className="relative mx-auto block h-[72px] w-[72px] rounded-full border-2 border-dashed border-primary bg-primary/10 p-1">
             <span className="grid h-full w-full place-items-center rounded-full bg-[#F5F5F5] dark:bg-[#1c1c1e]">
               <Plus className="h-6 w-6 text-primary" />
@@ -395,11 +471,17 @@ function MessagesPage() {
           }}
         />
         {peopleStories.map((s) => (
-          <button key={s.id} onClick={() => void openStory(s)} className="w-[72px] shrink-0 text-center">
+          <button
+            key={s.id}
+            onClick={() => void openStory(s)}
+            className="w-[72px] shrink-0 text-center"
+          >
             <span
               className={cn(
                 "mx-auto block h-[72px] w-[72px] rounded-full p-[3px] transition-transform active:scale-95",
-                s.unread ? "bg-gradient-to-br from-[#A855F7] to-[#20D778]" : "bg-[#E5E5E5] dark:bg-white/15",
+                s.unread
+                  ? "bg-gradient-to-br from-[#A855F7] to-[#20D778]"
+                  : "bg-[#E5E5E5] dark:bg-white/15",
               )}
             >
               <StoredImage
@@ -450,21 +532,26 @@ function MessagesPage() {
 
       <div className="mt-2">
         {/* New followers */}
-        {latestFollower.data ? (
-          <Link
-            to="/notifications"
-            className="bx-pop flex items-center gap-3 rounded-2xl px-1 py-3 transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+        {recentFollowers.data?.length ? (
+          <button
+            onClick={() => setShowFollowers(true)}
+            className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
           >
             <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#A855F7] text-white">
               <Users className="h-6 w-6" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold text-[#050505] dark:text-white">{t("followers")}</p>
+              <p className="text-[17px] font-bold text-[#050505] dark:text-white">
+                {t("followers")}
+              </p>
               <p className="truncate text-sm text-[#929292]">
-                {t("newFollowerBody", { username: latestFollower.data.username })}
+                {t("newFollowerBody", {
+                  username: recentFollowers.data[0]?.username ?? t("someone"),
+                })}
               </p>
             </div>
-          </Link>
+            <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+          </button>
         ) : null}
 
         {/* Activity */}
@@ -474,7 +561,11 @@ function MessagesPage() {
             className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
           >
             <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#FF3568] text-xl text-white">
-              {ICONS[latestActivity.kind] ?? "🔔"}
+              {latestActivity.kind === "match"
+                ? "✨"
+                : latestActivity.kind === "like"
+                  ? "💙"
+                  : "🔔"}
               {unreadCount ? (
                 <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white">
                   {unreadCount > 9 ? "9+" : unreadCount}
@@ -482,7 +573,9 @@ function MessagesPage() {
               ) : null}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold text-[#050505] dark:text-white">{t("recentActivity")}</p>
+              <p className="text-[17px] font-bold text-[#050505] dark:text-white">
+                {t("recentActivity")}
+              </p>
               <p className="truncate text-sm text-[#929292]">{latestActivity.body}</p>
             </div>
           </button>
@@ -585,12 +678,17 @@ function MessagesPage() {
           />
           <div className="max-h-64 space-y-2 overflow-y-auto">
             {(matches.data ?? []).map((m) => (
-              <label key={m.id} className="flex items-center gap-3 rounded-2xl p-2 hover:bg-surface-2">
+              <label
+                key={m.id}
+                className="flex items-center gap-3 rounded-2xl p-2 hover:bg-surface-2"
+              >
                 <input
                   type="checkbox"
                   checked={selected.includes(m.id)}
                   onChange={(e) =>
-                    setSelected((s) => (e.target.checked ? [...s, m.id] : s.filter((x) => x !== m.id)))
+                    setSelected((s) =>
+                      e.target.checked ? [...s, m.id] : s.filter((x) => x !== m.id),
+                    )
                   }
                 />
                 <StoredImage
@@ -609,17 +707,27 @@ function MessagesPage() {
         </div>
       </Sheet>
 
-      <Sheet open={showRequests} onClose={() => setShowRequests(false)} title={t("messageRequests")}>
+      <Sheet
+        open={showRequests}
+        onClose={() => setShowRequests(false)}
+        title={t("messageRequests")}
+      >
         <div className="space-y-2">
           {pendingReceived.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">{t("noMessageRequests")}</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {t("noMessageRequests")}
+            </p>
           ) : null}
           {pendingReceived.map((c) => {
             const person = c.others[0];
             const name = person?.username ?? "?";
             return (
               <div key={c.id} className="flex items-center gap-3 rounded-2xl p-2">
-                <Link to="/users/$id" params={{ id: person?.id ?? "" }} onClick={() => setShowRequests(false)}>
+                <Link
+                  to="/users/$id"
+                  params={{ id: person?.id ?? "" }}
+                  onClick={() => setShowRequests(false)}
+                >
                   <StoredImage
                     path={person?.avatar_url}
                     alt={name}
@@ -634,7 +742,11 @@ function MessagesPage() {
                 <Button size="sm" onClick={() => void respondToRequest(c.id, true)}>
                   {t("acceptRequest")}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => void respondToRequest(c.id, false)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void respondToRequest(c.id, false)}
+                >
                   {t("declineRequest")}
                 </Button>
               </div>
@@ -643,8 +755,98 @@ function MessagesPage() {
         </div>
       </Sheet>
 
-      <Sheet open={showNotifications} onClose={() => setShowNotifications(false)} title={t("notifications")}>
-        <div className="space-y-2">
+      <Sheet
+        open={showFollowers}
+        onClose={() => setShowFollowers(false)}
+        title={t("recentFollowers")}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">{t("recentFollowersHint")}</p>
+          {recentFollowers.isLoading ? (
+            <div className="space-y-3" aria-label={t("loading")}>
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="h-16 animate-pulse rounded-2xl bg-surface-2" />
+              ))}
+            </div>
+          ) : null}
+          {!recentFollowers.isLoading && !recentFollowers.data?.length ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">{t("noFollowersYet")}</p>
+          ) : null}
+          {(recentFollowers.data ?? []).map((follower) => {
+            const name = follower.username ?? t("someone");
+            return (
+              <button
+                key={follower.id}
+                onClick={() => {
+                  setShowFollowers(false);
+                  void navigate({ to: "/users/$id", params: { id: follower.id } });
+                }}
+                className="group flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                <StoredImage
+                  path={follower.avatar_url}
+                  alt={name}
+                  className="h-12 w-12 shrink-0 rounded-full object-cover"
+                  fallback={name[0]?.toUpperCase() ?? "?"}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <span className="truncate">{name}</span>
+                    {follower.verified ? <Verified /> : null}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {t("followedYou")} · {formatNotificationTime(follower.followed_at, lang)}
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+              </button>
+            );
+          })}
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        title={t("notifications")}
+      >
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-blue-500 to-sky-400 p-5 text-white shadow-lg">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-lg font-black">{t("activityCenter")}</p>
+                <p className="mt-1 text-xs text-white/80">{t("notificationSubtitle")}</p>
+              </div>
+              {unreadCount ? (
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-blue-600">
+                  {unreadCount} {t("notifNew")}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {(
+              [
+                ["all", t("notifAll")],
+                ["unread", t("notifUnread")],
+                ["social", t("notifSocial")],
+                ["system", t("notifSystem")],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setNotificationFilter(value)}
+                className={cn(
+                  "shrink-0 rounded-full px-3.5 py-2 text-xs font-bold transition",
+                  notificationFilter === value
+                    ? "bg-primary text-white"
+                    : "bg-surface-2 text-muted-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center justify-end">
             <button
               onClick={() => void markAll()}
@@ -653,30 +855,94 @@ function MessagesPage() {
               <CheckCheck className="h-4 w-4" /> {t("markAllRead")}
             </button>
           </div>
-          {(notifications.data ?? []).map((n) => (
-            <div
-              key={n.id}
-              className={cn(
-                "flex gap-3 rounded-2xl p-4",
-                n.read ? "bg-surface" : "bg-primary/10 ring-1 ring-primary/20",
-              )}
-            >
-              <span className="text-xl">{ICONS[n.kind] ?? "🔔"}</span>
-              <div>
-                <p className="text-sm">{n.body === "safety_alert" ? t("safetyAlertNotif") : n.body}</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {new Date(n.created_at).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          ))}
+          {(notifications.data ?? [])
+            .filter((notification) => {
+              if (notificationFilter === "unread") return !notification.read;
+              if (notificationFilter === "system") return notification.kind === "system";
+              if (notificationFilter === "social") return notification.kind !== "system";
+              return true;
+            })
+            .map((notification) => {
+              const Icon =
+                NOTIFICATION_ICONS[notification.kind as keyof typeof NOTIFICATION_ICONS] ??
+                Newspaper;
+              const actorName = notification.actor?.username ?? t("someone");
+              const title = t(
+                notification.kind === "match"
+                  ? "notifMatchTitle"
+                  : notification.kind === "like"
+                    ? "notifLikeTitle"
+                    : notification.kind === "super"
+                      ? "notifSuperTitle"
+                      : notification.kind === "message"
+                        ? "notifMessageTitle"
+                        : "notifSystemTitle",
+              );
+              const fallbackBody = t(
+                notification.kind === "match"
+                  ? "notifMatchBody"
+                  : notification.kind === "like"
+                    ? "notifLikeBody"
+                    : notification.kind === "super"
+                      ? "notifSuperBody"
+                      : notification.kind === "message"
+                        ? "notifMessageBody"
+                        : "notifSystemBody",
+                { name: actorName },
+              );
+              return (
+                <button
+                  key={notification.id}
+                  onClick={() => void openNotification(notification)}
+                  className={cn(
+                    "group flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md",
+                    notification.read ? "border-border bg-card" : "border-primary/35 bg-primary/10",
+                  )}
+                >
+                  <div className="relative shrink-0">
+                    <StoredImage
+                      path={notification.actor?.avatar_url}
+                      alt={actorName}
+                      className="h-14 w-14 rounded-full object-cover"
+                      fallback={
+                        notification.kind === "system" ? "B" : (actorName[0]?.toUpperCase() ?? "?")
+                      }
+                    />
+                    <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-primary text-white ring-2 ring-card">
+                      <Icon className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-black">{title}</p>
+                      {!notification.read ? (
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                      {notification.body === "safety_alert"
+                        ? t("safetyAlertNotif")
+                        : notification.body || fallbackBody}
+                    </p>
+                    <p className="mt-1.5 text-[11px] font-semibold text-primary">
+                      {formatNotificationTime(notification.created_at, lang)}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
+                </button>
+              );
+            })}
           {!notifications.data?.length ? (
-            <p className="py-14 text-center text-sm text-muted-foreground">{t("noNotifications")}</p>
+            <p className="py-14 text-center text-sm text-muted-foreground">
+              {t("noNotifications")}
+            </p>
           ) : null}
         </div>
       </Sheet>
 
-      {activeStory ? <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} /> : null}
+      {activeStory ? (
+        <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />
+      ) : null}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, Gamepad2, MessageCircle } from "lucide-react";
+import { ArrowLeft, Crown, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
@@ -14,6 +14,9 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { errorMessage } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
+import { RobloxGameIcon } from "@/components/RobloxGameIcon";
+import { profileFontClass, profileGlowClass } from "@/lib/sparkPlus";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/users/$id")({
   head: () => ({ meta: [{ title: "Profil — Bloxspark" }] }),
@@ -60,6 +63,21 @@ function PublicProfile() {
             .limit(12),
         ]);
       return { person, photos: photos ?? [], games: games ?? [], videos: videos ?? [] };
+    },
+  });
+
+  const sparkPlusStyle = useQuery({
+    queryKey: ["public-profile-spark-plus", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("spark_plus_active,spark_plus_expires_at,profile_font,profile_glow")
+        .eq("id", id)
+        .maybeSingle();
+      return data?.spark_plus_active &&
+        (!data.spark_plus_expires_at || new Date(data.spark_plus_expires_at).getTime() > Date.now())
+        ? data
+        : null;
     },
   });
 
@@ -173,7 +191,10 @@ function PublicProfile() {
           <StoredImage
             path={p?.avatar_url ?? profile.data?.photos[0]?.url}
             alt={p?.username ?? ""}
-            className="h-24 w-24 shrink-0 rounded-full border-4 border-background object-cover"
+            className={cn(
+              "h-24 w-24 shrink-0 rounded-full border-4 border-background object-cover",
+              profileGlowClass(sparkPlusStyle.data?.profile_glow),
+            )}
             fallback="🎮"
           />
           <div className="grid flex-1 grid-cols-3 gap-1 pb-1 text-center">
@@ -186,8 +207,16 @@ function PublicProfile() {
           </div>
         </div>
 
-        <h1 className="mt-3 flex items-center gap-2 text-2xl font-black">
+        <h1
+          className={cn(
+            "mt-3 flex items-center gap-2 text-2xl font-black",
+            profileFontClass(sparkPlusStyle.data?.profile_font),
+          )}
+        >
           {p?.username ?? "Profil"}
+          {sparkPlusStyle.data ? (
+            <Crown className="h-5 w-5 text-blue-500" aria-label="Spark Plus" />
+          ) : null}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
         </h1>
         <RobloxIdentity
@@ -228,9 +257,9 @@ function PublicProfile() {
                 href={g.url ?? undefined}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 text-xs font-bold text-primary"
+                className="flex items-center gap-2 rounded-2xl border border-primary/15 bg-primary/10 py-1.5 pl-1.5 pr-3 text-xs font-bold text-primary transition hover:border-primary/40 hover:bg-primary/15"
               >
-                <Gamepad2 className="h-4 w-4" />
+                <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-9 w-9" />
                 {g.name}
               </a>
             ))}

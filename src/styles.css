@@ -137,6 +137,10 @@
   );
 }
 
+@utility app-background {
+  background-color: var(--color-background);
+}
+
 @utility spark-text {
   background-image: linear-gradient(135deg, var(--spark), var(--spark-2));
   background-clip: text;

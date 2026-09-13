@@ -4,192 +4,169 @@ import { LegalPage, LegalSection } from "@/components/LegalPage";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Conditions d'utilisation — Bloxspark" },
+      { title: "Terms of Use — Bloxspark" },
       {
         name: "description",
         content:
-          "Conditions générales d'utilisation de Bloxspark : compte, âge minimum, contenus, sanctions et responsabilités.",
+          "Bloxspark Terms of Use covering accounts, minimum age, content, enforcement, and liability.",
       },
-      { property: "og:title", content: "Conditions d'utilisation — Bloxspark" },
-      { property: "og:description", content: "Les règles contractuelles du service Bloxspark." },
+      { property: "og:title", content: "Terms of Use — Bloxspark" },
+      { property: "og:description", content: "The rules governing the Bloxspark service." },
     ],
   }),
   component: () => (
-    <LegalPage
-      title="Conditions générales d'utilisation"
-      updated="Dernière mise à jour : 12 septembre 2026"
-    >
-      <LegalSection title="1. Objet et acceptation">
+    <LegalPage title="Terms of Use" updated="Last updated: September 12, 2026">
+      <LegalSection title="1. Purpose and acceptance">
         <p>
-          Les présentes conditions générales d'utilisation (les « Conditions ») encadrent l'accès et
-          l'utilisation de l'application Bloxspark (le « Service »), un réseau social et de mise en
-          relation destiné aux joueuses et joueurs de Roblox. En créant un compte, en accédant au
-          Service ou en l'utilisant de quelque manière que ce soit, vous acceptez sans réserve
-          l'intégralité des présentes Conditions. Si vous n'acceptez pas ces Conditions, vous devez
-          cesser immédiatement d'utiliser le Service.
+          These Terms of Use (the “Terms”) govern access to and use of the Bloxspark application
+          (the “Service”), a social and discovery network for Roblox players. By creating an
+          account, accessing the Service, or using it in any way, you agree to all of these Terms.
+          If you do not agree to these Terms, you must stop using the Service immediately.
         </p>
         <p>
-          Bloxspark est une plateforme indépendante. Bloxspark n'est ni affilié, ni associé, ni
-          autorisé, ni approuvé par Roblox Corporation, et n'est en aucune façon officiellement lié
-          à Roblox Corporation. « Roblox » est une marque déposée de Roblox Corporation, citée
-          uniquement à des fins descriptives.
+          Bloxspark is an independent platform. It is not affiliated with, associated with,
+          authorized by, endorsed by, or officially connected to Roblox Corporation in any way.
+          “Roblox” is a registered trademark of Roblox Corporation and is used only for descriptive
+          purposes.
         </p>
       </LegalSection>
 
-      <LegalSection title="2. Âge minimum et consentement parental">
+      <LegalSection title="2. Minimum age and parental consent">
         <p>
-          Le Service est réservé aux personnes âgées d'au moins treize (13) ans. Toute inscription
-          d'une personne de moins de 13 ans est strictement interdite ; tout compte identifié comme
-          appartenant à une personne de moins de 13 ans sera supprimé sans préavis.
+          The Service is available only to people aged thirteen (13) or older. Registration by
+          anyone under 13 is strictly prohibited. Any account identified as belonging to a person
+          under 13 will be deleted without notice.
         </p>
         <p>
-          Les personnes âgées de 13 à 17 ans ne peuvent utiliser le Service qu'avec l'autorisation
-          expresse d'un parent ou d'un représentant légal, dont l'identité et l'adresse électronique
-          doivent être renseignées lors de l'inscription. Le parent ou représentant légal reconnaît
-          être informé de la nature sociale du Service et accepte les présentes Conditions au nom du
-          mineur. Nous pouvons à tout moment demander une confirmation de ce consentement et
-          suspendre le compte dans l'attente de cette confirmation.
+          Users aged 13 to 17 may use the Service only with the express permission of a parent or
+          legal guardian, whose name and email address must be provided during registration. The
+          parent or legal guardian acknowledges the social nature of the Service and accepts these
+          Terms on behalf of the minor. We may request confirmation of this consent at any time and
+          suspend the account while awaiting confirmation.
         </p>
         <p>
-          Les fonctionnalités de mise en relation sont conçues pour favoriser des interactions entre
-          profils de tranches d'âge comparables. Tout comportement d'adulte cherchant à entrer en
-          contact de manière inappropriée avec un mineur entraîne une exclusion définitive et, le
-          cas échéant, un signalement aux autorités compétentes.
+          Discovery features are designed to encourage interactions between profiles in similar age
+          groups. Any adult who attempts to contact a minor inappropriately will be permanently
+          banned and, where appropriate, reported to the competent authorities.
         </p>
       </LegalSection>
 
-      <LegalSection title="3. Compte utilisateur">
+      <LegalSection title="3. User accounts">
         <p>
-          Vous vous engagez à fournir des informations exactes, à jour et complètes lors de la
-          création de votre compte, notamment votre pseudonyme Bloxspark, votre nom d'utilisateur
-          Roblox, votre langue et votre date de naissance. Vous êtes seul responsable de la
-          confidentialité de vos identifiants ainsi que de toute activité effectuée depuis votre
-          compte.
+          You agree to provide accurate, current, and complete information when creating your
+          account, including your Bloxspark username, Roblox username, language, and date of birth.
+          You are solely responsible for keeping your credentials confidential and for all activity
+          performed through your account.
         </p>
         <p>
-          Le changement de pseudonyme est limité à une modification tous les sept (7) jours. Cette
-          limitation est appliquée côté serveur afin de préserver la fiabilité des identités
-          affichées et de limiter les usurpations.
+          Username changes are limited to one change every seven (7) days. This restriction is
+          enforced on the server to preserve the reliability of displayed identities and reduce
+          impersonation.
         </p>
       </LegalSection>
 
-      <LegalSection title="4. Règles de conduite et contenus interdits">
-        <p>Il est strictement interdit de publier, transmettre ou diffuser via le Service :</p>
+      <LegalSection title="4. Conduct rules and prohibited content">
+        <p>You must not publish, transmit, or distribute through the Service:</p>
         <ul>
           <li>
-            des contenus à caractère sexuel, sexuellement suggestif ou pornographique, en
-            particulier impliquant des mineurs ;
+            sexual, sexually suggestive, or pornographic content, especially content involving
+            minors;
           </li>
           <li>
-            des propos haineux, racistes, sexistes, homophobes, transphobes, validistes ou
-            discriminatoires ;
+            hateful, racist, sexist, homophobic, transphobic, ableist, or discriminatory content;
+          </li>
+          <li>harassment, threats, blackmail, doxxing, or any form of intimidation;</li>
+          <li>
+            violent or shocking content, or content that glorifies self-harm, suicide, or eating
+            disorders;
           </li>
           <li>
-            du harcèlement, des menaces, du chantage, du doxxing ou toute forme d'intimidation ;
+            scams, phishing, or the sale or exchange of accounts, Robux, virtual items, or paid
+            services;
           </li>
+          <li>malicious links, malware, spam, or unsolicited advertising;</li>
+          <li>content that infringes a third party's intellectual property rights;</li>
           <li>
-            des contenus violents, choquants, glorifiant l'automutilation, le suicide ou les
-            troubles alimentaires ;
-          </li>
-          <li>
-            des escroqueries, du phishing, la vente ou l'échange de comptes, de Robux, d'objets
-            virtuels ou de services payants ;
-          </li>
-          <li>
-            des liens malveillants, des logiciels malveillants, du spam ou de la publicité non
-            sollicitée ;
-          </li>
-          <li>des contenus violant les droits de propriété intellectuelle de tiers ;</li>
-          <li>
-            l'usurpation de l'identité d'une autre personne, d'un modérateur ou d'un employé de
-            Roblox Corporation.
+            impersonation of another person, a moderator, or an employee of Roblox Corporation.
           </li>
         </ul>
         <p>
-          Vous vous engagez également à ne pas collecter de données personnelles d'autres
-          utilisateurs, à ne pas automatiser l'accès au Service (bots, scripts, scraping) et à ne
-          pas contourner les mesures techniques de sécurité ou de modération.
+          You also agree not to collect other users' personal data, automate access to the Service
+          through bots, scripts, or scraping, or bypass technical security or moderation measures.
         </p>
       </LegalSection>
 
-      <LegalSection title="5. Contenus publiés par les utilisateurs">
+      <LegalSection title="5. User-generated content">
         <p>
-          Vous conservez la propriété des contenus que vous publiez (photos d'avatar, biographie,
-          messages, messages vocaux). Vous accordez à Bloxspark une licence mondiale, non exclusive
-          et gratuite, limitée à l'hébergement, au stockage, à la reproduction et à l'affichage de
-          ces contenus dans le seul but de faire fonctionner le Service. Cette licence prend fin
-          lorsque vous supprimez le contenu concerné, sous réserve des copies de sauvegarde
-          temporaires et des obligations légales de conservation.
+          You retain ownership of the content you publish, including avatar photos, your bio,
+          messages, and voice messages. You grant Bloxspark a worldwide, non-exclusive, royalty-free
+          license limited to hosting, storing, reproducing, and displaying that content solely to
+          operate the Service. This license ends when you delete the relevant content, subject to
+          temporary backup copies and legal retention obligations.
         </p>
         <p>
-          Vous déclarez disposer de tous les droits nécessaires sur les contenus publiés et
-          garantissez qu'ils ne portent atteinte à aucun droit de tiers.
-        </p>
-      </LegalSection>
-
-      <LegalSection title="6. Modération, signalement et sanctions">
-        <p>
-          Chaque profil, message et conversation peut être signalé depuis l'application. Les
-          signalements sont examinés et peuvent donner lieu, selon la gravité et la récidive, à un
-          avertissement, au masquage d'un contenu, à une suspension temporaire ou à la suppression
-          définitive du compte, sans indemnité.
-        </p>
-        <p>
-          Vous disposez également d'outils de protection individuels : blocage d'un utilisateur,
-          suppression d'une conversation et restriction de visibilité de votre profil. Le blocage
-          empêche toute nouvelle interaction et masque réciproquement les profils.
+          You represent that you hold all rights required for the content you publish and warrant
+          that it does not infringe any third-party rights.
         </p>
       </LegalSection>
 
-      <LegalSection title="7. Disponibilité du Service">
+      <LegalSection title="6. Moderation, reporting, and enforcement">
         <p>
-          Le Service est fourni « en l'état » et « selon disponibilité ». Nous nous efforçons
-          d'assurer une disponibilité continue mais ne garantissons aucune absence d'interruption,
-          d'erreur ou de perte de données. Des opérations de maintenance, des évolutions
-          fonctionnelles ou l'arrêt de certaines fonctionnalités peuvent survenir à tout moment.
+          Profiles, messages, and conversations can be reported in the app. Reports are reviewed
+          and, depending on severity and repeated violations, may result in a warning, content
+          removal, temporary suspension, or permanent account deletion without compensation.
+        </p>
+        <p>
+          You also have personal safety tools, including blocking a user, deleting a conversation,
+          and limiting your profile's visibility. Blocking prevents further interaction and hides
+          both profiles from each other.
         </p>
       </LegalSection>
 
-      <LegalSection title="8. Limitation de responsabilité">
+      <LegalSection title="7. Service availability">
         <p>
-          Bloxspark met en relation des utilisateurs mais n'intervient pas dans leurs échanges
-          privés et ne garantit ni l'exactitude des informations déclarées par les utilisateurs, ni
-          leur comportement. Dans la limite permise par la loi applicable, la responsabilité de
-          Bloxspark ne saurait être engagée pour les dommages indirects résultant de l'utilisation
-          du Service, notamment les préjudices liés aux relations nouées entre utilisateurs.
-        </p>
-        <p>
-          Nous vous recommandons vivement de ne jamais communiquer d'informations personnelles
-          sensibles (adresse, établissement scolaire, coordonnées bancaires, mots de passe de compte
-          Roblox) et de ne jamais organiser de rencontre physique sans l'accord et la présence d'un
-          adulte responsable si vous êtes mineur.
+          The Service is provided “as is” and “as available.” We work to maintain continuous
+          availability, but we do not guarantee that the Service will be uninterrupted, error-free,
+          or free from data loss. Maintenance, feature updates, or the discontinuation of certain
+          features may occur at any time.
         </p>
       </LegalSection>
 
-      <LegalSection title="9. Résiliation">
+      <LegalSection title="8. Limitation of liability">
         <p>
-          Vous pouvez supprimer votre compte à tout moment depuis les paramètres. La suppression
-          entraîne l'effacement de votre profil, de vos photos, de vos swipes et de vos matchs, dans
-          les conditions décrites par la politique de confidentialité. Nous pouvons résilier ou
-          suspendre votre accès en cas de violation des présentes Conditions.
+          Bloxspark connects users but does not participate in their private interactions and does
+          not guarantee the accuracy of information users provide or their behavior. To the maximum
+          extent permitted by applicable law, Bloxspark is not liable for indirect damages arising
+          from use of the Service, including harm related to relationships formed between users.
+        </p>
+        <p>
+          We strongly recommend that you never share sensitive personal information such as your
+          address, school, banking details, or Roblox account password. If you are a minor, never
+          arrange an in-person meeting without the permission and presence of a responsible adult.
         </p>
       </LegalSection>
 
-      <LegalSection title="10. Modification des Conditions">
+      <LegalSection title="9. Termination">
         <p>
-          Les présentes Conditions peuvent être modifiées afin de refléter les évolutions du Service
-          ou du cadre légal. En cas de modification substantielle, vous en serez informé dans
-          l'application. La poursuite de l'utilisation du Service après l'entrée en vigueur des
-          modifications vaut acceptation.
+          You may delete your account at any time from Settings. Deletion removes your profile,
+          photos, swipes, and matches under the conditions described in the Privacy Policy. We may
+          terminate or suspend your access if you violate these Terms.
         </p>
       </LegalSection>
 
-      <LegalSection title="11. Droit applicable et contact">
+      <LegalSection title="10. Changes to these Terms">
         <p>
-          Les présentes Conditions sont régies par le droit français, sans préjudice des règles de
-          protection impératives applicables dans votre pays de résidence. Pour toute question
-          relative aux Conditions, vous pouvez nous contacter via le formulaire de signalement
-          intégré à l'application.
+          We may change these Terms to reflect changes to the Service or applicable law. We will
+          notify you in the app of any material change. Your continued use of the Service after the
+          changes take effect constitutes acceptance of the updated Terms.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="11. Governing law and contact">
+        <p>
+          These Terms are governed by French law, without affecting any mandatory consumer
+          protections that apply in your country of residence. If you have questions about these
+          Terms, contact us through the in-app reporting form.
         </p>
       </LegalSection>
     </LegalPage>

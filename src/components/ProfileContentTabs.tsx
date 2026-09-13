@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,6 +12,8 @@ import {
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/lib/session";
+import { supabase } from "@/integrations/supabase/client";
 
 export type TabVideo = {
   id: string;
@@ -21,7 +23,9 @@ export type TabVideo = {
 };
 type TabPhoto = { id: string; url: string };
 type Tab = "videos" | "reposts" | "photos";
-type LightboxTarget = { kind: "video"; list: TabVideo[]; index: number } | { kind: "photo"; list: TabPhoto[]; index: number };
+type LightboxTarget =
+  | { kind: "video"; list: TabVideo[]; index: number }
+  | { kind: "photo"; list: TabPhoto[]; index: number };
 
 /**
  * The Videos / Reposts / Photos tab group shown on every profile — the
@@ -85,7 +89,10 @@ export function ProfileContentTabs({
         {tab === "videos" ? (
           <div className="grid grid-cols-3 gap-1.5">
             {videos.map((v, i) => (
-              <button key={v.id} onClick={() => setLightbox({ kind: "video", list: videos, index: i })}>
+              <button
+                key={v.id}
+                onClick={() => setLightbox({ kind: "video", list: videos, index: i })}
+              >
                 <VideoThumb video={v} />
               </button>
             ))}
@@ -96,7 +103,10 @@ export function ProfileContentTabs({
         {tab === "reposts" ? (
           <div className="grid grid-cols-3 gap-1.5">
             {reposts.map((v, i) => (
-              <button key={v.id} onClick={() => setLightbox({ kind: "video", list: reposts, index: i })}>
+              <button
+                key={v.id}
+                onClick={() => setLightbox({ kind: "video", list: reposts, index: i })}
+              >
                 <VideoThumb video={v} />
               </button>
             ))}
@@ -161,7 +171,9 @@ export function ProfileContentTabs({
         ) : null}
       </div>
 
-      {lightbox ? <Lightbox target={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} /> : null}
+      {lightbox ? (
+        <Lightbox target={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} />
+      ) : null}
     </section>
   );
 }
@@ -213,7 +225,10 @@ function Lightbox({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/95 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/95 p-4"
+      onClick={onClose}
+    >
       <button
         onClick={onClose}
         className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white"
@@ -258,10 +273,32 @@ function Lightbox({
 
 function LightboxVideo({ video }: { video: TabVideo }) {
   const url = useSignedUrl(video.storage_path);
+  const { user } = useSession();
+
+  useEffect(() => {
+    if (!user) return;
+    const timer = window.setTimeout(() => {
+      void supabase
+        .from("video_views")
+        .upsert(
+          { video_id: video.id, viewer_id: user.id },
+          { onConflict: "video_id,viewer_id", ignoreDuplicates: true },
+        );
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [user, video.id]);
+
   return (
     <>
       {url ? (
-        <video src={url} autoPlay controls loop playsInline className="h-full w-full object-contain" />
+        <video
+          src={url}
+          autoPlay
+          controls
+          loop
+          playsInline
+          className="h-full w-full object-contain"
+        />
       ) : null}
       {video.caption ? (
         <p className="pointer-events-none absolute inset-x-4 bottom-5 rounded-2xl bg-black/55 p-3 text-sm text-white backdrop-blur">

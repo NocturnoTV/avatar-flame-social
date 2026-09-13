@@ -4,9 +4,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import {
   Camera,
+  Crown,
   Gamepad2,
   ImagePlus,
+  LoaderCircle,
+  Plus,
   Save,
+  Search,
   Settings,
   ShieldCheck,
   Trash2,
@@ -26,6 +30,12 @@ import { useRoles } from "@/lib/roles";
 import { BANNERS, ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
+import { RobloxGameIcon } from "@/components/RobloxGameIcon";
+import { PROFILE_FONTS, PROFILE_GLOWS, profileFontClass, profileGlowClass } from "@/lib/sparkPlus";
+import {
+  searchPopularRobloxGames,
+  type RobloxGameSearchResult,
+} from "@/lib/roblox-games.functions";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -56,8 +66,8 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
-  const [newGameName, setNewGameName] = useState("");
-  const [newGameUrl, setNewGameUrl] = useState("");
+  const [gameSearch, setGameSearch] = useState("");
+  const [gamePickerOpen, setGamePickerOpen] = useState(false);
 
   const profile = useQuery({
     queryKey: ["my-profile"],
@@ -91,12 +101,19 @@ function ProfilePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("favorite_games")
-        .select("id,name,url,position,thumbnail_url")
+        .select("id,name,url,position,thumbnail_url,roblox_universe_id")
         .eq("user_id", user?.id ?? "")
         .order("position");
       return data ?? [];
     },
     enabled: !!user,
+  });
+
+  const gameResults = useQuery({
+    queryKey: ["roblox-game-search", gameSearch.trim()],
+    enabled: gamePickerOpen && gameSearch.trim().length >= 2,
+    queryFn: () => searchPopularRobloxGames({ data: { query: gameSearch.trim() } }),
+    staleTime: 5 * 60 * 1000,
   });
 
   const videos = useQuery({
@@ -208,20 +225,26 @@ function ProfilePage() {
     void photos.refetch();
   }
 
-  async function addFavoriteGame() {
-    if (!user || !newGameName.trim()) return;
+  async function addFavoriteGame(game: RobloxGameSearchResult) {
+    if (!user || gameList.length >= MAX_GAMES) return;
+    if (gameList.some((current) => current.roblox_universe_id === game.universeId)) {
+      toast.error(t("duplicateGame"));
+      return;
+    }
     const { error } = await supabase.from("favorite_games").insert({
       user_id: user.id,
-      name: newGameName.trim(),
-      url: newGameUrl.trim() || null,
-      position: games.data?.length ?? 0,
+      name: game.name,
+      url: game.url,
+      position: gameList.length,
+      roblox_universe_id: game.universeId,
+      thumbnail_url: game.thumbnailUrl,
     });
     if (error) {
       toast.error(error.message.includes("max_five_games") ? t("maxFiveGames") : t("errorGeneric"));
       return;
     }
-    setNewGameName("");
-    setNewGameUrl("");
+    setGameSearch("");
+    setGamePickerOpen(false);
     void games.refetch();
     void qc.invalidateQueries({ queryKey: ["deck-games"] });
   }
@@ -235,6 +258,10 @@ function ProfilePage() {
   const p = profile.data ? ({ ...profile.data, ...draft } as typeof profile.data) : profile.data;
   const age = ageFrom(p?.birth_date ?? null);
   const gameList = games.data ?? [];
+  const sparkPlusActive = Boolean(
+    p?.spark_plus_active &&
+    (!p.spark_plus_expires_at || new Date(p.spark_plus_expires_at).getTime() > Date.now()),
+  );
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 pt-5 pb-40 lg:pb-28">
@@ -297,7 +324,12 @@ function ProfilePage() {
       {/* Avatar */}
       <div className="relative z-10 -mt-12 px-1">
         <div className="relative inline-block">
-          <div className="inline-block rounded-full bg-background p-1">
+          <div
+            className={cn(
+              "inline-block rounded-full bg-background p-1",
+              profileGlowClass(p?.profile_glow),
+            )}
+          >
             <StoredImage
               path={p?.avatar_url ?? photos.data?.[0]?.url}
               alt={p?.username ?? ""}
@@ -324,8 +356,16 @@ function ProfilePage() {
           />
         </div>
 
-        <h2 className="mt-3 flex items-center gap-2 text-xl font-bold">
+        <h2
+          className={cn(
+            "mt-3 flex items-center gap-2 text-xl font-bold",
+            profileFontClass(p?.profile_font),
+          )}
+        >
           {p?.username}
+          {sparkPlusActive ? (
+            <Crown className="h-5 w-5 text-blue-500" aria-label="Spark Plus" />
+          ) : null}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
         </h2>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -349,16 +389,18 @@ function ProfilePage() {
                   href={g.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold hover:border-primary"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface py-1.5 pl-1.5 pr-3 text-xs font-semibold transition hover:border-primary hover:bg-primary/5"
                 >
-                  <Gamepad2 className="h-3.5 w-3.5" /> {g.name}
+                  <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-8 w-8" />
+                  {g.name}
                 </a>
               ) : (
                 <span
                   key={g.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface py-1.5 pl-1.5 pr-3 text-xs font-semibold"
                 >
-                  <Gamepad2 className="h-3.5 w-3.5" /> {g.name}
+                  <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-8 w-8" />
+                  {g.name}
                 </span>
               ),
             )}
@@ -368,6 +410,57 @@ function ProfilePage() {
 
       {/* Édition */}
       <section className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-4">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-black text-primary">Spark Plus</p>
+              <p className="text-xs text-muted-foreground">{t("premiumProfileCustomization")}</p>
+            </div>
+            {!sparkPlusActive ? (
+              <Link
+                to="/shop"
+                className="rounded-full bg-primary px-3 py-2 text-xs font-bold text-white"
+              >
+                {t("discoverSparkPlus")}
+              </Link>
+            ) : null}
+          </div>
+          <div
+            className={cn(
+              "mt-4 grid gap-3 sm:grid-cols-2",
+              !sparkPlusActive && "pointer-events-none opacity-45",
+            )}
+          >
+            <div>
+              <Label>{t("usernameFont")}</Label>
+              <select
+                value={p?.profile_font ?? "default"}
+                onChange={(event) => patch({ profile_font: event.target.value })}
+                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+              >
+                {PROFILE_FONTS.map((font) => (
+                  <option key={font} value={font}>
+                    {t(`profileFont${font[0]!.toUpperCase()}${font.slice(1)}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>{t("profileGlow")}</Label>
+              <select
+                value={p?.profile_glow ?? "none"}
+                onChange={(event) => patch({ profile_glow: event.target.value })}
+                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+              >
+                {PROFILE_GLOWS.map((glow) => (
+                  <option key={glow} value={glow}>
+                    {t(`profileGlow${glow[0]!.toUpperCase()}${glow.slice(1)}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
         <div>
           <Label>{t("bio")}</Label>
           <Textarea
@@ -389,19 +482,95 @@ function ProfilePage() {
 
         <div>
           <Label>
-            {t("favoriteGames")} ({gameList.length}/{MAX_GAMES})
+            {t("favoriteRobloxGames")} ({gameList.length}/{MAX_GAMES})
           </Label>
+          <button
+            type="button"
+            disabled={gameList.length >= MAX_GAMES}
+            onClick={() => setGamePickerOpen((open) => !open)}
+            className="mb-3 flex w-full items-center justify-between rounded-2xl border border-input bg-background/75 px-4 py-3 text-left text-sm transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span className="flex items-center gap-2 font-semibold">
+              <Search className="h-4 w-4 text-primary" /> {t("popularGameSearch")}
+            </span>
+            <Plus className="h-4 w-4" />
+          </button>
+          {gamePickerOpen ? (
+            <div className="mb-3 overflow-hidden rounded-2xl border border-primary/30 bg-popover shadow-xl">
+              <div className="flex items-center gap-2 border-b border-border px-3">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  autoFocus
+                  value={gameSearch}
+                  onChange={(event) => setGameSearch(event.target.value)}
+                  placeholder="Brookhaven, Adopt Me, Blox Fruits…"
+                  className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
+                />
+                {gameResults.isFetching ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
+                ) : null}
+              </div>
+              <div className="max-h-72 overflow-y-auto p-2">
+                {gameSearch.trim().length < 2 ? (
+                  <p className="px-3 py-8 text-center text-xs text-muted-foreground">
+                    {t("gameSearchHint")}
+                  </p>
+                ) : null}
+                {(gameResults.data ?? []).map((game) => (
+                  <button
+                    key={game.universeId}
+                    type="button"
+                    onClick={() => void addFavoriteGame(game)}
+                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-primary/10"
+                  >
+                    {game.thumbnailUrl ? (
+                      <img
+                        src={game.thumbnailUrl}
+                        alt=""
+                        className="h-11 w-11 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <span className="grid h-11 w-11 place-items-center rounded-xl bg-surface-2">
+                        <Gamepad2 className="h-4 w-4" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold">{game.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {t("playersOnline", { count: game.playerCount.toLocaleString() })}
+                      </span>
+                    </span>
+                    <Plus className="h-4 w-4 text-primary" />
+                  </button>
+                ))}
+                {gameResults.isError ? (
+                  <p className="px-3 py-6 text-center text-xs text-destructive">
+                    {t("robloxSearchUnavailable")}
+                  </p>
+                ) : null}
+                {gameResults.isSuccess && !gameResults.data.length ? (
+                  <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    {t("noGamesFound")}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <div className="space-y-2">
             {gameList.map((g) => (
-              <div key={g.id} className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm">
-                {g.thumbnail_url ? (
-                  <img src={g.thumbnail_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                ) : (
-                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-surface-2">
-                    <Gamepad2 className="h-4 w-4" />
-                  </span>
-                )}
-                <span className="min-w-0 flex-1 truncate font-semibold">{g.name}</span>
+              <div
+                key={g.id}
+                className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm"
+              >
+                <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-10 w-10" />
+                <a
+                  href={g.url ?? undefined}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="min-w-0 flex-1 truncate font-semibold"
+                >
+                  {g.name}
+                </a>
                 <button
                   onClick={() => void deleteFavoriteGame(g.id)}
                   aria-label={t("delete")}
@@ -413,30 +582,6 @@ function ProfilePage() {
             ))}
             {gameList.length === 0 ? (
               <p className="text-xs text-muted-foreground">{t("noFavoriteGames")}</p>
-            ) : null}
-            {gameList.length < MAX_GAMES ? (
-              <div className="flex gap-2">
-                <Input
-                  value={newGameName}
-                  onChange={(e) => setNewGameName(e.target.value)}
-                  placeholder={t("favoriteGamePlaceholder")}
-                  className="flex-1"
-                />
-                <Input
-                  value={newGameUrl}
-                  onChange={(e) => setNewGameUrl(e.target.value)}
-                  placeholder="https:// (optional)"
-                  className="flex-1"
-                />
-                <Button
-                  size="icon"
-                  onClick={() => void addFavoriteGame()}
-                  disabled={!newGameName.trim()}
-                  aria-label={t("addFavoriteGame")}
-                >
-                  <Gamepad2 className="h-4 w-4" />
-                </Button>
-              </div>
             ) : null}
           </div>
         </div>
