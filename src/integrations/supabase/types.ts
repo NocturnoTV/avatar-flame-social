@@ -151,6 +151,33 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_games: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -411,6 +438,7 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
+          sparks_enabled: boolean
           sticker: string | null
           theme: string
           updated_at: string
@@ -444,6 +472,7 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
           updated_at?: string
@@ -477,6 +506,7 @@ export type Database = {
           roblox_synced_at?: string | null
           roblox_user_id?: string | null
           roblox_username?: string | null
+          sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
           updated_at?: string
@@ -630,6 +660,62 @@ export type Database = {
         }
         Relationships: []
       }
+      stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          media_type: string
+          media_url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_type?: string
+          media_url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_views: {
+        Row: {
+          created_at: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_views_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       swipes: {
         Row: {
           action: Database["public"]["Enums"]["swipe_action"]
@@ -751,6 +837,9 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          media_type: string | null
+          media_url: string | null
+          parent_id: string | null
           user_id: string
           video_id: string
         }
@@ -758,6 +847,9 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
+          parent_id?: string | null
           user_id: string
           video_id: string
         }
@@ -765,10 +857,20 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
+          parent_id?: string | null
           user_id?: string
           video_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "video_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "video_comments_video_id_fkey"
             columns: ["video_id"]
@@ -1079,6 +1181,7 @@ export type Database = {
           roblox_synced_at: string | null
           roblox_user_id: string | null
           roblox_username: string | null
+          sparks_enabled: boolean
           sticker: string | null
           theme: string
           updated_at: string
