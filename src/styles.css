@@ -249,6 +249,66 @@
   animation: bx-shimmer 2.2s linear infinite;
 }
 
+@keyframes bx-landing-reveal {
+  from {
+    opacity: 1;
+    transform: translateY(24px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bx-banner-sheen {
+  0%, 18% { transform: translateX(-130%) skewX(-18deg); }
+  55%, 100% { transform: translateX(180%) skewX(-18deg); }
+}
+
+@keyframes bx-cta-shine {
+  0%, 20% { left: -45%; opacity: 0; }
+  35% { opacity: 0.85; }
+  58%, 100% { left: 125%; opacity: 0; }
+}
+
+@keyframes bx-cta-star {
+  0%, 100% { opacity: 0.35; transform: scale(0.7) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.25) rotate(25deg); }
+}
+
+@utility bx-landing-reveal {
+  animation: bx-landing-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility bx-banner-sheen {
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.2), transparent);
+  animation: bx-banner-sheen 5.5s ease-in-out infinite;
+}
+
+@utility bx-cta-shine {
+  animation: bx-cta-shine 3.2s ease-in-out infinite;
+}
+
+@utility bx-cta-star {
+  animation: bx-cta-star 1.7s ease-in-out infinite;
+}
+
+@utility bx-star-cta {
+  isolation: isolate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bx-landing-reveal,
+  .bx-banner-sheen,
+  .bx-cta-shine,
+  .bx-cta-star {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @utility bx-delay-1 {
   animation-delay: 0.06s;
 }
