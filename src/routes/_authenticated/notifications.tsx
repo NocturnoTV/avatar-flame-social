@@ -65,6 +65,10 @@ function NotificationsPage() {
       .eq("read", false);
     void notifications.refetch();
     void qc.invalidateQueries({ queryKey: ["unread-notifications"] });
+    // /home keeps its own independent unread counter for the hero bell
+    // badge - without this it stays stale (showing already-seen
+    // notifications as unread) until its own 30s refetch interval fires.
+    void qc.invalidateQueries({ queryKey: ["home-counters"] });
   }
 
   // Viewing the list is enough to clear the badge - same "seen it" behavior

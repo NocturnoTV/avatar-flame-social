@@ -10,6 +10,7 @@ import { LogoWordmark } from "@/components/Logo";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { PresenceDot } from "@/components/PresenceDot";
 import { Verified } from "@/components/Verified";
+import { BloxBalanceChip } from "@/components/Blox";
 import { ThreeBackground } from "@/components/landing/ThreeBackground";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
@@ -444,9 +445,12 @@ function HomePage() {
           <div className="flex items-start justify-between">
             <LogoWordmark className="h-8 w-auto bx-float" forceVariant="dark" />
             <div className="flex items-center gap-2">
+              <Link to="/shop">
+                <BloxBalanceChip className="border-white/20 bg-black/40 text-white backdrop-blur" />
+              </Link>
               <Link
                 ref={heroBellRef}
-                to="/messages"
+                to="/notifications"
                 aria-label="Notifications"
                 className="relative grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90"
               >

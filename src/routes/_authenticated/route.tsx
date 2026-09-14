@@ -1,4 +1,10 @@
-import { createFileRoute, isRedirect, Outlet, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  isRedirect,
+  Outlet,
+  redirect,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav, SideNav } from "@/components/AppNav";
@@ -95,8 +101,17 @@ function useDailyVisitQuest() {
 
 function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   usePresenceHeartbeat();
   useDailyVisitQuest();
+  // The full nav menu (AppMenu) lives here, above the Outlet, so it stays
+  // mounted across navigations. The bottom nav's other tabs (Discover,
+  // Messages, Profil...) remain visible/clickable underneath it while it's
+  // open and navigate directly without touching menuOpen - close it on any
+  // pathname change so it never lingers over the page you just opened.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
   return (
     <CallProvider>
       <div className="app-background min-h-screen">

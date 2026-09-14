@@ -117,7 +117,12 @@ function Row({
       >
         <Icon className="h-5 w-5" fill={active ? "currentColor" : "none"} />
       </span>
-      <span className={cn("flex-1 truncate text-[15px] font-medium", active && "font-semibold")}>
+      <span
+        className={cn(
+          "flex-1 truncate text-[15px] font-medium",
+          active ? "font-semibold text-primary" : "text-foreground",
+        )}
+      >
         {label}
       </span>
       {comingSoon ? (
@@ -131,7 +136,7 @@ function Row({
 
   const rowClass = cn(
     "flex w-full items-center gap-3 rounded-2xl px-2.5 py-2.5 text-left transition",
-    active ? "bg-[#1b1230]" : disabled ? "opacity-45" : "hover:bg-surface-2",
+    active ? "bg-primary/10" : disabled ? "opacity-45" : "hover:bg-surface-2",
   );
 
   if (disabled || !to) {

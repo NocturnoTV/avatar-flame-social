@@ -343,7 +343,6 @@ export async function filterIneligibleVideos(
   const alreadyCompleted = new Set((completedRes.data ?? []).map((w) => w.video_id));
 
   return candidates.filter((video) => {
-    if (video.user_id === userId) return false;
     if (!video.recommendation_eligible) return false;
     if (blockedCreators.has(video.user_id) || hiddenCreators.has(video.user_id)) return false;
     if (video.categories.some((c) => hiddenCategories.has(c))) return false;
