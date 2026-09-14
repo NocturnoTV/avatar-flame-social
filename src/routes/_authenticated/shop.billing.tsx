@@ -9,6 +9,7 @@ import {
   Crown,
   Download,
   ExternalLink,
+  HelpCircle,
   LoaderCircle,
   Receipt,
   RefreshCw,
@@ -20,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
-import { getStripeEnvironment } from "@/lib/stripe";
+import { getStripeEnvironmentSafe } from "@/lib/stripe";
 import { createPortalSession, listInvoices } from "@/utils/payments.functions";
 import { BloxIcon, BloxBalanceChip } from "@/components/Blox";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,19 @@ const COPY = {
     purchaseHistory: "Purchase history",
     subscription: "Subscription",
     oneTime: "One-time purchase",
+    free: "Free",
+    active: "Active",
+    endsAtPeriod: "Ends at the end of the current period",
+    paymentMethods: "Payment methods",
+    paymentMethodsHint: "Add, remove or update your card via Stripe's secure portal.",
+    manage: "Manage",
+    support: "Need help with an order?",
+    supportHint: "Our support team can look into any purchase or billing question.",
+    contactSupport: "Contact support",
+    paymentsUnavailable: "Payments aren't fully set up yet",
+    paymentsUnavailableHint:
+      "Purchase and invoice history will appear here once payments are configured for this project. Your Blox activity below is unaffected.",
+    details: "Details",
   },
   fr: {
     overview: "Vue d’ensemble",
@@ -72,6 +86,19 @@ const COPY = {
     purchaseHistory: "Historique des achats",
     subscription: "Abonnement",
     oneTime: "Achat unique",
+    free: "Gratuit",
+    active: "Actif",
+    endsAtPeriod: "Se termine à la fin de la période en cours",
+    paymentMethods: "Moyens de paiement",
+    paymentMethodsHint: "Ajoute, supprime ou modifie ta carte via le portail sécurisé Stripe.",
+    manage: "Gérer",
+    support: "Besoin d'aide sur une commande ?",
+    supportHint: "Notre équipe support peut t'aider pour tout achat ou question de facturation.",
+    contactSupport: "Contacter le support",
+    paymentsUnavailable: "Les paiements ne sont pas encore entièrement configurés",
+    paymentsUnavailableHint:
+      "L'historique des achats et factures s'affichera ici une fois les paiements configurés pour ce projet. Ton activité Blox ci-dessous n'est pas concernée.",
+    details: "Détails",
   },
   es: {
     overview: "Resumen",
@@ -91,6 +118,19 @@ const COPY = {
     purchaseHistory: "Historial de compras",
     subscription: "Suscripción",
     oneTime: "Compra única",
+    free: "Gratis",
+    active: "Activo",
+    endsAtPeriod: "Termina al final del periodo actual",
+    paymentMethods: "Métodos de pago",
+    paymentMethodsHint: "Añade, elimina o actualiza tu tarjeta desde el portal seguro de Stripe.",
+    manage: "Gestionar",
+    support: "¿Necesitas ayuda con un pedido?",
+    supportHint: "Nuestro equipo de soporte puede ayudarte con cualquier compra o factura.",
+    contactSupport: "Contactar con soporte",
+    paymentsUnavailable: "Los pagos aún no están completamente configurados",
+    paymentsUnavailableHint:
+      "El historial de compras y facturas aparecerá aquí en cuanto los pagos estén configurados. Tu actividad de Blox abajo no se ve afectada.",
+    details: "Detalles",
   },
   pt: {
     overview: "Visão geral",
@@ -110,6 +150,19 @@ const COPY = {
     purchaseHistory: "Histórico de compras",
     subscription: "Assinatura",
     oneTime: "Compra única",
+    free: "Grátis",
+    active: "Ativo",
+    endsAtPeriod: "Termina no fim do período atual",
+    paymentMethods: "Métodos de pagamento",
+    paymentMethodsHint: "Adicione, remova ou atualize seu cartão pelo portal seguro da Stripe.",
+    manage: "Gerenciar",
+    support: "Precisa de ajuda com um pedido?",
+    supportHint: "Nossa equipe de suporte pode ajudar com qualquer compra ou fatura.",
+    contactSupport: "Contatar suporte",
+    paymentsUnavailable: "Os pagamentos ainda não estão totalmente configurados",
+    paymentsUnavailableHint:
+      "O histórico de compras e faturas aparecerá aqui assim que os pagamentos forem configurados. Sua atividade Blox abaixo não é afetada.",
+    details: "Detalhes",
   },
   de: {
     overview: "Übersicht",
@@ -128,6 +181,19 @@ const COPY = {
     purchaseHistory: "Kaufverlauf",
     subscription: "Abonnement",
     oneTime: "Einmalkauf",
+    free: "Kostenlos",
+    active: "Aktiv",
+    endsAtPeriod: "Endet am Ende der aktuellen Periode",
+    paymentMethods: "Zahlungsmethoden",
+    paymentMethodsHint: "Karte über das sichere Stripe-Portal hinzufügen, entfernen oder ändern.",
+    manage: "Verwalten",
+    support: "Hilfe zu einer Bestellung?",
+    supportHint: "Unser Support hilft bei jeder Kauf- oder Rechnungsfrage weiter.",
+    contactSupport: "Support kontaktieren",
+    paymentsUnavailable: "Zahlungen sind noch nicht vollständig eingerichtet",
+    paymentsUnavailableHint:
+      "Kauf- und Rechnungsverlauf erscheinen hier, sobald Zahlungen konfiguriert sind. Deine Blox-Aktivität unten ist davon nicht betroffen.",
+    details: "Details",
   },
   ko: {
     overview: "개요",
@@ -146,6 +212,19 @@ const COPY = {
     purchaseHistory: "구매 내역",
     subscription: "구독",
     oneTime: "일회성 구매",
+    free: "무료",
+    active: "활성",
+    endsAtPeriod: "현재 결제 주기 종료 시 만료",
+    paymentMethods: "결제 수단",
+    paymentMethodsHint: "Stripe의 안전한 포털에서 카드를 추가, 삭제 또는 변경하세요.",
+    manage: "관리",
+    support: "주문 관련 도움이 필요하신가요?",
+    supportHint: "구매나 결제 관련 문의는 고객지원팀이 도와드려요.",
+    contactSupport: "고객지원팀 문의",
+    paymentsUnavailable: "결제 기능이 아직 완전히 설정되지 않았어요",
+    paymentsUnavailableHint:
+      "결제가 설정되면 구매 및 청구서 내역이 여기에 표시돼요. 아래 Blox 활동에는 영향이 없어요.",
+    details: "세부 정보",
   },
 } as const;
 
@@ -181,6 +260,13 @@ function BillingPage() {
   const copy = COPY[lang as keyof typeof COPY] ?? COPY.en;
   const [view, setView] = useState<"overview" | "purchases" | "invoices" | "blox">("overview");
 
+  // getStripeEnvironment() throws when Stripe isn't configured for this
+  // build - computed once, safely, here rather than inline in a queryKey
+  // (which would crash this whole page's render every time, unconditionally,
+  // instead of just disabling the Stripe-dependent sections below).
+  const stripeEnv = getStripeEnvironmentSafe();
+  const paymentsConfigured = stripeEnv !== null;
+
   const membership = useQuery({
     queryKey: ["spark-plus-membership", user?.id],
     enabled: !!user,
@@ -195,8 +281,8 @@ function BillingPage() {
   });
 
   const subscription = useQuery({
-    queryKey: ["billing-subscription", user?.id, getStripeEnvironment()],
-    enabled: !!user,
+    queryKey: ["billing-subscription", user?.id, stripeEnv],
+    enabled: !!user && paymentsConfigured,
     queryFn: async () => {
       const { data } = await supabase
         .from("subscriptions")
@@ -204,7 +290,7 @@ function BillingPage() {
           "status,current_period_start,current_period_end,cancel_at_period_end,price_id,updated_at",
         )
         .eq("user_id", user!.id)
-        .eq("environment", getStripeEnvironment())
+        .eq("environment", stripeEnv!)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -213,9 +299,9 @@ function BillingPage() {
   });
 
   const invoices = useQuery({
-    queryKey: ["billing-invoices", user?.id],
-    enabled: !!user,
-    queryFn: () => listInvoices({ data: { environment: getStripeEnvironment() } }),
+    queryKey: ["billing-invoices", user?.id, stripeEnv],
+    enabled: !!user && paymentsConfigured,
+    queryFn: () => listInvoices({ data: { environment: stripeEnv! } }),
   });
 
   const bloxHistory = useQuery({
@@ -233,9 +319,10 @@ function BillingPage() {
   });
 
   async function manageSubscription() {
+    if (!paymentsConfigured) return;
     try {
       const result = await createPortalSession({
-        data: { returnUrl: window.location.href, environment: getStripeEnvironment() },
+        data: { returnUrl: window.location.href, environment: stripeEnv! },
       });
       if ("error" in result) throw new Error(result.error);
       window.open(result.url, "_blank");
@@ -249,8 +336,8 @@ function BillingPage() {
     membership.data?.spark_plus_active &&
     (!expiration || new Date(expiration).getTime() > Date.now()),
   );
-  const purchases = invoices.data?.purchases ?? [];
-  const invoiceRows = invoices.data?.invoices ?? [];
+  const purchases = invoices.data && !("error" in invoices.data) ? invoices.data.purchases : [];
+  const invoiceRows = invoices.data && !("error" in invoices.data) ? invoices.data.invoices : [];
   const totalPaid = purchases.reduce((total, purchase) => total + purchase.amountTotal, 0);
   const currency = purchases[0]?.currency ?? "eur";
   const money = (amount: number, code = currency) =>
@@ -327,7 +414,17 @@ function BillingPage() {
         ))}
       </nav>
 
-      {invoices.data && "error" in invoices.data ? (
+      {!paymentsConfigured ? (
+        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
+          <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+          <div>
+            <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
+              {copy.paymentsUnavailable}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{copy.paymentsUnavailableHint}</p>
+          </div>
+        </div>
+      ) : invoices.data && "error" in invoices.data ? (
         <div className="mt-4 flex items-center justify-between rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
           <p className="text-sm text-destructive">{invoices.data.error}</p>
           <Button variant="outline" size="sm" onClick={() => void invoices.refetch()}>
@@ -341,11 +438,11 @@ function BillingPage() {
           <div className="rounded-3xl border border-border bg-card p-5">
             <Crown className="h-6 w-6 text-primary" />
             <p className="mt-3 text-xs font-bold text-muted-foreground">{copy.plan}</p>
-            <p className="mt-1 text-lg font-black">{isActive ? "Spark Plus" : "Free"}</p>
+            <p className="mt-1 text-lg font-black">{isActive ? "Spark Plus" : copy.free}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {subscription.data?.cancel_at_period_end
-                ? "Ends at current period"
-                : (subscription.data?.status ?? "Active")}
+                ? copy.endsAtPeriod
+                : (subscription.data?.status ?? copy.active)}
             </p>
           </div>
           <div className="rounded-3xl border border-border bg-card p-5">
@@ -364,6 +461,36 @@ function BillingPage() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {view === "overview" ? (
+        <section className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-3xl border border-border bg-card p-5">
+            <CreditCard className="h-6 w-6 text-primary" />
+            <p className="mt-3 font-black">{copy.paymentMethods}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{copy.paymentMethodsHint}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 w-full"
+              disabled={!paymentsConfigured}
+              onClick={() => void manageSubscription()}
+            >
+              {copy.manage}
+            </Button>
+          </div>
+          <div className="rounded-3xl border border-border bg-card p-5">
+            <HelpCircle className="h-6 w-6 text-primary" />
+            <p className="mt-3 font-black">{copy.support}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{copy.supportHint}</p>
+            <Link
+              to="/support"
+              className="mt-3 flex h-9 w-full items-center justify-center rounded-2xl border border-border text-sm font-bold hover:border-primary/40"
+            >
+              {copy.contactSupport}
+            </Link>
+          </div>
+        </section>
       ) : null}
 
       {view === "overview" || view === "purchases" ? (
@@ -429,62 +556,68 @@ function BillingPage() {
             <CalendarDays className="h-5 w-5 text-primary" /> {copy.recent}
           </h2>
           <div className="mt-3 overflow-hidden rounded-3xl border border-border bg-card">
-            {recentActivity.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 border-b border-border p-4 last:border-0"
-              >
-                <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold">{item.label}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(item.date).toLocaleString(lang)}
-                  </p>
+            {recentActivity.length === 0 ? (
+              <p className="p-6 text-center text-sm text-muted-foreground">{copy.noPurchases}</p>
+            ) : (
+              recentActivity.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 border-b border-border p-4 last:border-0"
+                >
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(item.date).toLocaleString(lang)}
+                    </p>
+                  </div>
+                  <span className={cn("text-sm font-black", item.positive && "text-emerald-500")}>
+                    {item.value}
+                  </span>
                 </div>
-                <span className={cn("text-sm font-black", item.positive && "text-emerald-500")}>
-                  {item.value}
-                </span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
       ) : null}
 
       {view === "overview" ? (
-        <>
-          <section className="mt-6 rounded-3xl border border-border bg-card p-5">
-            <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
-              {t("billingCurrentPlan")}
-            </p>
-            {isActive ? (
-              <>
-                <div className="mt-2 flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-primary" />
-                  <p className="text-lg font-black">Spark Plus - 4,99 €/{t("month")}</p>
-                </div>
-                {expiration ? (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {t("renewsOn", { date: new Date(expiration).toLocaleDateString(lang) })}
-                  </p>
-                ) : null}
-                <p className="mt-3 text-xs text-muted-foreground">{t("billingCancelHint")}</p>
-                <Button className="mt-4 w-full" onClick={() => void manageSubscription()}>
-                  {t("manageSubscription")}
-                </Button>
-              </>
-            ) : (
-              <>
-                <p className="mt-2 text-sm text-muted-foreground">{t("billingNoSubscription")}</p>
-                <Link
-                  to="/shop"
-                  className="mt-4 flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
-                >
-                  <Crown className="h-4 w-4" /> {t("subscribeSparkPlus")}
-                </Link>
-              </>
-            )}
-          </section>
-        </>
+        <section className="mt-6 rounded-3xl border border-border bg-card p-5">
+          <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+            {t("billingCurrentPlan")}
+          </p>
+          {isActive ? (
+            <>
+              <div className="mt-2 flex items-center gap-2">
+                <Crown className="h-5 w-5 text-primary" />
+                <p className="text-lg font-black">Spark Plus - 4,99 €/{t("month")}</p>
+              </div>
+              {expiration ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("renewsOn", { date: new Date(expiration).toLocaleDateString(lang) })}
+                </p>
+              ) : null}
+              <p className="mt-3 text-xs text-muted-foreground">{t("billingCancelHint")}</p>
+              <Button
+                className="mt-4 w-full"
+                disabled={!paymentsConfigured}
+                onClick={() => void manageSubscription()}
+              >
+                {t("manageSubscription")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-muted-foreground">{t("billingNoSubscription")}</p>
+              <Link
+                to="/shop"
+                className="mt-4 flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
+              >
+                <Crown className="h-4 w-4" /> {t("subscribeSparkPlus")}
+              </Link>
+            </>
+          )}
+        </section>
       ) : null}
 
       {view === "overview" || view === "invoices" ? (
@@ -497,13 +630,13 @@ function BillingPage() {
               <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : null}
-          {!invoices.isLoading && !invoices.data?.invoices.length ? (
+          {!invoices.isLoading && !invoiceRows.length ? (
             <p className="mt-4 py-8 text-center text-sm text-muted-foreground">
               {t("billingNoInvoices")}
             </p>
           ) : null}
           <div className="mt-3 space-y-2">
-            {(invoices.data?.invoices ?? []).map((inv) => (
+            {invoiceRows.map((inv) => (
               <div
                 key={inv.id}
                 className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4"

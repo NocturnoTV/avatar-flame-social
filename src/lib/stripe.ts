@@ -25,3 +25,16 @@ export function getStripe(): Promise<Stripe | null> {
 export function getStripeEnvironment(): StripeEnv {
   return paymentsEnvironment();
 }
+
+/** Same as getStripeEnvironment(), but returns null instead of throwing.
+ * Use this anywhere the result feeds a query key or otherwise runs
+ * unconditionally during render (e.g. shop/billing.tsx) - a raw
+ * getStripeEnvironment() there would crash the whole page the moment Stripe
+ * isn't configured, instead of just disabling the Stripe-dependent parts. */
+export function getStripeEnvironmentSafe(): StripeEnv | null {
+  try {
+    return paymentsEnvironment();
+  } catch {
+    return null;
+  }
+}
