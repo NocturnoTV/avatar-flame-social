@@ -45,9 +45,24 @@ export type Database = {
         Relationships: []
       }
       banned_words: {
-        Row: { id: string; word: string; language: string; created_at: string }
-        Insert: { id?: string; word: string; language?: string; created_at?: string }
-        Update: { id?: string; word?: string; language?: string; created_at?: string }
+        Row: {
+          created_at: string
+          id: string
+          language: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language?: string
+          word: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: string
+          word?: string
+        }
         Relationships: []
       }
       blocks: {
@@ -113,255 +128,126 @@ export type Database = {
         }
         Relationships: []
       }
-      faq_entries: {
+      calls: {
         Row: {
+          answered_at: string | null
+          callee_id: string
+          caller_id: string
+          conversation_id: string
+          duration_seconds: number | null
+          ended_at: string | null
           id: string
-          question: string
-          answer: string
-          position: number
-          published: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          question: string
-          answer: string
-          position?: number
-          published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          question?: string
-          answer?: string
-          position?: number
-          published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      service_status: {
-        Row: { id: string; status: string; message: string | null; updated_at: string }
-        Insert: { id?: string; status?: string; message?: string | null; updated_at?: string }
-        Update: { id?: string; status?: string; message?: string | null; updated_at?: string }
-        Relationships: []
-      }
-      service_incidents: {
-        Row: {
-          id: string
-          title: string
-          status: string
           started_at: string
-          resolved_at: string | null
-          created_at: string
+          status: string
         }
         Insert: {
+          answered_at?: string | null
+          callee_id: string
+          caller_id: string
+          conversation_id: string
+          duration_seconds?: number | null
+          ended_at?: string | null
           id?: string
-          title: string
-          status?: string
           started_at?: string
-          resolved_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
           status?: string
+        }
+        Update: {
+          answered_at?: string | null
+          callee_id?: string
+          caller_id?: string
+          conversation_id?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
           started_at?: string
-          resolved_at?: string | null
-          created_at?: string
+          status?: string
         }
-        Relationships: []
-      }
-      communities: {
-        Row: {
-          id: string
-          handle: string
-          name: string
-          tag: string
-          description: string | null
-          category: string
-          language: string
-          game_name: string | null
-          visibility: string
-          banner_url: string | null
-          icon_url: string | null
-          tags: string[]
-          rules: string | null
-          verified: boolean
-          owner_id: string
-          member_count: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          handle: string
-          name: string
-          tag: string
-          description?: string | null
-          category?: string
-          language?: string
-          game_name?: string | null
-          visibility?: string
-          banner_url?: string | null
-          icon_url?: string | null
-          tags?: string[]
-          rules?: string | null
-          verified?: boolean
-          owner_id: string
-          member_count?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          handle?: string
-          name?: string
-          tag?: string
-          description?: string | null
-          category?: string
-          language?: string
-          game_name?: string | null
-          visibility?: string
-          banner_url?: string | null
-          icon_url?: string | null
-          tags?: string[]
-          rules?: string | null
-          verified?: boolean
-          owner_id?: string
-          member_count?: number
-          created_at?: string
-        }
-        Relationships: []
-      }
-      community_threads: {
-        Row: {
-          id: string
-          community_id: string
-          user_id: string
-          title: string
-          body: string | null
-          featured: boolean
-          replies_count: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          community_id: string
-          user_id: string
-          title: string
-          body?: string | null
-          featured?: boolean
-          replies_count?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          community_id?: string
-          user_id?: string
-          title?: string
-          body?: string | null
-          featured?: boolean
-          replies_count?: number
-          created_at?: string
-        }
-        Relationships: []
-      }
-      community_thread_replies: {
-        Row: { id: string; thread_id: string; user_id: string; content: string; created_at: string }
-        Insert: { id?: string; thread_id: string; user_id: string; content: string; created_at?: string }
-        Update: { id?: string; thread_id?: string; user_id?: string; content?: string; created_at?: string }
         Relationships: [
           {
-            foreignKeyName: "community_thread_replies_thread_id_fkey"
-            columns: ["thread_id"]
+            foreignKeyName: "calls_conversation_id_fkey"
+            columns: ["conversation_id"]
             isOneToOne: false
-            referencedRelation: "community_threads"
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
       }
-      community_lfg_posts: {
+      communities: {
         Row: {
-          id: string
-          community_id: string
-          user_id: string
-          players_needed: string
-          when_text: string
-          mic_pref: string
-          note: string | null
-          status: string
+          banner_url: string | null
+          category: string
           created_at: string
-        }
-        Insert: {
-          id?: string
-          community_id: string
-          user_id: string
-          players_needed?: string
-          when_text?: string
-          mic_pref?: string
-          note?: string | null
-          status?: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          community_id?: string
-          user_id?: string
-          players_needed?: string
-          when_text?: string
-          mic_pref?: string
-          note?: string | null
-          status?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      community_events: {
-        Row: {
-          id: string
-          community_id: string
-          created_by: string
-          title: string
           description: string | null
-          image_url: string | null
-          starts_at: string
-          capacity: number | null
+          game_name: string | null
+          handle: string
+          icon_url: string | null
+          id: string
+          language: string
+          member_count: number
+          name: string
+          owner_id: string
+          rules: string | null
+          tag: string
           tags: string[]
-          created_at: string
+          verified: boolean
+          visibility: string
         }
         Insert: {
-          id?: string
-          community_id: string
-          created_by: string
-          title: string
-          description?: string | null
-          image_url?: string | null
-          starts_at: string
-          capacity?: number | null
-          tags?: string[]
+          banner_url?: string | null
+          category?: string
           created_at?: string
+          description?: string | null
+          game_name?: string | null
+          handle: string
+          icon_url?: string | null
+          id?: string
+          language?: string
+          member_count?: number
+          name: string
+          owner_id: string
+          rules?: string | null
+          tag: string
+          tags?: string[]
+          verified?: boolean
+          visibility?: string
         }
         Update: {
-          id?: string
-          community_id?: string
-          created_by?: string
-          title?: string
-          description?: string | null
-          image_url?: string | null
-          starts_at?: string
-          capacity?: number | null
-          tags?: string[]
+          banner_url?: string | null
+          category?: string
           created_at?: string
+          description?: string | null
+          game_name?: string | null
+          handle?: string
+          icon_url?: string | null
+          id?: string
+          language?: string
+          member_count?: number
+          name?: string
+          owner_id?: string
+          rules?: string | null
+          tag?: string
+          tags?: string[]
+          verified?: boolean
+          visibility?: string
         }
         Relationships: []
       }
       community_event_rsvps: {
-        Row: { event_id: string; user_id: string; created_at: string }
-        Insert: { event_id: string; user_id: string; created_at?: string }
-        Update: { event_id?: string; user_id?: string; created_at?: string }
+        Row: {
+          created_at: string
+          event_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          user_id?: string
+        }
         Relationships: [
           {
             foreignKeyName: "community_event_rsvps_event_id_fkey"
@@ -372,43 +258,154 @@ export type Database = {
           },
         ]
       }
-      community_media: {
+      community_events: {
         Row: {
-          id: string
+          capacity: number | null
           community_id: string
-          user_id: string
-          kind: string
-          media_url: string
-          caption: string | null
-          likes_count: number
           created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          image_url: string | null
+          starts_at: string
+          tags: string[]
+          title: string
         }
         Insert: {
-          id?: string
+          capacity?: number | null
           community_id: string
-          user_id: string
-          kind?: string
-          media_url: string
-          caption?: string | null
-          likes_count?: number
           created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          starts_at: string
+          tags?: string[]
+          title: string
         }
         Update: {
-          id?: string
+          capacity?: number | null
           community_id?: string
-          user_id?: string
-          kind?: string
-          media_url?: string
-          caption?: string | null
-          likes_count?: number
           created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          starts_at?: string
+          tags?: string[]
+          title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "community_events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_lfg_posts: {
+        Row: {
+          community_id: string
+          created_at: string
+          id: string
+          mic_pref: string
+          note: string | null
+          players_needed: string
+          status: string
+          user_id: string
+          when_text: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          id?: string
+          mic_pref?: string
+          note?: string | null
+          players_needed?: string
+          status?: string
+          user_id: string
+          when_text?: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          id?: string
+          mic_pref?: string
+          note?: string | null
+          players_needed?: string
+          status?: string
+          user_id?: string
+          when_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_lfg_posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_media: {
+        Row: {
+          caption: string | null
+          community_id: string
+          created_at: string
+          id: string
+          kind: string
+          likes_count: number
+          media_url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          community_id: string
+          created_at?: string
+          id?: string
+          kind?: string
+          likes_count?: number
+          media_url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          community_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          likes_count?: number
+          media_url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_media_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       community_media_likes: {
-        Row: { media_id: string; user_id: string; created_at: string }
-        Insert: { media_id: string; user_id: string; created_at?: string }
-        Update: { media_id?: string; user_id?: string; created_at?: string }
+        Row: {
+          created_at: string
+          media_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          media_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          media_id?: string
+          user_id?: string
+        }
         Relationships: [
           {
             foreignKeyName: "community_media_likes_media_id_fkey"
@@ -419,37 +416,25 @@ export type Database = {
           },
         ]
       }
-      community_xp_events: {
+      community_members: {
         Row: {
-          id: string
           community_id: string
+          joined_at: string
+          role: string
           user_id: string
-          amount: number
-          reason: string
-          created_at: string
         }
         Insert: {
-          id?: string
           community_id: string
+          joined_at?: string
+          role?: string
           user_id: string
-          amount: number
-          reason: string
-          created_at?: string
         }
         Update: {
-          id?: string
           community_id?: string
+          joined_at?: string
+          role?: string
           user_id?: string
-          amount?: number
-          reason?: string
-          created_at?: string
         }
-        Relationships: []
-      }
-      community_members: {
-        Row: { community_id: string; user_id: string; role: string; joined_at: string }
-        Insert: { community_id: string; user_id: string; role?: string; joined_at?: string }
-        Update: { community_id?: string; user_id?: string; role?: string; joined_at?: string }
         Relationships: [
           {
             foreignKeyName: "community_members_community_id_fkey"
@@ -460,36 +445,62 @@ export type Database = {
           },
         ]
       }
-      community_posts: {
+      community_post_likes: {
         Row: {
-          id: string
-          community_id: string
-          user_id: string
-          content: string
-          pinned: boolean
-          likes_count: number
-          comments_count: number
           created_at: string
+          post_id: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          community_id: string
-          user_id: string
-          content: string
-          pinned?: boolean
-          likes_count?: number
-          comments_count?: number
           created_at?: string
+          post_id: string
+          user_id: string
         }
         Update: {
-          id?: string
-          community_id?: string
-          user_id?: string
-          content?: string
-          pinned?: boolean
-          likes_count?: number
-          comments_count?: number
           created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          comments_count: number
+          community_id: string
+          content: string
+          created_at: string
+          id: string
+          likes_count: number
+          pinned: boolean
+          user_id: string
+        }
+        Insert: {
+          comments_count?: number
+          community_id: string
+          content: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          pinned?: boolean
+          user_id: string
+        }
+        Update: {
+          comments_count?: number
+          community_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          pinned?: boolean
+          user_id?: string
         }
         Relationships: [
           {
@@ -501,22 +512,121 @@ export type Database = {
           },
         ]
       }
-      community_post_likes: {
-        Row: { post_id: string; user_id: string; created_at: string }
-        Insert: { post_id: string; user_id: string; created_at?: string }
-        Update: { post_id?: string; user_id?: string; created_at?: string }
+      community_thread_replies: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          thread_id?: string
+          user_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "community_post_likes_post_id_fkey"
-            columns: ["post_id"]
+            foreignKeyName: "community_thread_replies_thread_id_fkey"
+            columns: ["thread_id"]
             isOneToOne: false
-            referencedRelation: "community_posts"
+            referencedRelation: "community_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_threads: {
+        Row: {
+          body: string | null
+          community_id: string
+          created_at: string
+          featured: boolean
+          id: string
+          replies_count: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          community_id: string
+          created_at?: string
+          featured?: boolean
+          id?: string
+          replies_count?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          community_id?: string
+          created_at?: string
+          featured?: boolean
+          id?: string
+          replies_count?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_threads_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_xp_events: {
+        Row: {
+          amount: number
+          community_id: string
+          created_at: string
+          id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          community_id: string
+          created_at?: string
+          id?: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          community_id?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_xp_events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
             referencedColumns: ["id"]
           },
         ]
       }
       contact_nicknames: {
-        Row: { contact_id: string; nickname: string; owner_id: string; updated_at: string }
+        Row: {
+          contact_id: string
+          nickname: string
+          owner_id: string
+          updated_at: string
+        }
         Insert: {
           contact_id: string
           nickname: string
@@ -531,56 +641,12 @@ export type Database = {
         }
         Relationships: []
       }
-      calls: {
-        Row: {
-          id: string
-          conversation_id: string
-          caller_id: string
-          callee_id: string
-          status: string
-          started_at: string
-          answered_at: string | null
-          ended_at: string | null
-          duration_seconds: number | null
-        }
-        Insert: {
-          id?: string
-          conversation_id: string
-          caller_id: string
-          callee_id: string
-          status?: string
-          started_at?: string
-          answered_at?: string | null
-          ended_at?: string | null
-          duration_seconds?: number | null
-        }
-        Update: {
-          id?: string
-          conversation_id?: string
-          caller_id?: string
-          callee_id?: string
-          status?: string
-          started_at?: string
-          answered_at?: string | null
-          ended_at?: string | null
-          duration_seconds?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "calls_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       conversation_participants: {
         Row: {
           conversation_id: string
           joined_at: string
-          last_read_at: string
           last_message_date: string | null
+          last_read_at: string
           muted: boolean
           pinned: boolean
           user_id: string
@@ -588,8 +654,8 @@ export type Database = {
         Insert: {
           conversation_id: string
           joined_at?: string
-          last_read_at?: string
           last_message_date?: string | null
+          last_read_at?: string
           muted?: boolean
           pinned?: boolean
           user_id: string
@@ -597,8 +663,8 @@ export type Database = {
         Update: {
           conversation_id?: string
           joined_at?: string
-          last_read_at?: string
           last_message_date?: string | null
+          last_read_at?: string
           muted?: boolean
           pinned?: boolean
           user_id?: string
@@ -679,6 +745,36 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      faq_entries: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          position: number
+          published: boolean
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          position?: number
+          published?: boolean
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          position?: number
+          published?: boolean
+          question?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -982,6 +1078,7 @@ export type Database = {
         Row: {
           accent_color: string
           avatar_url: string | null
+          banned_until: string | null
           banner_style: string
           banner_url: string | null
           bio: string | null
@@ -995,12 +1092,16 @@ export type Database = {
           language: string
           last_active_at: string
           link_url: string | null
+          moderation_note: string | null
+          moderation_status: string
           notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null
           parent_name: string | null
           parental_consent: boolean
           privacy_prefs: Json
+          profile_font: string
+          profile_glow: string
           roblox_avatar_url: string | null
           roblox_connected_at: string | null
           roblox_display_name: string | null
@@ -1013,18 +1114,18 @@ export type Database = {
           spark_plus_expires_at: string | null
           sparks_enabled: boolean
           sticker: string | null
-          profile_font: string
-          profile_glow: string
           theme: string
           updated_at: string
           username: string | null
           username_changed_at: string | null
           verified: boolean
           verified_at: string | null
+          warning_count: number
         }
         Insert: {
           accent_color?: string
           avatar_url?: string | null
+          banned_until?: string | null
           banner_style?: string
           banner_url?: string | null
           bio?: string | null
@@ -1038,12 +1139,16 @@ export type Database = {
           language?: string
           last_active_at?: string
           link_url?: string | null
+          moderation_note?: string | null
+          moderation_status?: string
           notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
           parent_name?: string | null
           parental_consent?: boolean
           privacy_prefs?: Json
+          profile_font?: string
+          profile_glow?: string
           roblox_avatar_url?: string | null
           roblox_connected_at?: string | null
           roblox_display_name?: string | null
@@ -1056,18 +1161,18 @@ export type Database = {
           spark_plus_expires_at?: string | null
           sparks_enabled?: boolean
           sticker?: string | null
-          profile_font?: string
-          profile_glow?: string
           theme?: string
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
           verified?: boolean
           verified_at?: string | null
+          warning_count?: number
         }
         Update: {
           accent_color?: string
           avatar_url?: string | null
+          banned_until?: string | null
           banner_style?: string
           banner_url?: string | null
           bio?: string | null
@@ -1081,12 +1186,16 @@ export type Database = {
           language?: string
           last_active_at?: string
           link_url?: string | null
+          moderation_note?: string | null
+          moderation_status?: string
           notification_prefs?: Json
           onboarding_completed?: boolean
           parent_email?: string | null
           parent_name?: string | null
           parental_consent?: boolean
           privacy_prefs?: Json
+          profile_font?: string
+          profile_glow?: string
           roblox_avatar_url?: string | null
           roblox_connected_at?: string | null
           roblox_display_name?: string | null
@@ -1099,14 +1208,13 @@ export type Database = {
           spark_plus_expires_at?: string | null
           sparks_enabled?: boolean
           sticker?: string | null
-          profile_font?: string
-          profile_glow?: string
           theme?: string
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
           verified?: boolean
           verified_at?: string | null
+          warning_count?: number
         }
         Relationships: []
       }
@@ -1147,6 +1255,7 @@ export type Database = {
           reporter_id: string
           status: string
           target_user_id: string | null
+          video_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1160,6 +1269,7 @@ export type Database = {
           reporter_id: string
           status?: string
           target_user_id?: string | null
+          video_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1173,6 +1283,7 @@ export type Database = {
           reporter_id?: string
           status?: string
           target_user_id?: string | null
+          video_id?: string | null
         }
         Relationships: [
           {
@@ -1180,6 +1291,13 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
             referencedColumns: ["id"]
           },
         ]
@@ -1253,33 +1371,51 @@ export type Database = {
         }
         Relationships: []
       }
-      stories: {
+      service_incidents: {
         Row: {
-          caption: string | null
           created_at: string
-          expires_at: string
           id: string
-          media_type: string
-          media_url: string
-          user_id: string
+          resolved_at: string | null
+          started_at: string
+          status: string
+          title: string
         }
         Insert: {
-          caption?: string | null
           created_at?: string
-          expires_at?: string
           id?: string
-          media_type?: string
-          media_url: string
-          user_id: string
+          resolved_at?: string | null
+          started_at?: string
+          status?: string
+          title: string
         }
         Update: {
-          caption?: string | null
           created_at?: string
-          expires_at?: string
           id?: string
-          media_type?: string
-          media_url?: string
-          user_id?: string
+          resolved_at?: string | null
+          started_at?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      service_status: {
+        Row: {
+          id: string
+          message: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          message?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          message?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1319,6 +1455,36 @@ export type Database = {
         }
         Relationships: []
       }
+      stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          media_type: string
+          media_url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_type?: string
+          media_url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       story_views: {
         Row: {
           created_at: string
@@ -1344,6 +1510,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          id: string
+          price_id: string
+          product_id: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id: string
+          product_id: string
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id?: string
+          product_id?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       swipes: {
         Row: {
@@ -1461,6 +1675,35 @@ export type Database = {
           },
         ]
       }
+      video_comment_reactions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          reaction: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          reaction: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          reaction?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_comment_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_comments: {
         Row: {
           content: string
@@ -1505,35 +1748,6 @@ export type Database = {
             columns: ["video_id"]
             isOneToOne: false
             referencedRelation: "videos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      video_comment_reactions: {
-        Row: {
-          comment_id: string
-          user_id: string
-          reaction: string
-          created_at: string
-        }
-        Insert: {
-          comment_id: string
-          user_id: string
-          reaction: string
-          created_at?: string
-        }
-        Update: {
-          comment_id?: string
-          user_id?: string
-          reaction?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "video_comment_reactions_comment_id_fkey"
-            columns: ["comment_id"]
-            isOneToOne: false
-            referencedRelation: "video_comments"
             referencedColumns: ["id"]
           },
         ]
@@ -1647,19 +1861,19 @@ export type Database = {
           created_at: string
           id: string
           video_id: string
-          viewer_id: string | null
+          viewer_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           video_id: string
-          viewer_id?: string | null
+          viewer_id: string
         }
         Update: {
           created_at?: string
           id?: string
           video_id?: string
-          viewer_id?: string | null
+          viewer_id?: string
         }
         Relationships: [
           {
@@ -1786,9 +2000,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_community_xp: {
+        Args: {
+          _amount: number
+          _community: string
+          _reason: string
+          _user: string
+        }
+        Returns: undefined
+      }
       create_group: {
         Args: { _members: string[]; _name: string }
         Returns: string
+      }
+      flag_message_for_safety: {
+        Args: { _content: string; _conversation: string; _sender: string }
+        Returns: undefined
+      }
+      guest_profiles: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          bio: string
+          id: string
+          language: string
+          roblox_avatar_url: string
+          roblox_display_name: string
+          roblox_username: string
+          username: string
+          verified: boolean
+        }[]
+      }
+      has_active_subscription: {
+        Args: { check_env?: string; user_uuid: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
@@ -1810,6 +2055,19 @@ export type Database = {
         }
         Returns: Json
       }
+      recommendation_analytics_summary: {
+        Args: { _since?: string }
+        Returns: {
+          avg_watch_ratio: number
+          comment_rate: number
+          completion_rate: number
+          like_rate: number
+          report_rate: number
+          share_rate: number
+          skip_rate: number
+          watch_events: number
+        }[]
+      }
       spark_deck: {
         Args: {
           _lang?: string
@@ -1820,6 +2078,7 @@ export type Database = {
         Returns: {
           accent_color: string
           avatar_url: string | null
+          banned_until: string | null
           banner_style: string
           banner_url: string | null
           bio: string | null
@@ -1833,12 +2092,16 @@ export type Database = {
           language: string
           last_active_at: string
           link_url: string | null
+          moderation_note: string | null
+          moderation_status: string
           notification_prefs: Json
           onboarding_completed: boolean
           parent_email: string | null
           parent_name: string | null
           parental_consent: boolean
           privacy_prefs: Json
+          profile_font: string
+          profile_glow: string
           roblox_avatar_url: string | null
           roblox_connected_at: string | null
           roblox_display_name: string | null
@@ -1857,6 +2120,7 @@ export type Database = {
           username_changed_at: string | null
           verified: boolean
           verified_at: string | null
+          warning_count: number
         }[]
         SetofOptions: {
           from: "*"
@@ -1865,10 +2129,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      start_direct_message: {
-        Args: { _target: string }
-        Returns: string
-      }
+      start_direct_message: { Args: { _target: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

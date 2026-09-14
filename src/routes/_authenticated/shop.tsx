@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { ArrowLeft, BadgeCheck, Check, Crown, Sparkles, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
-import { createSparkPlusCheckout } from "@/lib/spark-plus.functions";
+import { SparkPlusCheckout } from "@/components/SparkPlusCheckout";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { createPortalSession } from "@/utils/payments.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 
 export const Route = createFileRoute("/_authenticated/shop")({
   head: () => ({ meta: [{ title: "Spark Plus — Bloxspark" }] }),
@@ -29,10 +33,15 @@ function ShopPage() {
     },
   });
 
-  async function subscribe() {
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  async function manageSubscription() {
     try {
-      const checkout = await createSparkPlusCheckout();
-      window.location.assign(checkout.url);
+      const result = await createPortalSession({
+        data: { returnUrl: window.location.href, environment: getStripeEnvironment() },
+      });
+      if ("error" in result) throw new Error(result.error);
+      window.open(result.url, "_blank");
     } catch {
       toast.error(t("sparkPlusCheckoutUnavailable"));
     }
@@ -52,7 +61,8 @@ function ShopPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-28 pt-5">
-      <header className="flex items-center gap-3">
+      <PaymentTestModeBanner />
+      <header className="mt-3 flex items-center gap-3">
         <Link to="/home" aria-label={t("back")}>
           <ArrowLeft className="h-5 w-5" />
         </Link>
@@ -83,16 +93,24 @@ function ShopPage() {
                 })}
               </p>
             ) : null}
+            <Button
+              className="mt-4 w-full bg-white text-blue-700 hover:bg-blue-50"
+              onClick={() => void manageSubscription()}
+            >
+              {t("manageSubscription")}
+            </Button>
           </div>
-        ) : (
+        ) : checkoutOpen ? null : (
           <Button
             className="mt-6 w-full bg-white text-blue-700 hover:bg-blue-50"
-            onClick={() => void subscribe()}
+            onClick={() => setCheckoutOpen(true)}
           >
             <Crown className="h-4 w-4" /> {t("subscribeSparkPlus")}
           </Button>
         )}
       </section>
+
+      {!isActive && checkoutOpen ? <SparkPlusCheckout /> : null}
 
       <section className="mt-6 grid gap-3 sm:grid-cols-2">
         {benefits.map((benefit) => (
