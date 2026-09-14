@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { LogoWordmark } from "@/components/Logo";
@@ -12,6 +12,11 @@ import { ageFrom } from "@/lib/decorations";
 import { Flag } from "@/components/Flag";
 import heroAsset from "@/assets/onboarding-hero.png.asset.json";
 import { RobloxConnection } from "@/components/RobloxConnection";
+import { ThreeBackground } from "@/components/landing/ThreeBackground";
+
+// `/onboarding` is `ssr: false` (see below), so importing GSAP at module
+// scope is safe here for the same reason as the landing page and /home: it
+// code-splits gsap out of the main bundle via dynamic import instead.
 
 export const Route = createFileRoute("/onboarding")({
   ssr: false,
@@ -45,6 +50,85 @@ function Onboarding() {
   const [parentOk, setParentOk] = useState(false);
   const [terms, setTerms] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
+
+  const introRootRef = useRef<HTMLDivElement>(null);
+  const wizardCardRef = useRef<HTMLDivElement>(null);
+  const gsapRef = useRef<typeof import("gsap").gsap | null>(null);
+  const [gsapReady, setGsapReady] = useState(false);
+  const stepDirection = useRef(1);
+  const prevStep = useRef(0);
+
+  // Loaded once, reused by every effect/handler below via gsapRef - never
+  // gates anything's *base* visibility (that stays on the existing bx-rise/
+  // bx-pop CSS classes, which always settle on their own), only adds a
+  // transform-only flourish on top so a slow or failed import degrades to
+  // "no extra flourish", never to "invisible forever".
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { gsap } = await import("gsap");
+      if (cancelled) return;
+      gsapRef.current = gsap;
+      setGsapReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!gsapReady || !intro) return;
+    const gsap = gsapRef.current;
+    if (!gsap) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+    const ctx = gsap.context(() => {
+      gsap.from(".ob-hero-img", { scale: 1.12, duration: 1.1, ease: "power3.out" });
+      gsap.from(".ob-feature-card", {
+        y: 18,
+        duration: 0.6,
+        ease: "power3.out",
+        stagger: 0.12,
+        delay: 0.45,
+      });
+    }, introRootRef);
+    return () => ctx.revert();
+  }, [gsapReady, intro]);
+
+  useEffect(() => {
+    if (!gsapReady || intro) return;
+    const gsap = gsapRef.current;
+    if (!gsap || !wizardCardRef.current) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+    gsap.fromTo(
+      wizardCardRef.current,
+      { x: stepDirection.current * 28 },
+      { x: 0, duration: 0.5, ease: "power3.out" },
+    );
+  }, [gsapReady, intro, step]);
+
+  function goToStep(next: number) {
+    stepDirection.current = next > prevStep.current ? 1 : -1;
+    prevStep.current = next;
+    setStep(next);
+  }
+
+  function magnetize(e: React.MouseEvent<HTMLElement>) {
+    const gsap = gsapRef.current;
+    if (!gsap) return;
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const relX = e.clientX - rect.left - rect.width / 2;
+    const relY = e.clientY - rect.top - rect.height / 2;
+    gsap.to(el, { x: relX * 0.12, y: relY * 0.25, duration: 0.4, ease: "power2.out" });
+  }
+  function unmagnetize(e: React.MouseEvent<HTMLElement>) {
+    const gsap = gsapRef.current;
+    if (!gsap) return;
+    gsap.to(e.currentTarget, { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1,0.4)" });
+  }
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", replace: true });
@@ -137,14 +221,21 @@ function Onboarding() {
     });
     if (markerError)
       console.warn("onboarding_completed metadata sync failed:", markerError.message);
-    navigate({ to: "/home", replace: true });
+    setCelebrating(true);
+    setTimeout(() => navigate({ to: "/home", replace: true }), 900);
   }
 
   const steps = [t("username"), t("birthDate"), t("profile")];
 
   if (intro) {
     return (
-      <div className="relative flex min-h-screen flex-col overflow-hidden bg-background px-5 pb-12 pt-6">
+      <div
+        ref={introRootRef}
+        className="relative flex min-h-screen flex-col overflow-hidden bg-background px-5 pb-12 pt-6"
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-80">
+          <ThreeBackground />
+        </div>
         <div className="pointer-events-none absolute -left-32 -top-10 h-80 w-80 rounded-full bg-primary/30 blur-3xl bx-glow" />
         <div className="pointer-events-none absolute -right-28 top-1/3 h-80 w-80 rounded-full bg-spark-2/30 blur-3xl bx-glow bx-delay-2" />
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl bx-glow bx-delay-4" />
@@ -155,7 +246,7 @@ function Onboarding() {
               <img
                 src={heroAsset.url}
                 alt="Avatars Roblox colorés en pleine action"
-                className="h-56 w-full object-cover sm:h-64"
+                className="ob-hero-img h-56 w-full object-cover sm:h-64"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
               <div className="absolute inset-0 bx-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -183,7 +274,9 @@ function Onboarding() {
             ].map((f, i) => (
               <div
                 key={f.title}
-                className={`bx-pop flex items-center gap-3 rounded-3xl border border-border bg-card/80 p-4 backdrop-blur transition hover:-translate-y-0.5 hover:border-primary bx-delay-${i + 2}`}
+                onMouseMove={magnetize}
+                onMouseLeave={unmagnetize}
+                className={`ob-feature-card bx-pop flex items-center gap-3 rounded-3xl border border-border bg-card/80 p-4 backdrop-blur transition hover:-translate-y-0.5 hover:border-primary bx-delay-${i + 2}`}
               >
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl spark-gradient text-xl">
                   {f.icon}
@@ -198,6 +291,8 @@ function Onboarding() {
 
           <Button
             size="lg"
+            onMouseMove={magnetize}
+            onMouseLeave={unmagnetize}
             className="bx-pop bx-delay-4 mt-8 w-full text-base"
             onClick={() => setIntro(false)}
           >
@@ -254,6 +349,7 @@ function Onboarding() {
 
         <div
           key={step}
+          ref={wizardCardRef}
           className="bx-rise mt-6 space-y-5 rounded-[2rem] border border-border bg-card p-6 shadow-[0_24px_60px_-35px_rgba(0,0,0,0.6)]"
         >
           {step === 0 && (
@@ -295,7 +391,7 @@ function Onboarding() {
                 className="w-full"
                 size="lg"
                 disabled={!robloxProfile.data?.roblox_user_id}
-                onClick={() => setStep(1)}
+                onClick={() => goToStep(1)}
               >
                 {t("continue")}
               </Button>
@@ -336,10 +432,14 @@ function Onboarding() {
                 </div>
               ) : null}
               <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setStep(0)}>
+                <Button variant="outline" className="flex-1" onClick={() => goToStep(0)}>
                   {t("back")}
                 </Button>
-                <Button className="flex-1" disabled={!birth || tooYoung} onClick={() => setStep(2)}>
+                <Button
+                  className="flex-1"
+                  disabled={!birth || tooYoung}
+                  onClick={() => goToStep(2)}
+                >
                   {t("continue")}
                 </Button>
               </div>
@@ -389,10 +489,10 @@ function Onboarding() {
                 {t("acceptTerms")}
               </label>
               <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+                <Button variant="outline" className="flex-1" onClick={() => goToStep(1)}>
                   {t("back")}
                 </Button>
-                <Button className="flex-1" disabled={busy} onClick={finish}>
+                <Button className="flex-1" disabled={busy} onClick={() => void finish()}>
                   {t("finish")}
                 </Button>
               </div>
@@ -402,6 +502,17 @@ function Onboarding() {
 
         <p className="mt-6 text-center text-xs text-muted-foreground">{t("notAffiliated")}</p>
       </div>
+
+      {celebrating ? (
+        <div className="bx-pop fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-background/95 backdrop-blur-sm">
+          <span className="bx-pop grid h-20 w-20 place-items-center rounded-3xl spark-gradient text-4xl shadow-[0_0_40px_-8px_rgba(168,85,247,.7)]">
+            ✨
+          </span>
+          <p className="bx-rise bx-delay-1 text-xl font-black">
+            <span className="spark-text">{t("finish")}</span>
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }
