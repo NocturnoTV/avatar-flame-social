@@ -1,10 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Activity, Plus, Search, Trophy, Users } from "lucide-react";
+import {
+  Activity,
+  Code2,
+  Compass,
+  Flame,
+  Gamepad2,
+  Globe2,
+  Medal,
+  Plus,
+  Search,
+  Sparkles,
+  Trophy,
+  Users,
+  Video,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { LogoWordmark } from "@/components/Logo";
+import { Verified } from "@/components/Verified";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -38,17 +53,23 @@ type CommunityRow = {
   ranking_score: number;
 };
 
-const CATEGORY_FILTERS: { id: string; label: string }[] = [
-  { id: "foryou", label: "Pour toi" },
-  { id: "popular", label: "Populaires" },
-  { id: "ranking", label: "Classement" },
-  { id: "new", label: "Nouvelles" },
-  { id: "games", label: "Jeux" },
-  { id: "development", label: "Développement" },
-  { id: "creators", label: "Créateurs" },
-  { id: "fr", label: "FR" },
-  { id: "international", label: "International" },
+const CATEGORY_FILTERS: { id: string; label: string; icon: typeof Sparkles }[] = [
+  { id: "foryou", label: "Pour toi", icon: Sparkles },
+  { id: "popular", label: "Populaires", icon: Flame },
+  { id: "ranking", label: "Classement", icon: Trophy },
+  { id: "new", label: "Nouvelles", icon: Compass },
+  { id: "games", label: "Jeux", icon: Gamepad2 },
+  { id: "development", label: "Développement", icon: Code2 },
+  { id: "creators", label: "Créateurs", icon: Video },
+  { id: "fr", label: "FR", icon: Globe2 },
+  { id: "international", label: "International", icon: Globe2 },
 ];
+
+const RANK_STYLES: Record<number, string> = {
+  1: "bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-950 shadow-[0_0_14px_-2px_rgba(234,179,8,.65)]",
+  2: "bg-gradient-to-br from-slate-200 to-slate-400 text-slate-800 shadow-[0_0_12px_-2px_rgba(148,163,184,.55)]",
+  3: "bg-gradient-to-br from-orange-300 to-amber-600 text-orange-950 shadow-[0_0_12px_-2px_rgba(217,119,6,.5)]",
+};
 
 function CommunitiesPage() {
   const { user } = useSession();
@@ -174,6 +195,7 @@ function CommunitiesPage() {
 
   const recommended = filtered.slice(0, 6);
   const ranked = [...all].sort((a, b) => a.rank_position - b.rank_position).slice(0, 10);
+  const topActivity = Math.max(1, ...ranked.map((c) => c.activity_points));
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-28 pt-4">
@@ -182,41 +204,54 @@ function CommunitiesPage() {
         <div className="flex items-center gap-1">
           <button
             aria-label="Rechercher"
-            className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-surface-2"
+            className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
           >
             <Search className="h-5 w-5" />
           </button>
           <Link
             to="/communities/create"
             aria-label="Créer une communauté"
-            className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-surface-2"
+            className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
           >
             <Plus className="h-5 w-5" />
           </Link>
         </div>
       </header>
 
-      <div className="mt-4 flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="spark-gradient grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white shadow-[0_0_16px_rgba(168,85,247,.5)]">
-            <Users className="h-6 w-6" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-black">Communautés</h1>
-            <p className="text-sm text-muted-foreground">
-              Rejoins des communautés qui partagent tes jeux et tes intérêts.
-            </p>
+      {/* Hero */}
+      <div className="bx-pop relative mt-4 overflow-hidden rounded-[2rem] border border-primary/15 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--spark)_16%,var(--card))_0%,var(--card)_55%,color-mix(in_oklab,var(--spark-2)_14%,var(--card))_100%)] p-5">
+        <div className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-[color-mix(in_oklab,var(--spark)_35%,transparent)] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-14 -left-8 h-36 w-36 rounded-full bg-[color-mix(in_oklab,var(--spark-2)_30%,transparent)] blur-3xl" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="spark-gradient grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-white shadow-[0_0_20px_rgba(168,85,247,.55)]">
+              <Users className="h-6 w-6" />
+            </span>
+            <div>
+              <h1 className="text-2xl font-black">Communautés</h1>
+              <p className="text-sm text-muted-foreground">
+                Rejoins des communautés qui partagent tes jeux et tes intérêts.
+              </p>
+            </div>
           </div>
+        </div>
+        <div className="relative mt-4 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 text-primary" /> {all.length.toLocaleString()} communautés
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Flame className="h-3.5 w-3.5 text-orange-500" /> {mine.size.toLocaleString()} rejointes
+          </span>
         </div>
         <Link
           to="/communities/create"
-          className="spark-gradient shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold text-white shadow-[0_0_14px_rgba(168,85,247,.45)]"
+          className="spark-gradient relative mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-black text-white shadow-[0_10px_30px_-12px_rgba(168,85,247,.7)] transition active:scale-[0.98]"
         >
-          + Créer
+          <Plus className="h-4 w-4" /> Créer une communauté
         </Link>
       </div>
 
-      <label className="mt-4 flex h-12 items-center gap-2 rounded-2xl border border-border bg-surface px-4">
+      <label className="mt-4 flex h-12 items-center gap-2 rounded-2xl border border-border bg-surface px-4 shadow-sm transition focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
           value={search}
@@ -232,25 +267,27 @@ function CommunitiesPage() {
             key={f.id}
             onClick={() => setFilter(f.id)}
             className={cn(
-              "shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition",
+              "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition",
               filter === f.id
-                ? "bg-primary text-primary-foreground"
-                : "border border-border text-muted-foreground",
+                ? "spark-gradient text-white shadow-[0_4px_16px_-6px_rgba(168,85,247,.65)]"
+                : "border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground",
             )}
           >
-            {f.label}
+            <f.icon className="h-3.5 w-3.5" /> {f.label}
           </button>
         ))}
       </div>
 
-      <section className="mt-6">
+      <section className="mt-7">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">Recommandées pour toi</h2>
+          <h2 className="flex items-center gap-2 text-lg font-black">
+            <Sparkles className="h-4.5 w-4.5 text-primary" /> Recommandées pour toi
+          </h2>
         </div>
         {recommended.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
+          <div className="no-scrollbar -mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1">
             {recommended.map((c) => (
               <CommunityCard
                 key={c.id}
@@ -264,11 +301,11 @@ function CommunitiesPage() {
         )}
       </section>
 
-      <section className="mt-8">
+      <section className="mt-9">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-bold">
-              <Trophy className="h-5 w-5 text-primary" /> Classement des communautés
+            <h2 className="flex items-center gap-2 text-lg font-black">
+              <Trophy className="h-5 w-5 text-amber-500" /> Classement des communautés
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Calculé selon les membres et l'activité des 30 derniers jours.
@@ -285,6 +322,7 @@ function CommunitiesPage() {
                 community={c}
                 joined={mine.has(c.id)}
                 onToggleJoin={() => void toggleJoin(c.id, mine.has(c.id))}
+                topActivity={topActivity}
               />
             ))}
           </div>
@@ -296,11 +334,16 @@ function CommunitiesPage() {
 
 function EmptyState() {
   return (
-    <div className="mt-3 rounded-3xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-      Aucune communauté pour l'instant.{" "}
-      <Link to="/communities/create" className="font-semibold text-primary">
-        Sois le premier à en créer une !
-      </Link>
+    <div className="mt-3 rounded-3xl border border-dashed border-border bg-surface/60 p-8 text-center">
+      <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-2xl">
+        🪐
+      </span>
+      <p className="mt-3 text-sm text-muted-foreground">
+        Aucune communauté pour l'instant.{" "}
+        <Link to="/communities/create" className="font-bold text-primary">
+          Sois le premier à en créer une !
+        </Link>
+      </p>
     </div>
   );
 }
@@ -316,41 +359,53 @@ function CommunityCard({
   onToggleJoin: () => void;
   variant: "carousel" | "row";
 }) {
+  const rankStyle = RANK_STYLES[community.rank_position];
   return (
     <Link
       to="/communities/$handle"
       params={{ handle: community.handle }}
       className={cn(
-        "block shrink-0 overflow-hidden rounded-3xl border border-border bg-card",
-        variant === "carousel" && "w-72",
+        "group block shrink-0 overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg",
+        variant === "carousel" && "w-[17rem]",
       )}
     >
-      <div className="relative h-24 w-full bg-gradient-to-br from-primary/40 to-spark-2/30">
+      <div className="relative h-28 w-full bg-gradient-to-br from-primary/40 to-spark-2/30">
         {community.banner_url ? (
-          <StoredImage path={community.banner_url} alt="" className="h-full w-full object-cover" />
+          <StoredImage
+            path={community.banner_url}
+            alt=""
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+          />
         ) : null}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/0" />
         {community.rank_position > 0 ? (
-          <span className="absolute left-2 top-2 rounded-full bg-background/90 px-2.5 py-1 text-xs font-black text-foreground shadow-sm backdrop-blur">
-            #{community.rank_position}
+          <span
+            className={cn(
+              "absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black backdrop-blur",
+              rankStyle ?? "bg-background/90 text-foreground shadow-sm",
+            )}
+          >
+            {community.rank_position <= 3 ? <Medal className="h-3 w-3" /> : null}#
+            {community.rank_position}
           </span>
         ) : null}
       </div>
-      <div className="p-3">
-        <div className="-mt-8 flex items-end gap-2">
+      <div className="p-3.5">
+        <div className="relative z-10 -mt-9 flex items-end gap-2">
           <StoredImage
             path={community.icon_url}
             alt={community.name}
-            className="h-12 w-12 shrink-0 rounded-2xl border-2 border-card object-cover"
+            className="h-14 w-14 shrink-0 rounded-2xl border-[3px] border-card bg-card object-cover shadow-md"
             fallback="🎮"
           />
         </div>
-        <p className="mt-2 flex items-center gap-1 truncate font-bold">
+        <p className="mt-2.5 flex items-center gap-1 truncate font-black">
           {community.name}
-          {community.verified ? <span className="text-primary">✓</span> : null}
+          {community.verified ? <Verified className="h-3.5 w-3.5 shrink-0" /> : null}
         </p>
         <p className="truncate text-xs text-muted-foreground">@{community.handle}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {community.member_count.toLocaleString()} membres
+        <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+          <Users className="h-3.5 w-3.5" /> {community.member_count.toLocaleString()} membres
         </p>
         {community.description ? (
           <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
@@ -364,7 +419,7 @@ function CommunityCard({
                 key={tag}
                 className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
               >
-                {tag}
+                #{tag}
               </span>
             ))}
           </div>
@@ -375,11 +430,13 @@ function CommunityCard({
             onToggleJoin();
           }}
           className={cn(
-            "mt-3 w-full rounded-full py-2 text-sm font-bold transition",
-            joined ? "border border-border text-muted-foreground" : "spark-gradient text-white",
+            "mt-3 w-full rounded-full py-2.5 text-sm font-black transition active:scale-[0.97]",
+            joined
+              ? "border border-border text-muted-foreground"
+              : "spark-gradient text-white shadow-[0_6px_18px_-8px_rgba(168,85,247,.7)]",
           )}
         >
-          {joined ? "Membre ✓" : "Rejoindre"}
+          {joined ? "Membre ✓" : "+ Rejoindre"}
         </button>
       </div>
     </Link>
@@ -390,50 +447,58 @@ function CommunityRowItem({
   community,
   joined,
   onToggleJoin,
+  topActivity,
 }: {
   community: CommunityRow;
   joined: boolean;
   onToggleJoin: () => void;
+  topActivity: number;
 }) {
+  const rankStyle = RANK_STYLES[community.rank_position];
+  const activityRatio = Math.min(100, Math.round((community.activity_points / topActivity) * 100));
   return (
     <Link
       to="/communities/$handle"
       params={{ handle: community.handle }}
-      className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
+      className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
     >
+      <span
+        className={cn(
+          "grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-black",
+          rankStyle ?? "bg-primary/10 text-primary",
+        )}
+      >
+        {community.rank_position <= 3 && community.rank_position > 0 ? (
+          <Medal className="h-4 w-4" />
+        ) : (
+          `#${community.rank_position || "-"}`
+        )}
+      </span>
       <StoredImage
         path={community.icon_url}
         alt={community.name}
-        className="h-12 w-12 shrink-0 rounded-2xl object-cover"
+        className="h-12 w-12 shrink-0 rounded-2xl object-cover ring-1 ring-border"
         fallback="🎮"
       />
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-black text-primary">
-        #{community.rank_position || "-"}
-      </span>
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1 truncate font-bold">
+        <p className="flex items-center gap-1 truncate font-black">
           {community.name}
-          {community.verified ? <span className="text-primary">✓</span> : null}
+          {community.verified ? <Verified className="h-3.5 w-3.5 shrink-0" /> : null}
         </p>
         <p className="truncate text-xs text-muted-foreground">
           {community.member_count.toLocaleString()} membres
         </p>
-        <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-          <Activity className="h-3 w-3" /> {community.activity_points.toLocaleString()} points
-          d'activité
-        </p>
-        {community.tags.length > 0 ? (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {community.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
-              >
-                {tag}
-              </span>
-            ))}
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-primary to-spark-2"
+              style={{ width: `${activityRatio}%` }}
+            />
           </div>
-        ) : null}
+          <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-muted-foreground">
+            <Activity className="h-3 w-3" /> {community.activity_points.toLocaleString()}
+          </span>
+        </div>
       </div>
       <button
         onClick={(e) => {
@@ -441,7 +506,7 @@ function CommunityRowItem({
           onToggleJoin();
         }}
         className={cn(
-          "shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition",
+          "shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-black transition active:scale-[0.97]",
           joined ? "border border-border text-muted-foreground" : "spark-gradient text-white",
         )}
       >

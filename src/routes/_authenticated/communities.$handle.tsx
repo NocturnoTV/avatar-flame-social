@@ -1,11 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, Crown, Hash, Home, Search, Send, Settings, Trophy, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Crown,
+  Gamepad2,
+  Globe2,
+  Hash,
+  Home,
+  Lock,
+  Search,
+  Send,
+  Settings,
+  Sparkles,
+  Tag,
+  Trophy,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { PresenceDot } from "@/components/PresenceDot";
+import { Verified } from "@/components/Verified";
 import { Button, Input } from "@/components/ui-kit";
 import { CommunitySettingsSheet } from "@/components/CommunitySettingsSheet";
 import type { CommunityPermission } from "@/lib/communityPermissions";
@@ -42,6 +59,12 @@ const CATEGORY_LABELS: Record<string, string> = {
   building: "Construction",
   community: "Communauté",
   other: "Autre",
+};
+
+const MEDAL_STYLES: Record<number, string> = {
+  0: "bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-950 shadow-[0_0_12px_-2px_rgba(234,179,8,.6)]",
+  1: "bg-gradient-to-br from-slate-200 to-slate-400 text-slate-800 shadow-[0_0_10px_-2px_rgba(148,163,184,.5)]",
+  2: "bg-gradient-to-br from-orange-300 to-amber-600 text-orange-950 shadow-[0_0_10px_-2px_rgba(217,119,6,.45)]",
 };
 
 function CommunityPage() {
@@ -149,14 +172,19 @@ function CommunityPage() {
 
   return (
     <div className="mx-auto max-w-2xl pb-28">
-      <div className="relative h-32 overflow-hidden bg-gradient-to-br from-primary/40 to-spark-2/30 sm:h-40">
+      <div className="relative h-36 overflow-hidden bg-gradient-to-br from-primary/40 to-spark-2/30 sm:h-44">
         {c.banner_url ? (
           <StoredImage path={c.banner_url} alt="" className="h-full w-full object-cover" />
-        ) : null}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        ) : (
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-3xl" />
+            <div className="absolute -bottom-14 -left-8 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/10 to-black/20" />
         <Link
           to="/communities"
-          className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
+          className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition hover:bg-black/55"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
@@ -164,7 +192,7 @@ function CommunityPage() {
           <button
             onClick={() => setSettingsOpen(true)}
             aria-label="Paramètres de la communauté"
-            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
+            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition hover:bg-black/55"
           >
             <Settings className="h-5 w-5" />
           </button>
@@ -172,18 +200,18 @@ function CommunityPage() {
       </div>
 
       <div className="px-4">
-        <div className="-mt-9 flex items-end justify-between gap-3">
+        <div className="relative z-10 -mt-10 flex items-end justify-between gap-3">
           <StoredImage
             path={c.icon_url}
             alt={c.name}
-            className="h-[72px] w-[72px] shrink-0 rounded-3xl border-4 border-background object-cover"
+            className="h-[76px] w-[76px] shrink-0 rounded-[1.75rem] border-4 border-background bg-background object-cover shadow-xl"
             fallback="🎮"
           />
           {user ? (
             <Button
               variant={isMember ? "outline" : "primary"}
               onClick={() => void toggleJoin()}
-              className="mb-1"
+              className="mb-1 shadow-[0_8px_20px_-10px_rgba(168,85,247,.7)]"
             >
               {isMember ? "Membre ✓" : "+ Rejoindre"}
             </Button>
@@ -192,15 +220,17 @@ function CommunityPage() {
 
         <h1 className="mt-3 flex items-center gap-1.5 text-2xl font-black">
           {c.name}
-          {c.verified ? <span className="text-primary">✓</span> : null}
+          {c.verified ? <Verified className="h-5 w-5" /> : null}
         </h1>
-        <p className="flex items-center gap-3 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>@{c.handle}</span>
-          <span>·</span>
-          <span>{c.member_count.toLocaleString()} membres</span>
+          <span className="text-border">•</span>
+          <span className="flex items-center gap-1">
+            <Users className="h-3.5 w-3.5" /> {c.member_count.toLocaleString()} membres
+          </span>
         </p>
 
-        <div className="mt-5 grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1">
+        <div className="mt-5 grid grid-cols-3 gap-1.5 rounded-2xl bg-surface-2 p-1.5">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -208,8 +238,8 @@ function CommunityPage() {
               className={cn(
                 "flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition sm:text-sm",
                 tab === t.id
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "spark-gradient text-white shadow-[0_4px_14px_-6px_rgba(168,85,247,.65)]"
+                  : "text-muted-foreground hover:bg-card hover:text-foreground",
               )}
             >
               <t.icon className="h-4 w-4 shrink-0" />
@@ -267,14 +297,16 @@ function AffiliatesDisplay({ communityId }: { communityId: string | undefined })
   if (!affiliates.data?.length) return null;
   return (
     <div className="rounded-2xl border border-border bg-card p-4 text-sm">
-      <p className="mb-2 font-bold">Communautés affiliées</p>
+      <p className="mb-2 flex items-center gap-1.5 font-black">
+        <Sparkles className="h-4 w-4 text-primary" /> Communautés affiliées
+      </p>
       <div className="flex flex-wrap gap-2">
         {affiliates.data.map((a) => (
           <Link
             key={a.id}
             to="/communities/$handle"
             params={{ handle: a.handle }}
-            className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold hover:border-primary/40"
+            className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold transition hover:border-primary/40 hover:bg-surface-2"
           >
             <StoredImage path={a.icon_url} alt="" className="h-4 w-4 rounded" fallback="🎮" />
             {a.name}
@@ -315,6 +347,23 @@ function useCommunityLeaderboard(
   });
 }
 
+function RankBadge({ index }: { index: number }) {
+  const medals = ["🥇", "🥈", "🥉"];
+  const style = MEDAL_STYLES[index];
+  if (style) {
+    return (
+      <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm", style)}>
+        {medals[index]}
+      </span>
+    );
+  }
+  return (
+    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-black text-muted-foreground">
+      #{index + 1}
+    </span>
+  );
+}
+
 function LeaderboardPreview({
   communityId,
   onOpenLeaderboard,
@@ -323,25 +372,27 @@ function LeaderboardPreview({
   onOpenLeaderboard: () => void;
 }) {
   const leaderboard = useCommunityLeaderboard(communityId, null, 5);
-  const medals = ["🥇", "🥈", "🥉"];
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-1.5 font-bold">
-          <Trophy className="h-4 w-4 text-primary" /> Classement
+        <p className="flex items-center gap-1.5 font-black">
+          <Trophy className="h-4 w-4 text-amber-500" /> Classement
         </p>
-        <button onClick={onOpenLeaderboard} className="text-xs font-semibold text-primary">
+        <button
+          onClick={onOpenLeaderboard}
+          className="text-xs font-bold text-primary transition hover:underline"
+        >
           Voir tout
         </button>
       </div>
       {(leaderboard.data ?? []).length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">Pas encore d'activité.</p>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {(leaderboard.data ?? []).map((row, i) => (
             <div key={row.id} className="flex items-center gap-3">
-              <span className="w-6 shrink-0 text-center">{medals[i] ?? `#${i + 1}`}</span>
+              <RankBadge index={i} />
               <StoredImage
                 path={row.author?.avatar_url}
                 alt=""
@@ -351,7 +402,7 @@ function LeaderboardPreview({
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">
                 {row.author?.username ?? "?"}
               </span>
-              <span className="shrink-0 text-xs font-bold text-muted-foreground">
+              <span className="shrink-0 text-xs font-black text-primary">
                 {row.xp.toLocaleString()} XP
               </span>
             </div>
@@ -385,12 +436,14 @@ function LeaderboardTab({ communityId }: { communityId: string | undefined }) {
   })();
 
   const leaderboard = useCommunityLeaderboard(communityId, since, 20);
-  const medals = ["🥇", "🥈", "🥉"];
+  const topXp = Math.max(1, ...(leaderboard.data ?? []).map((row) => row.xp));
 
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-bold">Membres les plus actifs</h2>
+        <h2 className="flex items-center gap-2 text-lg font-black">
+          <Trophy className="h-5 w-5 text-amber-500" /> Membres les plus actifs
+        </h2>
         <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
           {LEADERBOARD_FILTERS.map((f) => (
             <button
@@ -399,8 +452,8 @@ function LeaderboardTab({ communityId }: { communityId: string | undefined }) {
               className={cn(
                 "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition",
                 filter === f.id
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border text-muted-foreground",
+                  ? "spark-gradient text-white shadow-[0_4px_14px_-6px_rgba(168,85,247,.6)]"
+                  : "border border-border text-muted-foreground hover:border-primary/30",
               )}
             >
               {f.label}
@@ -413,15 +466,15 @@ function LeaderboardTab({ communityId }: { communityId: string | undefined }) {
             Pas encore d'activité sur cette période.
           </p>
         ) : (
-          <div className="mt-3 space-y-1.5">
+          <div className="mt-3 space-y-2">
             {(leaderboard.data ?? []).map((row, i) => (
               <Link
                 key={row.id}
                 to="/users/$id"
                 params={{ id: row.author?.username ?? row.id }}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
               >
-                <span className="w-7 shrink-0 text-center text-lg">{medals[i] ?? `#${i + 1}`}</span>
+                <RankBadge index={i} />
                 <StoredImage
                   path={row.author?.avatar_url}
                   alt=""
@@ -429,10 +482,19 @@ function LeaderboardTab({ communityId }: { communityId: string | undefined }) {
                   fallback="🎮"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{row.author?.username ?? "?"}</p>
-                  <p className="text-xs text-muted-foreground">{row.xp.toLocaleString()} XP</p>
+                  <p className="truncate font-bold">{row.author?.username ?? "?"}</p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-primary to-spark-2"
+                        style={{ width: `${Math.min(100, Math.round((row.xp / topXp) * 100))}%` }}
+                      />
+                    </div>
+                    <p className="shrink-0 text-xs font-bold text-muted-foreground">
+                      {row.xp.toLocaleString()} XP
+                    </p>
+                  </div>
                 </div>
-                <Trophy className="h-4 w-4 shrink-0 text-primary" />
               </Link>
             ))}
           </div>
@@ -440,14 +502,14 @@ function LeaderboardTab({ communityId }: { communityId: string | undefined }) {
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="font-bold">Comment gagner de l'XP ?</p>
+        <p className="font-black">Comment gagner de l'XP ?</p>
         <div className="mt-3 space-y-2">
           {XP_REASONS.map((r) => (
             <div key={r.key} className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground">
                 <span>{r.icon}</span> {r.label}
               </span>
-              <span className="font-bold text-primary">+{r.amount} XP</span>
+              <span className="font-black text-primary">+{r.amount} XP</span>
             </div>
           ))}
         </div>
@@ -459,13 +521,21 @@ function LeaderboardTab({ communityId }: { communityId: string | undefined }) {
   );
 }
 
-function StatChip({ label, value }: { label: string; value: string }) {
+function StatChip({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: typeof Users;
+}) {
   return (
     <div className="rounded-2xl border border-border bg-card p-3">
-      <p className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
-        {label}
+      <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+        <Icon className="h-3 w-3" /> {label}
       </p>
-      <p className="mt-0.5 truncate text-sm font-bold">{value}</p>
+      <p className="mt-1 truncate text-sm font-bold">{value}</p>
     </div>
   );
 }
@@ -494,16 +564,19 @@ function CommunityHome({
       ) : null}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatChip label="Membres" value={community.member_count.toLocaleString()} />
+        <StatChip icon={Users} label="Membres" value={community.member_count.toLocaleString()} />
         <StatChip
+          icon={Globe2}
           label="Langue"
           value={lang ? `${lang.flag} ${lang.label}` : community.language.toUpperCase()}
         />
         <StatChip
+          icon={Tag}
           label="Catégorie"
           value={CATEGORY_LABELS[community.category] ?? community.category}
         />
         <StatChip
+          icon={Lock}
           label="Type"
           value={
             community.visibility === "public"
@@ -513,8 +586,11 @@ function CommunityHome({
                 : "Privée - sur demande"
           }
         />
-        {community.game_name ? <StatChip label="Jeu associé" value={community.game_name} /> : null}
+        {community.game_name ? (
+          <StatChip icon={Gamepad2} label="Jeu associé" value={community.game_name} />
+        ) : null}
         <StatChip
+          icon={Calendar}
           label="Créée le"
           value={new Date(community.created_at).toLocaleDateString("fr-FR")}
         />
@@ -527,7 +603,7 @@ function CommunityHome({
               key={tag}
               className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold text-muted-foreground"
             >
-              {tag}
+              #{tag}
             </span>
           ))}
         </div>
@@ -535,7 +611,7 @@ function CommunityHome({
 
       {community.rules ? (
         <div className="rounded-2xl border border-border bg-card p-4 text-sm">
-          <p className="mb-2 font-bold">Règles</p>
+          <p className="mb-2 font-black">Règles</p>
           <p className="whitespace-pre-wrap leading-relaxed">{community.rules}</p>
         </div>
       ) : null}
@@ -629,7 +705,7 @@ function MembersTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3.5 py-2.5">
+      <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3.5 py-2.5 shadow-sm transition focus-within:border-primary/40">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
           value={search}
@@ -638,7 +714,7 @@ function MembersTab({
           className="min-w-0 flex-1 bg-transparent text-sm outline-none"
         />
       </div>
-      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
         {filtered.length} membre{filtered.length > 1 ? "s" : ""}
       </p>
 
@@ -650,7 +726,10 @@ function MembersTab({
             <div key={g.key}>
               <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">
                 {g.color ? (
-                  <span className="h-2 w-2 rounded-full" style={{ background: g.color }} />
+                  <span
+                    className="h-2 w-2 rounded-full shadow-[0_0_6px_-1px_currentColor]"
+                    style={{ background: g.color, color: g.color }}
+                  />
                 ) : null}
                 {g.name} — {g.members.length}
               </p>
@@ -664,7 +743,7 @@ function MembersTab({
                       <StoredImage
                         path={m.person?.avatar_url}
                         alt=""
-                        className="h-9 w-9 rounded-full object-cover"
+                        className="h-9 w-9 rounded-full object-cover ring-1 ring-border"
                         fallback="🎮"
                       />
                       {m.person ? (
@@ -680,7 +759,7 @@ function MembersTab({
                     >
                       {m.person?.username ?? "?"}
                     </span>
-                    {m.person?.verified ? <span className="shrink-0 text-primary">✓</span> : null}
+                    {m.person?.verified ? <Verified className="h-3.5 w-3.5 shrink-0" /> : null}
                     {m.id === ownerId ? (
                       <Crown
                         className="h-3.5 w-3.5 shrink-0 text-amber-400"
@@ -820,7 +899,9 @@ function ChannelsTab({
   const channelButtonClass = (active: boolean) =>
     cn(
       "flex w-full items-center gap-1.5 rounded-xl px-2.5 py-2 text-left text-sm font-semibold transition",
-      active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2",
+      active
+        ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px] shadow-primary/15"
+        : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
     );
 
   return (
@@ -881,7 +962,7 @@ function ChannelsTab({
           ) : (
             <button
               onClick={() => setNewChannelOpen(true)}
-              className="w-full rounded-xl px-2.5 py-2 text-left text-xs font-semibold text-muted-foreground hover:bg-surface-2"
+              className="w-full rounded-xl px-2.5 py-2 text-left text-xs font-semibold text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
             >
               + Nouveau salon
             </button>
@@ -898,7 +979,7 @@ function ChannelsTab({
           />
         </div>
       ) : (
-        <div className="min-w-0 flex-1 rounded-2xl border border-border bg-card">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
           <div className="flex h-80 flex-col-reverse overflow-y-auto p-3">
             <div>
               {(messages.data ?? []).length === 0 ? (
@@ -906,18 +987,18 @@ function ChannelsTab({
                   Aucun message dans ce salon pour l'instant.
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {(messages.data ?? []).map((m) => (
                     <div key={m.id} className="flex items-start gap-2">
                       <StoredImage
                         path={m.author?.avatar_url}
                         alt=""
-                        className="h-7 w-7 shrink-0 rounded-full object-cover"
+                        className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-border"
                         fallback="🎮"
                       />
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm bg-surface-2 px-3 py-2">
                         <p className="flex items-baseline gap-1.5">
-                          <span className="text-xs font-bold">{m.author?.username ?? "?"}</span>
+                          <span className="text-xs font-black">{m.author?.username ?? "?"}</span>
                           <span className="text-[10px] text-muted-foreground">
                             {new Date(m.created_at).toLocaleTimeString("fr-FR", {
                               hour: "2-digit",
@@ -934,7 +1015,7 @@ function ChannelsTab({
             </div>
           </div>
           {isMember ? (
-            <div className="flex items-center gap-2 border-t border-border p-2">
+            <div className="flex items-center gap-2 border-t border-border p-2.5">
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -942,13 +1023,13 @@ function ChannelsTab({
                   if (e.key === "Enter") void send();
                 }}
                 placeholder="Écrire un message..."
-                className="min-w-0 flex-1 rounded-full bg-surface px-3.5 py-2 text-sm outline-none"
+                className="min-w-0 flex-1 rounded-full bg-surface px-3.5 py-2 text-sm outline-none ring-1 ring-transparent transition focus:ring-primary/25"
               />
               <button
                 onClick={() => void send()}
                 disabled={!text.trim()}
                 aria-label="Envoyer"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full spark-gradient text-white disabled:opacity-40"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full spark-gradient text-white transition active:scale-90 disabled:opacity-40"
               >
                 <Send className="h-4 w-4" />
               </button>

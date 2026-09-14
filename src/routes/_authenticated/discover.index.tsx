@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { useSignedUrl, StoredImage } from "@/components/Media";
+import { Verified } from "@/components/Verified";
 import { GiftSheet } from "@/components/GiftSheet";
 import { Button } from "@/components/ui-kit";
 import { cn, errorMessage } from "@/lib/utils";
@@ -101,6 +102,7 @@ function DiscoverPage() {
     video: VideoRow;
     username: string;
     avatar: string | null;
+    verified: boolean | null;
   } | null>(null);
 
   const following = useQuery({
@@ -173,14 +175,21 @@ function DiscoverPage() {
       }
 
       const ids = [...new Set(videos.map((v) => v.user_id))];
-      const profiles: Record<string, { username: string | null; avatar_url: string | null }> = {};
+      const profiles: Record<
+        string,
+        { username: string | null; avatar_url: string | null; verified: boolean | null }
+      > = {};
       if (ids.length) {
         const { data: p } = await supabase
           .from("profiles")
-          .select("id,username,avatar_url")
+          .select("id,username,avatar_url,verified")
           .in("id", ids);
         for (const row of p ?? [])
-          profiles[row.id] = { username: row.username, avatar_url: row.avatar_url };
+          profiles[row.id] = {
+            username: row.username,
+            avatar_url: row.avatar_url,
+            verified: row.verified,
+          };
         const { data: plusProfiles } = await supabase
           .from("profiles")
           .select("id,spark_plus_active,spark_plus_expires_at")
@@ -231,8 +240,18 @@ function DiscoverPage() {
       ]);
       const creatorIds = [...new Set((foundVideos ?? []).map((video) => video.user_id))];
       const { data: videoCreators } = creatorIds.length
-        ? await supabase.from("profiles").select("id,username,avatar_url").in("id", creatorIds)
-        : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] };
+        ? await supabase
+            .from("profiles")
+            .select("id,username,avatar_url,verified")
+            .in("id", creatorIds)
+        : {
+            data: [] as {
+              id: string;
+              username: string | null;
+              avatar_url: string | null;
+              verified: boolean | null;
+            }[],
+          };
       const creatorById = new Map((videoCreators ?? []).map((creator) => [creator.id, creator]));
       return {
         creators: creators ?? [],
@@ -240,6 +259,7 @@ function DiscoverPage() {
           video,
           username: creatorById.get(video.user_id)?.username ?? t("someone"),
           avatar: creatorById.get(video.user_id)?.avatar_url ?? null,
+          verified: creatorById.get(video.user_id)?.verified ?? null,
         })),
       };
     },
@@ -360,6 +380,9 @@ function DiscoverPage() {
                 avatar={
                   highlighted?.avatar ?? feed.data?.profiles[video.user_id]?.avatar_url ?? null
                 }
+                verified={
+                  highlighted?.verified ?? feed.data?.profiles[video.user_id]?.verified ?? false
+                }
                 onComments={() => setComments(video)}
                 onNotInterested={() => {
                   void markNotInterested({ data: { videoId: video.id } });
@@ -415,7 +438,12 @@ type DiscoverSearchResults = {
     avatar_url: string | null;
     verified: boolean | null;
   }>;
-  videos: Array<{ video: VideoRow; username: string; avatar: string | null }>;
+  videos: Array<{
+    video: VideoRow;
+    username: string;
+    avatar: string | null;
+    verified: boolean | null;
+  }>;
 };
 
 function DiscoverSearch({
@@ -564,6 +592,7 @@ function VideoSlide({
   muted,
   username,
   avatar,
+  verified,
   onComments,
   onNotInterested,
 }: {
@@ -571,6 +600,7 @@ function VideoSlide({
   muted: boolean;
   username: string;
   avatar: string | null;
+  verified?: boolean | null;
   onComments: () => void;
   onNotInterested: () => void;
 }) {
@@ -826,9 +856,10 @@ function VideoSlide({
           <Link
             to="/users/$id"
             params={{ id: username || video.user_id }}
-            className="pointer-events-auto text-[15px] font-extrabold text-white drop-shadow hover:underline"
+            className="pointer-events-auto flex items-center gap-1 text-[15px] font-extrabold text-white drop-shadow hover:underline"
           >
             @{username}
+            {verified ? <Verified className="h-4 w-4 shrink-0" /> : null}
           </Link>
           {video.caption ? (
             <p className="mt-1 line-clamp-3 text-sm text-white/95 drop-shadow">
@@ -1196,14 +1227,21 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         .order("created_at", { ascending: false });
       const rows = data ?? [];
       const ids = [...new Set([...rows.map((r) => r.user_id), video.user_id])];
-      const people: Record<string, { username: string; avatar_url: string | null }> = {};
+      const people: Record<
+        string,
+        { username: string; avatar_url: string | null; verified: boolean }
+      > = {};
       if (ids.length) {
         const { data: p } = await supabase
           .from("profiles")
-          .select("id,username,avatar_url")
+          .select("id,username,avatar_url,verified")
           .in("id", ids);
         for (const row of p ?? [])
-          people[row.id] = { username: row.username ?? "joueur", avatar_url: row.avatar_url };
+          people[row.id] = {
+            username: row.username ?? "joueur",
+            avatar_url: row.avatar_url,
+            verified: row.verified ?? false,
+          };
       }
       const reactions: Array<{ comment_id: string; user_id: string; reaction: string }> = [];
       if (rows.length) {
@@ -1220,6 +1258,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         ...r,
         username: people[r.user_id]?.username ?? "joueur",
         avatar_url: people[r.user_id]?.avatar_url ?? null,
+        verified: people[r.user_id]?.verified ?? false,
         likes_count: reactions.filter(
           (reaction) => reaction.comment_id === r.id && reaction.reaction === "like",
         ).length,
@@ -1488,6 +1527,7 @@ type RichComment = {
   media_type: string | null;
   username: string;
   avatar_url: string | null;
+  verified: boolean;
   likes_count: number;
   creator_liked: boolean;
   creator_avatar_url: string | null;
@@ -1531,9 +1571,10 @@ function CommentItem({
           <Link
             to="/users/$id"
             params={{ id: comment.username || comment.user_id }}
-            className="text-xs font-bold text-muted-foreground hover:text-primary"
+            className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"
           >
             @{comment.username}
+            {comment.verified ? <Verified className="h-3.5 w-3.5 shrink-0" /> : null}
           </Link>
           {comment.media_type === "gift" ? (
             <div className="mt-1 overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-500 p-[1px] shadow-[0_10px_30px_-15px_rgba(217,70,239,.9)] bx-gift-comment">
