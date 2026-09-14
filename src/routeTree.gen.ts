@@ -37,6 +37,7 @@ import { Route as AuthenticatedShopRouteImport } from './routes/_authenticated/s
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
 import { Route as AuthenticatedStoreRouteImport } from './routes/_authenticated/store'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
+import { Route as AuthenticatedWikiRouteImport } from './routes/_authenticated/wiki'
 import { Route as DecouvrirIndexRouteImport } from './routes/decouvrir.index'
 import { Route as DecouvrirStudioRouteImport } from './routes/decouvrir.studio'
 import { Route as AuthenticatedCommunitiesIndexRouteImport } from './routes/_authenticated/communities.index'
@@ -196,6 +197,11 @@ const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
   path: '/support',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWikiRoute = AuthenticatedWikiRouteImport.update({
+  id: '/wiki',
+  path: '/wiki',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const DecouvrirIndexRoute = DecouvrirIndexRouteImport.update({
   id: '/decouvrir/',
   path: '/decouvrir/',
@@ -323,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/sparks': typeof AuthenticatedSparksRoute
   '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
+  '/wiki': typeof AuthenticatedWikiRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
   '/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
@@ -370,6 +377,7 @@ export interface FileRoutesByTo {
   '/sparks': typeof AuthenticatedSparksRoute
   '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
+  '/wiki': typeof AuthenticatedWikiRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir': typeof DecouvrirIndexRoute
   '/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
@@ -419,6 +427,7 @@ export interface FileRoutesById {
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
   '/_authenticated/store': typeof AuthenticatedStoreRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
+  '/_authenticated/wiki': typeof AuthenticatedWikiRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
   '/_authenticated/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
@@ -468,6 +477,7 @@ export interface FileRouteTypes {
     | '/sparks'
     | '/store'
     | '/support'
+    | '/wiki'
     | '/decouvrir/studio'
     | '/decouvrir/'
     | '/communities/$handle'
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
     | '/sparks'
     | '/store'
     | '/support'
+    | '/wiki'
     | '/decouvrir/studio'
     | '/decouvrir'
     | '/communities/$handle'
@@ -563,6 +574,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sparks'
     | '/_authenticated/store'
     | '/_authenticated/support'
+    | '/_authenticated/wiki'
     | '/decouvrir/studio'
     | '/decouvrir/'
     | '/_authenticated/communities/$handle'
@@ -804,6 +816,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSupportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/wiki': {
+      id: '/_authenticated/wiki'
+      path: '/wiki'
+      fullPath: '/wiki'
+      preLoaderRoute: typeof AuthenticatedWikiRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/decouvrir/': {
       id: '/decouvrir/'
       path: '/decouvrir'
@@ -973,6 +992,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
   AuthenticatedStoreRoute: typeof AuthenticatedStoreRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
+  AuthenticatedWikiRoute: typeof AuthenticatedWikiRoute
   AuthenticatedCommunitiesHandleRoute: typeof AuthenticatedCommunitiesHandleRoute
   AuthenticatedCommunitiesCreateRoute: typeof AuthenticatedCommunitiesCreateRoute
   AuthenticatedDiscoverStudioRoute: typeof AuthenticatedDiscoverStudioRoute
@@ -997,6 +1017,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
   AuthenticatedStoreRoute: AuthenticatedStoreRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
+  AuthenticatedWikiRoute: AuthenticatedWikiRoute,
   AuthenticatedCommunitiesHandleRoute: AuthenticatedCommunitiesHandleRoute,
   AuthenticatedCommunitiesCreateRoute: AuthenticatedCommunitiesCreateRoute,
   AuthenticatedDiscoverStudioRoute: AuthenticatedDiscoverStudioRoute,

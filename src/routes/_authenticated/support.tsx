@@ -47,6 +47,43 @@ const SERVICE_ICONS: Record<(typeof SERVICE_IDS)[number], typeof Server> = {
   storage: Paperclip,
 };
 
+const TICKET_CATEGORIES: Record<LangCode, [string, string, string, string][]> = {
+  en: [
+    ["general", "❓", "Questions & General Support", "Questions or issues that do not fit another category."],
+    ["trust_safety", "🛡️", "Trust & Safety / Moderation", "Report users, harmful content, harassment or inappropriate behavior."],
+    ["technical", "🐛", "Technical Issues & Bugs", "Report bugs, errors, crashes or features that are not working."],
+    ["billing", "💳", "Purchases & Billing", "Get help with payments, purchases, refunds or billing issues."],
+    ["copyright", "©️", "Copyright & DMCA", "Submit copyright infringement or DMCA requests."],
+    ["account", "🔐", "Account & Login", "Get help with login, account access or account issues."],
+    ["feedback", "💡", "Feedback & Suggestions", "Share ideas and feedback to improve BloxSpark."],
+    ["partnerships", "🤝", "Partnerships & Business", "Contact us about partnerships, collaborations or business."],
+    ["legal", "⚖️", "Legal Requests", "Submit legal requests or other legal matters."],
+  ],
+  fr: [
+    ["general", "❓", "Questions et aide générale", "Questions ou problèmes qui ne correspondent à aucune autre catégorie."],
+    ["trust_safety", "🛡️", "Sécurité et modération", "Signaler un utilisateur, du contenu dangereux, du harcèlement ou un comportement inapproprié."],
+    ["technical", "🐛", "Problèmes techniques et bugs", "Signaler un bug, une erreur, un plantage ou une fonction qui ne marche pas."],
+    ["billing", "💳", "Achats et facturation", "Obtenir de l'aide pour un paiement, un achat, un remboursement ou une facture."],
+    ["copyright", "©️", "Droits d’auteur et DMCA", "Envoyer une demande liée aux droits d’auteur ou au DMCA."],
+    ["account", "🔐", "Compte et connexion", "Obtenir de l'aide pour se connecter ou accéder à son compte."],
+    ["feedback", "💡", "Avis et suggestions", "Partager des idées pour améliorer BloxSpark."],
+    ["partnerships", "🤝", "Partenariats et entreprises", "Nous contacter pour un partenariat, une collaboration ou une demande commerciale."],
+    ["legal", "⚖️", "Demandes juridiques", "Envoyer une demande juridique ou liée au droit."],
+  ],
+  es: [
+    ["general", "❓", "Preguntas y ayuda general", "Preguntas o problemas que no encajan en otra categoría."], ["trust_safety", "🛡️", "Seguridad y moderación", "Denuncia usuarios, contenido dañino, acoso o conducta inapropiada."], ["technical", "🐛", "Problemas técnicos y errores", "Informa de errores, bloqueos o funciones que no funcionan."], ["billing", "💳", "Compras y facturación", "Ayuda con pagos, compras, reembolsos o facturación."], ["copyright", "©️", "Copyright y DMCA", "Envía solicitudes de copyright o DMCA."], ["account", "🔐", "Cuenta e inicio de sesión", "Ayuda para iniciar sesión o acceder a tu cuenta."], ["feedback", "💡", "Opiniones y sugerencias", "Comparte ideas para mejorar BloxSpark."], ["partnerships", "🤝", "Alianzas y negocios", "Contacta sobre alianzas, colaboraciones o negocios."], ["legal", "⚖️", "Solicitudes legales", "Envía solicitudes u otros asuntos legales."],
+  ],
+  pt: [
+    ["general", "❓", "Perguntas e suporte geral", "Perguntas ou problemas que não cabem em outra categoria."], ["trust_safety", "🛡️", "Segurança e moderação", "Denuncie usuários, conteúdo nocivo, assédio ou comportamento impróprio."], ["technical", "🐛", "Problemas técnicos e bugs", "Relate bugs, erros, falhas ou recursos que não funcionam."], ["billing", "💳", "Compras e faturamento", "Ajuda com pagamentos, compras, reembolsos ou cobrança."], ["copyright", "©️", "Direitos autorais e DMCA", "Envie solicitações de direitos autorais ou DMCA."], ["account", "🔐", "Conta e login", "Ajuda com login e acesso à conta."], ["feedback", "💡", "Feedback e sugestões", "Compartilhe ideias para melhorar o BloxSpark."], ["partnerships", "🤝", "Parcerias e negócios", "Fale sobre parcerias, colaborações ou negócios."], ["legal", "⚖️", "Solicitações legais", "Envie solicitações ou outros assuntos legais."],
+  ],
+  de: [
+    ["general", "❓", "Fragen und allgemeine Hilfe", "Fragen oder Probleme, die in keine andere Kategorie passen."], ["trust_safety", "🛡️", "Sicherheit und Moderation", "Melde Nutzer, schädliche Inhalte, Belästigung oder unangemessenes Verhalten."], ["technical", "🐛", "Technische Probleme und Fehler", "Melde Fehler, Abstürze oder nicht funktionierende Funktionen."], ["billing", "💳", "Käufe und Abrechnung", "Hilfe bei Zahlungen, Käufen, Erstattungen oder Abrechnung."], ["copyright", "©️", "Urheberrecht und DMCA", "Reiche Urheberrechts- oder DMCA-Anfragen ein."], ["account", "🔐", "Konto und Anmeldung", "Hilfe bei Anmeldung und Kontozugriff."], ["feedback", "💡", "Feedback und Vorschläge", "Teile Ideen zur Verbesserung von BloxSpark."], ["partnerships", "🤝", "Partnerschaften und Geschäft", "Kontakt für Partnerschaften, Kooperationen oder Geschäftliches."], ["legal", "⚖️", "Rechtliche Anfragen", "Reiche rechtliche Anfragen ein."],
+  ],
+  ko: [
+    ["general", "❓", "질문 및 일반 지원", "다른 카테고리에 해당하지 않는 질문이나 문제입니다."], ["trust_safety", "🛡️", "신뢰 및 안전 / 운영", "사용자, 유해 콘텐츠, 괴롭힘 또는 부적절한 행동을 신고하세요."], ["technical", "🐛", "기술 문제 및 버그", "버그, 오류, 충돌 또는 작동하지 않는 기능을 신고하세요."], ["billing", "💳", "구매 및 결제", "결제, 구매, 환불 또는 청구 관련 도움을 받으세요."], ["copyright", "©️", "저작권 및 DMCA", "저작권 침해 또는 DMCA 요청을 제출하세요."], ["account", "🔐", "계정 및 로그인", "로그인이나 계정 접근 도움을 받으세요."], ["feedback", "💡", "의견 및 제안", "BloxSpark 개선 아이디어를 공유하세요."], ["partnerships", "🤝", "파트너십 및 비즈니스", "파트너십, 협업 또는 비즈니스 문의입니다."], ["legal", "⚖️", "법적 요청", "법적 요청이나 관련 사안을 제출하세요."],
+  ],
+};
+
 const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answer: string }[]> = {
   en: [
     {
@@ -331,16 +368,12 @@ function SupportPage() {
   const [view, setView] = useState<"home" | "newTicket" | "myTickets">("home");
   const [openFaq, setOpenFaq] = useState<string | null>(null);
 
-  const CATEGORIES = [
-    { id: "account", label: t("supportCatAccount") },
-    { id: "roblox", label: t("supportCatRoblox") },
-    { id: "payment", label: t("supportCatPayment") },
-    { id: "sparks", label: t("supportCatSparks") },
-    { id: "report", label: t("supportCatReport") },
-    { id: "bug", label: t("supportCatBug") },
-    { id: "copyright", label: t("supportCatCopyright") },
-    { id: "other", label: t("supportCatOther") },
-  ] as const;
+  const CATEGORIES = TICKET_CATEGORIES[lang].map(([id, emoji, label, description]) => ({
+    id,
+    emoji,
+    label,
+    description,
+  }));
 
   const SERVICES = SERVICE_IDS.map((id) => ({
     id,
@@ -378,8 +411,7 @@ function SupportPage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [ticketCategory, setTicketCategory] = useState<string>("bug");
-  const [severity, setSeverity] = useState("low");
+  const [ticketCategory, setTicketCategory] = useState<string>("general");
   const [sending, setSending] = useState(false);
   const [ticketFilter, setTicketFilter] = useState<"all" | "pending" | "in_progress" | "resolved" | "wont_fix">(
     "all",
@@ -465,7 +497,6 @@ function SupportPage() {
       title: title.trim(),
       description: description.trim(),
       category: ticketCategory,
-      severity,
       page_url: window.location.href,
     });
     setSending(false);
@@ -613,7 +644,7 @@ function SupportPage() {
                     : "border border-border text-muted-foreground",
                 )}
               >
-                {c.label}
+                {c.emoji} {c.label}
               </button>
             ))}
           </div>
@@ -781,21 +812,13 @@ function SupportPage() {
             <Select value={ticketCategory} onChange={(e) => setTicketCategory(e.target.value)}>
               {CATEGORIES.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.label}
+                  {c.emoji} {c.label}
                 </option>
               ))}
             </Select>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("priority")}
-            </label>
-            <Select value={severity} onChange={(e) => setSeverity(e.target.value)}>
-              <option value="low">{t("priorityLow")}</option>
-              <option value="medium">{t("priorityMedium")}</option>
-              <option value="high">{t("priorityHigh")}</option>
-              <option value="critical">{t("priorityCritical")}</option>
-            </Select>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              {CATEGORIES.find((item) => item.id === ticketCategory)?.description}
+            </p>
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">

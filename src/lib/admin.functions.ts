@@ -212,6 +212,7 @@ const actionSchema = z.object({
     "delete_video",
     "grant_spark_plus",
     "revoke_spark_plus",
+    "grant_blox",
   ]),
   userId: z.string().uuid(),
   value: z.string().max(500).optional(),
@@ -229,6 +230,7 @@ export const adminManageMember = createServerFn({ method: "POST" })
       "update_password",
       "grant_spark_plus",
       "revoke_spark_plus",
+      "grant_blox",
     ].includes(data.action);
     const { supabaseAdmin } = await requireStaff(context.userId, adminOnly);
     if (data.userId === context.userId && data.action === "ban") throw new Error("cannot_ban_self");
@@ -331,6 +333,35 @@ export const adminManageMember = createServerFn({ method: "POST" })
         .update({ spark_plus_active: false, spark_plus_expires_at: null })
         .eq("id", data.userId);
       if (error) throw error;
+    }
+
+    if (data.action === "grant_blox") {
+      const amount = z.coerce.number().int().min(1).max(1_000_000).parse(value);
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .select("blox_balance")
+        .eq("id", data.userId)
+        .single();
+      if (profileError) throw profileError;
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({ blox_balance: Number(profile.blox_balance ?? 0) + amount })
+        .eq("id", data.userId);
+      if (error) throw error;
+      const { error: ledgerError } = await supabaseAdmin.from("blox_transactions").insert({
+        user_id: data.userId,
+        amount,
+        kind: "admin_grant",
+        reference_id: context.userId,
+        description: "Blox granted by staff",
+      });
+      if (ledgerError) throw ledgerError;
+      await db.from("notifications").insert({
+        user_id: data.userId,
+        kind: "system",
+        body: `The BloxSpark team gave you ${amount.toLocaleString()} Blox.`,
+      });
+      details = String(amount);
     }
 
     if (["hide_video", "restore_video", "delete_video"].includes(data.action)) {

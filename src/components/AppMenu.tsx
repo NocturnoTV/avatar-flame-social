@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   Bell,
+  BookOpen,
   Bookmark,
   Clock,
   Compass,
@@ -312,6 +313,13 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           label={t("newsFeedTitle")}
           to="/news"
           active={isActive("/news")}
+          onClick={onClose}
+        />
+        <Row
+          icon={BookOpen}
+          label={t("wiki")}
+          to="/wiki"
+          active={isActive("/wiki")}
           onClick={onClose}
         />
         <Row icon={Gamepad2} label={t("menuGames")} disabled comingSoon={t("comingSoon")} />
