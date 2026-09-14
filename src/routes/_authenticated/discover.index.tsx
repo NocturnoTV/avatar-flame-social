@@ -308,7 +308,29 @@ function DiscoverPage() {
       </div>
 
       {feed.isLoading ? (
-        <div className="grid h-full place-items-center text-white/60">Chargement…</div>
+        <div className="relative grid h-full place-items-center overflow-hidden bg-[#07040d] text-white">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(168,85,247,.22),transparent_38%)]" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full border border-primary/10" />
+          <div className="relative flex flex-col items-center">
+            <div className="relative grid h-24 w-24 place-items-center">
+              <span className="absolute inset-0 animate-spin rounded-full border-[3px] border-white/10 border-t-primary border-r-fuchsia-400 shadow-[0_0_34px_rgba(168,85,247,.35)]" />
+              <span className="absolute inset-3 animate-[spin_1.4s_linear_infinite_reverse] rounded-full border-2 border-white/5 border-b-violet-300" />
+              <span className="spark-gradient grid h-12 w-12 place-items-center rounded-2xl text-xl font-black text-white shadow-[0_0_24px_rgba(168,85,247,.55)]">
+                B
+              </span>
+            </div>
+            <p className="mt-6 text-sm font-black tracking-wide">{t("loading")}</p>
+            <div className="mt-3 flex gap-1.5" aria-hidden="true">
+              {[0, 1, 2].map((index) => (
+                <span
+                  key={index}
+                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary"
+                  style={{ animationDelay: `${index * 140}ms` }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       ) : displayedVideos.length === 0 ? (
         <div className="grid h-full place-items-center px-8 text-center">
           <div className="space-y-4">
