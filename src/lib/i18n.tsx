@@ -14,6 +14,23 @@ export type LangCode = (typeof LANGUAGES)[number]["code"];
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  landingShowcaseEyebrow: "Made to feel alive",
+  landingShowcaseTitle: "Your whole Roblox world, in one place.",
+  landingShowcaseText: "A profile that feels like you. A feed shaped by your games. A community ready for your next moment.",
+  landingIdentityTitle: "Your Roblox identity, instantly",
+  landingIdentityText: "Connect once and bring your username, avatar and favorite games into a profile that is unmistakably yours.",
+  landingFeedTitle: "Discover your next obsession",
+  landingFeedText: "Swipe through videos, stories and creators chosen around the games and communities you already love.",
+  landingMessagesTitle: "Turn moments into friendships",
+  landingMessagesText: "React, reply, share and talk with the people who understand your Roblox universe.",
+  landingJourneyEyebrow: "Easy from the first spark",
+  landingJourneyTitle: "From Roblox player to BloxSpark creator in minutes.",
+  landingStep1Title: "Connect Roblox",
+  landingStep1Text: "Your public identity appears automatically.",
+  landingStep2Title: "Shape your world",
+  landingStep2Text: "Choose your games, style and the people you want to meet.",
+  landingStep3Title: "Create your spark",
+  landingStep3Text: "Post, discover and start conversations that keep going.",
   landingEyebrow: "The Roblox social universe",
   landingHeroTitle: "Play together. Create together. Belong somewhere.",
   landingHeroText:
@@ -596,6 +613,23 @@ const en: Dict = {
 };
 
 const fr: Dict = {
+  landingShowcaseEyebrow: "Pensé pour être vivant",
+  landingShowcaseTitle: "Tout ton univers Roblox, au même endroit.",
+  landingShowcaseText: "Un profil qui te ressemble. Un fil adapté à tes jeux. Une communauté prête pour ton prochain moment.",
+  landingIdentityTitle: "Ton identité Roblox, instantanément",
+  landingIdentityText: "Connecte-toi une fois et retrouve ton pseudo, ton avatar et tes jeux favoris dans un profil vraiment unique.",
+  landingFeedTitle: "Découvre ta prochaine passion",
+  landingFeedText: "Parcours des vidéos, stories et créateurs choisis autour des jeux et communautés que tu aimes.",
+  landingMessagesTitle: "Transforme les moments en amitiés",
+  landingMessagesText: "Réagis, réponds, partage et discute avec ceux qui comprennent ton univers Roblox.",
+  landingJourneyEyebrow: "Simple dès la première étincelle",
+  landingJourneyTitle: "De joueur Roblox à créateur BloxSpark en quelques minutes.",
+  landingStep1Title: "Connecte Roblox",
+  landingStep1Text: "Ton identité publique apparaît automatiquement.",
+  landingStep2Title: "Crée ton univers",
+  landingStep2Text: "Choisis tes jeux, ton style et les personnes que tu veux rencontrer.",
+  landingStep3Title: "Lance ton Spark",
+  landingStep3Text: "Publie, découvre et commence des conversations qui durent.",
   landingEyebrow: "L’univers social Roblox",
   landingHeroTitle: "Jouez ensemble. Créez ensemble. Trouvez votre communauté.",
   landingHeroText:
@@ -1183,6 +1217,23 @@ const fr: Dict = {
 };
 
 const es: Dict = {
+  landingShowcaseEyebrow: "Creado para sentirse vivo",
+  landingShowcaseTitle: "Todo tu mundo Roblox, en un solo lugar.",
+  landingShowcaseText: "Un perfil que se siente tuyo. Un feed basado en tus juegos. Una comunidad lista para tu próximo momento.",
+  landingIdentityTitle: "Tu identidad Roblox, al instante",
+  landingIdentityText: "Conecta una vez y lleva tu usuario, avatar y juegos favoritos a un perfil inconfundiblemente tuyo.",
+  landingFeedTitle: "Descubre tu próxima obsesión",
+  landingFeedText: "Explora vídeos, stories y creadores elegidos alrededor de los juegos y comunidades que ya amas.",
+  landingMessagesTitle: "Convierte momentos en amistades",
+  landingMessagesText: "Reacciona, responde, comparte y habla con quienes entienden tu universo Roblox.",
+  landingJourneyEyebrow: "Fácil desde la primera chispa",
+  landingJourneyTitle: "De jugador Roblox a creador BloxSpark en minutos.",
+  landingStep1Title: "Conecta Roblox",
+  landingStep1Text: "Tu identidad pública aparece automáticamente.",
+  landingStep2Title: "Crea tu mundo",
+  landingStep2Text: "Elige tus juegos, estilo y las personas que quieres conocer.",
+  landingStep3Title: "Crea tu Spark",
+  landingStep3Text: "Publica, descubre e inicia conversaciones que continúan.",
   landingEyebrow: "El universo social de Roblox",
   landingHeroTitle: "Jueguen juntos. Creen juntos. Encuentren su comunidad.",
   landingHeroText:
@@ -1766,6 +1817,23 @@ const es: Dict = {
 };
 
 const pt: Dict = {
+  landingShowcaseEyebrow: "Feito para ganhar vida",
+  landingShowcaseTitle: "Todo o seu mundo Roblox, em um só lugar.",
+  landingShowcaseText: "Um perfil com a sua cara. Um feed moldado pelos seus jogos. Uma comunidade pronta para o próximo momento.",
+  landingIdentityTitle: "Sua identidade Roblox, na hora",
+  landingIdentityText: "Conecte uma vez e leve usuário, avatar e jogos favoritos para um perfil que é totalmente seu.",
+  landingFeedTitle: "Descubra sua próxima paixão",
+  landingFeedText: "Explore vídeos, stories e criadores escolhidos pelos jogos e comunidades que você já ama.",
+  landingMessagesTitle: "Transforme momentos em amizades",
+  landingMessagesText: "Reaja, responda, compartilhe e converse com quem entende seu universo Roblox.",
+  landingJourneyEyebrow: "Fácil desde a primeira faísca",
+  landingJourneyTitle: "De jogador Roblox a criador BloxSpark em minutos.",
+  landingStep1Title: "Conecte o Roblox",
+  landingStep1Text: "Sua identidade pública aparece automaticamente.",
+  landingStep2Title: "Crie seu mundo",
+  landingStep2Text: "Escolha seus jogos, estilo e as pessoas que quer conhecer.",
+  landingStep3Title: "Crie seu Spark",
+  landingStep3Text: "Publique, descubra e comece conversas que continuam.",
   landingEyebrow: "O universo social do Roblox",
   landingHeroTitle: "Joguem juntos. Criem juntos. Encontrem sua comunidade.",
   landingHeroText:
@@ -2349,6 +2417,23 @@ const pt: Dict = {
 };
 
 const de: Dict = {
+  landingShowcaseEyebrow: "Gemacht, um lebendig zu wirken",
+  landingShowcaseTitle: "Deine ganze Roblox-Welt an einem Ort.",
+  landingShowcaseText: "Ein Profil wie du. Ein Feed für deine Spiele. Eine Community, bereit für deinen nächsten Moment.",
+  landingIdentityTitle: "Deine Roblox-Identität, sofort",
+  landingIdentityText: "Einmal verbinden und Benutzername, Avatar und Lieblingsspiele in dein unverwechselbares Profil übernehmen.",
+  landingFeedTitle: "Entdecke deine nächste Leidenschaft",
+  landingFeedText: "Erlebe Videos, Stories und Creator rund um die Spiele und Communities, die du bereits liebst.",
+  landingMessagesTitle: "Aus Momenten werden Freundschaften",
+  landingMessagesText: "Reagiere, antworte, teile und sprich mit Menschen, die deine Roblox-Welt verstehen.",
+  landingJourneyEyebrow: "Einfach ab dem ersten Spark",
+  landingJourneyTitle: "Vom Roblox-Spieler zum BloxSpark-Creator in wenigen Minuten.",
+  landingStep1Title: "Roblox verbinden",
+  landingStep1Text: "Deine öffentliche Identität erscheint automatisch.",
+  landingStep2Title: "Gestalte deine Welt",
+  landingStep2Text: "Wähle deine Spiele, deinen Stil und Menschen, die du kennenlernen willst.",
+  landingStep3Title: "Erzeuge deinen Spark",
+  landingStep3Text: "Poste, entdecke und starte Gespräche, die weitergehen.",
   landingEyebrow: "Das soziale Roblox-Universum",
   landingHeroTitle: "Zusammen spielen. Zusammen erschaffen. Eine Community finden.",
   landingHeroText:
@@ -2937,6 +3022,23 @@ const de: Dict = {
 };
 
 const ko: Dict = {
+  landingShowcaseEyebrow: "살아 움직이도록 설계",
+  landingShowcaseTitle: "나의 Roblox 세계를 한곳에.",
+  landingShowcaseText: "나다운 프로필, 좋아하는 게임에 맞춘 피드, 다음 순간을 함께할 커뮤니티를 만나보세요.",
+  landingIdentityTitle: "Roblox 정체성을 즉시 연결",
+  landingIdentityText: "한 번 연결하면 사용자 이름, 아바타, 좋아하는 게임이 나만의 프로필에 자동으로 표시됩니다.",
+  landingFeedTitle: "새로운 최애를 발견하세요",
+  landingFeedText: "좋아하는 게임과 커뮤니티를 중심으로 선택된 영상, 스토리, 크리에이터를 만나보세요.",
+  landingMessagesTitle: "순간을 우정으로",
+  landingMessagesText: "Roblox 세계를 이해하는 사람들과 반응하고, 답하고, 공유하고, 대화하세요.",
+  landingJourneyEyebrow: "첫 Spark부터 간편하게",
+  landingJourneyTitle: "몇 분 만에 Roblox 플레이어에서 BloxSpark 크리에이터로.",
+  landingStep1Title: "Roblox 연결",
+  landingStep1Text: "공개 정체성이 자동으로 나타납니다.",
+  landingStep2Title: "나만의 세계 만들기",
+  landingStep2Text: "게임과 스타일, 만나고 싶은 사람을 선택하세요.",
+  landingStep3Title: "Spark 만들기",
+  landingStep3Text: "게시하고 발견하며 계속 이어지는 대화를 시작하세요.",
   landingEyebrow: "Roblox 소셜 유니버스",
   landingHeroTitle: "함께 플레이하고, 함께 만들고, 나만의 커뮤니티를 만나세요.",
   landingHeroText:
