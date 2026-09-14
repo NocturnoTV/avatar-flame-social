@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowUpRight, Bell, Compass, Flame, LifeBuoy, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,10 +10,16 @@ import { LogoWordmark } from "@/components/Logo";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { PresenceDot } from "@/components/PresenceDot";
 import { Verified } from "@/components/Verified";
-import { Reveal } from "@/components/Reveal";
+import { ThreeBackground } from "@/components/landing/ThreeBackground";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import heroAsset from "@/assets/onboarding-hero.png.asset.json";
+
+// `/_authenticated` is `ssr: false`, so importing GSAP at module scope
+// wouldn't crash SSR here the way it did on `/` — but we still load it
+// dynamically, client-side only, from inside an effect below, for the same
+// reason as the landing page: it code-splits gsap + ScrollTrigger out of the
+// initial bundle for a route every signed-in user hits constantly.
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
@@ -307,22 +313,137 @@ function HomePage() {
     },
   });
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  const heroGreetingRef = useRef<HTMLParagraphElement>(null);
+  const heroTitleRef = useRef<HTMLHeadingElement>(null);
+  const heroSubtitleRef = useRef<HTMLParagraphElement>(null);
+  const heroBellRef = useRef<HTMLAnchorElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const discoverRef = useRef<HTMLDivElement>(null);
+  const friendsRef = useRef<HTMLDivElement>(null);
+  const sparksRef = useRef<HTMLDivElement>(null);
+  const newsRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+
+  const gsapRef = useRef<typeof import("gsap").gsap | null>(null);
+  const [gsapReady, setGsapReady] = useState(false);
+
+  // Same "wow effect" GSAP + ScrollTrigger treatment as the public landing
+  // page (`/`): a staggered hero entrance, then each feed section flying in
+  // as it's scrolled into view.
+  useEffect(() => {
+    let ctx: ReturnType<typeof import("gsap").gsap.context> | undefined;
+    let cancelled = false;
+
+    void (async () => {
+      const [{ gsap }, { ScrollTrigger }] = await Promise.all([
+        import("gsap"),
+        import("gsap/ScrollTrigger"),
+      ]);
+      if (cancelled) return;
+      gsap.registerPlugin(ScrollTrigger);
+      gsapRef.current = gsap;
+      setGsapReady(true);
+
+      ctx = gsap.context(() => {
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const ease = "power3.out";
+
+        const tl = gsap.timeline({ defaults: { ease, duration: reduceMotion ? 0.01 : 0.75 } });
+        tl.from(heroGreetingRef.current, { y: 16, opacity: 0 })
+          .from(heroTitleRef.current, { y: 26, opacity: 0, scale: 0.97 }, "-=0.4")
+          .from(heroSubtitleRef.current, { y: 12, opacity: 0 }, "-=0.35")
+          .from(heroBellRef.current, { scale: 0, opacity: 0, duration: 0.5 }, "-=0.45")
+          .from(
+            navRef.current ? Array.from(navRef.current.children) : [],
+            { y: 18, opacity: 0, stagger: 0.08 },
+            "-=0.25",
+          );
+
+        for (const ref of [discoverRef, friendsRef, sparksRef, newsRef, ctaRef]) {
+          if (!ref.current) continue;
+          gsap.from(ref.current, {
+            y: 50,
+            opacity: 0,
+            duration: reduceMotion ? 0.01 : 0.75,
+            ease,
+            scrollTrigger: { trigger: ref.current, start: "top 88%" },
+          });
+        }
+      }, rootRef);
+    })();
+
+    return () => {
+      cancelled = true;
+      ctx?.revert();
+    };
+  }, []);
+
+  // Sections below the hero go from an empty-state card to populated content
+  // as their queries resolve, which shifts page layout — nudge ScrollTrigger
+  // to recompute trigger positions once that settles.
+  useEffect(() => {
+    if (!gsapReady) return;
+    const raf = requestAnimationFrame(() => {
+      void import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => ScrollTrigger.refresh());
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [gsapReady, following.data, sparkMatches.data, latest.data]);
+
+  // A gentle ambient pulse on the bell once there's something unread, so the
+  // page never looks static — mirrors the CTA glow pulse on the landing page.
+  useEffect(() => {
+    const gsap = gsapRef.current;
+    const bell = heroBellRef.current;
+    if (!gsap || !bell || !gsapReady || !counters.data?.unread) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const tween = gsap.to(bell, {
+      keyframes: [{ scale: 1.12 }, { scale: 1 }],
+      duration: 1.6,
+      repeat: -1,
+      ease: "sine.inOut",
+    });
+    return () => {
+      tween.kill();
+      gsap.set(bell, { scale: 1 });
+    };
+  }, [gsapReady, counters.data?.unread]);
+
+  function magnetize(e: React.MouseEvent<HTMLElement>) {
+    const gsap = gsapRef.current;
+    if (!gsap) return;
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const relX = e.clientX - rect.left - rect.width / 2;
+    const relY = e.clientY - rect.top - rect.height / 2;
+    gsap.to(el, { x: relX * 0.15, y: relY * 0.3, duration: 0.4, ease: "power2.out" });
+  }
+  function unmagnetize(e: React.MouseEvent<HTMLElement>) {
+    const gsap = gsapRef.current;
+    if (!gsap) return;
+    gsap.to(e.currentTarget, { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1,0.4)" });
+  }
+
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-28 pt-4 lg:pb-12">
+    <div ref={rootRef} className="mx-auto max-w-3xl px-4 pb-28 pt-4 lg:pb-12">
       {/* Hero — stays pinned at the top */}
-      <header className="bx-rise relative overflow-hidden rounded-[2rem] border border-border">
+      <header className="relative overflow-hidden rounded-[2rem] border border-border">
         <img
           src={heroAsset.url}
           alt="Roblox avatar in action"
           className="h-44 w-full object-cover sm:h-56"
           loading="eager"
         />
+        <div className="absolute inset-0 opacity-70">
+          <ThreeBackground />
+        </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
         <div className="absolute inset-0 flex flex-col justify-between p-4">
           <div className="flex items-start justify-between">
             <LogoWordmark className="h-8 w-auto bx-float" forceVariant="dark" />
             <div className="flex items-center gap-2">
               <Link
+                ref={heroBellRef}
                 to="/messages"
                 aria-label="Notifications"
                 className="relative grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90"
@@ -337,10 +458,13 @@ function HomePage() {
             </div>
           </div>
           <div>
-            <p className="text-sm font-semibold text-white/80">
+            <p ref={heroGreetingRef} className="text-sm font-semibold text-white/80">
               {hello.emoji} {hello.text}
             </p>
-            <h1 className="flex items-center gap-2 text-2xl font-black text-white drop-shadow sm:text-3xl">
+            <h1
+              ref={heroTitleRef}
+              className="flex items-center gap-2 text-2xl font-black text-white drop-shadow sm:text-3xl"
+            >
               <span className="truncate">
                 {me.data?.username ? `@${me.data.username}` : "player"}
               </span>
@@ -353,12 +477,15 @@ function HomePage() {
               ) : null}
               {me.data?.verified ? <Verified className="h-5 w-5 shrink-0" /> : null}
             </h1>
-            <p className="text-xs text-white/75">{t("homeToday")}</p>
+            <p ref={heroSubtitleRef} className="text-xs text-white/75">
+              {t("homeToday")}
+            </p>
           </div>
         </div>
       </header>
 
       <nav
+        ref={navRef}
         className="no-scrollbar -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1"
         aria-label={t("quickAccess")}
       >
@@ -371,7 +498,9 @@ function HomePage() {
           <Link
             key={item.to}
             to={item.to}
-            className="bx-pop flex min-w-[112px] flex-1 items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black text-primary transition hover:border-primary/40 hover:bg-primary/15"
+            onMouseMove={magnetize}
+            onMouseLeave={unmagnetize}
+            className="flex min-w-[112px] flex-1 items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black text-primary transition hover:border-primary/40 hover:bg-primary/15"
           >
             <item.icon className="h-4 w-4" />
             {item.label}
@@ -380,7 +509,7 @@ function HomePage() {
       </nav>
 
       {/* 1. Découvrir — vidéos du moment */}
-      <Reveal className="mt-8">
+      <div ref={discoverRef} className="mt-8">
         <section>
           <SectionHeader
             emoji="🧭"
@@ -402,10 +531,10 @@ function HomePage() {
             </Card>
           )}
         </section>
-      </Reveal>
+      </div>
 
       {/* 2. Amis / Abonnements */}
-      <Reveal className="mt-8">
+      <div ref={friendsRef} className="mt-8">
         <section>
           <SectionHeader emoji="👥" title={t("friends")} />
           {following.data?.length ? (
@@ -444,10 +573,10 @@ function HomePage() {
             </Card>
           )}
         </section>
-      </Reveal>
+      </div>
 
       {/* 3. Mes matchs Sparks */}
-      <Reveal className="mt-8">
+      <div ref={sparksRef} className="mt-8">
         <section>
           <SectionHeader
             emoji="🔥"
@@ -485,17 +614,19 @@ function HomePage() {
             </Card>
           )}
         </section>
-      </Reveal>
+      </div>
 
       {/* 4. Actualités Roblox */}
-      <Reveal className="mt-8">
+      <div ref={newsRef} className="mt-8">
         <NewsSection />
-      </Reveal>
+      </div>
 
       {/* 5. CTA — poster du contenu */}
-      <Reveal className="mt-8 mb-4">
+      <div ref={ctaRef} className="mt-8 mb-4">
         <Link
           to="/discover/studio"
+          onMouseMove={magnetize}
+          onMouseLeave={unmagnetize}
           className="spark-gradient bx-glow group relative flex items-center gap-4 overflow-hidden rounded-[1.75rem] p-5 text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
         >
           <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/20 text-2xl">
@@ -507,7 +638,7 @@ function HomePage() {
           </span>
           <ArrowUpRight className="h-5 w-5 shrink-0 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </Link>
-      </Reveal>
+      </div>
 
       <p className="mt-4 text-center text-[11px] text-muted-foreground">{t("notAffiliated")}</p>
     </div>
