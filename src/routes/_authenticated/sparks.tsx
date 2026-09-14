@@ -375,8 +375,8 @@ function SparksPage() {
             className={cn(
               "flex-1 rounded-full px-3 py-2 text-sm font-semibold transition",
               tab === id
-                ? "spark-gradient text-white shadow-[0_0_14px_rgba(168,85,247,.45)]"
-                : "border border-border text-muted-foreground",
+                ? "border border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                : "border border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
             )}
           >
             {label}
@@ -392,9 +392,9 @@ function SparksPage() {
               onClick={() => selectQuickFilter(f.id)}
               className={cn(
                 "shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition",
-                quickFilter === f.id
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border text-muted-foreground",
+              quickFilter === f.id
+                ? "border border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                : "border border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
               )}
             >
               {f.label}
@@ -735,8 +735,8 @@ function SparkProfileTab() {
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition",
                   active
-                    ? "border-primary bg-primary/15 text-primary"
-                    : "border-border text-muted-foreground",
+                    ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                    : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
                 )}
               >
                 <span>{b.emoji}</span> {t(b.labelKey)}

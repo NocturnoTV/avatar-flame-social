@@ -535,18 +535,35 @@ function MessagesPage() {
 
   async function markAll() {
     if (!user) return;
+    qc.setQueryData<NotificationRow[]>(["notifications", user.id], (current) =>
+      current?.map((notification) => ({ ...notification, read: true })),
+    );
+    qc.setQueryData(["unread-notifications", user.id], 0);
     await supabase
       .from("notifications")
       .update({ read: true })
       .eq("user_id", user.id)
       .eq("read", false);
-    void notifications.refetch();
+    await Promise.all([
+      notifications.refetch(),
+      qc.invalidateQueries({ queryKey: ["unread-notifications", user.id] }),
+      qc.invalidateQueries({ queryKey: ["home-counters", user.id] }),
+    ]);
   }
 
   async function openNotification(notification: NotificationRow) {
     if (!notification.read) {
+      qc.setQueryData<NotificationRow[]>(["notifications", user?.id], (current) =>
+        current?.map((item) => (item.id === notification.id ? { ...item, read: true } : item)),
+      );
       await supabase.from("notifications").update({ read: true }).eq("id", notification.id);
-      void notifications.refetch();
+      if (user) {
+        await Promise.all([
+          notifications.refetch(),
+          qc.invalidateQueries({ queryKey: ["unread-notifications", user.id] }),
+          qc.invalidateQueries({ queryKey: ["home-counters", user.id] }),
+        ]);
+      }
     }
     setShowNotifications(false);
     if (notification.conversation_id) {
@@ -825,7 +842,10 @@ function MessagesPage() {
           {/* Activity */}
           {latestActivity ? (
             <button
-              onClick={() => setShowNotifications(true)}
+              onClick={() => {
+                setShowNotifications(true);
+                void markAll();
+              }}
               className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
             >
               <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#FF3568] text-xl text-white">

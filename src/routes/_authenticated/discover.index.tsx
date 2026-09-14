@@ -116,7 +116,7 @@ function DiscoverPage() {
   });
 
   const feed = useQuery({
-    queryKey: ["feed", tab, following.data?.join(","), pinnedVideoId],
+    queryKey: ["feed", user?.id, tab, following.data?.join(","), pinnedVideoId],
     enabled: !!user && following.isFetched,
     queryFn: async () => {
       let videos: VideoRow[];
@@ -124,9 +124,23 @@ function DiscoverPage() {
         // Personalized ranking - see src/lib/recommendation-engine.server.ts
         const rows = await getPersonalizedFeed({ data: { limit: 30 } });
         videos = rows.map((v) => ({ ...v, thumbnail_path: null }));
+        const { data: ownVideos, error: ownVideosError } = await supabase
+          .from("videos")
+          .select(
+            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
+          )
+          .eq("user_id", user!.id)
+          .eq("visibility", "public")
+          .order("created_at", { ascending: false })
+          .limit(12);
+        if (ownVideosError) throw ownVideosError;
+        const ownIds = new Set((ownVideos ?? []).map((video) => video.id));
+        videos = [
+          ...((ownVideos ?? []) as VideoRow[]),
+          ...videos.filter((video) => !ownIds.has(video.id)),
+        ];
       } else {
-        const ids = following.data ?? [];
-        if (ids.length === 0) return { videos: [] as VideoRow[], profiles: {} };
+        const ids = [...new Set([user!.id, ...(following.data ?? [])])];
         const { data, error } = await supabase
           .from("videos")
           .select(
