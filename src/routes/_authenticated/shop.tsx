@@ -61,7 +61,8 @@ function ShopPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-28 pt-5">
-      <header className="flex items-center gap-3">
+      <PaymentTestModeBanner />
+      <header className="mt-3 flex items-center gap-3">
         <Link to="/home" aria-label={t("back")}>
           <ArrowLeft className="h-5 w-5" />
         </Link>
