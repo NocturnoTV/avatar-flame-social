@@ -16,13 +16,17 @@ type Dict = Record<string, string>;
 const en: Dict = {
   landingShowcaseEyebrow: "Made to feel alive",
   landingShowcaseTitle: "Your whole Roblox world, in one place.",
-  landingShowcaseText: "A profile that feels like you. A feed shaped by your games. A community ready for your next moment.",
+  landingShowcaseText:
+    "A profile that feels like you. A feed shaped by your games. A community ready for your next moment.",
   landingIdentityTitle: "Your Roblox identity, instantly",
-  landingIdentityText: "Connect once and bring your username, avatar and favorite games into a profile that is unmistakably yours.",
+  landingIdentityText:
+    "Connect once and bring your username, avatar and favorite games into a profile that is unmistakably yours.",
   landingFeedTitle: "Discover your next obsession",
-  landingFeedText: "Swipe through videos, stories and creators chosen around the games and communities you already love.",
+  landingFeedText:
+    "Swipe through videos, stories and creators chosen around the games and communities you already love.",
   landingMessagesTitle: "Turn moments into friendships",
-  landingMessagesText: "React, reply, share and talk with the people who understand your Roblox universe.",
+  landingMessagesText:
+    "React, reply, share and talk with the people who understand your Roblox universe.",
   landingJourneyEyebrow: "Easy from the first spark",
   landingJourneyTitle: "From Roblox player to BloxSpark creator in minutes.",
   landingStep1Title: "Connect Roblox",
@@ -36,6 +40,8 @@ const en: Dict = {
   landingHeroText:
     "BloxSpark brings Roblox players together through real profiles, vertical videos, stories, Sparks and conversations that never feel empty.",
   landingJoin: "Join BloxSpark",
+  landingJoinNow: "Join BloxSpark Now",
+  landingCtaEyebrow: "BloxSpark is waiting",
   landingSafe: "Designed for safer connections",
   landingCommunity: "Built around your games",
   landingBuiltFor: "Made for Roblox players",
@@ -320,7 +326,8 @@ const en: Dict = {
   purchasesAndBilling: "Purchases & Billing",
   billingCurrentPlan: "Current plan",
   billingNoSubscription: "You don't have an active subscription.",
-  billingCancelHint: "You can cancel anytime - you'll keep Spark Plus until the end of the period you already paid for.",
+  billingCancelHint:
+    "You can cancel anytime - you'll keep Spark Plus until the end of the period you already paid for.",
   billingInvoices: "Invoices",
   billingNoInvoices: "No invoices yet.",
   billingViewInvoice: "View invoice",
@@ -615,13 +622,17 @@ const en: Dict = {
 const fr: Dict = {
   landingShowcaseEyebrow: "Pensé pour être vivant",
   landingShowcaseTitle: "Tout ton univers Roblox, au même endroit.",
-  landingShowcaseText: "Un profil qui te ressemble. Un fil adapté à tes jeux. Une communauté prête pour ton prochain moment.",
+  landingShowcaseText:
+    "Un profil qui te ressemble. Un fil adapté à tes jeux. Une communauté prête pour ton prochain moment.",
   landingIdentityTitle: "Ton identité Roblox, instantanément",
-  landingIdentityText: "Connecte-toi une fois et retrouve ton pseudo, ton avatar et tes jeux favoris dans un profil vraiment unique.",
+  landingIdentityText:
+    "Connecte-toi une fois et retrouve ton pseudo, ton avatar et tes jeux favoris dans un profil vraiment unique.",
   landingFeedTitle: "Découvre ta prochaine passion",
-  landingFeedText: "Parcours des vidéos, stories et créateurs choisis autour des jeux et communautés que tu aimes.",
+  landingFeedText:
+    "Parcours des vidéos, stories et créateurs choisis autour des jeux et communautés que tu aimes.",
   landingMessagesTitle: "Transforme les moments en amitiés",
-  landingMessagesText: "Réagis, réponds, partage et discute avec ceux qui comprennent ton univers Roblox.",
+  landingMessagesText:
+    "Réagis, réponds, partage et discute avec ceux qui comprennent ton univers Roblox.",
   landingJourneyEyebrow: "Simple dès la première étincelle",
   landingJourneyTitle: "De joueur Roblox à créateur BloxSpark en quelques minutes.",
   landingStep1Title: "Connecte Roblox",
@@ -635,6 +646,8 @@ const fr: Dict = {
   landingHeroText:
     "BloxSpark réunit les joueurs Roblox avec de vrais profils, des vidéos verticales, des stories, des Sparks et des conversations vivantes.",
   landingJoin: "Rejoindre BloxSpark",
+  landingJoinNow: "Rejoindre BloxSpark maintenant",
+  landingCtaEyebrow: "BloxSpark n'attend que toi",
   landingSafe: "Des rencontres plus sûres",
   landingCommunity: "Construit autour de tes jeux",
   landingBuiltFor: "Pensé pour les joueurs Roblox",
@@ -922,7 +935,8 @@ const fr: Dict = {
   purchasesAndBilling: "Achats & Facturation",
   billingCurrentPlan: "Abonnement actuel",
   billingNoSubscription: "Tu n'as pas d'abonnement actif.",
-  billingCancelHint: "Tu peux annuler à tout moment - tu gardes Spark Plus jusqu'à la fin de la période déjà payée.",
+  billingCancelHint:
+    "Tu peux annuler à tout moment - tu gardes Spark Plus jusqu'à la fin de la période déjà payée.",
   billingInvoices: "Factures",
   billingNoInvoices: "Aucune facture pour l'instant.",
   billingViewInvoice: "Voir la facture",
@@ -1219,13 +1233,17 @@ const fr: Dict = {
 const es: Dict = {
   landingShowcaseEyebrow: "Creado para sentirse vivo",
   landingShowcaseTitle: "Todo tu mundo Roblox, en un solo lugar.",
-  landingShowcaseText: "Un perfil que se siente tuyo. Un feed basado en tus juegos. Una comunidad lista para tu próximo momento.",
+  landingShowcaseText:
+    "Un perfil que se siente tuyo. Un feed basado en tus juegos. Una comunidad lista para tu próximo momento.",
   landingIdentityTitle: "Tu identidad Roblox, al instante",
-  landingIdentityText: "Conecta una vez y lleva tu usuario, avatar y juegos favoritos a un perfil inconfundiblemente tuyo.",
+  landingIdentityText:
+    "Conecta una vez y lleva tu usuario, avatar y juegos favoritos a un perfil inconfundiblemente tuyo.",
   landingFeedTitle: "Descubre tu próxima obsesión",
-  landingFeedText: "Explora vídeos, stories y creadores elegidos alrededor de los juegos y comunidades que ya amas.",
+  landingFeedText:
+    "Explora vídeos, stories y creadores elegidos alrededor de los juegos y comunidades que ya amas.",
   landingMessagesTitle: "Convierte momentos en amistades",
-  landingMessagesText: "Reacciona, responde, comparte y habla con quienes entienden tu universo Roblox.",
+  landingMessagesText:
+    "Reacciona, responde, comparte y habla con quienes entienden tu universo Roblox.",
   landingJourneyEyebrow: "Fácil desde la primera chispa",
   landingJourneyTitle: "De jugador Roblox a creador BloxSpark en minutos.",
   landingStep1Title: "Conecta Roblox",
@@ -1239,6 +1257,8 @@ const es: Dict = {
   landingHeroText:
     "BloxSpark reúne a jugadores de Roblox con perfiles reales, vídeos verticales, historias, Sparks y conversaciones vivas.",
   landingJoin: "Unirme a BloxSpark",
+  landingJoinNow: "Unirme a BloxSpark ahora",
+  landingCtaEyebrow: "BloxSpark te espera",
   landingSafe: "Conexiones más seguras",
   landingCommunity: "Creado alrededor de tus juegos",
   landingBuiltFor: "Hecho para jugadores de Roblox",
@@ -1523,7 +1543,8 @@ const es: Dict = {
   purchasesAndBilling: "Compras y Facturación",
   billingCurrentPlan: "Plan actual",
   billingNoSubscription: "No tienes una suscripción activa.",
-  billingCancelHint: "Puedes cancelar cuando quieras - conservas Spark Plus hasta el final del período ya pagado.",
+  billingCancelHint:
+    "Puedes cancelar cuando quieras - conservas Spark Plus hasta el final del período ya pagado.",
   billingInvoices: "Facturas",
   billingNoInvoices: "Aún no hay facturas.",
   billingViewInvoice: "Ver factura",
@@ -1555,7 +1576,8 @@ const es: Dict = {
   shopFaqRenewA:
     "Sí, es una suscripción mensual que se renueva automáticamente hasta que canceles - sin sorpresas, el mismo importe cada mes.",
   shopFaqPaymentQ: "¿Qué métodos de pago se aceptan?",
-  shopFaqPaymentA: "Cualquier tarjeta aceptada por Stripe (Visa, Mastercard, American Express y más).",
+  shopFaqPaymentA:
+    "Cualquier tarjeta aceptada por Stripe (Visa, Mastercard, American Express y más).",
   shopFaqInvoiceQ: "¿Cómo obtengo una factura?",
   shopFaqInvoiceA: "Cada factura está disponible en cualquier momento desde Compras y Facturación.",
   sparkPlusCheckoutUnavailable: "El pago de Spark Plus aún no está configurado.",
@@ -1819,13 +1841,17 @@ const es: Dict = {
 const pt: Dict = {
   landingShowcaseEyebrow: "Feito para ganhar vida",
   landingShowcaseTitle: "Todo o seu mundo Roblox, em um só lugar.",
-  landingShowcaseText: "Um perfil com a sua cara. Um feed moldado pelos seus jogos. Uma comunidade pronta para o próximo momento.",
+  landingShowcaseText:
+    "Um perfil com a sua cara. Um feed moldado pelos seus jogos. Uma comunidade pronta para o próximo momento.",
   landingIdentityTitle: "Sua identidade Roblox, na hora",
-  landingIdentityText: "Conecte uma vez e leve usuário, avatar e jogos favoritos para um perfil que é totalmente seu.",
+  landingIdentityText:
+    "Conecte uma vez e leve usuário, avatar e jogos favoritos para um perfil que é totalmente seu.",
   landingFeedTitle: "Descubra sua próxima paixão",
-  landingFeedText: "Explore vídeos, stories e criadores escolhidos pelos jogos e comunidades que você já ama.",
+  landingFeedText:
+    "Explore vídeos, stories e criadores escolhidos pelos jogos e comunidades que você já ama.",
   landingMessagesTitle: "Transforme momentos em amizades",
-  landingMessagesText: "Reaja, responda, compartilhe e converse com quem entende seu universo Roblox.",
+  landingMessagesText:
+    "Reaja, responda, compartilhe e converse com quem entende seu universo Roblox.",
   landingJourneyEyebrow: "Fácil desde a primeira faísca",
   landingJourneyTitle: "De jogador Roblox a criador BloxSpark em minutos.",
   landingStep1Title: "Conecte o Roblox",
@@ -1839,6 +1865,8 @@ const pt: Dict = {
   landingHeroText:
     "BloxSpark reúne jogadores de Roblox com perfis reais, vídeos verticais, stories, Sparks e conversas vivas.",
   landingJoin: "Entrar no BloxSpark",
+  landingJoinNow: "Entrar no BloxSpark agora",
+  landingCtaEyebrow: "O BloxSpark está esperando",
   landingSafe: "Conexões mais seguras",
   landingCommunity: "Feito ao redor dos seus jogos",
   landingBuiltFor: "Criado para jogadores de Roblox",
@@ -2124,7 +2152,8 @@ const pt: Dict = {
   purchasesAndBilling: "Compras e Faturamento",
   billingCurrentPlan: "Plano atual",
   billingNoSubscription: "Você não tem uma assinatura ativa.",
-  billingCancelHint: "Você pode cancelar quando quiser - mantém o Spark Plus até o fim do período já pago.",
+  billingCancelHint:
+    "Você pode cancelar quando quiser - mantém o Spark Plus até o fim do período já pago.",
   billingInvoices: "Faturas",
   billingNoInvoices: "Nenhuma fatura ainda.",
   billingViewInvoice: "Ver fatura",
@@ -2156,7 +2185,8 @@ const pt: Dict = {
   shopFaqRenewA:
     "Sim, é uma assinatura mensal que renova automaticamente até você cancelar - sem surpresas, o mesmo valor todo mês.",
   shopFaqPaymentQ: "Quais formas de pagamento são aceitas?",
-  shopFaqPaymentA: "Qualquer cartão aceito pela Stripe (Visa, Mastercard, American Express e mais).",
+  shopFaqPaymentA:
+    "Qualquer cartão aceito pela Stripe (Visa, Mastercard, American Express e mais).",
   shopFaqInvoiceQ: "Como recebo uma nota fiscal?",
   shopFaqInvoiceA: "Cada fatura está disponível a qualquer momento em Compras e Faturamento.",
   sparkPlusCheckoutUnavailable: "O pagamento do Spark Plus ainda não está configurado.",
@@ -2419,13 +2449,17 @@ const pt: Dict = {
 const de: Dict = {
   landingShowcaseEyebrow: "Gemacht, um lebendig zu wirken",
   landingShowcaseTitle: "Deine ganze Roblox-Welt an einem Ort.",
-  landingShowcaseText: "Ein Profil wie du. Ein Feed für deine Spiele. Eine Community, bereit für deinen nächsten Moment.",
+  landingShowcaseText:
+    "Ein Profil wie du. Ein Feed für deine Spiele. Eine Community, bereit für deinen nächsten Moment.",
   landingIdentityTitle: "Deine Roblox-Identität, sofort",
-  landingIdentityText: "Einmal verbinden und Benutzername, Avatar und Lieblingsspiele in dein unverwechselbares Profil übernehmen.",
+  landingIdentityText:
+    "Einmal verbinden und Benutzername, Avatar und Lieblingsspiele in dein unverwechselbares Profil übernehmen.",
   landingFeedTitle: "Entdecke deine nächste Leidenschaft",
-  landingFeedText: "Erlebe Videos, Stories und Creator rund um die Spiele und Communities, die du bereits liebst.",
+  landingFeedText:
+    "Erlebe Videos, Stories und Creator rund um die Spiele und Communities, die du bereits liebst.",
   landingMessagesTitle: "Aus Momenten werden Freundschaften",
-  landingMessagesText: "Reagiere, antworte, teile und sprich mit Menschen, die deine Roblox-Welt verstehen.",
+  landingMessagesText:
+    "Reagiere, antworte, teile und sprich mit Menschen, die deine Roblox-Welt verstehen.",
   landingJourneyEyebrow: "Einfach ab dem ersten Spark",
   landingJourneyTitle: "Vom Roblox-Spieler zum BloxSpark-Creator in wenigen Minuten.",
   landingStep1Title: "Roblox verbinden",
@@ -2439,6 +2473,8 @@ const de: Dict = {
   landingHeroText:
     "BloxSpark verbindet Roblox-Spieler mit echten Profilen, vertikalen Videos, Storys, Sparks und lebendigen Gesprächen.",
   landingJoin: "BloxSpark beitreten",
+  landingJoinNow: "Jetzt BloxSpark beitreten",
+  landingCtaEyebrow: "BloxSpark wartet auf dich",
   landingSafe: "Für sichere Kontakte entwickelt",
   landingCommunity: "Rund um deine Spiele gebaut",
   landingBuiltFor: "Für Roblox-Spieler gemacht",
@@ -2714,7 +2750,8 @@ const de: Dict = {
   supportUrgentTitle: "Brauchst du sofort Hilfe?",
   supportUrgentText: "Unser Team ist für dich da.",
   supportCreateNewTicket: "Neues Ticket erstellen →",
-  supportTicketValidation: "Füge einen Betreff und eine Beschreibung mit mindestens 10 Zeichen hinzu.",
+  supportTicketValidation:
+    "Füge einen Betreff und eine Beschreibung mit mindestens 10 Zeichen hinzu.",
   supportTicketSent: "Ticket gesendet. Unser Team meldet sich bald bei dir.",
   sparkPlusHero:
     "Heb dich mit mehr Profiloptionen und zusätzlicher Reichweite für deine besten Inhalte ab.",
@@ -2726,7 +2763,8 @@ const de: Dict = {
   purchasesAndBilling: "Käufe & Abrechnung",
   billingCurrentPlan: "Aktuelles Abo",
   billingNoSubscription: "Du hast kein aktives Abo.",
-  billingCancelHint: "Du kannst jederzeit kündigen - du behältst Spark Plus bis zum Ende des bereits bezahlten Zeitraums.",
+  billingCancelHint:
+    "Du kannst jederzeit kündigen - du behältst Spark Plus bis zum Ende des bereits bezahlten Zeitraums.",
   billingInvoices: "Rechnungen",
   billingNoInvoices: "Noch keine Rechnungen.",
   billingViewInvoice: "Rechnung ansehen",
@@ -2758,7 +2796,8 @@ const de: Dict = {
   shopFaqRenewA:
     "Ja, es ist ein monatliches Abo, das sich automatisch verlängert, bis du kündigst - keine Überraschungen, derselbe Betrag jeden Monat.",
   shopFaqPaymentQ: "Welche Zahlungsmethoden werden akzeptiert?",
-  shopFaqPaymentA: "Jede von Stripe akzeptierte Karte (Visa, Mastercard, American Express und mehr).",
+  shopFaqPaymentA:
+    "Jede von Stripe akzeptierte Karte (Visa, Mastercard, American Express und mehr).",
   shopFaqInvoiceQ: "Wie bekomme ich eine Rechnung?",
   shopFaqInvoiceA: "Jede Rechnung ist jederzeit unter Käufe & Abrechnung verfügbar.",
   sparkPlusCheckoutUnavailable: "Spark Plus-Zahlung ist noch nicht eingerichtet.",
@@ -3024,11 +3063,14 @@ const de: Dict = {
 const ko: Dict = {
   landingShowcaseEyebrow: "살아 움직이도록 설계",
   landingShowcaseTitle: "나의 Roblox 세계를 한곳에.",
-  landingShowcaseText: "나다운 프로필, 좋아하는 게임에 맞춘 피드, 다음 순간을 함께할 커뮤니티를 만나보세요.",
+  landingShowcaseText:
+    "나다운 프로필, 좋아하는 게임에 맞춘 피드, 다음 순간을 함께할 커뮤니티를 만나보세요.",
   landingIdentityTitle: "Roblox 정체성을 즉시 연결",
-  landingIdentityText: "한 번 연결하면 사용자 이름, 아바타, 좋아하는 게임이 나만의 프로필에 자동으로 표시됩니다.",
+  landingIdentityText:
+    "한 번 연결하면 사용자 이름, 아바타, 좋아하는 게임이 나만의 프로필에 자동으로 표시됩니다.",
   landingFeedTitle: "새로운 최애를 발견하세요",
-  landingFeedText: "좋아하는 게임과 커뮤니티를 중심으로 선택된 영상, 스토리, 크리에이터를 만나보세요.",
+  landingFeedText:
+    "좋아하는 게임과 커뮤니티를 중심으로 선택된 영상, 스토리, 크리에이터를 만나보세요.",
   landingMessagesTitle: "순간을 우정으로",
   landingMessagesText: "Roblox 세계를 이해하는 사람들과 반응하고, 답하고, 공유하고, 대화하세요.",
   landingJourneyEyebrow: "첫 Spark부터 간편하게",
@@ -3044,6 +3086,8 @@ const ko: Dict = {
   landingHeroText:
     "BloxSpark는 실제 프로필, 세로 영상, 스토리, Sparks와 생생한 대화로 Roblox 플레이어를 연결합니다.",
   landingJoin: "BloxSpark 시작하기",
+  landingJoinNow: "지금 BloxSpark 시작하기",
+  landingCtaEyebrow: "BloxSpark가 기다리고 있어요",
   landingSafe: "더 안전한 연결을 위한 설계",
   landingCommunity: "좋아하는 게임 중심의 커뮤니티",
   landingBuiltFor: "Roblox 플레이어를 위해",
@@ -3327,7 +3371,8 @@ const ko: Dict = {
   purchasesAndBilling: "구매 및 결제",
   billingCurrentPlan: "현재 플랜",
   billingNoSubscription: "활성화된 구독이 없습니다.",
-  billingCancelHint: "언제든지 해지할 수 있습니다 - 이미 결제한 기간이 끝날 때까지 Spark Plus를 유지합니다.",
+  billingCancelHint:
+    "언제든지 해지할 수 있습니다 - 이미 결제한 기간이 끝날 때까지 Spark Plus를 유지합니다.",
   billingInvoices: "영수증",
   billingNoInvoices: "아직 영수증이 없습니다.",
   billingViewInvoice: "영수증 보기",
@@ -3356,7 +3401,8 @@ const ko: Dict = {
   shopFaqCustomizationA:
     "선택한 항목(폰트, 발광 효과, 배너, 채팅 말풍선)은 계정에 저장되지만 더 이상 적용되지 않습니다 - 모두에게 기본 스타일이 다시 보입니다. 언제든 다시 구독하면 즉시 복원됩니다.",
   shopFaqRenewQ: "자동으로 갱신되나요?",
-  shopFaqRenewA: "네, 해지할 때까지 매달 자동으로 갱신되는 구독입니다 - 매달 동일한 금액이 청구됩니다.",
+  shopFaqRenewA:
+    "네, 해지할 때까지 매달 자동으로 갱신되는 구독입니다 - 매달 동일한 금액이 청구됩니다.",
   shopFaqPaymentQ: "어떤 결제 수단을 사용할 수 있나요?",
   shopFaqPaymentA: "Stripe에서 지원하는 모든 카드(Visa, Mastercard, American Express 등).",
   shopFaqInvoiceQ: "영수증은 어떻게 받나요?",
