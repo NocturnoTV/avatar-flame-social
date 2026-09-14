@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   BarChart3,
   Bell,
+  CheckCircle2,
   Coins,
   Crown,
   Eye,
@@ -24,6 +25,7 @@ import {
   Repeat,
   ScrollText,
   Search,
+  Send,
   ShieldCheck,
   TrendingUp,
   Trash2,
@@ -56,6 +58,7 @@ import {
 import { ageFrom } from "@/lib/decorations";
 import { uploadFile } from "@/lib/media";
 import { NEWS_CATEGORIES, slugify } from "@/lib/newsCategories";
+import { staffReplyToTicket } from "@/lib/support-tickets.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -684,14 +687,34 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
             </div>
 
             <nav className="no-scrollbar sticky top-0 z-10 -mx-1 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-background/95 p-2 backdrop-blur">
-              {[
-                ["member-identity", "Identity"], ["member-moderation", "Moderation"],
-                ["member-benefits", "Benefits"], ["member-content", "Videos"],
-                ["member-activity", "Activity"], ["member-audit", "Audit log"],
-              ].map(([id, label]) => <button key={id} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })} className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:border-primary hover:text-primary">{label}</button>)}
+              {(
+                [
+                  ["member-identity", "Identity"],
+                  ["member-moderation", "Moderation"],
+                  ["member-benefits", "Benefits"],
+                  ["member-content", "Videos"],
+                  ["member-activity", "Activity"],
+                  ["member-audit", "Audit log"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() =>
+                    document
+                      .getElementById(id)
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:border-primary hover:text-primary"
+                >
+                  {label}
+                </button>
+              ))}
             </nav>
 
-            <section id="member-identity" className="scroll-mt-20 space-y-2 rounded-2xl bg-surface p-3 text-xs">
+            <section
+              id="member-identity"
+              className="scroll-mt-20 space-y-2 rounded-2xl bg-surface p-3 text-xs"
+            >
               <p className="flex items-center justify-between">
                 <span className="text-muted-foreground">Signed up</span>
                 <span className="font-semibold">
@@ -804,7 +827,10 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
             </section>
 
             {isAdmin ? (
-              <section id="member-benefits" className="scroll-mt-20 space-y-3 border-t border-border pt-4">
+              <section
+                id="member-benefits"
+                className="scroll-mt-20 space-y-3 border-t border-border pt-4"
+              >
                 <h3 className="flex items-center gap-2 font-black">
                   <Crown className="h-4 w-4 text-primary" /> Bloxspark Plus
                 </h3>
@@ -854,11 +880,24 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                   <Coins className="h-4 w-4 text-cyan-500" /> Blox wallet
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Current balance: <strong className="text-foreground">{Number(selected.bloxBalance ?? 0).toLocaleString()} Blox</strong>. Every grant is added to the ledger, audit log and user notifications.
+                  Current balance:{" "}
+                  <strong className="text-foreground">
+                    {Number(selected.bloxBalance ?? 0).toLocaleString()} Blox
+                  </strong>
+                  . Every grant is added to the ledger, audit log and user notifications.
                 </p>
                 <div className="flex gap-2">
-                  <Input type="number" min={1} max={1000000} value={bloxAmount} onChange={(event) => setBloxAmount(event.target.value)} />
-                  <Button disabled={busy || Number(bloxAmount) < 1} onClick={() => act("grant_blox", bloxAmount)}>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={1000000}
+                    value={bloxAmount}
+                    onChange={(event) => setBloxAmount(event.target.value)}
+                  />
+                  <Button
+                    disabled={busy || Number(bloxAmount) < 1}
+                    onClick={() => act("grant_blox", bloxAmount)}
+                  >
                     <Plus className="mr-1 h-4 w-4" /> Grant Blox
                   </Button>
                 </div>
@@ -1046,6 +1085,7 @@ type SupportTicket = {
   handled_at: string | null;
   page_url: string | null;
   created_at: string;
+  last_activity_at: string;
   reporter?: { id: string; username: string | null; avatar_url: string | null } | null;
 };
 
@@ -1054,12 +1094,16 @@ function Tickets() {
   const [filter, setFilter] = useState("open");
   const [selected, setSelected] = useState<SupportTicket | null>(null);
   const [note, setNote] = useState("");
+  const [reply, setReply] = useState("");
+  const [replying, setReplying] = useState(false);
   const tickets = useQuery({
     queryKey: ["admin-support-tickets"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bug_reports")
-        .select("id,reporter_id,title,description,category,severity,status,moderator_note,handled_by,handled_at,page_url,created_at")
+        .select(
+          "id,reporter_id,title,description,category,severity,status,moderator_note,handled_by,handled_at,page_url,created_at,last_activity_at",
+        )
         .order("created_at", { ascending: false });
       if (error) throw error;
       const ids = [...new Set((data ?? []).map((ticket) => ticket.reporter_id))];
@@ -1067,9 +1111,44 @@ function Tickets() {
         ? await supabase.from("profiles").select("id,username,avatar_url").in("id", ids)
         : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] };
       const people = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
-      return (data ?? []).map((ticket) => ({ ...ticket, reporter: people.get(ticket.reporter_id) ?? null }));
+      return (data ?? []).map((ticket) => ({
+        ...ticket,
+        reporter: people.get(ticket.reporter_id) ?? null,
+      }));
     },
   });
+
+  const messages = useQuery({
+    queryKey: ["admin-ticket-messages", selected?.id],
+    enabled: !!selected,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("support_ticket_messages")
+        .select("id,author_id,body,is_staff,created_at")
+        .eq("ticket_id", selected!.id)
+        .order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function sendReply(status?: "in_progress" | "resolved") {
+    if (!selected || !reply.trim() || replying) return;
+    setReplying(true);
+    try {
+      const result = await staffReplyToTicket({
+        data: { ticketId: selected.id, message: reply.trim(), status },
+      });
+      setReply("");
+      toast.success(result.emailSent ? "Reply sent and member emailed" : "Reply sent");
+      await Promise.all([messages.refetch(), tickets.refetch()]);
+      setSelected((current) => (current ? { ...current, status: result.status } : current));
+    } catch (error) {
+      toast.error(errorMessage(error, "Unable to send the reply"));
+    } finally {
+      setReplying(false);
+    }
+  }
 
   async function updateTicket(status: string) {
     if (!selected || !user) return;
@@ -1082,7 +1161,10 @@ function Tickets() {
         handled_at: new Date().toISOString(),
       })
       .eq("id", selected.id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     await supabase.from("admin_audit_log").insert({
       admin_id: user.id,
       action: "update_support_ticket",
@@ -1097,40 +1179,267 @@ function Tickets() {
   }
 
   const rows = (tickets.data ?? []).filter((ticket) =>
-    filter === "all" ? true : filter === "open" ? !["resolved", "wont_fix"].includes(ticket.status) : ticket.status === filter,
+    filter === "all"
+      ? true
+      : filter === "open"
+        ? !["resolved", "wont_fix"].includes(ticket.status)
+        : ticket.status === filter,
   );
+  const allTickets = tickets.data ?? [];
+  const openCount = allTickets.filter(
+    (ticket) => !["resolved", "wont_fix"].includes(ticket.status),
+  ).length;
+  const resolvedCount = allTickets.filter((ticket) => ticket.status === "resolved").length;
+  const criticalCount = allTickets.filter(
+    (ticket) =>
+      ["critical", "high"].includes(ticket.severity) &&
+      !["resolved", "wont_fix"].includes(ticket.status),
+  ).length;
+  const resolutionRate = allTickets.length
+    ? Math.round((resolvedCount / allTickets.length) * 100)
+    : 0;
+  const dailyVolume = Array.from({ length: 7 }, (_, offset) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - offset));
+    const key = date.toISOString().slice(0, 10);
+    return {
+      key,
+      label: date.toLocaleDateString("en", { weekday: "short" }),
+      count: allTickets.filter((ticket) => ticket.created_at.slice(0, 10) === key).length,
+    };
+  });
+  const maxDaily = Math.max(1, ...dailyVolume.map((day) => day.count));
 
   return (
     <div className="space-y-4">
       <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Support inbox</p>
         <h2 className="mt-1 text-2xl font-black">Tickets</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Priority is assigned automatically from the category and safety signals. Admin and moderator actions are logged.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Priority is assigned automatically from the category and safety signals. Admin and
+          moderator actions are logged.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          ["Open", openCount, "text-primary"],
+          ["High priority", criticalCount, "text-amber-500"],
+          ["Resolved", resolvedCount, "text-emerald-500"],
+          ["Resolution rate", `${resolutionRate}%`, "text-fuchsia-500"],
+        ].map(([label, value, color]) => (
+          <div key={label} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+            <p className="text-xs font-bold text-muted-foreground">{label}</p>
+            <p className={cn("mt-1 text-2xl font-black", color)}>{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-3xl border border-border bg-card p-5">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="font-black">Ticket volume</p>
+            <p className="text-xs text-muted-foreground">New requests over the last 7 days</p>
+          </div>
+          <BarChart3 className="h-5 w-5 text-primary" />
+        </div>
+        <div className="mt-5 flex h-32 items-end gap-2">
+          {dailyVolume.map((day) => (
+            <div
+              key={day.key}
+              className="flex h-full flex-1 flex-col items-center justify-end gap-1.5"
+            >
+              <span className="text-[10px] font-bold text-muted-foreground">{day.count}</span>
+              <div
+                className="w-full rounded-t-xl bg-gradient-to-t from-violet-700 to-fuchsia-400 transition-all"
+                style={{ height: `${Math.max(8, (day.count / maxDaily) * 92)}px` }}
+              />
+              <span className="text-[10px] text-muted-foreground">{day.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
       <div className="no-scrollbar flex gap-2 overflow-x-auto">
         {["open", "pending", "in_progress", "resolved", "wont_fix", "all"].map((value) => (
-          <button key={value} onClick={() => setFilter(value)} className={cn("rounded-full px-4 py-2 text-sm font-bold", filter === value ? "bg-primary text-primary-foreground" : "border border-border bg-card text-foreground")}>{value.replace("_", " ")}</button>
+          <button
+            key={value}
+            onClick={() => setFilter(value)}
+            className={cn(
+              "rounded-full px-4 py-2 text-sm font-bold",
+              filter === value
+                ? "bg-primary text-primary-foreground"
+                : "border border-border bg-card text-foreground",
+            )}
+          >
+            {value.replace("_", " ")}
+          </button>
         ))}
       </div>
       <div className="space-y-2">
         {rows.map((ticket) => (
-          <button key={ticket.id} onClick={() => { setSelected(ticket); setNote(ticket.moderator_note ?? ""); }} className="w-full rounded-3xl border border-border bg-card p-4 text-left transition hover:border-primary/40">
+          <button
+            key={ticket.id}
+            onClick={() => {
+              setSelected(ticket);
+              setNote(ticket.moderator_note ?? "");
+            }}
+            className="w-full rounded-3xl border border-border bg-card p-4 text-left transition hover:border-primary/40"
+          >
             <div className="flex items-start gap-3">
-              <StoredImage path={ticket.reporter?.avatar_url ?? null} alt="" className="h-11 w-11 rounded-full" fallback="?" />
-              <div className="min-w-0 flex-1"><p className="font-black">{ticket.title}</p><p className="text-xs text-muted-foreground">@{ticket.reporter?.username ?? "unknown"} · {ticket.category.replace("_", " ")} · {new Date(ticket.created_at).toLocaleString()}</p><p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{ticket.description}</p></div>
-              <span className={cn("rounded-full px-2 py-1 text-[10px] font-black uppercase", ticket.severity === "critical" ? "bg-destructive/15 text-destructive" : ticket.severity === "high" ? "bg-amber-500/15 text-amber-600" : "bg-primary/10 text-primary")}>{ticket.severity}</span>
+              <StoredImage
+                path={ticket.reporter?.avatar_url ?? null}
+                alt=""
+                className="h-11 w-11 rounded-full"
+                fallback="?"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="font-black">{ticket.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  @{ticket.reporter?.username ?? "unknown"} · {ticket.category.replace("_", " ")} ·{" "}
+                  {new Date(ticket.created_at).toLocaleString()}
+                </p>
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                  {ticket.description}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-1 text-[10px] font-black uppercase",
+                  ticket.severity === "critical"
+                    ? "bg-destructive/15 text-destructive"
+                    : ticket.severity === "high"
+                      ? "bg-amber-500/15 text-amber-600"
+                      : "bg-primary/10 text-primary",
+                )}
+              >
+                {ticket.severity}
+              </span>
             </div>
           </button>
         ))}
-        {!rows.length ? <p className="py-12 text-center text-sm text-muted-foreground">No ticket in this queue.</p> : null}
+        {!rows.length ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            No ticket in this queue.
+          </p>
+        ) : null}
       </div>
-      <Sheet open={!!selected} onClose={() => setSelected(null)} title={selected?.title ?? "Ticket"}>
-        {selected ? <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2 text-xs">{[["Category", selected.category], ["Automatic priority", selected.severity], ["Status", selected.status], ["Created", new Date(selected.created_at).toLocaleString()]].map(([label, value]) => <div key={label} className="rounded-2xl bg-surface p-3"><p className="text-muted-foreground">{label}</p><p className="mt-1 font-bold">{value}</p></div>)}</div>
-          <div className="rounded-2xl border border-border bg-card p-4"><p className="whitespace-pre-wrap text-sm leading-relaxed">{selected.description}</p>{selected.page_url ? <a href={selected.page_url} target="_blank" rel="noreferrer" className="mt-3 block break-all text-xs text-primary">{selected.page_url}</a> : null}</div>
-          <Textarea rows={5} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Internal handling note and response summary" />
-          <div className="grid grid-cols-2 gap-2"><Button variant="outline" onClick={() => void updateTicket("in_progress")}>Take ownership</Button><Button onClick={() => void updateTicket("resolved")}>Resolve</Button><Button variant="outline" onClick={() => void updateTicket("pending")}>Return to pending</Button><Button variant="danger" onClick={() => void updateTicket("wont_fix")}>Close without action</Button></div>
-        </div> : null}
+      <Sheet
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected?.title ?? "Ticket"}
+      >
+        {selected ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {[
+                ["Category", selected.category],
+                ["Automatic priority", selected.severity],
+                ["Status", selected.status],
+                ["Created", new Date(selected.created_at).toLocaleString()],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl bg-surface p-3">
+                  <p className="text-muted-foreground">{label}</p>
+                  <p className="mt-1 font-bold">{value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <p className="mb-2 text-xs font-black uppercase tracking-wide text-primary">
+                Initial request
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{selected.description}</p>
+              {selected.page_url ? (
+                <a
+                  href={selected.page_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block break-all text-xs text-primary"
+                >
+                  {selected.page_url}
+                </a>
+              ) : null}
+            </div>
+            <div className="max-h-72 space-y-3 overflow-y-auto rounded-2xl bg-surface p-3">
+              {(messages.data ?? []).length === 0 ? (
+                <p className="py-5 text-center text-xs text-muted-foreground">
+                  No replies yet. Start the conversation below.
+                </p>
+              ) : (
+                (messages.data ?? []).map((message) => (
+                  <div
+                    key={message.id}
+                    className={cn("flex", message.is_staff ? "justify-end" : "justify-start")}
+                  >
+                    <div
+                      className={cn(
+                        "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm",
+                        message.is_staff
+                          ? "rounded-br-md bg-primary text-primary-foreground"
+                          : "rounded-bl-md border border-border bg-card",
+                      )}
+                    >
+                      <p className="whitespace-pre-wrap">{message.body}</p>
+                      <p
+                        className={cn(
+                          "mt-1 text-[10px]",
+                          message.is_staff ? "text-primary-foreground/70" : "text-muted-foreground",
+                        )}
+                      >
+                        {message.is_staff
+                          ? "BloxSpark Support"
+                          : `@${selected.reporter?.username ?? "member"}`}{" "}
+                        · {new Date(message.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3">
+              <Textarea
+                rows={4}
+                value={reply}
+                onChange={(event) => setReply(event.target.value)}
+                placeholder="Write a detailed reply to the member…"
+              />
+              <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Mail className="h-3.5 w-3.5" /> The member receives an automatic detailed email for
+                every reply.
+              </p>
+              <div className="mt-3 flex flex-wrap justify-end gap-2">
+                <Button
+                  variant="outline"
+                  disabled={!reply.trim() || replying}
+                  onClick={() => void sendReply("in_progress")}
+                >
+                  <Send className="h-4 w-4" /> Send reply
+                </Button>
+                <Button
+                  disabled={!reply.trim() || replying}
+                  onClick={() => void sendReply("resolved")}
+                >
+                  <CheckCircle2 className="h-4 w-4" /> Reply and resolve
+                </Button>
+              </div>
+            </div>
+            <Textarea
+              rows={5}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Internal handling note and response summary"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={() => void updateTicket("in_progress")}>
+                Take ownership
+              </Button>
+              <Button onClick={() => void updateTicket("resolved")}>Resolve</Button>
+              <Button variant="outline" onClick={() => void updateTicket("pending")}>
+                Return to pending
+              </Button>
+              <Button variant="danger" onClick={() => void updateTicket("wont_fix")}>
+                Close without action
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Sheet>
     </div>
   );

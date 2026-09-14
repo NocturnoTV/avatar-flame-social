@@ -91,6 +91,7 @@ export type Database = {
           handled_at: string | null
           handled_by: string | null
           id: string
+          last_activity_at: string
           moderator_note: string | null
           page_url: string | null
           reporter_id: string
@@ -105,6 +106,7 @@ export type Database = {
           handled_at?: string | null
           handled_by?: string | null
           id?: string
+          last_activity_at?: string
           moderator_note?: string | null
           page_url?: string | null
           reporter_id: string
@@ -119,12 +121,40 @@ export type Database = {
           handled_at?: string | null
           handled_by?: string | null
           id?: string
+          last_activity_at?: string
           moderator_note?: string | null
           page_url?: string | null
           reporter_id?: string
           severity?: string
           status?: string
           title?: string
+        }
+        Relationships: []
+      }
+      support_ticket_messages: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          is_staff: boolean
+          ticket_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          ticket_id?: string
         }
         Relationships: []
       }
