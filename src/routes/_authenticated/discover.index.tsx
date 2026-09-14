@@ -22,6 +22,7 @@ import {
   Send,
   SlidersHorizontal,
   Smile,
+  Sparkles,
   ThumbsDown,
   Volume2,
   VolumeX,
@@ -339,6 +340,18 @@ function DiscoverPage() {
               />
             );
           })}
+          <div className="flex h-full w-full snap-start snap-always items-center justify-center bg-background px-8 text-center">
+            <div className="space-y-4">
+              <Sparkles className="mx-auto h-12 w-12 text-primary" />
+              <div>
+                <p className="text-lg font-black text-foreground">{t("feedEndTitle")}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t("feedEndSubtitle")}</p>
+              </div>
+              <Link to="/discover/studio">
+                <Button>{t("publishVideo")}</Button>
+              </Link>
+            </div>
+          </div>
         </div>
       )}
 

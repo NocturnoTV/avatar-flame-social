@@ -80,6 +80,7 @@ type Weights = {
   follow: number;
   creatorAffinity: number;
   topicAffinity: number;
+  language: number;
 };
 
 type EngineConfig = {
@@ -91,14 +92,19 @@ type EngineConfig = {
 
 const FALLBACK_CONFIG: EngineConfig = {
   weights: {
-    watch: 0.3,
-    completion: 0.2,
-    like: 0.15,
-    comment: 0.1,
-    share: 0.1,
+    watch: 0.28,
+    completion: 0.18,
+    like: 0.14,
+    comment: 0.09,
+    share: 0.09,
     follow: 0.05,
     creatorAffinity: 0.05,
-    topicAffinity: 0.05,
+    topicAffinity: 0.04,
+    // Videos from a creator whose profile language matches the viewer's own
+    // are heavily favored - the catalog has no per-video language field, so
+    // the creator's profile language is used as a proxy (section: "aussi en
+    // fonction de la langue").
+    language: 0.08,
   },
   freshnessHalfLifeHours: 36,
   affinityHalfLifeDays: 45,
@@ -180,6 +186,19 @@ export async function getUserCreatorAffinity(
         timeDecay(row.affinity, row.updated_at, config.affinityHalfLifeDays, NEUTRAL_AFFINITY),
       ),
     );
+  }
+  return map;
+}
+
+/** Language of each creator's profile, scoped to a set of ids (section:
+ * language-aware recommendations). Used as a proxy for "video language"
+ * since videos don't carry their own language field. */
+export async function getCreatorLanguages(creatorIds: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (creatorIds.length === 0) return map;
+  const { data } = await supabaseAdmin.from("profiles").select("id,language").in("id", creatorIds);
+  for (const row of data ?? []) {
+    if (row.language) map.set(row.id, row.language);
   }
   return map;
 }
@@ -406,6 +425,8 @@ export async function calculateVideoScore(
     creatorAffinity: Map<string, number>;
     stats: Map<string, VideoStats>;
     followingIds: Set<string>;
+    creatorLanguages: Map<string, string>;
+    viewerLanguage: string | null;
   },
 ): Promise<ScoredVideo> {
   const stats =
@@ -437,6 +458,19 @@ export async function calculateVideoScore(
   const predictedShare = clamp01(shareRatio * 8 * (0.5 + 0.5 * topicAffinity));
   const predictedFollow = ctx.followingIds.has(video.user_id) ? 0 : clamp01(creatorAffinity * 0.8);
 
+  // Language match (proxy: the creator's profile language). Unknown creator
+  // language gets partial credit rather than being punished outright, and a
+  // mismatch still gets a little so a thin same-language catalog doesn't
+  // starve the feed entirely.
+  const creatorLanguage = ctx.creatorLanguages.get(video.user_id);
+  const languageMatch = !ctx.viewerLanguage
+    ? 1
+    : !creatorLanguage
+      ? 0.6
+      : creatorLanguage === ctx.viewerLanguage
+        ? 1
+        : 0.25;
+
   const w = ctx.config.weights;
   const score =
     w.watch * predictedWatch +
@@ -446,7 +480,8 @@ export async function calculateVideoScore(
     w.share * predictedShare +
     w.follow * predictedFollow +
     w.creatorAffinity * creatorAffinity +
-    w.topicAffinity * topicAffinity;
+    w.topicAffinity * topicAffinity +
+    w.language * languageMatch;
 
   const reason: ScoredVideo["reason"] = ctx.followingIds.has(video.user_id)
     ? "following"
@@ -551,17 +586,29 @@ export function applyExploration(
 
 export async function rankVideos(userId: string, candidates: Candidate[], limit: number) {
   const config = await getEngineConfig();
-  const [followsRes, topicProfile] = await Promise.all([
+  const [followsRes, topicProfile, viewerRes] = await Promise.all([
     supabaseAdmin.from("follows").select("following_id").eq("follower_id", userId),
     getUserInterestProfile(userId),
+    supabaseAdmin.from("profiles").select("language").eq("id", userId).maybeSingle(),
   ]);
   const followingIds = new Set((followsRes.data ?? []).map((f) => f.following_id));
-  const creatorAffinity = await getUserCreatorAffinity(userId, [
-    ...new Set(candidates.map((c) => c.user_id)),
+  const creatorIds = [...new Set(candidates.map((c) => c.user_id))];
+  const [creatorAffinity, creatorLanguages] = await Promise.all([
+    getUserCreatorAffinity(userId, creatorIds),
+    getCreatorLanguages(creatorIds),
   ]);
   const stats = await getVideoStats(candidates.map((c) => c.id));
+  const viewerLanguage = viewerRes.data?.language ?? null;
 
-  const ctx = { config, topicProfile, creatorAffinity, stats, followingIds };
+  const ctx = {
+    config,
+    topicProfile,
+    creatorAffinity,
+    stats,
+    followingIds,
+    creatorLanguages,
+    viewerLanguage,
+  };
   const scored = await Promise.all(
     candidates.map((video) => calculateVideoScore(userId, video, ctx)),
   );

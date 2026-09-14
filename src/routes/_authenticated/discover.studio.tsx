@@ -29,6 +29,7 @@ import { useSession } from "@/lib/session";
 import { Button, Card, Input, Label } from "@/components/ui-kit";
 import { uploadFile } from "@/lib/media";
 import { useSignedUrl } from "@/components/Media";
+import { useI18n } from "@/lib/i18n";
 import { getCreatorAnalytics } from "@/lib/creator-analytics.functions";
 import { formatCount } from "./discover.index";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ type Point = { date: string; views: number; likes: number; retention: number };
 
 function StudioPage() {
   const { user } = useSession();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("stats");
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -94,18 +96,22 @@ function StudioPage() {
     sum("reposts_count") +
     sum("shares_count");
   const stats = [
-    ["Total views", views, Eye],
-    ["Unique viewers", analytics.data?.uniqueViewers ?? 0, Users],
-    ["Likes", likes, Heart],
-    ["Comments", sum("comments_count"), MessageCircle],
+    [t("studioTotalViews"), views, Eye],
+    [t("studioUniqueViewers"), analytics.data?.uniqueViewers ?? 0, Users],
+    [t("studioLikes"), likes, Heart],
+    [t("comments"), sum("comments_count"), MessageCircle],
     [
-      "Average retention",
+      t("studioAvgRetention"),
       Math.round((analytics.data?.averageRetention ?? 0) * 100) + "%",
       TrendingUp,
     ],
-    ["Completion rate", Math.round((analytics.data?.completionRate ?? 0) * 100) + "%", Play],
-    ["Average watch time", formatWatchTime(analytics.data?.averageWatchMs ?? 0), Clock3],
-    ["Followers", followers.data ?? 0, UsersRound],
+    [
+      t("studioCompletionRate"),
+      Math.round((analytics.data?.completionRate ?? 0) * 100) + "%",
+      Play,
+    ],
+    [t("studioAvgWatchTime"), formatWatchTime(analytics.data?.averageWatchMs ?? 0), Clock3],
+    [t("followers"), followers.data ?? 0, UsersRound],
   ] as const;
   const refresh = () => {
     setUploadOpen(false);
@@ -121,26 +127,26 @@ function StudioPage() {
       <header className="mb-7 flex items-center gap-3">
         <Link
           to="/discover"
-          aria-label="Back"
+          aria-label={t("back")}
           className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-black">Creator Studio</h1>
-          <p className="text-sm text-muted-foreground">Performance, content, and audience.</p>
+          <h1 className="truncate text-2xl font-black">{t("creatorStudio")}</h1>
+          <p className="text-sm text-muted-foreground">{t("studioSubtitle")}</p>
         </div>
         <Button onClick={() => setUploadOpen(true)}>
           <Upload className="h-4 w-4" />
-          <span className="hidden sm:inline">Post a video</span>
+          <span className="hidden sm:inline">{t("publishVideo")}</span>
         </Button>
       </header>
       <nav className="mb-6 grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1">
         {(
           [
-            ["stats", "Analytics", BarChart3],
-            ["videos", "Content", VideoIcon],
-            ["earnings", "Earnings", WalletCards],
+            ["stats", t("studioTabAnalytics"), BarChart3],
+            ["videos", t("studioTabContent"), VideoIcon],
+            ["earnings", t("studioTabEarnings"), WalletCards],
           ] as const
         ).map(([value, label, Icon]) => (
           <button
@@ -171,41 +177,44 @@ function StudioPage() {
           </section>
           <section className="grid gap-5 lg:grid-cols-2">
             <Chart
-              title="Views"
-              subtitle="Last 14 days"
+              title={t("studioTotalViews")}
+              subtitle={t("studioLast14Days")}
               points={analytics.data?.daily ?? []}
               metric="views"
               color="#168bff"
             />
             <Chart
-              title="Audience retention"
-              subtitle="Average percentage watched"
+              title={t("studioAudienceRetention")}
+              subtitle={t("studioAvgPercentWatched")}
               points={analytics.data?.daily ?? []}
               metric="retention"
               color="#8b5cf6"
               percent
             />
             <Chart
-              title="Likes"
-              subtitle="Last 14 days"
+              title={t("studioLikes")}
+              subtitle={t("studioLast14Days")}
               points={analytics.data?.daily ?? []}
               metric="likes"
               color="#ec4899"
             />
             <Card className="p-5">
-              <p className="font-black">Performance details</p>
+              <p className="font-black">{t("studioPerformanceDetails")}</p>
               <div className="mt-5 space-y-4">
                 <Progress
-                  label="Completed views"
+                  label={t("studioCompletedViews")}
                   value={(analytics.data?.completionRate ?? 0) * 100}
                 />
-                <Progress label="Skipped early" value={(analytics.data?.skipRate ?? 0) * 100} />
+                <Progress
+                  label={t("studioSkippedEarly")}
+                  value={(analytics.data?.skipRate ?? 0) * 100}
+                />
                 <p className="flex justify-between border-t border-border pt-4 text-sm">
-                  <span className="text-muted-foreground">Replays</span>
+                  <span className="text-muted-foreground">{t("studioReplays")}</span>
                   <b>{formatCount(analytics.data?.replays ?? 0)}</b>
                 </p>
                 <p className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Engagement</span>
+                  <span className="text-muted-foreground">{t("studioEngagement")}</span>
                   <b>{views ? ((interactions / views) * 100).toFixed(1) : "0.0"}%</b>
                 </p>
               </div>
@@ -218,9 +227,9 @@ function StudioPage() {
           {!rows.length ? (
             <Card className="col-span-full py-14 text-center">
               <VideoIcon className="mx-auto h-8 w-8 text-muted-foreground" />
-              <p className="mt-3 font-bold">No videos yet</p>
+              <p className="mt-3 font-bold">{t("studioNoVideosYet")}</p>
               <Button className="mt-4" onClick={() => setUploadOpen(true)}>
-                Post your first video
+                {t("studioPostFirstVideo")}
               </Button>
             </Card>
           ) : (
@@ -236,11 +245,11 @@ function StudioPage() {
               <WalletCards className="h-8 w-8" />
             </span>
             <span className="mt-6 inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-black uppercase tracking-[.2em] text-primary">
-              Coming soon
+              {t("comingSoon")}
             </span>
-            <h2 className="mt-4 text-3xl font-black">Creator earnings</h2>
+            <h2 className="mt-4 text-3xl font-black">{t("studioCreatorEarnings")}</h2>
             <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-              Estimated revenue, payouts, and creator rewards are being prepared.
+              {t("studioEarningsComingSoonText")}
             </p>
           </div>
         </Card>
@@ -265,6 +274,7 @@ function Chart({
   color: string;
   percent?: boolean;
 }) {
+  const { t } = useI18n();
   const values = points.map((point) => point[metric]);
   const max = Math.max(1, ...values);
   const coords = values.map((value, index) => ({
@@ -310,8 +320,8 @@ function Chart({
         ))}
       </svg>
       <div className="flex justify-between text-[10px] text-muted-foreground">
-        <span>14 days ago</span>
-        <span>Today</span>
+        <span>{t("studioDaysAgo14")}</span>
+        <span>{t("studioToday")}</span>
       </div>
     </Card>
   );
@@ -357,6 +367,7 @@ function VideoCard({
   };
   onDeleted: () => void;
 }) {
+  const { t } = useI18n();
   const url = useSignedUrl(video.storage_path);
   const [busy, setBusy] = useState(false);
   const [boosting, setBoosting] = useState(false);
@@ -370,7 +381,7 @@ function VideoCard({
       toast.error(error.message);
       return;
     }
-    toast.success("Video deleted");
+    toast.success(t("studioVideoDeleted"));
     onDeleted();
   }
   return (
@@ -382,28 +393,28 @@ function VideoCard({
       )}
       {isBoosted ? (
         <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-primary-foreground">
-          🚀 Boostée
+          🚀 {t("studioBoosted")}
         </span>
       ) : null}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10 text-white">
-        <p className="truncate text-xs font-bold">{video.caption || "Untitled"}</p>
+        <p className="truncate text-xs font-bold">{video.caption || t("studioUntitled")}</p>
         <p className="mt-1 text-[11px]">
           ◉ {formatCount(video.views_count)} · ♥ {formatCount(video.likes_count)}
         </p>
         <p className="mt-1 text-[10px] uppercase text-white/60">
-          {video.visibility === "sparks" ? "My Sparks" : "Everyone"}
+          {video.visibility === "sparks" ? t("studioMySparks") : t("studioEveryone")}
         </p>
         <button
           onClick={() => setBoosting(true)}
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full bg-white/15 py-1.5 text-[11px] font-bold backdrop-blur"
         >
-          🚀 {isBoosted ? "Prolonger le boost" : "Booster"}
+          🚀 {isBoosted ? t("studioExtendBoost") : t("studioBoost")}
         </button>
       </div>
       <button
         onClick={remove}
         disabled={busy}
-        aria-label="Delete"
+        aria-label={t("delete")}
         className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white"
       >
         <Trash2 className="h-4 w-4" />
@@ -418,6 +429,7 @@ function VideoCard({
  * flag elsewhere in the feed/algorithm, never a fabricated like/view/follow
  * count. */
 function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void }) {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [buying, setBuying] = useState<number | null>(null);
 
@@ -430,15 +442,15 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
         _hours: hours,
       });
       if (error) throw error;
-      toast.success(`Vidéo boostée pour ${hours}h !`);
+      toast.success(t("studioBoostSuccess", { hours }));
       await qc.invalidateQueries({ queryKey: ["my-videos"] });
       await qc.invalidateQueries({ queryKey: ["blox-balance"] });
       onClose();
     } catch (err) {
       toast.error(
         err instanceof Error && err.message.includes("insufficient_balance")
-          ? "Pas assez de Blox pour ce boost."
-          : "Une erreur est survenue.",
+          ? t("studioBoostInsufficientBalance")
+          : t("errorGeneric"),
       );
     } finally {
       setBuying(null);
@@ -454,11 +466,8 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
         className="w-full max-w-sm rounded-t-3xl border border-border bg-background p-5 sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-lg font-black">🚀 Booster ma vidéo</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Le boost augmente la visibilité de ta vidéo dans le feed pendant la durée choisie. Il ne
-          garantit pas de likes, vues ou abonnés.
-        </p>
+        <p className="text-lg font-black">🚀 {t("studioBoostMyVideo")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("studioBoostDescription")}</p>
         <div className="mt-4 space-y-2">
           {BOOST_TIERS.map((tier) => (
             <button
@@ -478,7 +487,7 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
           onClick={onClose}
           className="mt-4 w-full rounded-2xl border border-border py-3 text-sm font-bold text-muted-foreground"
         >
-          Annuler
+          {t("cancel")}
         </button>
       </div>
     </div>
@@ -486,6 +495,7 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
 }
 
 function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
+  const { t } = useI18n();
   const { user } = useSession();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [file, setFile] = useState<File | null>(null);
@@ -505,7 +515,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
   function choose(selected: File | null) {
     if (!selected) return;
     if (selected.size > 200 * 1024 * 1024) {
-      toast.error("Maximum file size is 200 MB.");
+      toast.error(t("studioMaxFileSize"));
       return;
     }
     setFile(selected);
@@ -517,7 +527,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
       return;
     }
     if (hashtags.length >= 5) {
-      toast.error("You can add up to 5 hashtags.");
+      toast.error(t("studioMaxHashtags"));
       return;
     }
     setHashtags((current) => [...current, value]);
@@ -547,10 +557,10 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
           _entity_id: inserted.id,
         });
       }
-      toast.success("Video published 🎉");
+      toast.success(t("studioVideoPublished"));
       onDone();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Publishing failed");
+      toast.error(error instanceof Error ? error.message : t("studioPublishFailed"));
     } finally {
       setBusy(false);
     }
@@ -570,8 +580,8 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
             <span className="h-9 w-9" />
           )}
           <div className="flex-1 text-center">
-            <b>Post a video</b>
-            <p className="text-xs text-muted-foreground">Step {step} of 3</p>
+            <b>{t("publishVideo")}</b>
+            <p className="text-xs text-muted-foreground">{t("studioStepOf", { step })}</p>
           </div>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center">
             <X />
@@ -588,10 +598,8 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
         <main className="overflow-y-auto px-5 py-6">
           {step === 1 ? (
             <section>
-              <h2 className="text-2xl font-black">Choose your video</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Select a video file up to 200 MB.
-              </p>
+              <h2 className="text-2xl font-black">{t("studioChooseVideo")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("studioSelectVideoHint")}</p>
               <input
                 ref={input}
                 type="file"
@@ -606,7 +614,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
                 >
                   <video src={preview} muted playsInline className="max-h-[48dvh]" />
                   <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-xs font-bold text-white">
-                    Change video
+                    {t("studioChangeVideo")}
                   </span>
                 </button>
               ) : (
@@ -615,24 +623,22 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
                   className="mt-6 flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-primary/40 bg-primary/5 py-16"
                 >
                   <Upload className="h-9 w-9 text-primary" />
-                  <b>Select a video file</b>
+                  <b>{t("studioSelectVideoFile")}</b>
                 </button>
               )}
             </section>
           ) : null}
           {step === 2 ? (
             <section>
-              <h2 className="text-2xl font-black">Give it a title</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                A clear title helps people find your video.
-              </p>
-              <Label className="mt-7">Video title</Label>
+              <h2 className="text-2xl font-black">{t("studioGiveTitle")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("studioTitleHint")}</p>
+              <Label className="mt-7">{t("studioVideoTitleLabel")}</Label>
               <Input
                 autoFocus
                 value={title}
                 maxLength={120}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="What is your video about?"
+                placeholder={t("studioTitlePlaceholder")}
                 className="h-14 text-base"
               />
               <p className="mt-2 text-right text-xs text-muted-foreground">{title.length}/120</p>
@@ -641,13 +647,11 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
           {step === 3 ? (
             <section className="space-y-7">
               <div>
-                <h2 className="text-2xl font-black">Hashtags and visibility</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Add up to 5 hashtags and choose your audience.
-                </p>
+                <h2 className="text-2xl font-black">{t("studioHashtagsVisibility")}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{t("studioHashtagsHint")}</p>
               </div>
               <div>
-                <Label>Hashtags ({hashtags.length}/5)</Label>
+                <Label>{t("studioHashtagsLabel", { count: hashtags.length })}</Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -666,7 +670,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
                     />
                   </div>
                   <Button variant="outline" onClick={addTag}>
-                    Add
+                    {t("studioAdd")}
                   </Button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -682,12 +686,12 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
                 </div>
               </div>
               <div>
-                <Label>Visibility</Label>
+                <Label>{t("studioVisibilityLabel")}</Label>
                 <div className="mt-2 grid gap-3">
                   {(
                     [
-                      ["public", "Everyone", "Visible across Discover", Globe2],
-                      ["sparks", "My Sparks only", "Only people who follow you", UsersRound],
+                      ["public", t("studioEveryone"), t("studioVisibleAcrossDiscover"), Globe2],
+                      ["sparks", t("studioMySparksOnly"), t("studioOnlyFollowers"), UsersRound],
                     ] as const
                   ).map(([value, label, desc, Icon]) => (
                     <button
@@ -719,11 +723,11 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
               disabled={(step === 1 && !file) || (step === 2 && !title.trim())}
               onClick={() => setStep((step + 1) as 2 | 3)}
             >
-              Continue <ArrowRight className="h-4 w-4" />
+              {t("continue")} <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
             <Button className="w-full" size="lg" disabled={busy} onClick={publish}>
-              {busy ? "Publishing…" : "Publish video"}
+              {busy ? t("studioPublishing") : t("publishVideo")}
             </Button>
           )}
         </footer>
