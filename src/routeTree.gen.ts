@@ -41,6 +41,7 @@ import { Route as AuthenticatedDiscoverIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedDiscoverStudioRouteImport } from './routes/_authenticated/discover.studio'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
+import { Route as AuthenticatedShopBillingRouteImport } from './routes/_authenticated/shop.billing'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users.$id'
 import { Route as AuthRobloxCallbackRouteImport } from './routes/auth.roblox.callback'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -213,6 +214,12 @@ const AuthenticatedMessagesIdRoute = AuthenticatedMessagesIdRouteImport.update({
   path: '/messages/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedShopBillingRoute =
+  AuthenticatedShopBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedShopRoute,
+  } as any)
 const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
   id: '/users/$id',
   path: '/users/$id',
@@ -260,7 +267,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/shop': typeof AuthenticatedShopRoute
+  '/shop': typeof AuthenticatedShopRouteWithChildren
   '/sparks': typeof AuthenticatedSparksRoute
   '/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
@@ -269,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/shop/billing': typeof AuthenticatedShopBillingRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities/': typeof AuthenticatedCommunitiesIndexRoute
@@ -298,7 +306,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/shop': typeof AuthenticatedShopRoute
+  '/shop': typeof AuthenticatedShopRouteWithChildren
   '/sparks': typeof AuthenticatedSparksRoute
   '/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
@@ -307,6 +315,7 @@ export interface FileRoutesByTo {
   '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/shop/billing': typeof AuthenticatedShopBillingRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities': typeof AuthenticatedCommunitiesIndexRoute
@@ -338,7 +347,7 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/_authenticated/shop': typeof AuthenticatedShopRoute
+  '/_authenticated/shop': typeof AuthenticatedShopRouteWithChildren
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
@@ -347,6 +356,7 @@ export interface FileRoutesById {
   '/_authenticated/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/_authenticated/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/_authenticated/shop/billing': typeof AuthenticatedShopBillingRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/_authenticated/communities/': typeof AuthenticatedCommunitiesIndexRoute
@@ -387,6 +397,7 @@ export interface FileRouteTypes {
     | '/communities/create'
     | '/discover/studio'
     | '/messages/$id'
+    | '/shop/billing'
     | '/users/$id'
     | '/auth/roblox/callback'
     | '/communities/'
@@ -425,6 +436,7 @@ export interface FileRouteTypes {
     | '/communities/create'
     | '/discover/studio'
     | '/messages/$id'
+    | '/shop/billing'
     | '/users/$id'
     | '/auth/roblox/callback'
     | '/communities'
@@ -464,6 +476,7 @@ export interface FileRouteTypes {
     | '/_authenticated/communities/create'
     | '/_authenticated/discover/studio'
     | '/_authenticated/messages/$id'
+    | '/_authenticated/shop/billing'
     | '/_authenticated/users/$id'
     | '/auth/roblox/callback'
     | '/_authenticated/communities/'
@@ -722,6 +735,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessagesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/shop/billing': {
+      id: '/_authenticated/shop/billing'
+      path: '/billing'
+      fullPath: '/shop/billing'
+      preLoaderRoute: typeof AuthenticatedShopBillingRouteImport
+      parentRoute: typeof AuthenticatedShopRoute
+    }
     '/_authenticated/users/$id': {
       id: '/_authenticated/users/$id'
       path: '/users/$id'
@@ -760,6 +780,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedShopRouteChildren {
+  AuthenticatedShopBillingRoute: typeof AuthenticatedShopBillingRoute
+}
+
+const AuthenticatedShopRouteChildren: AuthenticatedShopRouteChildren = {
+  AuthenticatedShopBillingRoute: AuthenticatedShopBillingRoute,
+}
+
+const AuthenticatedShopRouteWithChildren =
+  AuthenticatedShopRoute._addFileChildren(AuthenticatedShopRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
@@ -767,7 +798,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
-  AuthenticatedShopRoute: typeof AuthenticatedShopRoute
+  AuthenticatedShopRoute: typeof AuthenticatedShopRouteWithChildren
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedCommunitiesHandleRoute: typeof AuthenticatedCommunitiesHandleRoute
@@ -787,7 +818,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
-  AuthenticatedShopRoute: AuthenticatedShopRoute,
+  AuthenticatedShopRoute: AuthenticatedShopRouteWithChildren,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedCommunitiesHandleRoute: AuthenticatedCommunitiesHandleRoute,

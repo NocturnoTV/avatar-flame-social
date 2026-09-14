@@ -15,6 +15,7 @@ import {
   Newspaper,
   Play,
   Plus,
+  Receipt,
   Repeat,
   Settings,
   Sparkles,
@@ -324,6 +325,13 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
         <div className="my-1.5 border-t border-border" />
 
         <Row icon={Crown} label={t("menuPremium")} to="/shop" onClick={onClose} />
+        <Row
+          icon={Receipt}
+          label={t("purchasesAndBilling")}
+          to="/shop/billing"
+          active={isActive("/shop/billing")}
+          onClick={onClose}
+        />
         <Row icon={Bookmark} label={t("menuSaved")} disabled comingSoon={t("comingSoon")} />
         <Row icon={Clock} label={t("menuRecent")} disabled comingSoon={t("comingSoon")} />
         <Row icon={HelpCircle} label={t("support")} to="/support" onClick={onClose} />

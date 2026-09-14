@@ -1174,6 +1174,7 @@ export type Database = {
           banned_until: string | null
           banner_style: string
           banner_url: string | null
+          banner_video_url: string | null
           bio: string | null
           birth_date: string | null
           country: string | null
@@ -1221,6 +1222,7 @@ export type Database = {
           banned_until?: string | null
           banner_style?: string
           banner_url?: string | null
+          banner_video_url?: string | null
           bio?: string | null
           birth_date?: string | null
           country?: string | null
@@ -1268,6 +1270,7 @@ export type Database = {
           banned_until?: string | null
           banner_style?: string
           banner_url?: string | null
+          banner_video_url?: string | null
           bio?: string | null
           birth_date?: string | null
           country?: string | null

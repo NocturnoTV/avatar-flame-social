@@ -4,10 +4,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import {
   Camera,
+  Clapperboard,
   Crown,
   Gamepad2,
   ImagePlus,
   LoaderCircle,
+  Pencil,
   Plus,
   Save,
   Search,
@@ -18,8 +20,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button, Input, Label, Textarea } from "@/components/ui-kit";
+import { Button, Input, Label, Sheet, Textarea } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
+import { ProfileBanner, parseYouTubeId } from "@/components/ProfileBanner";
 import { Verified } from "@/components/Verified";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
 import { ProfileContentTabs, type TabVideo } from "@/components/ProfileContentTabs";
@@ -27,7 +30,7 @@ import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useRoles } from "@/lib/roles";
-import { BANNERS, ageFrom } from "@/lib/decorations";
+import { ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { RobloxGameIcon } from "@/components/RobloxGameIcon";
@@ -68,6 +71,9 @@ function ProfilePage() {
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [gameSearch, setGameSearch] = useState("");
   const [gamePickerOpen, setGamePickerOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [youtubeInput, setYoutubeInput] = useState("");
+  const bannerVideoRef = useRef<HTMLInputElement>(null);
 
   const profile = useQuery({
     queryKey: ["my-profile"],
@@ -205,6 +211,31 @@ function ProfilePage() {
     }
   }
 
+  async function uploadBannerVideo(file: File) {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "mp4";
+      const path = await uploadFile("profile-photos", user.id, file, ext);
+      patch({ banner_video_url: path });
+    } catch {
+      toast.error(t("errorGeneric"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function setBannerYoutube() {
+    const trimmed = youtubeInput.trim();
+    if (!trimmed) return;
+    if (!parseYouTubeId(trimmed)) {
+      toast.error(t("invalidYoutubeLink"));
+      return;
+    }
+    patch({ banner_video_url: trimmed });
+    setYoutubeInput("");
+  }
+
   async function addPhoto(file: File) {
     if (!user) return;
     if ((photos.data?.length ?? 0) >= MAX_PHOTOS) {
@@ -303,29 +334,19 @@ function ProfilePage() {
 
       {/* Bannière */}
       <div className="relative z-0 mt-4 h-36 overflow-hidden rounded-3xl">
-        {p?.banner_url ? (
-          <StoredImage path={p.banner_url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div
-            className="h-full w-full"
-            style={{ backgroundImage: BANNERS[p?.banner_style ?? "nebula"] ?? BANNERS["nebula"] }}
-          />
-        )}
+        <ProfileBanner
+          bannerVideoUrl={p?.banner_video_url}
+          bannerUrl={p?.banner_url}
+          bannerStyle={p?.banner_style}
+          className="h-full w-full object-cover"
+        />
         <button
-          onClick={() => bannerRef.current?.click()}
+          onClick={() => setEditOpen(true)}
+          aria-label={t("editProfile")}
           className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur"
         >
-          <ImagePlus className="h-3.5 w-3.5" /> {t("banner")}
+          <Pencil className="h-3.5 w-3.5" /> {t("editProfile")}
         </button>
-        {p?.banner_url ? (
-          <button
-            onClick={() => patch({ banner_url: null })}
-            className="absolute right-3 bottom-3 rounded-full bg-black/55 p-1.5 text-white backdrop-blur"
-            aria-label="Remove banner"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        ) : null}
         <input
           ref={bannerRef}
           type="file"
@@ -426,204 +447,284 @@ function ProfilePage() {
         ) : null}
       </div>
 
-      {/* Édition */}
-      <section className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-4">
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-black text-primary">Spark Plus</p>
-              <p className="text-xs text-muted-foreground">{t("premiumProfileCustomization")}</p>
-            </div>
-            {!sparkPlusActive ? (
+      {(myCommunities.data ?? []).length > 0 ? (
+        <div className="mt-5">
+          <Label>Communautés</Label>
+          <div className="flex flex-wrap gap-2">
+            {(myCommunities.data ?? []).map((c) => (
               <Link
-                to="/shop"
-                className="rounded-full bg-primary px-3 py-2 text-xs font-bold text-white"
+                key={c.id}
+                to="/communities/$handle"
+                params={{ handle: c.handle }}
+                className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold hover:border-primary/40"
               >
-                {t("discoverSparkPlus")}
+                <StoredImage path={c.icon_url} alt="" className="h-4 w-4 rounded" fallback="🎮" />
+                {c.name}
               </Link>
-            ) : null}
-          </div>
-          <div
-            className={cn(
-              "mt-4 grid gap-3 sm:grid-cols-2",
-              !sparkPlusActive && "pointer-events-none opacity-45",
-            )}
-          >
-            <div>
-              <Label>{t("usernameFont")}</Label>
-              <select
-                value={p?.profile_font ?? "default"}
-                onChange={(event) => patch({ profile_font: event.target.value })}
-                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-              >
-                {PROFILE_FONTS.map((font) => (
-                  <option key={font} value={font}>
-                    {t(`profileFont${font[0]!.toUpperCase()}${font.slice(1)}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>{t("profileGlow")}</Label>
-              <select
-                value={p?.profile_glow ?? "none"}
-                onChange={(event) => patch({ profile_glow: event.target.value })}
-                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-              >
-                {PROFILE_GLOWS.map((glow) => (
-                  <option key={glow} value={glow}>
-                    {t(`profileGlow${glow[0]!.toUpperCase()}${glow.slice(1)}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            ))}
           </div>
         </div>
-        <div>
-          <Label>{t("bio")}</Label>
-          <Textarea
-            rows={3}
-            defaultValue={p?.bio ?? ""}
-            maxLength={300}
-            onBlur={(e) => patch({ bio: e.target.value })}
-          />
-        </div>
+      ) : null}
 
-        <div>
-          <Label>{t("externalLink")}</Label>
-          <Input
-            defaultValue={p?.link_url ?? ""}
-            placeholder={t("externalLinkPlaceholder")}
-            onBlur={(e) => patch({ link_url: e.target.value.trim() || null })}
-          />
-        </div>
-
-        <div>
-          <Label>
-            {t("favoriteRobloxGames")} ({gameList.length}/{MAX_GAMES})
-          </Label>
-          <button
-            type="button"
-            disabled={gameList.length >= MAX_GAMES}
-            onClick={() => setGamePickerOpen((open) => !open)}
-            className="mb-3 flex w-full items-center justify-between rounded-2xl border border-input bg-background/75 px-4 py-3 text-left text-sm transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <span className="flex items-center gap-2 font-semibold">
-              <Search className="h-4 w-4 text-primary" /> {t("popularGameSearch")}
-            </span>
-            <Plus className="h-4 w-4" />
-          </button>
-          {gamePickerOpen ? (
-            <div className="mb-3 overflow-hidden rounded-2xl border border-primary/30 bg-popover shadow-xl">
-              <div className="flex items-center gap-2 border-b border-border px-3">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <input
-                  autoFocus
-                  value={gameSearch}
-                  onChange={(event) => setGameSearch(event.target.value)}
-                  placeholder="Brookhaven, Adopt Me, Blox Fruits…"
-                  className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
-                />
-                {gameResults.isFetching ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
-                ) : null}
+      <Sheet open={editOpen} onClose={() => setEditOpen(false)} title={t("editProfile")}>
+        <div className="max-h-[75vh] space-y-5 overflow-y-auto pb-2">
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-black text-primary">Spark Plus</p>
+                <p className="text-xs text-muted-foreground">{t("premiumProfileCustomization")}</p>
               </div>
-              <div className="max-h-72 overflow-y-auto p-2">
-                {gameSearch.trim().length < 2 ? (
-                  <p className="px-3 py-8 text-center text-xs text-muted-foreground">
-                    {t("gameSearchHint")}
-                  </p>
-                ) : null}
-                {(gameResults.data ?? []).map((game) => (
+              {!sparkPlusActive ? (
+                <Link
+                  to="/shop"
+                  onClick={() => setEditOpen(false)}
+                  className="rounded-full bg-primary px-3 py-2 text-xs font-bold text-white"
+                >
+                  {t("discoverSparkPlus")}
+                </Link>
+              ) : null}
+            </div>
+            <div
+              className={cn(
+                "mt-4 grid gap-3 sm:grid-cols-2",
+                !sparkPlusActive && "pointer-events-none opacity-45",
+              )}
+            >
+              <div>
+                <Label>{t("usernameFont")}</Label>
+                <select
+                  value={p?.profile_font ?? "default"}
+                  onChange={(event) => patch({ profile_font: event.target.value })}
+                  className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                >
+                  {PROFILE_FONTS.map((font) => (
+                    <option key={font} value={font}>
+                      {t(`profileFont${font[0]!.toUpperCase()}${font.slice(1)}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>{t("profileGlow")}</Label>
+                <select
+                  value={p?.profile_glow ?? "none"}
+                  onChange={(event) => patch({ profile_glow: event.target.value })}
+                  className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                >
+                  {PROFILE_GLOWS.map((glow) => (
+                    <option key={glow} value={glow}>
+                      {t(`profileGlow${glow[0]!.toUpperCase()}${glow.slice(1)}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className={cn("mt-4", !sparkPlusActive && "pointer-events-none opacity-45")}>
+              <Label className="flex items-center gap-1.5">
+                <Clapperboard className="h-3.5 w-3.5" /> {t("animatedBanner")}
+              </Label>
+              <p className="mb-2 text-xs text-muted-foreground">{t("animatedBannerHint")}</p>
+              {p?.banner_video_url ? (
+                <div className="mb-2 flex items-center justify-between rounded-xl bg-surface px-3 py-2 text-xs">
+                  <span className="truncate font-semibold">
+                    {parseYouTubeId(p.banner_video_url) ? "YouTube" : t("uploadVideoBanner")}
+                  </span>
                   <button
-                    key={game.universeId}
-                    type="button"
-                    onClick={() => void addFavoriteGame(game)}
-                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-primary/10"
+                    onClick={() => patch({ banner_video_url: null })}
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
                   >
-                    {game.thumbnailUrl ? (
-                      <img
-                        src={game.thumbnailUrl}
-                        alt=""
-                        className="h-11 w-11 rounded-xl object-cover"
-                      />
-                    ) : (
-                      <span className="grid h-11 w-11 place-items-center rounded-xl bg-surface-2">
-                        <Gamepad2 className="h-4 w-4" />
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold">{game.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {t("playersOnline", { count: game.playerCount.toLocaleString() })}
-                      </span>
-                    </span>
-                    <Plus className="h-4 w-4 text-primary" />
+                    <X className="h-3.5 w-3.5" />
                   </button>
-                ))}
-                {gameResults.isError ? (
-                  <p className="px-3 py-6 text-center text-xs text-destructive">
-                    {t("robloxSearchUnavailable")}
-                  </p>
-                ) : null}
-                {gameResults.isSuccess && !gameResults.data.length ? (
-                  <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-                    {t("noGamesFound")}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-          <div className="space-y-2">
-            {gameList.map((g) => (
-              <div
-                key={g.id}
-                className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm"
-              >
-                <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-10 w-10" />
-                <a
-                  href={g.url ?? undefined}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="min-w-0 flex-1 truncate font-semibold"
-                >
-                  {g.name}
-                </a>
+                </div>
+              ) : null}
+              <div className="flex gap-2">
                 <button
-                  onClick={() => void deleteFavoriteGame(g.id)}
-                  aria-label={t("delete")}
-                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  type="button"
+                  onClick={() => bannerVideoRef.current?.click()}
+                  className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-input text-xs font-semibold hover:border-primary"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <ImagePlus className="h-3.5 w-3.5" /> {t("uploadVideoBanner")}
                 </button>
               </div>
-            ))}
-            {gameList.length === 0 ? (
-              <p className="text-xs text-muted-foreground">{t("noFavoriteGames")}</p>
-            ) : null}
-          </div>
-        </div>
-
-        {(myCommunities.data ?? []).length > 0 ? (
-          <div className="mt-4">
-            <Label>Communautés</Label>
-            <div className="flex flex-wrap gap-2">
-              {(myCommunities.data ?? []).map((c) => (
-                <Link
-                  key={c.id}
-                  to="/communities/$handle"
-                  params={{ handle: c.handle }}
-                  className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold hover:border-primary/40"
-                >
-                  <StoredImage path={c.icon_url} alt="" className="h-4 w-4 rounded" fallback="🎮" />
-                  {c.name}
-                </Link>
-              ))}
+              <input
+                ref={bannerVideoRef}
+                type="file"
+                accept="video/mp4,image/gif"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadBannerVideo(f);
+                  e.target.value = "";
+                }}
+              />
+              <div className="mt-2 flex gap-2">
+                <Input
+                  value={youtubeInput}
+                  onChange={(e) => setYoutubeInput(e.target.value)}
+                  placeholder={t("youtubeLinkPlaceholder")}
+                  className="h-10 text-xs"
+                />
+                <Button size="sm" variant="outline" onClick={setBannerYoutube} disabled={!youtubeInput.trim()}>
+                  OK
+                </Button>
+              </div>
             </div>
           </div>
-        ) : null}
-        {saving || busy ? <p className="text-xs text-muted-foreground">{t("loading")}</p> : null}
-      </section>
+
+          <div>
+            <Label>{t("banner")}</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => bannerRef.current?.click()}
+                className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-input text-xs font-semibold hover:border-primary"
+              >
+                <ImagePlus className="h-3.5 w-3.5" /> {t("banner")}
+              </button>
+              {p?.banner_url ? (
+                <Button size="sm" variant="outline" onClick={() => patch({ banner_url: null })}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          <div>
+            <Label>{t("bio")}</Label>
+            <Textarea
+              rows={3}
+              defaultValue={p?.bio ?? ""}
+              maxLength={300}
+              onBlur={(e) => patch({ bio: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Label>{t("externalLink")}</Label>
+            <Input
+              defaultValue={p?.link_url ?? ""}
+              placeholder={t("externalLinkPlaceholder")}
+              onBlur={(e) => patch({ link_url: e.target.value.trim() || null })}
+            />
+          </div>
+
+          <div>
+            <Label>
+              {t("favoriteRobloxGames")} ({gameList.length}/{MAX_GAMES})
+            </Label>
+            <button
+              type="button"
+              disabled={gameList.length >= MAX_GAMES}
+              onClick={() => setGamePickerOpen((open) => !open)}
+              className="mb-3 flex w-full items-center justify-between rounded-2xl border border-input bg-background/75 px-4 py-3 text-left text-sm transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="flex items-center gap-2 font-semibold">
+                <Search className="h-4 w-4 text-primary" /> {t("popularGameSearch")}
+              </span>
+              <Plus className="h-4 w-4" />
+            </button>
+            {gamePickerOpen ? (
+              <div className="mb-3 overflow-hidden rounded-2xl border border-primary/30 bg-popover shadow-xl">
+                <div className="flex items-center gap-2 border-b border-border px-3">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    autoFocus
+                    value={gameSearch}
+                    onChange={(event) => setGameSearch(event.target.value)}
+                    placeholder="Brookhaven, Adopt Me, Blox Fruits…"
+                    className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  />
+                  {gameResults.isFetching ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
+                  ) : null}
+                </div>
+                <div className="max-h-72 overflow-y-auto p-2">
+                  {gameSearch.trim().length < 2 ? (
+                    <p className="px-3 py-8 text-center text-xs text-muted-foreground">
+                      {t("gameSearchHint")}
+                    </p>
+                  ) : null}
+                  {(gameResults.data ?? []).map((game) => (
+                    <button
+                      key={game.universeId}
+                      type="button"
+                      onClick={() => void addFavoriteGame(game)}
+                      className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-primary/10"
+                    >
+                      {game.thumbnailUrl ? (
+                        <img
+                          src={game.thumbnailUrl}
+                          alt=""
+                          className="h-11 w-11 rounded-xl object-cover"
+                        />
+                      ) : (
+                        <span className="grid h-11 w-11 place-items-center rounded-xl bg-surface-2">
+                          <Gamepad2 className="h-4 w-4" />
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-bold">{game.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("playersOnline", { count: game.playerCount.toLocaleString() })}
+                        </span>
+                      </span>
+                      <Plus className="h-4 w-4 text-primary" />
+                    </button>
+                  ))}
+                  {gameResults.isError ? (
+                    <p className="px-3 py-6 text-center text-xs text-destructive">
+                      {t("robloxSearchUnavailable")}
+                    </p>
+                  ) : null}
+                  {gameResults.isSuccess && !gameResults.data.length ? (
+                    <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                      {t("noGamesFound")}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+            <div className="space-y-2">
+              {gameList.map((g) => (
+                <div
+                  key={g.id}
+                  className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-sm"
+                >
+                  <RobloxGameIcon src={g.thumbnail_url} name={g.name} className="h-10 w-10" />
+                  <a
+                    href={g.url ?? undefined}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="min-w-0 flex-1 truncate font-semibold"
+                  >
+                    {g.name}
+                  </a>
+                  <button
+                    onClick={() => void deleteFavoriteGame(g.id)}
+                    aria-label={t("delete")}
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {gameList.length === 0 ? (
+                <p className="text-xs text-muted-foreground">{t("noFavoriteGames")}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <Button
+            className="w-full"
+            disabled={!dirty || saving || busy}
+            onClick={() => void saveChanges()}
+          >
+            <Save className="h-4 w-4" />
+            {saving || busy ? t("loading") : t("save")}
+          </Button>
+        </div>
+      </Sheet>
 
       <ProfileContentTabs
         videos={videos.data ?? []}

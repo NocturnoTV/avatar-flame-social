@@ -5,11 +5,11 @@ import { ArrowLeft, Crown, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
+import { ProfileBanner } from "@/components/ProfileBanner";
 import { Verified } from "@/components/Verified";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
 import { ProfileContentTabs, type TabVideo } from "@/components/ProfileContentTabs";
 import { Button } from "@/components/ui-kit";
-import { BANNERS } from "@/lib/decorations";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { errorMessage } from "@/lib/utils";
@@ -61,7 +61,7 @@ function PublicProfile() {
           supabase
             .from("profiles")
             .select(
-              "id,username,roblox_username,roblox_display_name,bio,link_url,banner_style,banner_url,avatar_url,verified",
+              "id,username,roblox_username,roblox_display_name,bio,link_url,banner_style,banner_url,banner_video_url,avatar_url,verified",
             )
             .eq("id", id!)
             .maybeSingle(),
@@ -211,15 +211,13 @@ function PublicProfile() {
 
   return (
     <div className="mx-auto max-w-xl pb-28">
-      <div
-        className="relative z-0 h-40 overflow-hidden bg-primary/20 sm:rounded-b-[2rem]"
-        style={
-          !p?.banner_url ? { backgroundImage: BANNERS[p?.banner_style ?? "ocean"] } : undefined
-        }
-      >
-        {p?.banner_url ? (
-          <StoredImage path={p.banner_url} alt="" className="h-full w-full object-cover" />
-        ) : null}
+      <div className="relative z-0 h-40 overflow-hidden bg-primary/20 sm:rounded-b-[2rem]">
+        <ProfileBanner
+          bannerVideoUrl={p?.banner_video_url}
+          bannerUrl={p?.banner_url}
+          bannerStyle={p?.banner_style}
+          className="h-full w-full object-cover"
+        />
         <Link
           to="/discover"
           className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur"

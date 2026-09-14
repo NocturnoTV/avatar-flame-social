@@ -5,6 +5,17 @@ import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "@/lib
 
 type CheckoutSessionResult = { clientSecret: string } | { error: string };
 type PortalSessionResult = { url: string } | { error: string };
+export type InvoiceRow = {
+  id: string;
+  number: string | null;
+  amountPaid: number;
+  currency: string;
+  status: string | null;
+  created: number;
+  hostedInvoiceUrl: string | null | undefined;
+  invoicePdf: string | null | undefined;
+};
+type InvoicesResult = { invoices: InvoiceRow[] } | { invoices: []; error: string };
 
 async function resolveOrCreateCustomer(
   stripe: ReturnType<typeof createStripeClient>,
@@ -75,6 +86,41 @@ export const createSparkPlusCheckout = createServerFn({ method: "POST" })
       return { clientSecret: session.client_secret ?? "" };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
+    }
+  });
+
+export const listInvoices = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { environment: StripeEnv }) => data)
+  .handler(async ({ data, context }): Promise<InvoicesResult> => {
+    const { supabase, userId } = context;
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("stripe_customer_id")
+      .eq("user_id", userId)
+      .eq("environment", data.environment)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!sub?.stripe_customer_id) return { invoices: [] };
+
+    try {
+      const stripe = createStripeClient(data.environment);
+      const invoices = await stripe.invoices.list({ customer: sub.stripe_customer_id, limit: 24 });
+      return {
+        invoices: invoices.data.map((inv) => ({
+          id: inv.id ?? "",
+          number: inv.number,
+          amountPaid: inv.amount_paid,
+          currency: inv.currency,
+          status: inv.status,
+          created: inv.created,
+          hostedInvoiceUrl: inv.hosted_invoice_url,
+          invoicePdf: inv.invoice_pdf,
+        })),
+      };
+    } catch (error) {
+      return { invoices: [], error: getStripeErrorMessage(error) };
     }
   });
 
