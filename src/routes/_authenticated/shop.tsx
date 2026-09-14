@@ -33,10 +33,15 @@ function ShopPage() {
     },
   });
 
-  async function subscribe() {
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  async function manageSubscription() {
     try {
-      const checkout = await createSparkPlusCheckout();
-      window.location.assign(checkout.url);
+      const result = await createPortalSession({
+        data: { returnUrl: window.location.href, environment: getStripeEnvironment() },
+      });
+      if ("error" in result) throw new Error(result.error);
+      window.open(result.url, "_blank");
     } catch {
       toast.error(t("sparkPlusCheckoutUnavailable"));
     }
