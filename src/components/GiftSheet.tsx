@@ -59,10 +59,14 @@ function SparkPlusGiftCheckout({
 export function GiftSheet({
   targetUserId,
   targetUsername,
+  videoId,
+  onGiftSent,
   onClose,
 }: {
   targetUserId: string;
   targetUsername: string;
+  videoId?: string;
+  onGiftSent?: () => void;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -81,13 +85,16 @@ export function GiftSheet({
     if (!user || sending) return;
     setSending(true);
     try {
-      const { error } = await supabase.rpc("gift_blox", {
-        _to_user: targetUserId,
-        _amount: amount,
-      });
+      const { error } = videoId
+        ? await supabase.rpc("gift_video_creator", { _video: videoId, _amount: amount })
+        : await supabase.rpc("gift_blox", {
+            _to_user: targetUserId,
+            _amount: amount,
+          });
       if (error) throw error;
       toast.success(t("bloxGiftSent", { amount: amount.toLocaleString() }));
       invalidateBalance();
+      onGiftSent?.();
       onClose();
     } catch (err) {
       toast.error(errorMessage(err, t("bloxGiftFailed")));

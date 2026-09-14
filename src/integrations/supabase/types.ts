@@ -2700,6 +2700,10 @@ export type Database = {
           ranking_score: number
         }[]
       }
+      gift_video_creator: {
+        Args: { _amount: number; _video: string }
+        Returns: string
+      }
       community_create_channel: {
         Args: { _category: string | null; _community: string; _name: string }
         Returns: string

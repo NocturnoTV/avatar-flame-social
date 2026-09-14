@@ -249,6 +249,83 @@
   animation: bx-shimmer 2.2s linear infinite;
 }
 
+@keyframes bx-comments-enter {
+  from {
+    opacity: 0;
+    transform: translateY(42px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bx-reaction-pop {
+  0% {
+    transform: scale(0.65) rotate(-12deg);
+  }
+  55% {
+    transform: scale(1.42) rotate(8deg);
+  }
+  100% {
+    transform: scale(1.1) rotate(0);
+  }
+}
+
+@keyframes bx-burst-ray {
+  0% {
+    opacity: 1;
+    transform: rotate(calc(var(--burst-index) * 45deg)) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(calc(var(--burst-index) * 45deg)) translateY(-28px) scale(0);
+  }
+}
+
+@keyframes bx-gift-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.94);
+    filter: saturate(0.6);
+  }
+  60% {
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: saturate(1);
+  }
+}
+
+.bx-comments-enter {
+  animation: bx-comments-enter 0.42s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+.bx-reaction-pop {
+  animation: bx-reaction-pop 0.48s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.bx-gift-comment {
+  animation: bx-gift-arrive 0.55s cubic-bezier(0.2, 1.2, 0.3, 1) both;
+}
+.bx-reaction-burst i {
+  --burst-index: 0;
+  position: absolute;
+  width: 4px;
+  height: 9px;
+  border-radius: 999px;
+  background: linear-gradient(#fb7185, #facc15);
+  transform-origin: center 22px;
+  animation: bx-burst-ray 0.55s ease-out both;
+}
+.bx-mini-heart-burst {
+  position: absolute;
+  inset: 4px;
+  border: 2px solid rgb(244 63 94 / 0.75);
+  border-radius: 999px;
+  animation: bx-reaction-pop 0.45s ease-out both;
+}
+
 @keyframes bx-landing-reveal {
   from {
     opacity: 1;
@@ -261,29 +338,64 @@
 }
 
 @keyframes bx-banner-sheen {
-  0%, 18% { transform: translateX(-130%) skewX(-18deg); }
-  55%, 100% { transform: translateX(180%) skewX(-18deg); }
+  0%,
+  18% {
+    transform: translateX(-130%) skewX(-18deg);
+  }
+  55%,
+  100% {
+    transform: translateX(180%) skewX(-18deg);
+  }
 }
 
 @keyframes bx-cta-shine {
-  0%, 20% { left: -45%; opacity: 0; }
-  35% { opacity: 0.85; }
-  58%, 100% { left: 125%; opacity: 0; }
+  0%,
+  20% {
+    left: -45%;
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.85;
+  }
+  58%,
+  100% {
+    left: 125%;
+    opacity: 0;
+  }
 }
 
 @keyframes bx-cta-star {
-  0%, 100% { opacity: 0.35; transform: scale(0.7) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1.25) rotate(25deg); }
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.7) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25) rotate(25deg);
+  }
 }
 
 @keyframes bx-aurora {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(24px, -18px, 0) scale(1.12); }
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(24px, -18px, 0) scale(1.12);
+  }
 }
 
 @keyframes bx-cta-orbit {
-  0%, 100% { opacity: 0.2; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.045); }
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.045);
+  }
 }
 
 @utility bx-landing-reveal {
