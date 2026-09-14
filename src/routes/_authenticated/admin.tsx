@@ -27,11 +27,13 @@ import { Button, Input, Label, Sheet, Select, Textarea } from "@/components/ui-k
 import { Verified } from "@/components/Verified";
 import { useSession } from "@/lib/session";
 import { useRoles, type AppRole } from "@/lib/roles";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 import { StoredImage } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { adminGetMemberDetail, adminListMembers, adminManageMember } from "@/lib/admin.functions";
 import { ageFrom } from "@/lib/decorations";
+import { uploadFile } from "@/lib/media";
+import { NEWS_CATEGORIES, slugify } from "@/lib/newsCategories";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -44,7 +46,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "overview" | "members" | "reports" | "conversations" | "news" | "audit";
+type Tab = "overview" | "members" | "reports" | "conversations" | "news" | "news_portal" | "audit";
 
 function AdminPage() {
   const { user } = useSession();
@@ -74,7 +76,8 @@ function AdminPage() {
     { id: "members", label: "Membres" },
     { id: "reports", label: "Signalements" },
     { id: "conversations", label: "Conversations" },
-    { id: "news", label: "Actualités" },
+    { id: "news", label: "Bandeau accueil" },
+    { id: "news_portal", label: "Actualités Roblox" },
     { id: "audit", label: "Journal" },
   ];
 
@@ -113,6 +116,7 @@ function AdminPage() {
         {tab === "reports" ? <Reports log={log} /> : null}
         {tab === "conversations" ? <Conversations log={log} /> : null}
         {tab === "news" ? <NewsAdmin log={log} /> : null}
+        {tab === "news_portal" ? <NewsPortalAdmin log={log} /> : null}
         {tab === "audit" ? <Audit /> : null}
       </div>
     </div>
@@ -1349,6 +1353,338 @@ function NewsAdmin({ log }: { log: (a: string, u?: string, d?: string) => Promis
         ))}
         {list.data && list.data.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune actualité pour le moment.</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Brouillon",
+  scheduled: "Programmé",
+  published: "Publié",
+  archived: "Archivé",
+};
+const STATUS_COLORS: Record<string, string> = {
+  draft: "bg-surface-2 text-muted-foreground",
+  scheduled: "bg-amber-500/15 text-amber-500",
+  published: "bg-emerald-500/15 text-emerald-500",
+  archived: "bg-red-500/10 text-red-400",
+};
+
+type ArticleForm = {
+  id: string | null;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  image_url: string | null;
+  category: string;
+  source: string;
+  source_url: string;
+  status: string;
+  featured: boolean;
+  scheduled_for: string;
+  reading_time_minutes: string;
+  tags: string;
+  key_points: string;
+};
+
+const EMPTY_ARTICLE: ArticleForm = {
+  id: null,
+  title: "",
+  slug: "",
+  excerpt: "",
+  content: "",
+  image_url: null,
+  category: "updates",
+  source: "Bloxspark",
+  source_url: "",
+  status: "draft",
+  featured: false,
+  scheduled_for: "",
+  reading_time_minutes: "3",
+  tags: "",
+  key_points: "",
+};
+
+function NewsPortalAdmin({ log }: { log: LogFn }) {
+  const { user } = useSession();
+  const [form, setForm] = useState<ArticleForm | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const articles = useQuery({
+    queryKey: ["admin-news-articles"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("news_articles")
+        .select("id,title,slug,category,status,featured,published_at,scheduled_for,created_at")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  function startNew() {
+    setForm({ ...EMPTY_ARTICLE });
+  }
+
+  async function startEdit(id: string) {
+    const { data } = await supabase.from("news_articles").select("*").eq("id", id).maybeSingle();
+    if (!data) return;
+    setForm({
+      id: data.id,
+      title: data.title,
+      slug: data.slug,
+      excerpt: data.excerpt ?? "",
+      content: data.content,
+      image_url: data.image_url,
+      category: data.category,
+      source: data.source,
+      source_url: data.source_url ?? "",
+      status: data.status,
+      featured: data.featured,
+      scheduled_for: data.scheduled_for ? data.scheduled_for.slice(0, 16) : "",
+      reading_time_minutes: String(data.reading_time_minutes),
+      tags: data.tags.join(", "),
+      key_points: data.key_points.join("\n"),
+    });
+  }
+
+  async function uploadImage(file: File) {
+    if (!user || !form) return;
+    try {
+      const path = await uploadFile("news-articles", user.id, file, file.name.split(".").pop() ?? "jpg");
+      setForm({ ...form, image_url: path });
+    } catch {
+      toast.error("Une erreur est survenue.");
+    }
+  }
+
+  async function save() {
+    if (!user || !form || !form.title.trim()) return;
+    setSaving(true);
+    const payload = {
+      title: form.title.trim(),
+      slug: form.slug.trim() || slugify(form.title),
+      excerpt: form.excerpt.trim() || null,
+      content: form.content,
+      image_url: form.image_url,
+      category: form.category,
+      source: form.source.trim() || "Bloxspark",
+      source_url: form.source_url.trim() || null,
+      status: form.status,
+      featured: form.featured,
+      scheduled_for: form.status === "scheduled" && form.scheduled_for ? new Date(form.scheduled_for).toISOString() : null,
+      published_at: form.status === "published" ? new Date().toISOString() : null,
+      reading_time_minutes: Number(form.reading_time_minutes) || 3,
+      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      key_points: form.key_points.split("\n").map((t) => t.trim()).filter(Boolean),
+      author_id: user.id,
+    };
+    const { error } = form.id
+      ? await supabase.from("news_articles").update(payload).eq("id", form.id)
+      : await supabase.from("news_articles").insert(payload);
+    setSaving(false);
+    if (error) {
+      toast.error(errorMessage(error, "Une erreur est survenue."));
+      return;
+    }
+    await log(form.id ? "news_article_update" : "news_article_create", undefined, form.title.trim());
+    toast.success("Enregistré.");
+    setForm(null);
+    void articles.refetch();
+  }
+
+  async function remove(id: string, title: string) {
+    await supabase.from("news_articles").delete().eq("id", id);
+    await log("news_article_delete", undefined, title);
+    void articles.refetch();
+  }
+
+
+  if (form) {
+    return (
+      <div className="space-y-3 rounded-3xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between">
+          <p className="font-bold">{form.id ? "Modifier l'article" : "Nouvel article"}</p>
+          <button onClick={() => setForm(null)} className="text-sm text-muted-foreground">
+            Annuler
+          </button>
+        </div>
+
+        <div>
+          <Label>Image</Label>
+          <label className="block h-32 cursor-pointer overflow-hidden rounded-2xl border border-border bg-surface">
+            {form.image_url ? (
+              <StoredImage path={form.image_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="grid h-full place-items-center text-xs text-muted-foreground">
+                Choisir une image
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void uploadImage(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+
+        <div>
+          <Label>Titre</Label>
+          <Input
+            value={form.title}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                title: e.target.value,
+                slug: form.slug || slugify(e.target.value),
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label>Slug (URL)</Label>
+          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })} />
+        </div>
+        <div>
+          <Label>Chapô (max 300 caractères)</Label>
+          <Textarea
+            value={form.excerpt}
+            maxLength={300}
+            rows={2}
+            onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Contenu</Label>
+          <p className="mb-1 text-xs text-muted-foreground">
+            Paragraphes séparés par une ligne vide. Commence une ligne par "## " pour un titre de section
+            (utilisé pour le sommaire). Une ligne commençant par "&gt; " devient une citation.
+          </p>
+          <Textarea value={form.content} rows={10} onChange={(e) => setForm({ ...form, content: e.target.value })} />
+        </div>
+        <div>
+          <Label>Points clés (un par ligne)</Label>
+          <Textarea
+            value={form.key_points}
+            rows={4}
+            onChange={(e) => setForm({ ...form, key_points: e.target.value })}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Catégorie</Label>
+            <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              {NEWS_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label>Temps de lecture (min)</Label>
+            <Input
+              type="number"
+              value={form.reading_time_minutes}
+              onChange={(e) => setForm({ ...form, reading_time_minutes: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Source</Label>
+            <Input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+          </div>
+          <div>
+            <Label>Lien source externe (optionnel)</Label>
+            <Input value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} />
+          </div>
+        </div>
+        <div>
+          <Label>Tags (séparés par des virgules)</Label>
+          <Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Statut</Label>
+            <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+              <option value="draft">Brouillon</option>
+              <option value="scheduled">Programmé</option>
+              <option value="published">Publié</option>
+              <option value="archived">Archivé</option>
+            </Select>
+          </div>
+          {form.status === "scheduled" ? (
+            <div>
+              <Label>Date de publication</Label>
+              <Input
+                type="datetime-local"
+                value={form.scheduled_for}
+                onChange={(e) => setForm({ ...form, scheduled_for: e.target.value })}
+              />
+            </div>
+          ) : null}
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.featured}
+            onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+          />
+          Mettre à la une
+        </label>
+
+        <Button className="w-full" disabled={!form.title.trim() || saving} onClick={() => void save()}>
+          {saving ? "Enregistrement..." : "Enregistrer"}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{articles.data?.length ?? 0} article(s)</p>
+        <Button size="sm" onClick={startNew}>
+          <Plus className="h-4 w-4" /> Nouvel article
+        </Button>
+      </div>
+      <div className="space-y-2">
+        {(articles.data ?? []).map((a) => (
+          <div key={a.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold">
+                {a.featured ? "★ " : ""}
+                {a.title}
+              </p>
+              <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                <span className={cn("rounded-full px-2 py-0.5 font-bold", STATUS_COLORS[a.status])}>
+                  {STATUS_LABELS[a.status] ?? a.status}
+                </span>
+                {NEWS_CATEGORIES.find((c) => c.id === a.category)?.label ?? a.category}
+              </p>
+            </div>
+            <button onClick={() => void startEdit(a.id)} className="text-xs font-semibold text-primary">
+              Modifier
+            </button>
+            <button
+              onClick={() => void remove(a.id, a.title)}
+              className="text-muted-foreground hover:text-destructive"
+              aria-label="Supprimer"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+        {articles.data?.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Aucun article pour l'instant.</p>
         ) : null}
       </div>
     </div>

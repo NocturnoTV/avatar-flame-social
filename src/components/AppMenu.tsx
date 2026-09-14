@@ -311,7 +311,7 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           active={isActive("/shop/billing")}
           onClick={onClose}
         />
-        <Row icon={Bookmark} label={t("menuSaved")} disabled comingSoon={t("comingSoon")} />
+        <Row icon={Bookmark} label={t("menuSaved")} to="/news/saved" onClick={onClose} />
         <Row icon={Clock} label={t("menuRecent")} disabled comingSoon={t("comingSoon")} />
         <Row icon={HelpCircle} label={t("support")} to="/support" onClick={onClose} />
       </div>

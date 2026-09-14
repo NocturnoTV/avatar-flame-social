@@ -41,6 +41,9 @@ import { Route as AuthenticatedDiscoverIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedDiscoverStudioRouteImport } from './routes/_authenticated/discover.studio'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
+import { Route as AuthenticatedNewsSlugRouteImport } from './routes/_authenticated/news.$slug'
+import { Route as AuthenticatedNewsAllRouteImport } from './routes/_authenticated/news.all'
+import { Route as AuthenticatedNewsSavedRouteImport } from './routes/_authenticated/news.saved'
 import { Route as AuthenticatedShopBillingRouteImport } from './routes/_authenticated/shop.billing'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users.$id'
 import { Route as AuthRobloxCallbackRouteImport } from './routes/auth.roblox.callback'
@@ -214,6 +217,21 @@ const AuthenticatedMessagesIdRoute = AuthenticatedMessagesIdRouteImport.update({
   path: '/messages/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNewsSlugRoute = AuthenticatedNewsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => AuthenticatedNewsRoute,
+} as any)
+const AuthenticatedNewsAllRoute = AuthenticatedNewsAllRouteImport.update({
+  id: '/all',
+  path: '/all',
+  getParentRoute: () => AuthenticatedNewsRoute,
+} as any)
+const AuthenticatedNewsSavedRoute = AuthenticatedNewsSavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => AuthenticatedNewsRoute,
+} as any)
 const AuthenticatedShopBillingRoute =
   AuthenticatedShopBillingRouteImport.update({
     id: '/billing',
@@ -263,7 +281,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/home': typeof AuthenticatedHomeRoute
-  '/news': typeof AuthenticatedNewsRoute
+  '/news': typeof AuthenticatedNewsRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -276,6 +294,9 @@ export interface FileRoutesByFullPath {
   '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/news/$slug': typeof AuthenticatedNewsSlugRoute
+  '/news/all': typeof AuthenticatedNewsAllRoute
+  '/news/saved': typeof AuthenticatedNewsSavedRoute
   '/shop/billing': typeof AuthenticatedShopBillingRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
@@ -302,7 +323,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/home': typeof AuthenticatedHomeRoute
-  '/news': typeof AuthenticatedNewsRoute
+  '/news': typeof AuthenticatedNewsRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -315,6 +336,9 @@ export interface FileRoutesByTo {
   '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/news/$slug': typeof AuthenticatedNewsSlugRoute
+  '/news/all': typeof AuthenticatedNewsAllRoute
+  '/news/saved': typeof AuthenticatedNewsSavedRoute
   '/shop/billing': typeof AuthenticatedShopBillingRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
@@ -343,7 +367,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
-  '/_authenticated/news': typeof AuthenticatedNewsRoute
+  '/_authenticated/news': typeof AuthenticatedNewsRouteWithChildren
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -356,6 +380,9 @@ export interface FileRoutesById {
   '/_authenticated/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/_authenticated/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
+  '/_authenticated/news/$slug': typeof AuthenticatedNewsSlugRoute
+  '/_authenticated/news/all': typeof AuthenticatedNewsAllRoute
+  '/_authenticated/news/saved': typeof AuthenticatedNewsSavedRoute
   '/_authenticated/shop/billing': typeof AuthenticatedShopBillingRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
@@ -397,6 +424,9 @@ export interface FileRouteTypes {
     | '/communities/create'
     | '/discover/studio'
     | '/messages/$id'
+    | '/news/$slug'
+    | '/news/all'
+    | '/news/saved'
     | '/shop/billing'
     | '/users/$id'
     | '/auth/roblox/callback'
@@ -436,6 +466,9 @@ export interface FileRouteTypes {
     | '/communities/create'
     | '/discover/studio'
     | '/messages/$id'
+    | '/news/$slug'
+    | '/news/all'
+    | '/news/saved'
     | '/shop/billing'
     | '/users/$id'
     | '/auth/roblox/callback'
@@ -476,6 +509,9 @@ export interface FileRouteTypes {
     | '/_authenticated/communities/create'
     | '/_authenticated/discover/studio'
     | '/_authenticated/messages/$id'
+    | '/_authenticated/news/$slug'
+    | '/_authenticated/news/all'
+    | '/_authenticated/news/saved'
     | '/_authenticated/shop/billing'
     | '/_authenticated/users/$id'
     | '/auth/roblox/callback'
@@ -735,6 +771,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessagesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/news/$slug': {
+      id: '/_authenticated/news/$slug'
+      path: '/$slug'
+      fullPath: '/news/$slug'
+      preLoaderRoute: typeof AuthenticatedNewsSlugRouteImport
+      parentRoute: typeof AuthenticatedNewsRoute
+    }
+    '/_authenticated/news/all': {
+      id: '/_authenticated/news/all'
+      path: '/all'
+      fullPath: '/news/all'
+      preLoaderRoute: typeof AuthenticatedNewsAllRouteImport
+      parentRoute: typeof AuthenticatedNewsRoute
+    }
+    '/_authenticated/news/saved': {
+      id: '/_authenticated/news/saved'
+      path: '/saved'
+      fullPath: '/news/saved'
+      preLoaderRoute: typeof AuthenticatedNewsSavedRouteImport
+      parentRoute: typeof AuthenticatedNewsRoute
+    }
     '/_authenticated/shop/billing': {
       id: '/_authenticated/shop/billing'
       path: '/billing'
@@ -780,6 +837,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedNewsRouteChildren {
+  AuthenticatedNewsSlugRoute: typeof AuthenticatedNewsSlugRoute
+  AuthenticatedNewsAllRoute: typeof AuthenticatedNewsAllRoute
+  AuthenticatedNewsSavedRoute: typeof AuthenticatedNewsSavedRoute
+}
+
+const AuthenticatedNewsRouteChildren: AuthenticatedNewsRouteChildren = {
+  AuthenticatedNewsSlugRoute: AuthenticatedNewsSlugRoute,
+  AuthenticatedNewsAllRoute: AuthenticatedNewsAllRoute,
+  AuthenticatedNewsSavedRoute: AuthenticatedNewsSavedRoute,
+}
+
+const AuthenticatedNewsRouteWithChildren =
+  AuthenticatedNewsRoute._addFileChildren(AuthenticatedNewsRouteChildren)
+
 interface AuthenticatedShopRouteChildren {
   AuthenticatedShopBillingRoute: typeof AuthenticatedShopBillingRoute
 }
@@ -794,7 +866,7 @@ const AuthenticatedShopRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
-  AuthenticatedNewsRoute: typeof AuthenticatedNewsRoute
+  AuthenticatedNewsRoute: typeof AuthenticatedNewsRouteWithChildren
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -814,7 +886,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
-  AuthenticatedNewsRoute: AuthenticatedNewsRoute,
+  AuthenticatedNewsRoute: AuthenticatedNewsRouteWithChildren,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,

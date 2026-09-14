@@ -1264,6 +1264,120 @@ export type Database = {
           },
         ]
       }
+      news_articles: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          excerpt: string | null
+          content: string
+          image_url: string | null
+          category: string
+          language: string
+          source: string
+          source_url: string | null
+          author_id: string | null
+          status: string
+          featured: boolean
+          published_at: string | null
+          scheduled_for: string | null
+          reading_time_minutes: number
+          key_points: string[]
+          tags: string[]
+          likes_count: number
+          comments_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          excerpt?: string | null
+          content?: string
+          image_url?: string | null
+          category?: string
+          language?: string
+          source?: string
+          source_url?: string | null
+          author_id?: string | null
+          status?: string
+          featured?: boolean
+          published_at?: string | null
+          scheduled_for?: string | null
+          reading_time_minutes?: number
+          key_points?: string[]
+          tags?: string[]
+          likes_count?: number
+          comments_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          excerpt?: string | null
+          content?: string
+          image_url?: string | null
+          category?: string
+          language?: string
+          source?: string
+          source_url?: string | null
+          author_id?: string | null
+          status?: string
+          featured?: boolean
+          published_at?: string | null
+          scheduled_for?: string | null
+          reading_time_minutes?: number
+          key_points?: string[]
+          tags?: string[]
+          likes_count?: number
+          comments_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      news_article_likes: {
+        Row: { article_id: string; user_id: string; created_at: string }
+        Insert: { article_id: string; user_id: string; created_at?: string }
+        Update: { article_id?: string; user_id?: string; created_at?: string }
+        Relationships: []
+      }
+      news_article_saves: {
+        Row: { article_id: string; user_id: string; created_at: string }
+        Insert: { article_id: string; user_id: string; created_at?: string }
+        Update: { article_id?: string; user_id?: string; created_at?: string }
+        Relationships: []
+      }
+      news_article_comments: {
+        Row: {
+          id: string
+          article_id: string
+          user_id: string
+          content: string
+          likes_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          article_id: string
+          user_id: string
+          content: string
+          likes_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          article_id?: string
+          user_id?: string
+          content?: string
+          likes_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       news: {
         Row: {
           author_id: string | null

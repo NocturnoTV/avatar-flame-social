@@ -1,451 +1,341 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
-import { Heart, ImagePlus, MessageCircle, Repeat2, Send, Trash2, X } from "lucide-react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { ChevronRight, Newspaper, Search, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { StoredImage, useSignedUrl } from "@/components/Media";
+import { StoredImage } from "@/components/Media";
 import { LogoWordmark } from "@/components/Logo";
 import { Sheet } from "@/components/ui-kit";
-import { Verified } from "@/components/Verified";
-import { useSession } from "@/lib/session";
-import { useI18n } from "@/lib/i18n";
-import { uploadFile } from "@/lib/media";
-import { cn, errorMessage } from "@/lib/utils";
+import { NEWS_CATEGORIES, newsCategoryBadgeClass, newsCategoryLabel } from "@/lib/newsCategories";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/news")({
   head: () => ({
     meta: [
-      { title: "Actualités — Bloxspark" },
+      { title: "Actualités Roblox — Bloxspark" },
       {
         name: "description",
-        content: "Ce que la communauté BloxSpark partage en ce moment.",
+        content: "Toute l'actualité Roblox : mises à jour, jeux, événements, créateurs et sécurité.",
       },
     ],
   }),
-  component: NewsPage,
+  component: NewsHomePage,
 });
 
-const POST_MAX = 500;
-const REPLY_MAX = 300;
-
-type Author = { id: string; username: string | null; avatar_url: string | null; verified: boolean | null };
-type Post = {
+type ArticleCard = {
   id: string;
-  user_id: string;
-  content: string;
+  title: string;
+  excerpt: string | null;
+  slug: string;
   image_url: string | null;
-  likes_count: number;
-  replies_count: number;
-  reposts_count: number;
+  category: string;
+  featured: boolean;
+  published_at: string | null;
   created_at: string;
-  author: Author | undefined;
-  liked: boolean;
-  reposted: boolean;
 };
 
-function timeAgo(value: string, lang: string) {
+function timeAgo(value: string, lang = "fr") {
   const elapsed = new Date(value).getTime() - Date.now();
   const absolute = Math.abs(elapsed);
   const formatter = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
-  if (absolute < 60_000) return formatter.format(Math.round(elapsed / 1000), "second");
   if (absolute < 3_600_000) return formatter.format(Math.round(elapsed / 60_000), "minute");
   if (absolute < 86_400_000) return formatter.format(Math.round(elapsed / 3_600_000), "hour");
   if (absolute < 604_800_000) return formatter.format(Math.round(elapsed / 86_400_000), "day");
-  return new Date(value).toLocaleDateString(lang, { day: "numeric", month: "short" });
+  return new Date(value).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
 }
 
-function NewsPage() {
-  const { t, lang } = useI18n();
-  const { user } = useSession();
-  const qc = useQueryClient();
-  const [draft, setDraft] = useState("");
-  const [draftImage, setDraftImage] = useState<File | null>(null);
-  const [posting, setPosting] = useState(false);
-  const [openReplies, setOpenReplies] = useState<Post | null>(null);
-  const imageInput = useRef<HTMLInputElement>(null);
+function NewsHomePage() {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<string>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [period, setPeriod] = useState<"all" | "today" | "week" | "month">("all");
+  const [language, setLanguage] = useState<"all" | "fr" | "en">("all");
 
-  const myProfile = useQuery({
-    queryKey: ["news-my-profile", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("username,avatar_url")
-        .eq("id", user!.id)
-        .maybeSingle();
-      return data;
-    },
-  });
-
-  const posts = useQuery({
-    queryKey: ["feed-posts"],
-    enabled: !!user,
-    queryFn: async (): Promise<Post[]> => {
-      const { data: rows, error } = await supabase
-        .from("feed_posts")
-        .select("id,user_id,content,image_url,likes_count,replies_count,reposts_count,created_at")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      const ids = [...new Set((rows ?? []).map((r) => r.user_id))];
-      const postIds = (rows ?? []).map((r) => r.id);
-      const [{ data: authors }, { data: myLikes }, { data: myReposts }] = await Promise.all([
-        ids.length
-          ? supabase.from("profiles").select("id,username,avatar_url,verified").in("id", ids)
-          : Promise.resolve({ data: [] as Author[] }),
-        postIds.length
-          ? supabase.from("feed_post_likes").select("post_id").eq("user_id", user!.id).in("post_id", postIds)
-          : Promise.resolve({ data: [] as { post_id: string }[] }),
-        postIds.length
-          ? supabase.from("feed_post_reposts").select("post_id").eq("user_id", user!.id).in("post_id", postIds)
-          : Promise.resolve({ data: [] as { post_id: string }[] }),
-      ]);
-      const authorsById = new Map((authors ?? []).map((a) => [a.id, a]));
-      const likedSet = new Set((myLikes ?? []).map((l) => l.post_id));
-      const repostedSet = new Set((myReposts ?? []).map((r) => r.post_id));
-      return (rows ?? []).map((r) => ({
-        ...r,
-        author: authorsById.get(r.user_id),
-        liked: likedSet.has(r.id),
-        reposted: repostedSet.has(r.id),
-      }));
-    },
-  });
-
-  async function publish() {
-    if (!user || !draft.trim()) return;
-    setPosting(true);
-    try {
-      let imagePath: string | null = null;
-      if (draftImage) {
-        imagePath = await uploadFile("feed-posts", user.id, draftImage, draftImage.name.split(".").pop() ?? "jpg");
+  const articles = useQuery({
+    queryKey: ["news-home", search.trim(), category, period, language],
+    queryFn: async (): Promise<ArticleCard[]> => {
+      let query = supabase
+        .from("news_articles")
+        .select("id,title,excerpt,slug,image_url,category,featured,published_at,created_at,status,scheduled_for")
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(60);
+      if (category !== "all") query = query.eq("category", category);
+      if (language !== "all") query = query.eq("language", language);
+      if (search.trim()) query = query.or(`title.ilike.%${search.trim()}%,excerpt.ilike.%${search.trim()}%`);
+      if (period !== "all") {
+        const since =
+          period === "today"
+            ? new Date(Date.now() - 86_400_000)
+            : period === "week"
+              ? new Date(Date.now() - 7 * 86_400_000)
+              : new Date(Date.now() - 30 * 86_400_000);
+        query = query.gte("published_at", since.toISOString());
       }
-      const { error } = await supabase.from("feed_posts").insert({
-        user_id: user.id,
-        content: draft.trim(),
-        image_url: imagePath,
-      });
+      const { data, error } = await query;
       if (error) throw error;
-      setDraft("");
-      setDraftImage(null);
-      void posts.refetch();
-    } catch (err) {
-      toast.error(errorMessage(err, t("errorGeneric")));
-    } finally {
-      setPosting(false);
-    }
-  }
+      // RLS already filters to published/effectively-scheduled/admin-visible;
+      // client just renders what comes back.
+      return data ?? [];
+    },
+  });
 
-  async function toggleLike(post: Post) {
-    if (!user) return;
-    if (post.liked) {
-      await supabase.from("feed_post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
-    } else {
-      await supabase.from("feed_post_likes").insert({ post_id: post.id, user_id: user.id });
-    }
-    void posts.refetch();
-  }
-
-  async function toggleRepost(post: Post) {
-    if (!user) return;
-    if (post.reposted) {
-      await supabase.from("feed_post_reposts").delete().eq("post_id", post.id).eq("user_id", user.id);
-    } else {
-      await supabase.from("feed_post_reposts").insert({ post_id: post.id, user_id: user.id });
-      toast.success(t("newsReposted"));
-    }
-    void posts.refetch();
-  }
-
-  async function deletePost(post: Post) {
-    await supabase.from("feed_posts").delete().eq("id", post.id);
-    void posts.refetch();
-    void qc.invalidateQueries({ queryKey: ["feed-posts"] });
-  }
+  const featured = (articles.data ?? []).filter((a) => a.featured).slice(0, 5);
+  const rest = (articles.data ?? []).filter((a) => !featured.some((f) => f.id === a.id));
+  const [carouselIndex, setCarouselIndex] = useState(0);
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-28 pt-4">
+    <div className="mx-auto w-full max-w-2xl px-5 pb-28 pt-4">
       <header className="flex items-center justify-between">
         <LogoWordmark className="h-7 w-auto" />
-        <h1 className="text-lg font-black">{t("newsFeedTitle")}</h1>
+        <button
+          onClick={() => setFiltersOpen(true)}
+          aria-label="Filtrer les actualités"
+          className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-surface-2"
+        >
+          <SlidersHorizontal className="h-5 w-5" />
+        </button>
       </header>
 
-      <div className="mt-5 flex gap-3 border-b border-border pb-5">
-        <StoredImage
-          path={myProfile.data?.avatar_url}
-          alt=""
-          className="h-11 w-11 shrink-0 rounded-full object-cover"
-          fallback={myProfile.data?.username?.[0]?.toUpperCase() ?? "?"}
-        />
-        <div className="min-w-0 flex-1">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value.slice(0, POST_MAX))}
-            placeholder={t("newsComposePlaceholder")}
-            rows={3}
-            className="w-full resize-none bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
-          />
-          {draftImage ? (
-            <div className="relative mt-1 inline-block">
-              <img
-                src={URL.createObjectURL(draftImage)}
-                alt=""
-                className="max-h-56 rounded-2xl border border-border object-cover"
-              />
-              <button
-                onClick={() => setDraftImage(null)}
-                className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          ) : null}
-          <div className="mt-2 flex items-center justify-between">
-            <button
-              onClick={() => imageInput.current?.click()}
-              aria-label={t("photo")}
-              className="grid h-9 w-9 place-items-center rounded-full text-primary hover:bg-primary/10"
-            >
-              <ImagePlus className="h-5 w-5" />
-            </button>
-            <input
-              ref={imageInput}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setDraftImage(file);
-                e.target.value = "";
-              }}
-            />
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">
-                {draft.length}/{POST_MAX}
-              </span>
-              <button
-                onClick={() => void publish()}
-                disabled={!draft.trim() || posting}
-                className="rounded-full bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground disabled:opacity-40"
-              >
-                {posting ? "..." : t("newsPublish")}
-              </button>
-            </div>
-          </div>
+      <div className="mt-6 flex items-center gap-3">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <Newspaper className="h-6 w-6" />
+        </span>
+        <div>
+          <h1 className="text-2xl font-black text-white">Actualités Roblox</h1>
+          <p className="text-sm text-muted-foreground">Toute l'actualité Roblox, en un seul endroit.</p>
         </div>
       </div>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Reste informé des nouveautés, mises à jour, événements et tendances de la communauté.
+      </p>
 
-      <div className="divide-y divide-border">
-        {!posts.data?.length ? (
-          <p className="py-14 text-center text-sm text-muted-foreground">{t("newsEmpty")}</p>
-        ) : null}
-        {(posts.data ?? []).map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            mine={post.user_id === user?.id}
-            lang={lang}
-            onLike={() => void toggleLike(post)}
-            onRepost={() => void toggleRepost(post)}
-            onOpenReplies={() => setOpenReplies(post)}
-            onDelete={() => void deletePost(post)}
-          />
-        ))}
-      </div>
-
-      {openReplies ? (
-        <RepliesSheet
-          post={openReplies}
-          onClose={() => setOpenReplies(null)}
-          onReplied={() => void posts.refetch()}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function PostCard({
-  post,
-  mine,
-  lang,
-  onLike,
-  onRepost,
-  onOpenReplies,
-  onDelete,
-}: {
-  post: Post;
-  mine: boolean;
-  lang: string;
-  onLike: () => void;
-  onRepost: () => void;
-  onOpenReplies: () => void;
-  onDelete: () => void;
-}) {
-  const { t } = useI18n();
-  const imageUrl = useSignedUrl(post.image_url);
-  return (
-    <article className="flex gap-3 py-4">
-      <Link to="/users/$id" params={{ id: post.author?.username ?? post.user_id }}>
-        <StoredImage
-          path={post.author?.avatar_url}
-          alt=""
-          className="h-11 w-11 shrink-0 rounded-full object-cover"
-          fallback={post.author?.username?.[0]?.toUpperCase() ?? "?"}
-        />
-      </Link>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 text-sm">
-          <Link
-            to="/users/$id"
-            params={{ id: post.author?.username ?? post.user_id }}
-            className="truncate font-bold hover:underline"
-          >
-            {post.author?.username ?? "?"}
-          </Link>
-          {post.author?.verified ? <Verified /> : null}
-          <span className="shrink-0 text-muted-foreground">· {timeAgo(post.created_at, lang)}</span>
-          {mine ? (
-            <button
-              onClick={onDelete}
-              aria-label={t("delete")}
-              className="ml-auto shrink-0 text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          ) : null}
-        </div>
-        <p className="mt-0.5 whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-          {post.content}
-        </p>
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt=""
-            className="mt-2 max-h-80 w-full rounded-2xl border border-border object-cover"
-          />
-        ) : null}
-        <div className="mt-3 flex max-w-xs items-center justify-between text-muted-foreground">
-          <button
-            onClick={onOpenReplies}
-            className="flex items-center gap-1.5 text-xs transition hover:text-primary"
-          >
-            <MessageCircle className="h-4 w-4" /> {post.replies_count || ""}
-          </button>
-          <button
-            onClick={onRepost}
-            className={cn(
-              "flex items-center gap-1.5 text-xs transition hover:text-emerald-500",
-              post.reposted && "text-emerald-500",
-            )}
-          >
-            <Repeat2 className="h-4 w-4" /> {post.reposts_count || ""}
-          </button>
-          <button
-            onClick={onLike}
-            className={cn(
-              "flex items-center gap-1.5 text-xs transition hover:text-pink-500",
-              post.liked && "text-pink-500",
-            )}
-          >
-            <Heart className="h-4 w-4" fill={post.liked ? "currentColor" : "none"} />
-            {post.likes_count || ""}
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function RepliesSheet({
-  post,
-  onClose,
-  onReplied,
-}: {
-  post: Post;
-  onClose: () => void;
-  onReplied: () => void;
-}) {
-  const { t, lang } = useI18n();
-  const { user } = useSession();
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-
-  const replies = useQuery({
-    queryKey: ["feed-post-replies", post.id],
-    queryFn: async () => {
-      const { data: rows } = await supabase
-        .from("feed_post_replies")
-        .select("id,user_id,content,created_at")
-        .eq("post_id", post.id)
-        .order("created_at");
-      const ids = [...new Set((rows ?? []).map((r) => r.user_id))];
-      const { data: authors } = ids.length
-        ? await supabase.from("profiles").select("id,username,avatar_url").in("id", ids)
-        : { data: [] };
-      const byId = new Map((authors ?? []).map((a) => [a.id, a]));
-      return (rows ?? []).map((r) => ({ ...r, author: byId.get(r.user_id) }));
-    },
-  });
-
-  async function send() {
-    if (!user || !text.trim()) return;
-    setSending(true);
-    try {
-      const { error } = await supabase.from("feed_post_replies").insert({
-        post_id: post.id,
-        user_id: user.id,
-        content: text.trim().slice(0, REPLY_MAX),
-      });
-      if (error) throw error;
-      setText("");
-      void replies.refetch();
-      onReplied();
-    } catch (err) {
-      toast.error(errorMessage(err, t("errorGeneric")));
-    } finally {
-      setSending(false);
-    }
-  }
-
-  return (
-    <Sheet open onClose={onClose} title={t("newsReplies")}>
-      <div className="max-h-[50vh] space-y-3 overflow-y-auto">
-        <div className="rounded-2xl bg-surface p-3 text-sm text-muted-foreground">{post.content}</div>
-        {!replies.data?.length ? (
-          <p className="py-6 text-center text-xs text-muted-foreground">{t("newsNoReplies")}</p>
-        ) : null}
-        {(replies.data ?? []).map((r) => (
-          <div key={r.id} className="flex items-start gap-2">
-            <StoredImage
-              path={r.author?.avatar_url}
-              alt=""
-              className="h-8 w-8 shrink-0 rounded-full object-cover"
-              fallback={r.author?.username?.[0]?.toUpperCase() ?? "?"}
-            />
-            <div className="min-w-0 flex-1 rounded-2xl bg-surface px-3 py-2">
-              <p className="text-xs font-bold">{r.author?.username ?? "?"}</p>
-              <p className="mt-0.5 text-sm">{r.content}</p>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">{timeAgo(r.created_at, lang)}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-5 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
-          value={text}
-          onChange={(e) => setText(e.target.value.slice(0, REPLY_MAX))}
-          placeholder={t("newsReplyPlaceholder")}
-          className="min-w-0 flex-1 rounded-full border border-border bg-surface px-4 py-2 text-sm outline-none"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher une actualité..."
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none"
         />
-        <button
-          onClick={() => void send()}
-          disabled={!text.trim() || sending}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full spark-gradient text-white disabled:opacity-40"
-        >
-          <Send className="h-4 w-4" />
-        </button>
       </div>
-    </Sheet>
+
+      <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => setCategory("all")}
+          className={cn(
+            "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition",
+            category === "all" ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground",
+          )}
+        >
+          Tous
+        </button>
+        {NEWS_CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setCategory(c.id)}
+            className={cn(
+              "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition",
+              category === c.id ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground",
+            )}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {articles.isLoading ? (
+        <div className="mt-6 space-y-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-3xl bg-surface-2" />
+          ))}
+        </div>
+      ) : null}
+
+      {!articles.isLoading && !(articles.data ?? []).length ? (
+        <div className="mt-14 flex flex-col items-center text-center">
+          <Newspaper className="h-10 w-10 text-muted-foreground" />
+          <p className="mt-3 font-bold">Aucune actualité trouvée</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Nous n'avons trouvé aucune actualité correspondant à votre recherche.
+          </p>
+          <button
+            onClick={() => {
+              setSearch("");
+              setCategory("all");
+              setPeriod("all");
+              setLanguage("all");
+            }}
+            className="mt-4 rounded-full border border-border px-4 py-2 text-sm font-semibold"
+          >
+            Réinitialiser les filtres
+          </button>
+        </div>
+      ) : null}
+
+      {featured.length > 0 ? (
+        <section className="mt-6">
+          <div
+            className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto"
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              const idx = Math.round(el.scrollLeft / el.clientWidth);
+              setCarouselIndex(idx);
+            }}
+          >
+            {featured.map((a) => (
+              <Link
+                key={a.id}
+                to="/news/$slug"
+                params={{ slug: a.slug }}
+                className="relative block aspect-[4/5] w-full shrink-0 snap-start overflow-hidden rounded-[2rem] bg-surface-2"
+              >
+                <StoredImage path={a.image_url} alt="" className="h-full w-full object-cover" fallback="📰" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                <span className="absolute left-4 top-4 flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-bold text-white">
+                  ✦ À la une
+                </span>
+                <span className="absolute right-4 top-4 rounded-full bg-black/40 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur">
+                  {new Date(a.published_at ?? a.created_at).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+                <div className="absolute inset-x-0 bottom-0 p-5">
+                  <h2 className="text-2xl font-black leading-tight text-white">{a.title}</h2>
+                  {a.excerpt ? <p className="mt-1.5 text-sm text-white/80">{a.excerpt}</p> : null}
+                  <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-bold text-[#08090D]">
+                    Lire l'article <ChevronRight className="h-4 w-4" />
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+          {featured.length > 1 ? (
+            <div className="mt-3 flex justify-center gap-1.5">
+              {featured.map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all",
+                    i === carouselIndex ? "w-5 bg-primary" : "w-1.5 bg-white/20",
+                  )}
+                />
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {rest.length > 0 ? (
+        <section className="mt-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-black text-white">Dernières actualités</h2>
+            <Link to="/news/all" className="flex items-center gap-1 text-sm font-semibold text-primary">
+              Voir tout <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="mt-3 space-y-3">
+            {rest.slice(0, 12).map((a) => (
+              <Link
+                key={a.id}
+                to="/news/$slug"
+                params={{ slug: a.slug }}
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2 transition hover:border-primary/30"
+              >
+                <StoredImage
+                  path={a.image_url}
+                  alt=""
+                  className="h-20 w-20 shrink-0 rounded-xl object-cover"
+                  fallback="📰"
+                />
+                <div className="min-w-0 flex-1 py-1">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", newsCategoryBadgeClass(a.category))}>
+                      ✦ {newsCategoryLabel(a.category)}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {timeAgo(a.published_at ?? a.created_at)}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-sm font-bold text-white">{a.title}</p>
+                  {a.excerpt ? (
+                    <p className="line-clamp-1 text-xs text-muted-foreground">{a.excerpt}</p>
+                  ) : null}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <Sheet open={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtrer les actualités">
+        <div className="space-y-5">
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">Période</p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["all", "Toutes"],
+                  ["today", "Aujourd'hui"],
+                  ["week", "Cette semaine"],
+                  ["month", "Ce mois-ci"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setPeriod(id)}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-sm font-semibold",
+                    period === id ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">Langue</p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["all", "Toutes"],
+                  ["fr", "Français"],
+                  ["en", "English"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setLanguage(id)}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-sm font-semibold",
+                    language === id ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setPeriod("all");
+              setLanguage("all");
+              setCategory("all");
+            }}
+            className="w-full rounded-full border border-border py-3 text-sm font-semibold text-muted-foreground"
+          >
+            Réinitialiser
+          </button>
+          <button
+            onClick={() => setFiltersOpen(false)}
+            className="w-full rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground"
+          >
+            Appliquer
+          </button>
+        </div>
+      </Sheet>
+    </div>
   );
 }
