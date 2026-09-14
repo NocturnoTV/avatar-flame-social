@@ -627,17 +627,15 @@ async function bumpCreatorAffinity(
     .maybeSingle();
   const old = current?.affinity ?? DEFAULT_AFFINITY;
   const next = clamp01(old + lr * trust * (target - old));
-  await supabaseAdmin
-    .from("user_creator_affinity")
-    .upsert(
-      {
-        user_id: userId,
-        creator_id: creatorId,
-        affinity: next,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,creator_id" },
-    );
+  await supabaseAdmin.from("user_creator_affinity").upsert(
+    {
+      user_id: userId,
+      creator_id: creatorId,
+      affinity: next,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,creator_id" },
+  );
 }
 
 /**
@@ -674,16 +672,30 @@ export async function recordWatchEvent(
   const completed = watchRatio >= 0.9;
   const skipped = !completed && input.watchMs < 2500 && watchRatio < 0.3;
 
-  await supabaseAdmin.from("video_watch_events").insert({
-    user_id: userId,
-    video_id: videoId,
-    watch_ms: Math.round(input.watchMs),
-    watch_ratio: watchRatio,
-    completed,
-    replayed: input.replayed ?? false,
-    skipped,
-    time_before_skip_ms: skipped ? Math.round(input.watchMs) : null,
-  });
+  const { data: watchEvent } = await supabaseAdmin
+    .from("video_watch_events")
+    .insert({
+      user_id: userId,
+      video_id: videoId,
+      watch_ms: Math.round(input.watchMs),
+      watch_ratio: watchRatio,
+      completed,
+      replayed: input.replayed ?? false,
+      skipped,
+      time_before_skip_ms: skipped ? Math.round(input.watchMs) : null,
+    })
+    .select("id")
+    .single();
+
+  // "Content Time" daily quest - each full watch counts (rewatches too),
+  // so the entity id is the watch event's own id rather than the video id.
+  if (completed && watchEvent) {
+    await supabaseAdmin.rpc("bump_quest_progress_for", {
+      _user: userId,
+      _metric_key: "content_time",
+      _entity_id: watchEvent.id,
+    });
+  }
 
   const { data: video } = await supabaseAdmin
     .from("videos")

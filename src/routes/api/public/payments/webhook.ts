@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { type StripeEnv, verifyWebhook } from "@/lib/stripe.server";
+import type Stripe from "stripe";
+import { type StripeEnv, createStripeClient, verifyWebhook } from "@/lib/stripe.server";
 
 let _supabase: ReturnType<typeof createClient<any>> | null = null;
 function getSupabase() {
@@ -73,6 +74,59 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
   if (userId) await syncProfile(userId, "canceled", null);
 }
 
+/** Credits a completed one-time Blox pack purchase. Runs with the service
+ * role, which the protect_blox_balance trigger explicitly allows alongside
+ * the SECURITY DEFINER RPCs the client itself is limited to. */
+async function handleBloxPackPurchase(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.["userId"];
+  if (!userId) {
+    console.error("Blox pack checkout completed with no userId in metadata");
+    return;
+  }
+  const sessionId = session.id as string;
+
+  // Stripe can retry checkout.session.completed; make crediting idempotent
+  // by keying the ledger row on the session id.
+  const supabase = getSupabase();
+  const { data: existing } = await supabase
+    .from("blox_transactions")
+    .select("id")
+    .eq("reference_id", sessionId)
+    .eq("kind", "purchase")
+    .maybeSingle();
+  if (existing) return;
+
+  const stripe = createStripeClient(session.livemode ? "live" : "sandbox");
+  const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
+    expand: ["data.price"],
+  });
+  const price = lineItems.data[0]?.price;
+  const bloxAmount = Number(price?.metadata?.["blox_amount"] ?? 0);
+  if (!bloxAmount) {
+    console.error("Blox pack checkout completed with no blox_amount on the price", sessionId);
+    return;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("blox_balance")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!profile) return;
+
+  await supabase
+    .from("profiles")
+    .update({ blox_balance: profile.blox_balance + bloxAmount })
+    .eq("id", userId);
+  await supabase.from("blox_transactions").insert({
+    user_id: userId,
+    amount: bloxAmount,
+    kind: "purchase",
+    reference_id: sessionId,
+    description: `Achat de pack Blox (${price?.lookup_key ?? "inconnu"})`,
+  });
+}
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
 
@@ -84,6 +138,13 @@ async function handleWebhook(req: Request, env: StripeEnv) {
     case "customer.subscription.deleted":
       await handleSubscriptionDeleted(event.data.object, env);
       break;
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.mode === "payment" && session.metadata?.["kind"] === "blox_pack") {
+        await handleBloxPackPurchase(session);
+      }
+      break;
+    }
     default:
       console.log("Unhandled event:", event.type);
   }

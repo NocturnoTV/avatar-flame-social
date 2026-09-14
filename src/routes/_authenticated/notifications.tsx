@@ -1,5 +1,5 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
@@ -7,9 +7,6 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/notifications")({
-  beforeLoad: () => {
-    throw redirect({ to: "/messages" });
-  },
   head: () => ({
     meta: [
       { title: "Notifications - Bloxspark" },
@@ -31,6 +28,7 @@ const ICONS: Record<string, string> = {
 function NotificationsPage() {
   const { t } = useI18n();
   const { user } = useSession();
+  const qc = useQueryClient();
 
   const notifications = useQuery({
     queryKey: ["notifications"],
@@ -66,7 +64,15 @@ function NotificationsPage() {
       .eq("user_id", user.id)
       .eq("read", false);
     void notifications.refetch();
+    void qc.invalidateQueries({ queryKey: ["unread-notifications"] });
   }
+
+  // Viewing the list is enough to clear the badge - same "seen it" behavior
+  // as opening a conversation, rather than requiring the explicit button.
+  useEffect(() => {
+    if (user) void markAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   return (
     <div className="mx-auto w-full max-w-md px-4 pt-5">

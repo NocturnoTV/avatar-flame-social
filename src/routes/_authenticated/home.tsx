@@ -519,7 +519,7 @@ function HomePage() {
           {latest.data?.length ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               {latest.data.map((v) => (
-                <VideoThumb key={v.id} path={v.storage_path} views={v.views_count} />
+                <VideoThumb key={v.id} id={v.id} path={v.storage_path} views={v.views_count} />
               ))}
             </div>
           ) : (
@@ -645,11 +645,12 @@ function HomePage() {
   );
 }
 
-function VideoThumb({ path, views }: { path: string; views: number }) {
+function VideoThumb({ id, path, views }: { id: string; path: string; views: number }) {
   const url = useSignedUrl(path);
   return (
     <Link
       to="/discover"
+      search={{ v: id }}
       className="group relative overflow-hidden rounded-2xl bg-black transition hover:-translate-y-0.5"
     >
       {url ? (

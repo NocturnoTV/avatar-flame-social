@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Crown, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { ProfileBanner } from "@/components/ProfileBanner";
 import { Verified } from "@/components/Verified";
+import { EquippedBadges } from "@/components/Blox";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
 import { ProfileContentTabs, type TabVideo } from "@/components/ProfileContentTabs";
 import { Button } from "@/components/ui-kit";
@@ -51,6 +52,19 @@ function PublicProfile() {
   });
   const id = resolved.data ?? undefined;
   const isMe = !!user && user.id === id;
+
+  // "Explorer" daily quest - counts distinct profiles visited today.
+  useEffect(() => {
+    if (!user || !id || isMe) return;
+    const today = new Date().toISOString().slice(0, 10);
+    void supabase
+      .from("profile_visits")
+      .upsert(
+        { viewer_id: user.id, visited_id: id, visited_date: today },
+        { onConflict: "viewer_id,visited_id,visited_date", ignoreDuplicates: true },
+      );
+    void supabase.rpc("bump_quest_progress", { _metric_key: "explorer", _entity_id: id });
+  }, [user, id, isMe]);
 
   const profile = useQuery({
     queryKey: ["public-profile", id],
@@ -258,6 +272,7 @@ function PublicProfile() {
             <Crown className="h-5 w-5 text-primary" aria-label="Spark Plus" />
           ) : null}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
+          <EquippedBadges userId={id} />
         </h1>
         <RobloxIdentity
           displayName={p?.roblox_display_name}

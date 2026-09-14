@@ -8,16 +8,17 @@ import {
   Compass,
   Crown,
   Gamepad2,
+  Gift,
   HelpCircle,
   Home,
   LogOut,
   MessageCircle,
   Newspaper,
-  Play,
   Plus,
   Receipt,
   Repeat,
   Settings,
+  ShoppingBag,
   Sparkles,
   Trash2,
   User,
@@ -29,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { LogoWordmark } from "@/components/Logo";
 import { Sheet } from "@/components/ui-kit";
+import { BloxBalanceChip } from "@/components/Blox";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { useUnreadConversations } from "@/lib/unreadConversations";
@@ -75,7 +77,6 @@ function useUnreadNotifications() {
   return data;
 }
 
-
 function Badge({ count }: { count: number }) {
   if (!count) return null;
   return (
@@ -109,12 +110,16 @@ function Row({
       <span
         className={cn(
           "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
-          active ? "spark-gradient text-white shadow-[0_0_14px_rgba(168,85,247,.5)]" : "text-foreground",
+          active
+            ? "spark-gradient text-white shadow-[0_0_14px_rgba(168,85,247,.5)]"
+            : "text-foreground",
         )}
       >
         <Icon className="h-5 w-5" fill={active ? "currentColor" : "none"} />
       </span>
-      <span className={cn("flex-1 truncate text-[15px] font-medium", active && "font-semibold")}>{label}</span>
+      <span className={cn("flex-1 truncate text-[15px] font-medium", active && "font-semibold")}>
+        {label}
+      </span>
       {comingSoon ? (
         <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
           {comingSoon}
@@ -231,9 +236,14 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-bold">{profile.data?.username ?? "…"}</span>
-          <span className="block truncate text-xs text-muted-foreground">@{profile.data?.username ?? "…"}</span>
+          <span className="block truncate text-[15px] font-bold">
+            {profile.data?.username ?? "…"}
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">
+            @{profile.data?.username ?? "…"}
+          </span>
         </span>
+        {user ? <BloxBalanceChip className="mr-1" /> : null}
         <Link
           to="/notifications"
           onClick={(e) => {
@@ -264,10 +274,27 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
       </Link>
 
       <div className="mt-4 space-y-0.5 rounded-3xl border border-border bg-card p-2">
-        <Row icon={Home} label={t("home")} to="/home" active={isActive("/home")} onClick={onClose} />
-        <Row icon={Compass} label={t("discover")} to="/discover" active={isActive("/discover")} onClick={onClose} />
-        <Row icon={Play} label={t("menuVideos")} to="/discover" active={false} onClick={onClose} />
-        <Row icon={Sparkles} label={t("sparks")} to="/sparks" active={isActive("/sparks")} onClick={onClose} />
+        <Row
+          icon={Home}
+          label={t("home")}
+          to="/home"
+          active={isActive("/home")}
+          onClick={onClose}
+        />
+        <Row
+          icon={Compass}
+          label={t("discover")}
+          to="/discover"
+          active={isActive("/discover")}
+          onClick={onClose}
+        />
+        <Row
+          icon={Sparkles}
+          label={t("sparks")}
+          to="/sparks"
+          active={isActive("/sparks")}
+          onClick={onClose}
+        />
         <Row
           icon={Users}
           label={t("menuCommunities")}
@@ -299,11 +326,31 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           badge={unreadNotifs}
           onClick={onClose}
         />
-        <Row icon={User} label={t("profile")} to="/profile" active={isActive("/profile")} onClick={onClose} />
+        <Row
+          icon={User}
+          label={t("profile")}
+          to="/profile"
+          active={isActive("/profile")}
+          onClick={onClose}
+        />
 
         <div className="my-1.5 border-t border-border" />
 
         <Row icon={Crown} label={t("menuPremium")} to="/shop" onClick={onClose} />
+        <Row
+          icon={ShoppingBag}
+          label={t("bloxStore")}
+          to="/store"
+          active={isActive("/store")}
+          onClick={onClose}
+        />
+        <Row
+          icon={Gift}
+          label={t("rewards")}
+          to="/rewards"
+          active={isActive("/rewards")}
+          onClick={onClose}
+        />
         <Row
           icon={Receipt}
           label={t("purchasesAndBilling")}
@@ -311,8 +358,20 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           active={isActive("/shop/billing")}
           onClick={onClose}
         />
-        <Row icon={Bookmark} label={t("menuSaved")} to="/news/saved" onClick={onClose} />
-        <Row icon={Clock} label={t("menuRecent")} disabled comingSoon={t("comingSoon")} />
+        <Row
+          icon={Bookmark}
+          label={t("menuSaved")}
+          to="/saved"
+          active={isActive("/saved")}
+          onClick={onClose}
+        />
+        <Row
+          icon={Clock}
+          label={t("menuRecent")}
+          to="/recent"
+          active={isActive("/recent")}
+          onClick={onClose}
+        />
         <Row icon={HelpCircle} label={t("support")} to="/support" onClick={onClose} />
       </div>
 
@@ -333,7 +392,9 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
       <Sheet open={switcherOpen} onClose={() => setSwitcherOpen(false)} title={t("switchAccount")}>
         <div className="space-y-2">
           {otherAccounts.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">{t("accountSwitcherNoOthers")}</p>
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              {t("accountSwitcherNoOthers")}
+            </p>
           ) : (
             otherAccounts.map((account) => (
               <div
@@ -356,7 +417,9 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
                     {account.username ?? t("profile")}
                   </span>
                   <span className="block text-xs text-primary">
-                    {switching === account.userId ? t("switchingAccount") : t("switchToThisAccount")}
+                    {switching === account.userId
+                      ? t("switchingAccount")
+                      : t("switchToThisAccount")}
                   </span>
                 </button>
                 <button

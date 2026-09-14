@@ -28,9 +28,13 @@ import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/h
 import { Route as AuthenticatedNewsRouteImport } from './routes/_authenticated/news'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedRecentRouteImport } from './routes/_authenticated/recent'
+import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated/rewards'
+import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/saved'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedShopRouteImport } from './routes/_authenticated/shop'
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
+import { Route as AuthenticatedStoreRouteImport } from './routes/_authenticated/store'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as DecouvrirIndexRouteImport } from './routes/decouvrir.index'
 import { Route as DecouvrirStudioRouteImport } from './routes/decouvrir.studio'
@@ -146,6 +150,21 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRecentRoute = AuthenticatedRecentRouteImport.update({
+  id: '/recent',
+  path: '/recent',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRewardsRoute = AuthenticatedRewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSavedRoute = AuthenticatedSavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -159,6 +178,11 @@ const AuthenticatedShopRoute = AuthenticatedShopRouteImport.update({
 const AuthenticatedSparksRoute = AuthenticatedSparksRouteImport.update({
   id: '/sparks',
   path: '/sparks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStoreRoute = AuthenticatedStoreRouteImport.update({
+  id: '/store',
+  path: '/store',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
@@ -284,9 +308,13 @@ export interface FileRoutesByFullPath {
   '/news': typeof AuthenticatedNewsRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/recent': typeof AuthenticatedRecentRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
+  '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/shop': typeof AuthenticatedShopRouteWithChildren
   '/sparks': typeof AuthenticatedSparksRoute
+  '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
@@ -326,9 +354,13 @@ export interface FileRoutesByTo {
   '/news': typeof AuthenticatedNewsRouteWithChildren
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/recent': typeof AuthenticatedRecentRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
+  '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/shop': typeof AuthenticatedShopRouteWithChildren
   '/sparks': typeof AuthenticatedSparksRoute
+  '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir': typeof DecouvrirIndexRoute
@@ -370,9 +402,13 @@ export interface FileRoutesById {
   '/_authenticated/news': typeof AuthenticatedNewsRouteWithChildren
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/recent': typeof AuthenticatedRecentRoute
+  '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
+  '/_authenticated/saved': typeof AuthenticatedSavedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/shop': typeof AuthenticatedShopRouteWithChildren
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
+  '/_authenticated/store': typeof AuthenticatedStoreRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
@@ -414,9 +450,13 @@ export interface FileRouteTypes {
     | '/news'
     | '/notifications'
     | '/profile'
+    | '/recent'
+    | '/rewards'
+    | '/saved'
     | '/settings'
     | '/shop'
     | '/sparks'
+    | '/store'
     | '/support'
     | '/decouvrir/studio'
     | '/decouvrir/'
@@ -456,9 +496,13 @@ export interface FileRouteTypes {
     | '/news'
     | '/notifications'
     | '/profile'
+    | '/recent'
+    | '/rewards'
+    | '/saved'
     | '/settings'
     | '/shop'
     | '/sparks'
+    | '/store'
     | '/support'
     | '/decouvrir/studio'
     | '/decouvrir'
@@ -499,9 +543,13 @@ export interface FileRouteTypes {
     | '/_authenticated/news'
     | '/_authenticated/notifications'
     | '/_authenticated/profile'
+    | '/_authenticated/recent'
+    | '/_authenticated/rewards'
+    | '/_authenticated/saved'
     | '/_authenticated/settings'
     | '/_authenticated/shop'
     | '/_authenticated/sparks'
+    | '/_authenticated/store'
     | '/_authenticated/support'
     | '/decouvrir/studio'
     | '/decouvrir/'
@@ -680,6 +728,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/recent': {
+      id: '/_authenticated/recent'
+      path: '/recent'
+      fullPath: '/recent'
+      preLoaderRoute: typeof AuthenticatedRecentRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rewards': {
+      id: '/_authenticated/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof AuthenticatedRewardsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/saved': {
+      id: '/_authenticated/saved'
+      path: '/saved'
+      fullPath: '/saved'
+      preLoaderRoute: typeof AuthenticatedSavedRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
       path: '/settings'
@@ -699,6 +768,13 @@ declare module '@tanstack/react-router' {
       path: '/sparks'
       fullPath: '/sparks'
       preLoaderRoute: typeof AuthenticatedSparksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/store': {
+      id: '/_authenticated/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof AuthenticatedStoreRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/support': {
@@ -869,9 +945,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNewsRoute: typeof AuthenticatedNewsRouteWithChildren
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedRecentRoute: typeof AuthenticatedRecentRoute
+  AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
+  AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedShopRoute: typeof AuthenticatedShopRouteWithChildren
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
+  AuthenticatedStoreRoute: typeof AuthenticatedStoreRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedCommunitiesHandleRoute: typeof AuthenticatedCommunitiesHandleRoute
   AuthenticatedCommunitiesCreateRoute: typeof AuthenticatedCommunitiesCreateRoute
@@ -889,9 +969,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNewsRoute: AuthenticatedNewsRouteWithChildren,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedRecentRoute: AuthenticatedRecentRoute,
+  AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
+  AuthenticatedSavedRoute: AuthenticatedSavedRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedShopRoute: AuthenticatedShopRouteWithChildren,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
+  AuthenticatedStoreRoute: AuthenticatedStoreRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedCommunitiesHandleRoute: AuthenticatedCommunitiesHandleRoute,
   AuthenticatedCommunitiesCreateRoute: AuthenticatedCommunitiesCreateRoute,

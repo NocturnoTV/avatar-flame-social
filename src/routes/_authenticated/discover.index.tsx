@@ -41,6 +41,8 @@ import {
 } from "@/lib/recommendation.functions";
 
 export const Route = createFileRoute("/_authenticated/discover/")({
+  validateSearch: (search: Record<string, unknown>): { v?: string } =>
+    typeof search["v"] === "string" ? { v: search["v"] } : {},
   head: () => ({
     meta: [
       { title: "Découvrir - Bloxspark" },
@@ -83,6 +85,7 @@ export function formatCount(n: number) {
 function DiscoverPage() {
   const { user } = useSession();
   const { t } = useI18n();
+  const { v: pinnedVideoId } = Route.useSearch();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"foryou" | "following">("foryou");
   const [muted, setMuted] = useState(
@@ -110,7 +113,7 @@ function DiscoverPage() {
   });
 
   const feed = useQuery({
-    queryKey: ["feed", tab, following.data?.join(",")],
+    queryKey: ["feed", tab, following.data?.join(","), pinnedVideoId],
     enabled: !!user && following.isFetched,
     queryFn: async () => {
       let videos: VideoRow[];
@@ -133,6 +136,25 @@ function DiscoverPage() {
         if (error) throw error;
         videos = (data ?? []) as VideoRow[];
       }
+
+      // Deep-linked from a video thumbnail elsewhere (e.g. Home's Discover
+      // preview) - pin it as the first slide of the scroll feed.
+      if (pinnedVideoId && !videos.some((v) => v.id === pinnedVideoId)) {
+        const { data: pinned } = await supabase
+          .from("videos")
+          .select(
+            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count",
+          )
+          .eq("id", pinnedVideoId)
+          .maybeSingle();
+        if (pinned) videos = [pinned as VideoRow, ...videos];
+      } else if (pinnedVideoId) {
+        videos = [
+          videos.find((v) => v.id === pinnedVideoId)!,
+          ...videos.filter((v) => v.id !== pinnedVideoId),
+        ];
+      }
+
       const ids = [...new Set(videos.map((v) => v.user_id))];
       const profiles: Record<string, { username: string | null; avatar_url: string | null }> = {};
       if (ids.length) {
@@ -534,6 +556,22 @@ function VideoSlide({
     loopedRef.current = false;
   }
 
+  // Shared across every mounted video item (same key => one request, not
+  // one per video) - opt-in "Recents" history, off by default per user.
+  const watchHistoryEnabled = useQuery({
+    queryKey: ["watch-history-enabled", user?.id],
+    enabled: !!user,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("watch_history_enabled")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return !!data?.watch_history_enabled;
+    },
+  });
+
   const state = useQuery({
     queryKey: ["video-state", video.id, user?.id],
     enabled: !!user,
@@ -609,6 +647,14 @@ function VideoSlide({
               .maybeSingle();
             if (data) setViewCount(data.views_count);
           });
+        if (watchHistoryEnabled.data) {
+          void supabase
+            .from("watch_history")
+            .upsert(
+              { user_id: user.id, video_id: video.id, watched_at: new Date().toISOString() },
+              { onConflict: "user_id,video_id" },
+            );
+        }
       }
     } else {
       el.pause();
@@ -650,8 +696,19 @@ function VideoSlide({
       await supabase.from(table).delete().eq("video_id", video.id).eq("user_id", user.id);
     } else {
       await supabase.from(table).insert({ video_id: video.id, user_id: user.id });
-      if (table === "video_likes")
+      if (table === "video_likes") {
         void logPositiveAction({ data: { videoId: video.id, action: "like" } });
+        void supabase.rpc("bump_quest_progress", {
+          _metric_key: "social_spark",
+          _entity_id: video.id,
+        });
+      }
+      if (table === "video_favorites") {
+        void supabase.rpc("bump_quest_progress", {
+          _metric_key: "show_some_love",
+          _entity_id: video.id,
+        });
+      }
       if (table === "video_reposts")
         void logPositiveAction({ data: { videoId: video.id, action: "share" } });
     }
@@ -670,11 +727,14 @@ function VideoSlide({
     } else {
       await supabase.from("follows").insert({ follower_id: user.id, following_id: video.user_id });
       void logPositiveAction({ data: { videoId: video.id, action: "follow" } });
+      void supabase.rpc("bump_quest_progress", {
+        _metric_key: "make_a_friend",
+        _entity_id: video.user_id,
+      });
     }
     await qc.invalidateQueries({ queryKey: ["video-state"] });
     await qc.invalidateQueries({ queryKey: ["following"] });
   }
-
 
   return (
     <div
@@ -790,16 +850,17 @@ function VideoSlide({
             onClick={() => toggle("video_reposts", !!state.data?.reposted)}
             label={t("repost")}
           />
-          <RailButton icon={Send} count={video.shares_count} onClick={() => setSharing(true)} label={t("share")} />
+          <RailButton
+            icon={Send}
+            count={video.shares_count}
+            onClick={() => setSharing(true)}
+            label={t("share")}
+          />
           {!isMine ? <RailOverflow onNotInterested={onNotInterested} /> : null}
         </div>
       </div>
       {sharing ? (
-        <ShareSheet
-          video={video}
-          username={username}
-          onClose={() => setSharing(false)}
-        />
+        <ShareSheet video={video} username={username} onClose={() => setSharing(false)} />
       ) : null}
     </div>
   );
@@ -845,6 +906,9 @@ function ShareSheet({
       .update({ shares_count: video.shares_count + 1 })
       .eq("id", video.id);
     await qc.invalidateQueries({ queryKey: ["feed"] });
+    if (user) {
+      void supabase.rpc("bump_quest_progress", { _metric_key: "share_it", _entity_id: video.id });
+    }
   }
 
   async function copyLink() {
@@ -1102,7 +1166,13 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
       media_type: media?.type ?? null,
     });
     if (error) toast.error(error.message);
-    else void logPositiveAction({ data: { videoId: video.id, action: "comment" } });
+    else {
+      void logPositiveAction({ data: { videoId: video.id, action: "comment" } });
+      void supabase.rpc("bump_quest_progress", {
+        _metric_key: "conversation",
+        _entity_id: video.id,
+      });
+    }
     setReplyingTo(null);
     setMedia(null);
     setShowExtras(false);

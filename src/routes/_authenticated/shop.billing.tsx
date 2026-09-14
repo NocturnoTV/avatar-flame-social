@@ -142,9 +142,10 @@ function BillingPage() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold">
                   {inv.number ?? inv.id} ·{" "}
-                  {new Intl.NumberFormat(lang, { style: "currency", currency: inv.currency }).format(
-                    inv.amountPaid / 100,
-                  )}
+                  {new Intl.NumberFormat(lang, {
+                    style: "currency",
+                    currency: inv.currency,
+                  }).format(inv.amountPaid / 100)}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {new Date(inv.created * 1000).toLocaleDateString(lang, {

@@ -432,15 +432,25 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
     setBusy(true);
     try {
       const path = await uploadFile("videos", user.id, file, file.name.split(".").pop() || "mp4");
-      const { error } = await supabase.from("videos").insert({
-        user_id: user.id,
-        storage_path: path,
-        caption: title.trim(),
-        sound_name: null,
-        hashtags,
-        visibility,
-      });
+      const { data: inserted, error } = await supabase
+        .from("videos")
+        .insert({
+          user_id: user.id,
+          storage_path: path,
+          caption: title.trim(),
+          sound_name: null,
+          hashtags,
+          visibility,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      if (inserted) {
+        void supabase.rpc("bump_quest_progress", {
+          _metric_key: "creator",
+          _entity_id: inserted.id,
+        });
+      }
       toast.success("Video published 🎉");
       onDone();
     } catch (error) {

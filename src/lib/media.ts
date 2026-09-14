@@ -5,7 +5,9 @@ const TUS_CHUNK_SIZE = 6 * 1024 * 1024;
 const MAX_UPLOAD_ATTEMPTS = 3;
 
 type SupabaseRuntime = {
-  storageUrl?: string;
+  // The real SupabaseClient stores this as a `URL` instance (`new URL('storage/v1', baseUrl)`),
+  // not a string - calling string methods on it directly throws "is not a function".
+  storageUrl?: URL;
   supabaseKey?: string;
 };
 
@@ -57,7 +59,7 @@ async function resumableUpload(bucket: string, path: string, file: Blob) {
     throw new Error("Votre session a expiré. Reconnectez-vous avant de publier.");
   }
 
-  const endpoint = `${runtime.storageUrl.replace(/\/$/, "")}/upload/resumable`;
+  const endpoint = `${runtime.storageUrl.href.replace(/\/$/, "")}/upload/resumable`;
   const authHeaders = {
     authorization: `Bearer ${session.access_token}`,
     apikey: runtime.supabaseKey,
@@ -115,7 +117,8 @@ async function resumableUpload(bucket: string, path: string, file: Blob) {
 
       if (response.ok) {
         const nextOffset = Number(response.headers.get("Upload-Offset"));
-        offset = Number.isFinite(nextOffset) && nextOffset > offset ? nextOffset : offset + chunk.size;
+        offset =
+          Number.isFinite(nextOffset) && nextOffset > offset ? nextOffset : offset + chunk.size;
         failures = 0;
         continue;
       }

@@ -29,6 +29,7 @@ import { ProfileContentTabs, type TabVideo } from "@/components/ProfileContentTa
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
+import { EquippedBadges } from "@/components/Blox";
 import { useRoles } from "@/lib/roles";
 import { ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
@@ -406,6 +407,7 @@ function ProfilePage() {
             <Crown className="h-5 w-5 text-blue-500" aria-label="Spark Plus" />
           ) : null}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
+          <EquippedBadges userId={user?.id} />
         </h2>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <RobloxIdentity displayName={p?.roblox_display_name} username={p?.roblox_username} />
@@ -565,7 +567,12 @@ function ProfilePage() {
                   placeholder={t("youtubeLinkPlaceholder")}
                   className="h-10 text-xs"
                 />
-                <Button size="sm" variant="outline" onClick={setBannerYoutube} disabled={!youtubeInput.trim()}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={setBannerYoutube}
+                  disabled={!youtubeInput.trim()}
+                >
                   OK
                 </Button>
               </div>

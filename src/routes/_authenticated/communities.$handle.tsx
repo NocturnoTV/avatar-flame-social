@@ -768,15 +768,25 @@ function ChannelsTab({
 
   async function send() {
     if (!user || isHome || !communityId || !text.trim()) return;
-    const { error } = await supabase.from("community_channel_messages").insert({
-      channel_id: activeChannelId,
-      community_id: communityId,
-      user_id: user.id,
-      content: text.trim(),
-    });
+    const { data: inserted, error } = await supabase
+      .from("community_channel_messages")
+      .insert({
+        channel_id: activeChannelId,
+        community_id: communityId,
+        user_id: user.id,
+        content: text.trim(),
+      })
+      .select("id")
+      .single();
     if (error) {
       toast.error(errorMessage(error, "Une erreur est survenue."));
       return;
+    }
+    if (inserted) {
+      void supabase.rpc("bump_quest_progress", {
+        _metric_key: "community",
+        _entity_id: inserted.id,
+      });
     }
     setText("");
     void messages.refetch();

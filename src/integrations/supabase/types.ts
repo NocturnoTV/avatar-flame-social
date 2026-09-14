@@ -172,6 +172,232 @@ export type Database = {
           },
         ]
       }
+      badges: {
+        Row: {
+          active: boolean
+          created_at: string
+          emoji: string
+          id: string
+          key: string
+          name: string
+          position: number
+          price_blox: number
+          rarity: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          emoji: string
+          id?: string
+          key: string
+          name: string
+          position?: number
+          price_blox: number
+          rarity?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          emoji?: string
+          id?: string
+          key?: string
+          name?: string
+          position?: number
+          price_blox?: number
+          rarity?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          acquired_at: string
+          badge_id: string
+          equipped: boolean
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          badge_id: string
+          equipped?: boolean
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          badge_id?: string
+          equipped?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blox_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          kind: string
+          reference_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind: string
+          reference_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: string
+          reference_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_daily_quests: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          progress: number
+          quest_date: string
+          quest_key: string
+          reward_blox: number
+          target: number
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          progress?: number
+          quest_date: string
+          quest_key: string
+          reward_blox: number
+          target: number
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          progress?: number
+          quest_date?: string
+          quest_key?: string
+          reward_blox?: number
+          target?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_daily_quest_progress_items: {
+        Row: {
+          created_at: string
+          entity_id: string
+          quest_date: string
+          quest_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          quest_date: string
+          quest_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          quest_date?: string
+          quest_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_quest_streaks: {
+        Row: {
+          current_streak: number
+          longest_streak: number
+          last_completed_date: string | null
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number
+          longest_streak?: number
+          last_completed_date?: string | null
+          user_id: string
+        }
+        Update: {
+          current_streak?: number
+          longest_streak?: number
+          last_completed_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_visits: {
+        Row: {
+          created_at: string
+          viewer_id: string
+          visited_id: string
+          visited_date: string
+        }
+        Insert: {
+          created_at?: string
+          viewer_id: string
+          visited_id: string
+          visited_date: string
+        }
+        Update: {
+          created_at?: string
+          viewer_id?: string
+          visited_id?: string
+          visited_date?: string
+        }
+        Relationships: []
+      }
+      watch_history: {
+        Row: {
+          user_id: string
+          video_id: string
+          watched_at: string
+        }
+        Insert: {
+          user_id: string
+          video_id: string
+          watched_at?: string
+        }
+        Update: {
+          user_id?: string
+          video_id?: string
+          watched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_history_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communities: {
         Row: {
           banner_url: string | null
@@ -1495,6 +1721,7 @@ export type Database = {
           banner_video_url: string | null
           bio: string | null
           birth_date: string | null
+          blox_balance: number
           country: string | null
           created_at: string
           deletion_requested_at: string | null
@@ -1527,12 +1754,14 @@ export type Database = {
           sparks_enabled: boolean
           sticker: string | null
           theme: string
+          timezone: string
           updated_at: string
           username: string | null
           username_changed_at: string | null
           verified: boolean
           verified_at: string | null
           warning_count: number
+          watch_history_enabled: boolean
         }
         Insert: {
           accent_color?: string
@@ -1543,6 +1772,7 @@ export type Database = {
           banner_video_url?: string | null
           bio?: string | null
           birth_date?: string | null
+          blox_balance?: number
           country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
@@ -1575,12 +1805,14 @@ export type Database = {
           sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
+          timezone?: string
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
           verified?: boolean
           verified_at?: string | null
           warning_count?: number
+          watch_history_enabled?: boolean
         }
         Update: {
           accent_color?: string
@@ -1591,6 +1823,7 @@ export type Database = {
           banner_video_url?: string | null
           bio?: string | null
           birth_date?: string | null
+          blox_balance?: number
           country?: string | null
           created_at?: string
           deletion_requested_at?: string | null
@@ -1623,12 +1856,14 @@ export type Database = {
           sparks_enabled?: boolean
           sticker?: string | null
           theme?: string
+          timezone?: string
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
           verified?: boolean
           verified_at?: string | null
           warning_count?: number
+          watch_history_enabled?: boolean
         }
         Relationships: []
       }
@@ -2414,6 +2649,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      mark_conversation_read: { Args: { _conversation: string }; Returns: undefined }
+      ensure_daily_quests: { Args: Record<PropertyKey, never>; Returns: undefined }
+      bump_quest_progress: {
+        Args: { _entity_id: string; _metric_key: string }
+        Returns: undefined
+      }
+      bump_quest_progress_for: {
+        Args: { _entity_id: string; _metric_key: string; _user: string }
+        Returns: undefined
+      }
+      gift_blox: {
+        Args: { _amount: number; _message?: string | null; _to_user: string }
+        Returns: undefined
+      }
+      purchase_badge: { Args: { _badge: string }; Returns: undefined }
+      toggle_badge_equipped: {
+        Args: { _badge: string; _equipped: boolean }
+        Returns: undefined
+      }
       award_community_xp: {
         Args: {
           _amount: number

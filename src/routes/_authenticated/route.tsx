@@ -47,7 +47,10 @@ function usePresenceHeartbeat() {
     if (!user) return;
     const userId = user.id;
     async function ping() {
-      await supabase.from("profiles").update({ last_active_at: new Date().toISOString() }).eq("id", userId);
+      await supabase
+        .from("profiles")
+        .update({ last_active_at: new Date().toISOString() })
+        .eq("id", userId);
     }
     void ping();
     const interval = setInterval(() => {
@@ -64,9 +67,21 @@ function usePresenceHeartbeat() {
   }, [user]);
 }
 
+/** "Daily Visit" quest - fires once per app load while signed in; the RPC's
+ * own dedup (entity_id="visit") caps it at one credit per local day even if
+ * this mounts more than once. */
+function useDailyVisitQuest() {
+  const { user } = useSession();
+  useEffect(() => {
+    if (!user) return;
+    void supabase.rpc("bump_quest_progress", { _metric_key: "daily_visit", _entity_id: "visit" });
+  }, [user]);
+}
+
 function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   usePresenceHeartbeat();
+  useDailyVisitQuest();
   return (
     <CallProvider>
       <div className="app-background min-h-screen">

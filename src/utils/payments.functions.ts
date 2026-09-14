@@ -89,6 +89,46 @@ export const createSparkPlusCheckout = createServerFn({ method: "POST" })
     }
   });
 
+export const createBloxPackCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { lookupKey: string; returnUrl: string; environment: StripeEnv }) => {
+    if (!/^[a-zA-Z0-9_-]+$/.test(data.lookupKey)) throw new Error("Invalid lookupKey");
+    return data;
+  })
+  .handler(async ({ data, context }): Promise<CheckoutSessionResult> => {
+    try {
+      const stripe = createStripeClient(data.environment);
+      const {
+        data: { user },
+      } = await context.supabase.auth.getUser();
+
+      const prices = await stripe.prices.list({ lookup_keys: [data.lookupKey] });
+      const stripePrice = prices.data[0];
+      if (!stripePrice) throw new Error("Price not found");
+
+      const customerId = await resolveOrCreateCustomer(stripe, {
+        ...(user?.email ? { email: user.email } : {}),
+        userId: context.userId,
+      });
+
+      const session = await stripe.checkout.sessions.create({
+        line_items: [{ price: stripePrice.id, quantity: 1 }],
+        mode: "payment",
+        ui_mode: "embedded_page",
+        return_url: data.returnUrl,
+        customer: customerId,
+        allow_promotion_codes: true,
+        managed_payments: { enabled: true },
+        metadata: { userId: context.userId, managed_payments: "true", kind: "blox_pack" },
+        payment_intent_data: { metadata: { userId: context.userId, kind: "blox_pack" } },
+      } as Stripe.Checkout.SessionCreateParams);
+
+      return { clientSecret: session.client_secret ?? "" };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
+
 export const listInvoices = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { environment: StripeEnv }) => data)
