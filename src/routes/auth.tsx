@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { signInWithIdentifier } from "@/lib/login-identifier.functions";
+import { beginRobloxSignIn } from "@/lib/roblox-oauth.functions";
 import { errorMessage } from "@/lib/utils";
 
 type Search = { mode?: "signup" | "signin" | undefined; addAccount?: boolean };
@@ -16,7 +17,9 @@ type Search = { mode?: "signup" | "signin" | undefined; addAccount?: boolean };
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>): Search => ({
     ...(search["mode"] === "signup" ? { mode: "signup" as const } : {}),
-    ...(search["addAccount"] === true || search["addAccount"] === "true" ? { addAccount: true } : {}),
+    ...(search["addAccount"] === true || search["addAccount"] === "true"
+      ? { addAccount: true }
+      : {}),
   }),
 
   head: () => ({
@@ -40,7 +43,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const { t, setLang } = useI18n();
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { mode, addAccount } = Route.useSearch();
   const navigate = useNavigate();
   const { session } = useSession();
@@ -49,6 +52,7 @@ function AuthPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [robloxBusy, setRobloxBusy] = useState(false);
 
   async function continueAfterAuthentication() {
     const { data } = await supabase.auth.getUser();
@@ -138,6 +142,18 @@ function AuthPage() {
     }
   }
 
+  async function roblox() {
+    setRobloxBusy(true);
+    try {
+      const result = await beginRobloxSignIn();
+      window.location.assign(result.url);
+    } catch (error) {
+      console.error("Roblox sign-in start failed", error);
+      toast.error(t("robloxConnectUnavailable"));
+      setRobloxBusy(false);
+    }
+  }
+
   function continueAsGuest() {
     window.localStorage.setItem("bloxspark-guest", "true");
     window.localStorage.removeItem("bloxspark-guest-gate-seen");
@@ -158,6 +174,20 @@ function AuthPage() {
 
         <Button className="mt-6 w-full" variant="outline" onClick={google} disabled={busy}>
           <span className="text-base">🇬</span> {t("continueGoogle")}
+        </Button>
+        <Button
+          className="mt-3 w-full"
+          variant="outline"
+          onClick={roblox}
+          disabled={busy || robloxBusy}
+        >
+          <img
+            src={theme === "dark" ? "/roblox-logo-white.png" : "/roblox-logo-black.png"}
+            alt=""
+            aria-hidden="true"
+            className="h-5 w-5 object-contain"
+          />
+          {robloxBusy ? t("robloxRedirecting") : t("continueRoblox")}
         </Button>
 
         <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">

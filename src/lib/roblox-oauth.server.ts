@@ -226,3 +226,59 @@ export async function persistRobloxAccount(userId: string, identity: RobloxIdent
   }
   return { identity, games };
 }
+
+export async function createRobloxSignInLink(identity: RobloxIdentity, origin: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: linkedProfile, error: lookupError } = await supabaseAdmin
+    .from("profiles")
+    .select("id,onboarding_completed")
+    .eq("roblox_user_id", identity.id)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+
+  let userId = linkedProfile?.id;
+  let onboardingCompleted = linkedProfile?.onboarding_completed === true;
+  let email: string | undefined;
+
+  if (userId) {
+    const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (error) throw error;
+    email = data.user.email;
+  } else {
+    email = `roblox-${identity.id}@auth.bloxspark.app`;
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      password: randomUrlSafe(48),
+      user_metadata: {
+        onboarding_completed: false,
+        onboarding_required: true,
+        auth_source: "roblox",
+      },
+    });
+    if (error || !data.user) throw error ?? new Error("Could not create the Bloxspark account.");
+    userId = data.user.id;
+    onboardingCompleted = false;
+  }
+
+  if (!email) throw new Error("The linked Bloxspark account cannot receive a sign-in session.");
+  await persistRobloxAccount(userId, identity);
+  await supabaseAdmin.auth.admin.updateUserById(userId, {
+    user_metadata: {
+      onboarding_completed: onboardingCompleted,
+      onboarding_required: !onboardingCompleted,
+      auth_source: "roblox",
+    },
+  });
+
+  const redirectTo = new URL(onboardingCompleted ? "/home" : "/onboarding", origin).toString();
+  const { data: link, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+    options: { redirectTo },
+  });
+  if (linkError || !link.properties?.action_link) {
+    throw linkError ?? new Error("Could not create the Roblox sign-in session.");
+  }
+  return link.properties.action_link;
+}

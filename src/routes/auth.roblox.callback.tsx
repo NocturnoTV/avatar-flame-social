@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   consumeOAuthState,
+  createRobloxSignInLink,
   exchangeRobloxCode,
   fetchRobloxIdentity,
   persistRobloxAccount,
 } from "@/lib/roblox-oauth.server";
+
+const ROBLOX_SIGN_IN_USER_ID = "00000000-0000-0000-0000-000000000000";
 
 function redirectTo(origin: string, path: "/onboarding" | "/settings", status: string) {
   const url = new URL(path, origin);
@@ -40,6 +43,10 @@ export const Route = createFileRoute("/auth/roblox/callback")({
             return redirectTo(requestUrl.origin, returnTo, "token_exchange_failed");
 
           const identity = await fetchRobloxIdentity(token.access_token);
+          if (pending.userId === ROBLOX_SIGN_IN_USER_ID) {
+            const actionLink = await createRobloxSignInLink(identity, requestUrl.origin);
+            return new Response(null, { status: 302, headers: { location: actionLink } });
+          }
           await persistRobloxAccount(pending.userId, identity);
           return redirectTo(requestUrl.origin, returnTo, "connected");
         } catch (error) {
