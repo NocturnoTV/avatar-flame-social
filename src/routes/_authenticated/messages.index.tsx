@@ -9,6 +9,7 @@ import {
   EyeOff,
   Heart,
   Inbox,
+  Mail,
   MessageCircle,
   Moon,
   Newspaper,
@@ -31,6 +32,10 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { getRobloxFriendSuggestions } from "@/lib/roblox-friends.functions";
 import { Verified } from "@/components/Verified";
+import {
+  isActivityNotificationKind,
+  localizeActivityNotification,
+} from "@/lib/activityNotifications";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/messages/")({
@@ -636,18 +641,16 @@ function MessagesPage() {
   const filtered = visible.filter((c) =>
     (c.is_group ? c.name : c.others[0]?.username)?.toLowerCase().includes(search.toLowerCase()),
   );
-  // Team Spark absorbs the welcome message plus every video-activity
-  // notification (likes, comments, favorites, reposts) - only Sparks'
-  // own match/like/super activity stays in the "recent activity" row below.
-  const TEAM_SPARK_KINDS = [
-    "system",
-    "video_like",
-    "video_comment",
-    "video_favorite",
-    "video_repost",
-  ];
+  // Team Spark is reserved for official messages only (the welcome message,
+  // future announcements) - kind "system". Video activity (likes, favorites,
+  // reposts, comments, replies) gets its own "Activités" thread below, and
+  // Sparks' own match/like/super activity stays in "recent activity".
+  const TEAM_SPARK_KINDS = ["system"];
   const activity = (notifications.data ?? []).filter(
-    (n) => n.kind !== "message" && !TEAM_SPARK_KINDS.includes(n.kind),
+    (n) =>
+      n.kind !== "message" &&
+      !TEAM_SPARK_KINDS.includes(n.kind) &&
+      !isActivityNotificationKind(n.kind),
   );
   const latestActivity = activity[0];
   const teamSparkNotifs = (notifications.data ?? []).filter((n) =>
@@ -656,6 +659,20 @@ function MessagesPage() {
   const systemNotif = teamSparkNotifs[0];
   const unreadSystemCount = teamSparkNotifs.filter((n) => !n.read).length;
   const unreadCount = activity.filter((n) => !n.read).length;
+
+  const videoActivityNotifs = (notifications.data ?? []).filter((n) =>
+    isActivityNotificationKind(n.kind),
+  );
+  const latestVideoActivity = videoActivityNotifs[0];
+  const unreadVideoActivityCount = videoActivityNotifs.filter((n) => !n.read).length;
+  const latestVideoActivityText = latestVideoActivity
+    ? localizeActivityNotification(
+        t,
+        latestVideoActivity.kind,
+        latestVideoActivity.actor?.username ?? t("someone"),
+        latestVideoActivity.body,
+      )
+    : null;
 
   return (
     <div className="app-background mx-auto min-h-screen w-full max-w-lg px-4 pb-28 pt-5 text-[#050505] dark:text-white">
@@ -765,6 +782,33 @@ function MessagesPage() {
           </button>
         ))}
       </section>
+
+      {/* Video activity (likes, comments, favorites, reposts, replies) - a
+          dedicated thread separate from Team Spark, which is reserved for
+          official messages only. */}
+      <Link
+        to="/messages/$id"
+        params={{ id: "activities" }}
+        className="bx-pop mt-3 flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+      >
+        <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-white shadow-md shadow-blue-500/20">
+          <Mail className="h-6 w-6" />
+          {unreadVideoActivityCount ? (
+            <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white ring-2 ring-background">
+              {unreadVideoActivityCount > 9 ? "9+" : unreadVideoActivityCount}
+            </span>
+          ) : null}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
+            {t("activitiesTitle")}
+            <Pin className="h-3.5 w-3.5 text-[#929292]" />
+          </p>
+          <p className="truncate text-sm text-[#929292]">
+            {latestVideoActivityText ?? t("activitiesSubtitle")}
+          </p>
+        </div>
+      </Link>
 
       {showSearch ? (
         <label className="bx-pop mt-3 flex h-11 items-center gap-2 rounded-2xl bg-[#F5F5F5] px-4 dark:bg-[#1c1c1e]">

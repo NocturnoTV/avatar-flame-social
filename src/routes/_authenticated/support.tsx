@@ -565,7 +565,7 @@ function SupportPage() {
   const { user } = useSession();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
-  const [view, setView] = useState<"home" | "newTicket" | "myTickets">("home");
+  const [view, setView] = useState<"home" | "status" | "newTicket" | "myTickets">("home");
   const [openFaq, setOpenFaq] = useState<string | null>(null);
 
   const CATEGORIES = TICKET_CATEGORIES[lang].map(([id, emoji, label, description]) => ({
@@ -933,9 +933,7 @@ function SupportPage() {
               title={t("supportStatusCardTitle")}
               description={t("supportStatusCardDesc")}
               badge={allOperational ? "🟢" : undefined}
-              onClick={() =>
-                document.getElementById("status-section")?.scrollIntoView({ behavior: "smooth" })
-              }
+              onClick={() => setView("status")}
             />
             <FeatureCard
               icon={Users}
@@ -944,80 +942,6 @@ function SupportPage() {
               onClick={() => toast(t("supportDiscordSoon"))}
             />
           </div>
-
-          <section id="status-section" className="mt-8">
-            <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-lg font-bold">
-                <span
-                  className={cn(
-                    "h-2.5 w-2.5 rounded-full",
-                    allOperational ? "bg-[#22C55E]" : "bg-[#F59E0B]",
-                  )}
-                />
-                {t("supportServicesTitle")}
-              </h2>
-            </div>
-            <p
-              className={cn(
-                "mt-1 text-sm font-semibold",
-                allOperational ? "text-[#22C55E]" : "text-[#F59E0B]",
-              )}
-            >
-              {allOperational
-                ? t("supportAllOperational")
-                : overall?.message || t("supportDegradedOngoing")}
-            </p>
-            <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
-              {perService.map((s) => (
-                <div key={s.id} className="flex items-center gap-3 p-3.5">
-                  <s.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 text-sm font-semibold">{s.label}</span>
-                  <span
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold",
-                      s.status === "operational" && "bg-[#22C55E]/10",
-                      s.status === "degraded" && "bg-[#F59E0B]/10",
-                      s.status === "outage" && "bg-[#EF4444]/10",
-                      STATUS_TEXT[s.status],
-                    )}
-                  >
-                    <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[s.status])} />
-                    {STATUS_LABEL[s.status] ?? s.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {(incidents.data ?? []).length > 0 ? (
-              <div className="mt-3">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  {t("supportHistory")}
-                </p>
-                <div className="space-y-2">
-                  {incidents.data!.map((incident) => (
-                    <div
-                      key={incident.id}
-                      className="rounded-2xl border border-border bg-card p-3 text-sm"
-                    >
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(incident.started_at).toLocaleDateString(lang, {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </p>
-                      <p className="mt-0.5 font-semibold">
-                        {incident.status === "resolved"
-                          ? `🟢 ${t("supportStatusResolved")}`
-                          : `🟠 ${t("supportStatusInProgress")}`}{" "}
-                        - {incident.title}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </section>
 
           <section id="faq-section" className="mt-8">
             <h2 className="text-lg font-bold">{t("supportPopularArticles")}</h2>
@@ -1082,6 +1006,82 @@ function SupportPage() {
             </button>
           </section>
         </>
+      ) : null}
+
+      {view === "status" ? (
+        <section className="mt-4">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-bold">
+              <span
+                className={cn(
+                  "h-2.5 w-2.5 rounded-full",
+                  allOperational ? "bg-[#22C55E]" : "bg-[#F59E0B]",
+                )}
+              />
+              {t("supportServicesTitle")}
+            </h2>
+          </div>
+          <p
+            className={cn(
+              "mt-1 text-sm font-semibold",
+              allOperational ? "text-[#22C55E]" : "text-[#F59E0B]",
+            )}
+          >
+            {allOperational
+              ? t("supportAllOperational")
+              : overall?.message || t("supportDegradedOngoing")}
+          </p>
+          <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
+            {perService.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 p-3.5">
+                <s.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1 text-sm font-semibold">{s.label}</span>
+                <span
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold",
+                    s.status === "operational" && "bg-[#22C55E]/10",
+                    s.status === "degraded" && "bg-[#F59E0B]/10",
+                    s.status === "outage" && "bg-[#EF4444]/10",
+                    STATUS_TEXT[s.status],
+                  )}
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[s.status])} />
+                  {STATUS_LABEL[s.status] ?? s.status}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {(incidents.data ?? []).length > 0 ? (
+            <div className="mt-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                {t("supportHistory")}
+              </p>
+              <div className="space-y-2">
+                {incidents.data!.map((incident) => (
+                  <div
+                    key={incident.id}
+                    className="rounded-2xl border border-border bg-card p-3 text-sm"
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(incident.started_at).toLocaleDateString(lang, {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <p className="mt-0.5 font-semibold">
+                      {incident.status === "resolved"
+                        ? `🟢 ${t("supportStatusResolved")}`
+                        : `🟠 ${t("supportStatusInProgress")}`}{" "}
+                      - {incident.title}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </section>
       ) : null}
 
       {view === "newTicket" ? (

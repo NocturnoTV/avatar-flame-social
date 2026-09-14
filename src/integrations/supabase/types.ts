@@ -2099,9 +2099,27 @@ export type Database = {
         Relationships: [];
       };
       status_reports: {
-        Row: { created_at: string; details: string | null; id: string; service: string; user_id: string };
-        Insert: { created_at?: string; details?: string | null; id?: string; service: string; user_id: string };
-        Update: { created_at?: string; details?: string | null; id?: string; service?: string; user_id?: string };
+        Row: {
+          created_at: string;
+          details: string | null;
+          id: string;
+          service: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          details?: string | null;
+          id?: string;
+          service: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          details?: string | null;
+          id?: string;
+          service?: string;
+          user_id?: string;
+        };
         Relationships: [];
       };
       spark_plus_subscriptions: {
@@ -2689,9 +2707,9 @@ export type Database = {
     };
     Functions: {
       status_report_series: {
-        Args: Record<PropertyKey, never>
-        Returns: { bucket: string; report_count: number }[]
-      }
+        Args: Record<PropertyKey, never>;
+        Returns: { bucket: string; report_count: number }[];
+      };
       boost_video: {
         Args: { _blox_cost: number; _hours: number; _video: string };
         Returns: undefined;
@@ -2934,6 +2952,7 @@ export type Database = {
         | "system"
         | "video_like"
         | "video_comment"
+        | "video_comment_reply"
         | "video_favorite"
         | "video_repost";
       swipe_action: "like" | "pass" | "super";
@@ -3068,6 +3087,7 @@ export const Constants = {
         "system",
         "video_like",
         "video_comment",
+        "video_comment_reply",
         "video_favorite",
         "video_repost",
       ],

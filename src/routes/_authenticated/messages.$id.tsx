@@ -10,6 +10,7 @@ import {
   Flag,
   Forward,
   ImagePlus,
+  Mail,
   Mic,
   MoreVertical,
   Pause,
@@ -43,6 +44,10 @@ import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
+import {
+  ACTIVITY_NOTIFICATION_KINDS,
+  localizeActivityNotification,
+} from "@/lib/activityNotifications";
 import { UNREAD_CONVERSATIONS_KEY } from "@/lib/unreadConversations";
 import { cn, errorMessage } from "@/lib/utils";
 
@@ -118,7 +123,9 @@ function formatLastSeen(value: string, lang: string) {
 
 function ConversationPage() {
   const { id } = Route.useParams();
-  return id === "team-spark" ? <TeamSparkConversation /> : <Conversation />;
+  if (id === "team-spark") return <TeamSparkConversation />;
+  if (id === "activities") return <ActivitiesConversation />;
+  return <Conversation />;
 }
 
 function Conversation() {
@@ -1192,16 +1199,10 @@ function Conversation() {
   );
 }
 
-// Team Spark surfaces the welcome message plus every video-activity
-// notification (likes, comments, favorites, reposts) - kept in sync with the
-// same list in messages.index.tsx.
-const TEAM_SPARK_NOTIFICATION_KINDS = [
-  "system",
-  "video_like",
-  "video_comment",
-  "video_favorite",
-  "video_repost",
-] as const;
+// Team Spark is reserved for official messages only (the welcome message,
+// future announcements) - video activity now lives in ActivitiesConversation
+// instead, kept in sync with the same list in messages.index.tsx.
+const TEAM_SPARK_NOTIFICATION_KINDS = ["system"] as const;
 
 type TeamSparkNotification = {
   id: string;
@@ -1348,6 +1349,164 @@ function TeamSparkConversation() {
           ) : (
             <div className="my-auto rounded-3xl border border-dashed border-violet-500/30 bg-violet-500/5 px-6 py-10 text-center">
               <ShieldCheck className="mx-auto h-8 w-8 text-violet-500" />
+              <p className="mt-3 text-sm font-semibold">{t("noNotifications")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("notificationEmptyHint")}</p>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+type ActivityNotificationRow = {
+  id: string;
+  kind: string;
+  body: string | null;
+  read: boolean;
+  created_at: string;
+  actor: { username: string | null; avatar_url: string | null } | null;
+};
+
+function ActivitiesConversation() {
+  const { user } = useSession();
+  const { t, lang } = useI18n();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const activities = useQuery({
+    queryKey: ["activities-notifications", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<ActivityNotificationRow[]> => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id,kind,body,read,created_at,actor_id")
+        .eq("user_id", user!.id)
+        .in("kind", ACTIVITY_NOTIFICATION_KINDS)
+        .order("created_at");
+      if (error) throw error;
+      const rows = data ?? [];
+      const actorIds = [...new Set(rows.map((r) => r.actor_id).filter(Boolean))] as string[];
+      const { data: actors } = actorIds.length
+        ? await supabase.from("profiles").select("id,username,avatar_url").in("id", actorIds)
+        : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] };
+      const byId = new Map((actors ?? []).map((a) => [a.id, a]));
+      return rows.map((r) => ({ ...r, actor: r.actor_id ? (byId.get(r.actor_id) ?? null) : null }));
+    },
+  });
+
+  useEffect(() => {
+    if (!user || !activities.data?.some((item) => !item.read)) return;
+    void (async () => {
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .in("kind", ACTIVITY_NOTIFICATION_KINDS)
+        .eq("read", false);
+      await Promise.all([
+        activities.refetch(),
+        qc.invalidateQueries({ queryKey: ["notifications", user.id] }),
+        qc.invalidateQueries({ queryKey: ["unread-notifications", user.id] }),
+      ]);
+    })();
+  }, [activities.data, qc, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`activities-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => void activities.refetch(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [activities, user]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [activities.data?.length]);
+
+  return (
+    <div className="app-background flex h-[calc(100dvh-6rem)] flex-col text-foreground lg:h-screen">
+      <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border bg-background px-3">
+        <button
+          onClick={() => void navigate({ to: "/messages" })}
+          aria-label={t("back")}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-white shadow-md shadow-blue-500/25">
+          <Mail className="h-6 w-6" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[16px] font-black">{t("activitiesTitle")}</p>
+          <p className="truncate text-xs text-muted-foreground">{t("activitiesSubtitle")}</p>
+        </div>
+      </header>
+
+      <main className="flex-1 overflow-y-auto px-4 py-5">
+        <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-end">
+          <div className="mb-6 text-center">
+            <div className="mx-auto grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-white shadow-xl shadow-blue-500/20">
+              <Mail className="h-8 w-8" />
+            </div>
+            <h1 className="mt-3 text-xl font-black">{t("activitiesTitle")}</h1>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+              {t("activitiesSubtitle")}
+            </p>
+          </div>
+
+          {activities.isLoading ? (
+            <div className="space-y-3">
+              {[0, 1, 2].map((item) => (
+                <div
+                  key={item}
+                  className="h-20 w-[min(88%,34rem)] animate-pulse rounded-[24px] bg-muted"
+                />
+              ))}
+            </div>
+          ) : activities.data?.length ? (
+            <div className="space-y-4">
+              {activities.data.map((item) => {
+                const actorName = item.actor?.username ?? t("someone");
+                return (
+                  <article key={item.id} className="flex items-end gap-2">
+                    <StoredImage
+                      path={item.actor?.avatar_url}
+                      alt={actorName}
+                      className="h-8 w-8 shrink-0 rounded-full object-cover"
+                      fallback={actorName[0]?.toUpperCase() ?? "?"}
+                    />
+                    <div className="max-w-[82%]">
+                      <div className="rounded-[24px] rounded-bl-md bg-gradient-to-br from-sky-500 to-blue-700 px-4 py-3 text-white shadow-sm">
+                        <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                          {localizeActivityNotification(t, item.kind, actorName, item.body)}
+                        </p>
+                      </div>
+                      <p className="mt-1 px-1 text-[10px] text-muted-foreground">
+                        {formatLastSeen(item.created_at, lang)}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="my-auto rounded-3xl border border-dashed border-blue-500/30 bg-blue-500/5 px-6 py-10 text-center">
+              <Mail className="mx-auto h-8 w-8 text-blue-500" />
               <p className="mt-3 text-sm font-semibold">{t("noNotifications")}</p>
               <p className="mt-1 text-xs text-muted-foreground">{t("notificationEmptyHint")}</p>
             </div>
