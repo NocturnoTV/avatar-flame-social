@@ -319,6 +319,45 @@ function MessagesPage() {
     },
   });
 
+  const matchedIds = new Set((matches.data ?? []).map((m) => m.id));
+
+  // Searching now looks across every BloxSpark user, not just existing
+  // conversations — split into your Sparks and everyone else.
+  const userSearch = useQuery({
+    queryKey: ["user-search", search.trim()],
+    enabled: !!user && search.trim().length >= 2,
+    queryFn: async () => {
+      const { data: blocked } = await supabase
+        .from("blocks")
+        .select("blocked_id,blocker_id")
+        .or(`blocker_id.eq.${user!.id},blocked_id.eq.${user!.id}`);
+      const excluded = new Set(
+        (blocked ?? []).flatMap((b) => [b.blocked_id, b.blocker_id]).filter((id) => id !== user!.id),
+      );
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,verified")
+        .ilike("username", `%${search.trim()}%`)
+        .neq("id", user!.id)
+        .limit(40);
+      return (data ?? []).filter((p) => !excluded.has(p.id));
+    },
+  });
+
+  async function startConversationWith(targetId: string) {
+    try {
+      const { data: conversationId, error } = await supabase.rpc("start_direct_message", {
+        _target: targetId,
+      });
+      if (error) throw error;
+      setShowSearch(false);
+      setSearch("");
+      await navigate({ to: "/messages/$id", params: { id: conversationId as string } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errorGeneric"));
+    }
+  }
+
   const recentFollowers = useQuery({
     queryKey: ["recent-followers", user?.id],
     enabled: !!user,
@@ -616,6 +655,64 @@ function MessagesPage() {
         </button>
       ) : null}
 
+      {search.trim().length >= 2 ? (
+        <div className="mt-2 space-y-1">
+          {(() => {
+            const results = userSearch.data ?? [];
+            const sparks = results.filter((p) => matchedIds.has(p.id));
+            const strangers = results.filter((p) => !matchedIds.has(p.id));
+            if (userSearch.isLoading) {
+              return <p className="py-10 text-center text-sm text-[#929292]">{t("loading")}</p>;
+            }
+            if (!results.length) {
+              return <p className="py-10 text-center text-sm text-[#929292]">{t("noResults")}</p>;
+            }
+            const renderPerson = (p: (typeof results)[number]) => (
+              <button
+                key={p.id}
+                onClick={() => void startConversationWith(p.id)}
+                className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-2.5 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+              >
+                <StoredImage
+                  path={p.avatar_url}
+                  alt={p.username ?? ""}
+                  className="h-12 w-12 rounded-full object-cover"
+                  fallback={p.username?.[0]?.toUpperCase() ?? "?"}
+                />
+                <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                  <span className="truncate font-bold text-[#050505] dark:text-white">
+                    {p.username}
+                  </span>
+                  {p.verified ? <Verified /> : null}
+                </span>
+              </button>
+            );
+            return (
+              <>
+                {sparks.length ? (
+                  <>
+                    <p className="px-1 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-[#929292]">
+                      {t("yourSparksFriends")}
+                    </p>
+                    {sparks.map(renderPerson)}
+                  </>
+                ) : null}
+                {sparks.length && strangers.length ? (
+                  <div className="my-2 border-t border-dashed border-[#e5e5e5] dark:border-white/15" />
+                ) : null}
+                {strangers.length ? (
+                  <>
+                    <p className="px-1 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-[#929292]">
+                      {t("strangers")}
+                    </p>
+                    {strangers.map(renderPerson)}
+                  </>
+                ) : null}
+              </>
+            );
+          })()}
+        </div>
+      ) : (
       <div className="mt-2">
         {/* New followers */}
         {recentFollowers.data?.length ? (
@@ -779,6 +876,7 @@ function MessagesPage() {
           </div>
         </Link>
       </div>
+      )}
 
       <Sheet open={showStatusPicker} onClose={() => setShowStatusPicker(false)} title={t("myStatus")}>
         <div className="space-y-2">

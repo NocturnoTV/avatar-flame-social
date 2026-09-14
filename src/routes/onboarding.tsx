@@ -78,7 +78,8 @@ function Onboarding() {
   }, [robloxProfile.data?.roblox_username]);
 
   const age = ageFrom(birth);
-  const minor = age !== null && age < 18;
+  // Parental consent is required for 13-14 year-olds; 15+ doesn't need it.
+  const minor = age !== null && age < 15;
   const tooYoung = age !== null && age < 13;
 
   async function finish() {

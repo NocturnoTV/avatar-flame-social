@@ -12,6 +12,7 @@ import {
   Home,
   LogOut,
   MessageCircle,
+  Newspaper,
   Play,
   Plus,
   Repeat,
@@ -292,6 +293,13 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           label={t("menuCommunities")}
           to="/communities"
           active={isActive("/communities")}
+          onClick={onClose}
+        />
+        <Row
+          icon={Newspaper}
+          label={t("newsFeedTitle")}
+          to="/news"
+          active={isActive("/news")}
           onClick={onClose}
         />
         <Row icon={Gamepad2} label={t("menuGames")} disabled comingSoon={t("comingSoon")} />

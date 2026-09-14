@@ -778,6 +778,99 @@ export type Database = {
         }
         Relationships: []
       }
+      feed_posts: {
+        Row: {
+          id: string
+          user_id: string
+          content: string
+          image_url: string | null
+          likes_count: number
+          replies_count: number
+          reposts_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          content: string
+          image_url?: string | null
+          likes_count?: number
+          replies_count?: number
+          reposts_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          content?: string
+          image_url?: string | null
+          likes_count?: number
+          replies_count?: number
+          reposts_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      feed_post_likes: {
+        Row: { post_id: string; user_id: string; created_at: string }
+        Insert: { post_id: string; user_id: string; created_at?: string }
+        Update: { post_id?: string; user_id?: string; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "feed_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_post_reposts: {
+        Row: { post_id: string; user_id: string; created_at: string }
+        Insert: { post_id: string; user_id: string; created_at?: string }
+        Update: { post_id?: string; user_id?: string; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "feed_post_reposts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_post_replies: {
+        Row: {
+          id: string
+          post_id: string
+          user_id: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          user_id: string
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          user_id?: string
+          content?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_post_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorite_games: {
         Row: {
           created_at: string
