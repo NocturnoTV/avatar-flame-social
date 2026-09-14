@@ -41,8 +41,8 @@ import { Route as AuthenticatedDiscoverStudioRouteImport } from './routes/_authe
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users.$id'
-import { Route as ApiSparkPlusWebhookRouteImport } from './routes/api.spark-plus.webhook'
 import { Route as AuthRobloxCallbackRouteImport } from './routes/auth.roblox.callback'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 
@@ -212,16 +212,17 @@ const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
   path: '/users/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiSparkPlusWebhookRoute = ApiSparkPlusWebhookRouteImport.update({
-  id: '/api/spark-plus/webhook',
-  path: '/api/spark-plus/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRobloxCallbackRoute = AuthRobloxCallbackRouteImport.update({
   id: '/roblox/callback',
   path: '/roblox/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   id: '/lovable/email/auth/preview',
   path: '/lovable/email/auth/preview',
@@ -262,11 +263,11 @@ export interface FileRoutesByFullPath {
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
-  '/api/spark-plus/webhook': typeof ApiSparkPlusWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities/': typeof AuthenticatedCommunitiesIndexRoute
   '/discover/': typeof AuthenticatedDiscoverIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
 }
@@ -299,11 +300,11 @@ export interface FileRoutesByTo {
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
-  '/api/spark-plus/webhook': typeof ApiSparkPlusWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities': typeof AuthenticatedCommunitiesIndexRoute
   '/discover': typeof AuthenticatedDiscoverIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
 }
@@ -338,11 +339,11 @@ export interface FileRoutesById {
   '/_authenticated/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRoute
-  '/api/spark-plus/webhook': typeof ApiSparkPlusWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/_authenticated/communities/': typeof AuthenticatedCommunitiesIndexRoute
   '/_authenticated/discover/': typeof AuthenticatedDiscoverIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
 }
@@ -377,11 +378,11 @@ export interface FileRouteTypes {
     | '/discover/studio'
     | '/messages/$id'
     | '/users/$id'
-    | '/api/spark-plus/webhook'
     | '/auth/roblox/callback'
     | '/communities/'
     | '/discover/'
     | '/messages/'
+    | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -414,11 +415,11 @@ export interface FileRouteTypes {
     | '/discover/studio'
     | '/messages/$id'
     | '/users/$id'
-    | '/api/spark-plus/webhook'
     | '/auth/roblox/callback'
     | '/communities'
     | '/discover'
     | '/messages'
+    | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
   id:
@@ -452,11 +453,11 @@ export interface FileRouteTypes {
     | '/_authenticated/discover/studio'
     | '/_authenticated/messages/$id'
     | '/_authenticated/users/$id'
-    | '/api/spark-plus/webhook'
     | '/auth/roblox/callback'
     | '/_authenticated/communities/'
     | '/_authenticated/discover/'
     | '/_authenticated/messages/'
+    | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
   fileRoutesById: FileRoutesById
@@ -478,7 +479,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   DecouvrirStudioRoute: typeof DecouvrirStudioRoute
   DecouvrirIndexRoute: typeof DecouvrirIndexRoute
-  ApiSparkPlusWebhookRoute: typeof ApiSparkPlusWebhookRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
 }
@@ -709,19 +710,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/spark-plus/webhook': {
-      id: '/api/spark-plus/webhook'
-      path: '/api/spark-plus/webhook'
-      fullPath: '/api/spark-plus/webhook'
-      preLoaderRoute: typeof ApiSparkPlusWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth/roblox/callback': {
       id: '/auth/roblox/callback'
       path: '/roblox/callback'
       fullPath: '/auth/roblox/callback'
       preLoaderRoute: typeof AuthRobloxCallbackRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/auth/preview': {
       id: '/lovable/email/auth/preview'
@@ -808,7 +809,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   DecouvrirStudioRoute: DecouvrirStudioRoute,
   DecouvrirIndexRoute: DecouvrirIndexRoute,
-  ApiSparkPlusWebhookRoute: ApiSparkPlusWebhookRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
 }
