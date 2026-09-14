@@ -341,7 +341,7 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
 
         <div className="my-1.5 border-t border-border" />
 
-        <Row icon={Crown} label={t("menuPremium")} to="/shop" onClick={onClose} />
+        <Row icon={Crown} label={t("shop")} to="/shop" onClick={onClose} />
         <Row
           icon={ShoppingBag}
           label={t("bloxStore")}

@@ -102,7 +102,7 @@ export function SideNav() {
     { to: "/profile", icon: User, label: t("profile") },
   ];
   const secondaryItems = [
-    { to: "/shop", icon: Crown, label: t("menuPremium") },
+    { to: "/shop", icon: Crown, label: t("shop") },
     { to: "/shop/billing", icon: Receipt, label: t("purchasesAndBilling") },
     { to: "/news/saved", icon: Bookmark, label: t("menuSaved") },
     { icon: Clock, label: t("menuRecent"), disabled: true },
