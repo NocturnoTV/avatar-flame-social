@@ -240,7 +240,7 @@ function ShopPage() {
             />
           ))}
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-2 grid grid-cols-2 items-stretch gap-2">
           {row2.map((pack) => (
             <PackCard
               key={pack.lookupKey}
@@ -532,11 +532,11 @@ function PackCard({
     <button
       onClick={onBuy}
       className={cn(
-        "relative flex flex-col items-center rounded-2xl border p-3 text-center transition active:scale-[0.97]",
+        "relative flex h-full w-full min-w-0 flex-col items-center rounded-2xl border p-3 text-center transition active:scale-[0.97]",
         isPro
           ? "border-[#a855f7]/60 bg-[#150e2e] shadow-[0_0_30px_-8px_rgba(168,85,247,.65)]"
           : "border-white/10 bg-[#10152A]",
-        large && "flex-row gap-3 p-4 text-left",
+        large && "p-4",
       )}
     >
       {isPro ? (
@@ -545,29 +545,45 @@ function PackCard({
         </span>
       ) : null}
       <span
-        className={cn("text-2xl", large && "shrink-0")}
-        style={large ? {} : { filter: `drop-shadow(0 0 10px ${pack.accent}66)` }}
+        className={cn("shrink-0 text-2xl", large && "text-3xl")}
+        style={{ filter: `drop-shadow(0 0 10px ${pack.accent}66)` }}
       >
         {pack.emoji}
       </span>
-      <div className={cn("min-w-0", large && "flex-1")}>
-        <p className="mt-1 text-[11px] font-black text-white">{pack.name}</p>
-        {large ? <p className="text-[10px] text-[#AEB5D0]">{pack.tagline}</p> : null}
-        <p className="mt-1 flex items-center justify-center gap-1 text-sm font-black text-white sm:text-base">
-          {pack.blox.toLocaleString()}
-          <BloxIcon className="h-3.5 w-3.5" />
+      <p
+        className={cn(
+          "mt-1.5 w-full truncate text-[11px] font-black text-white",
+          large && "text-sm",
+        )}
+      >
+        {pack.name}
+      </p>
+      {large ? (
+        <p className="mt-0.5 line-clamp-2 w-full text-[10px] leading-snug text-[#AEB5D0]">
+          {pack.tagline}
         </p>
+      ) : null}
+      <p
+        className={cn(
+          "mt-1.5 flex w-full items-center justify-center gap-1 text-sm font-black text-white",
+          large && "text-lg",
+        )}
+      >
+        {pack.blox.toLocaleString()}
+        <BloxIcon className={cn("h-3.5 w-3.5 shrink-0", large && "h-4 w-4")} />
+      </p>
+      <div className="mt-0.5 h-3.5 w-full shrink-0">
         {pack.bonusPercent > 0 ? (
-          <p className="mt-0.5 text-[10px] font-black text-emerald-400">
+          <p className={cn("text-[10px] font-black text-emerald-400", large && "text-xs")}>
             +{pack.bonusPercent}% bonus
           </p>
         ) : null}
       </div>
       <span
         className={cn(
-          "mt-2 w-full rounded-full bg-gradient-to-r py-2 text-xs font-black text-white",
+          "mt-auto flex w-full items-center justify-center rounded-full bg-gradient-to-r py-2 text-xs font-black text-white",
           pack.gradient,
-          large && "mt-0 w-auto shrink-0 px-4 py-2.5",
+          large && "py-2.5 text-sm",
         )}
       >
         {pack.priceEur.toLocaleString(lang, { minimumFractionDigits: 2 })} €
