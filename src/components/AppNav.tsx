@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  Activity,
   BookOpen,
   Bookmark,
   Clock,
@@ -92,6 +93,7 @@ export function SideNav() {
     { to: "/communities", icon: Users, label: t("menuCommunities") },
     { to: "/news", icon: Newspaper, label: t("newsFeedTitle") },
     { to: "/wiki", icon: BookOpen, label: t("wiki") },
+    { to: "/status", icon: Activity, label: "Status" },
     { icon: Gamepad2, label: t("menuGames"), disabled: true },
     {
       to: "/messages",

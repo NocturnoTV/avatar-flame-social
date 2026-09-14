@@ -34,6 +34,7 @@ import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedShopRouteImport } from './routes/_authenticated/shop'
 import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated/sparks'
+import { Route as AuthenticatedStatusRouteImport } from './routes/_authenticated/status'
 import { Route as AuthenticatedStoreRouteImport } from './routes/_authenticated/store'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedWikiRouteImport } from './routes/_authenticated/wiki'
@@ -180,6 +181,11 @@ const AuthenticatedSparksRoute = AuthenticatedSparksRouteImport.update({
   path: '/sparks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStatusRoute = AuthenticatedStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedStoreRoute = AuthenticatedStoreRouteImport.update({
   id: '/store',
   path: '/store',
@@ -319,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/shop': typeof AuthenticatedShopRouteWithChildren
   '/sparks': typeof AuthenticatedSparksRoute
+  '/status': typeof AuthenticatedStatusRoute
   '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
   '/wiki': typeof AuthenticatedWikiRoute
@@ -366,6 +373,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/shop': typeof AuthenticatedShopRouteWithChildren
   '/sparks': typeof AuthenticatedSparksRoute
+  '/status': typeof AuthenticatedStatusRoute
   '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
   '/wiki': typeof AuthenticatedWikiRoute
@@ -415,6 +423,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/shop': typeof AuthenticatedShopRouteWithChildren
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
+  '/_authenticated/status': typeof AuthenticatedStatusRoute
   '/_authenticated/store': typeof AuthenticatedStoreRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/wiki': typeof AuthenticatedWikiRoute
@@ -464,6 +473,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/shop'
     | '/sparks'
+    | '/status'
     | '/store'
     | '/support'
     | '/wiki'
@@ -511,6 +521,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/shop'
     | '/sparks'
+    | '/status'
     | '/store'
     | '/support'
     | '/wiki'
@@ -559,6 +570,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/shop'
     | '/_authenticated/sparks'
+    | '/_authenticated/status'
     | '/_authenticated/store'
     | '/_authenticated/support'
     | '/_authenticated/wiki'
@@ -782,6 +794,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSparksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/status': {
+      id: '/_authenticated/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof AuthenticatedStatusRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/store': {
       id: '/_authenticated/store'
       path: '/store'
@@ -969,6 +988,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedShopRoute: typeof AuthenticatedShopRouteWithChildren
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
+  AuthenticatedStatusRoute: typeof AuthenticatedStatusRoute
   AuthenticatedStoreRoute: typeof AuthenticatedStoreRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedWikiRoute: typeof AuthenticatedWikiRoute
@@ -993,6 +1013,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedShopRoute: AuthenticatedShopRouteWithChildren,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
+  AuthenticatedStatusRoute: AuthenticatedStatusRoute,
   AuthenticatedStoreRoute: AuthenticatedStoreRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedWikiRoute: AuthenticatedWikiRoute,

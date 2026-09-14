@@ -21,6 +21,7 @@ import {
   Settings,
   ShoppingBag,
   Sparkles,
+  Activity,
   Trash2,
   User,
   Users,
@@ -320,6 +321,13 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           label={t("wiki")}
           to="/wiki"
           active={isActive("/wiki")}
+          onClick={onClose}
+        />
+        <Row
+          icon={Activity}
+          label="Status"
+          to="/status"
+          active={isActive("/status")}
           onClick={onClose}
         />
         <Row icon={Gamepad2} label={t("menuGames")} disabled comingSoon={t("comingSoon")} />

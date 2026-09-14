@@ -2098,6 +2098,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      status_reports: {
+        Row: { created_at: string; details: string | null; id: string; service: string; user_id: string };
+        Insert: { created_at?: string; details?: string | null; id?: string; service: string; user_id: string };
+        Update: { created_at?: string; details?: string | null; id?: string; service?: string; user_id?: string };
+        Relationships: [];
+      };
       spark_plus_subscriptions: {
         Row: {
           created_at: string;
@@ -2682,6 +2688,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      status_report_series: {
+        Args: Record<PropertyKey, never>
+        Returns: { bucket: string; report_count: number }[]
+      }
       boost_video: {
         Args: { _blox_cost: number; _hours: number; _video: string };
         Returns: undefined;
