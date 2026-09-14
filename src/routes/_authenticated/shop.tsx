@@ -93,16 +93,24 @@ function ShopPage() {
                 })}
               </p>
             ) : null}
+            <Button
+              className="mt-4 w-full bg-white text-blue-700 hover:bg-blue-50"
+              onClick={() => void manageSubscription()}
+            >
+              {t("manageSubscription")}
+            </Button>
           </div>
-        ) : (
+        ) : checkoutOpen ? null : (
           <Button
             className="mt-6 w-full bg-white text-blue-700 hover:bg-blue-50"
-            onClick={() => void subscribe()}
+            onClick={() => setCheckoutOpen(true)}
           >
             <Crown className="h-4 w-4" /> {t("subscribeSparkPlus")}
           </Button>
         )}
       </section>
+
+      {!isActive && checkoutOpen ? <SparkPlusCheckout /> : null}
 
       <section className="mt-6 grid gap-3 sm:grid-cols-2">
         {benefits.map((benefit) => (
