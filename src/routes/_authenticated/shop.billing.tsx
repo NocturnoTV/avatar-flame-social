@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Crown, Download, LoaderCircle, Receipt } from "lucide-react";
+import { ArrowLeft, Crown, Download, LoaderCircle, Receipt, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
@@ -8,7 +8,17 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { createPortalSession, listInvoices } from "@/utils/payments.functions";
+import { BloxIcon, BloxBalanceChip } from "@/components/Blox";
 import { cn } from "@/lib/utils";
+
+const BLOX_KIND_LABELS: Record<string, string> = {
+  purchase: "Achat de pack Blox",
+  gift_sent: "Blox offerts",
+  gift_received: "Blox reçus en cadeau",
+  quest_reward: "Récompense de défi quotidien",
+  badge_purchase: "Achat de badge",
+  refund: "Remboursement",
+};
 
 export const Route = createFileRoute("/_authenticated/shop/billing")({
   head: () => ({
@@ -59,6 +69,20 @@ function BillingPage() {
     queryFn: () => listInvoices({ data: { environment: getStripeEnvironment() } }),
   });
 
+  const bloxHistory = useQuery({
+    queryKey: ["billing-blox-history", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("blox_transactions")
+        .select("id,amount,kind,description,created_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      return data ?? [];
+    },
+  });
+
   async function manageSubscription() {
     try {
       const result = await createPortalSession({
@@ -83,7 +107,8 @@ function BillingPage() {
         <Link to="/shop" aria-label={t("back")}>
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-black">{t("purchasesAndBilling")}</h1>
+        <h1 className="flex-1 text-2xl font-black">{t("purchasesAndBilling")}</h1>
+        {user ? <BloxBalanceChip /> : null}
       </header>
 
       <section className="mt-5 rounded-3xl border border-border bg-card p-5">
@@ -178,6 +203,58 @@ function BillingPage() {
           ))}
         </div>
       </section>
+
+      <section className="mt-6">
+        <h2 className="flex items-center gap-2 text-lg font-black">
+          <BloxIcon className="h-5 w-5" /> Historique Blox
+        </h2>
+        {bloxHistory.isLoading ? (
+          <div className="mt-4 flex justify-center py-10">
+            <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        ) : null}
+        {!bloxHistory.isLoading && !bloxHistory.data?.length ? (
+          <p className="mt-4 py-8 text-center text-sm text-muted-foreground">
+            Aucune transaction Blox pour l'instant.
+          </p>
+        ) : null}
+        <div className="mt-3 space-y-2">
+          {(bloxHistory.data ?? []).map((tx) => (
+            <div
+              key={tx.id}
+              className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold">{BLOX_KIND_LABELS[tx.kind] ?? tx.kind}</p>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  {tx.description ??
+                    new Date(tx.created_at).toLocaleDateString(lang, {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "flex shrink-0 items-center gap-1 text-sm font-black",
+                  tx.amount < 0 ? "text-destructive" : "text-emerald-500",
+                )}
+              >
+                {tx.amount > 0 ? "+" : ""}
+                {tx.amount.toLocaleString()} <BloxIcon className="h-3.5 w-3.5" />
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Link
+        to="/shop"
+        className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3.5 text-sm font-black hover:border-primary/40"
+      >
+        <ShoppingBag className="h-4 w-4" /> Aller à la boutique
+      </Link>
     </main>
   );
 }
