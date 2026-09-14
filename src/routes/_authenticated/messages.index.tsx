@@ -247,10 +247,27 @@ function MessagesPage() {
     queryKey: ["stories", user?.id],
     enabled: !!user,
     queryFn: async (): Promise<Story[]> => {
+      // Only people you follow or matched with (Sparks) - not every story
+      // on Bloxspark.
+      const [{ data: follows }, { data: matchRows }] = await Promise.all([
+        supabase.from("follows").select("following_id").eq("follower_id", user!.id),
+        supabase
+          .from("matches")
+          .select("user_a,user_b")
+          .or(`user_a.eq.${user!.id},user_b.eq.${user!.id}`),
+      ]);
+      const allowedIds = new Set<string>([
+        ...(follows ?? []).map((f) => f.following_id),
+        ...(matchRows ?? []).map((m) => (m.user_a === user!.id ? m.user_b : m.user_a)),
+      ]);
+      allowedIds.add(user!.id);
+      if (allowedIds.size === 0) return [];
+
       const { data: rows } = await supabase
         .from("stories")
         .select("id,user_id,media_url,media_type,caption,created_at")
         .gt("expires_at", new Date().toISOString())
+        .in("user_id", [...allowedIds])
         .order("created_at", { ascending: false });
       const ids = [...new Set((rows ?? []).map((s) => s.user_id))];
       const [{ data: people }, { data: views }] = await Promise.all([
@@ -336,10 +353,15 @@ function MessagesPage() {
       ]);
 
       const [{ data: myMatchRows }, robloxResult] = await Promise.all([
-        supabase.from("matches").select("user_a,user_b").or(`user_a.eq.${user!.id},user_b.eq.${user!.id}`),
+        supabase
+          .from("matches")
+          .select("user_a,user_b")
+          .or(`user_a.eq.${user!.id},user_b.eq.${user!.id}`),
         getRobloxFriendSuggestions().catch(() => ({ robloxUserIds: [] as string[] })),
       ]);
-      const myMatchIds = (myMatchRows ?? []).map((m) => (m.user_a === user!.id ? m.user_b : m.user_a));
+      const myMatchIds = (myMatchRows ?? []).map((m) =>
+        m.user_a === user!.id ? m.user_b : m.user_a,
+      );
 
       // Mutual Sparks: people matched with someone I'm matched with.
       const mutualCounts = new Map<string, number>();
@@ -376,7 +398,9 @@ function MessagesPage() {
         .select("id,username,avatar_url,verified")
         .in("id", rankedIds);
       const byId = new Map((people ?? []).map((p) => [p.id, p]));
-      return rankedIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => p !== undefined);
+      return rankedIds
+        .map((id) => byId.get(id))
+        .filter((p): p is NonNullable<typeof p> => p !== undefined);
     },
   });
 
@@ -391,7 +415,9 @@ function MessagesPage() {
         .select("blocked_id,blocker_id")
         .or(`blocker_id.eq.${user!.id},blocked_id.eq.${user!.id}`);
       const excluded = new Set(
-        (blocked ?? []).flatMap((b) => [b.blocked_id, b.blocker_id]).filter((id) => id !== user!.id),
+        (blocked ?? [])
+          .flatMap((b) => [b.blocked_id, b.blocker_id])
+          .filter((id) => id !== user!.id),
       );
       const { data } = await supabase
         .from("profiles")
@@ -772,201 +798,205 @@ function MessagesPage() {
           })()}
         </div>
       ) : (
-      <div className="mt-2">
-        {/* New followers */}
-        {recentFollowers.data?.length ? (
-          <button
-            onClick={() => setShowFollowers(true)}
-            className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
-          >
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#A855F7] text-white">
-              <Users className="h-6 w-6" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold text-[#050505] dark:text-white">
-                {t("followers")}
-              </p>
-              <p className="truncate text-sm text-[#929292]">
-                {t("newFollowerBody", {
-                  username: recentFollowers.data[0]?.username ?? t("someone"),
-                })}
-              </p>
-            </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
-          </button>
-        ) : null}
+        <div className="mt-2">
+          {/* New followers */}
+          {recentFollowers.data?.length ? (
+            <button
+              onClick={() => setShowFollowers(true)}
+              className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+            >
+              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#A855F7] text-white">
+                <Users className="h-6 w-6" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[17px] font-bold text-[#050505] dark:text-white">
+                  {t("followers")}
+                </p>
+                <p className="truncate text-sm text-[#929292]">
+                  {t("newFollowerBody", {
+                    username: recentFollowers.data[0]?.username ?? t("someone"),
+                  })}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+            </button>
+          ) : null}
 
-        {/* Activity */}
-        {latestActivity ? (
-          <button
-            onClick={() => setShowNotifications(true)}
+          {/* Activity */}
+          {latestActivity ? (
+            <button
+              onClick={() => setShowNotifications(true)}
+              className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+            >
+              <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#FF3568] text-xl text-white">
+                {latestActivity.kind === "match"
+                  ? "✨"
+                  : latestActivity.kind === "like"
+                    ? "💙"
+                    : "🔔"}
+                {unreadCount ? (
+                  <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                ) : null}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[17px] font-bold text-[#050505] dark:text-white">
+                  {t("recentActivity")}
+                </p>
+                <p className="truncate text-sm text-[#929292]">{latestActivity.body}</p>
+              </div>
+            </button>
+          ) : null}
+
+          {!filtered.length ? (
+            <p className="py-14 text-center text-sm text-[#929292]">{t("noConversations")}</p>
+          ) : null}
+
+          {filtered.map((c) => {
+            const name = c.is_group ? c.name : c.others[0]?.username;
+            const person = c.others[0];
+            return (
+              <div
+                key={c.id}
+                className="bx-pop group relative flex items-center gap-3 rounded-2xl px-1 py-3 transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+              >
+                <Link
+                  to="/messages/$id"
+                  params={{ id: c.id }}
+                  className="flex min-w-0 flex-1 items-center gap-3 active:scale-[.99]"
+                >
+                  <div className="relative shrink-0">
+                    <StoredImage
+                      path={c.is_group ? null : person?.avatar_url}
+                      alt={name ?? ""}
+                      className="h-14 w-14 rounded-full object-cover"
+                      fallback={c.is_group ? "👥" : (name?.[0]?.toUpperCase() ?? "?")}
+                    />
+                    {!c.is_group && person ? (
+                      <PresenceDot
+                        profile={person}
+                        className="absolute bottom-0 right-0 h-3.5 w-3.5"
+                      />
+                    ) : null}
+                    {c.unread_count > 0 ? (
+                      <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-background">
+                        {c.unread_count > 9 ? "9+" : c.unread_count}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
+                      <span className="truncate">{name || "Discussion"}</span>
+                      {!c.is_group && person?.verified ? <Verified /> : null}
+                      {!c.is_group && c.streak_count > 0 ? (
+                        <span className="flex shrink-0 items-center gap-0.5 text-xs font-bold text-orange-500">
+                          🔥{c.streak_count}
+                        </span>
+                      ) : null}
+                      {c.pinned ? <Pin className="h-3.5 w-3.5 shrink-0 text-[#929292]" /> : null}
+                    </p>
+                    <p className="truncate text-sm text-[#929292]">
+                      {c.request_status === "pending" ? (
+                        <span className="font-semibold text-primary">{t("requestSent")}</span>
+                      ) : (
+                        c.preview || t("startChat")
+                      )}
+                    </p>
+                  </div>
+                </Link>
+                {!c.is_group && c.request_status === "accepted" ? (
+                  <button
+                    onClick={() => cameraInputs.current[c.id]?.click()}
+                    aria-label={t("photo")}
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-[#929292] transition hover:bg-black/5 hover:text-primary dark:hover:bg-white/10"
+                  >
+                    <Camera className="h-5 w-5" />
+                  </button>
+                ) : null}
+                <input
+                  ref={(el) => {
+                    cameraInputs.current[c.id] = el;
+                  }}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void quickSendPhoto(c.id, file);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+            );
+          })}
+
+          {/* Official Team Spark announcements, shown as a read-only conversation. */}
+          <Link
+            to="/messages/$id"
+            params={{ id: "team-spark" }}
             className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
           >
-            <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#FF3568] text-xl text-white">
-              {latestActivity.kind === "match"
-                ? "✨"
-                : latestActivity.kind === "like"
-                  ? "💙"
-                  : "🔔"}
-              {unreadCount ? (
-                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white">
-                  {unreadCount > 9 ? "9+" : unreadCount}
+            <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-violet-800 p-2.5 shadow-md shadow-violet-500/20">
+              <img src="/team-spark-avatar.png" alt="" className="h-full w-full object-contain" />
+              {unreadSystemCount ? (
+                <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white ring-2 ring-background">
+                  {unreadSystemCount > 9 ? "9+" : unreadSystemCount}
                 </span>
               ) : null}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold text-[#050505] dark:text-white">
-                {t("recentActivity")}
+              <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
+                {t("teamSparks")}
+                <Verified />
+                <Pin className="h-3.5 w-3.5 text-[#929292]" />
               </p>
-              <p className="truncate text-sm text-[#929292]">{latestActivity.body}</p>
+              <p className="truncate text-sm text-[#929292]">
+                {systemNotif
+                  ? systemNotif.body === "safety_alert"
+                    ? t("safetyAlertNotif")
+                    : systemNotif.body
+                  : t("notificationEmptyHint")}
+              </p>
             </div>
-          </button>
-        ) : null}
+          </Link>
 
-        {!filtered.length ? (
-          <p className="py-14 text-center text-sm text-[#929292]">{t("noConversations")}</p>
-        ) : null}
-
-        {filtered.map((c) => {
-          const name = c.is_group ? c.name : c.others[0]?.username;
-          const person = c.others[0];
-          return (
-            <div
-              key={c.id}
-              className="bx-pop group relative flex items-center gap-3 rounded-2xl px-1 py-3 transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
-            >
-              <Link
-                to="/messages/$id"
-                params={{ id: c.id }}
-                className="flex min-w-0 flex-1 items-center gap-3 active:scale-[.99]"
-              >
-                <div className="relative shrink-0">
-                  <StoredImage
-                    path={c.is_group ? null : person?.avatar_url}
-                    alt={name ?? ""}
-                    className="h-14 w-14 rounded-full object-cover"
-                    fallback={c.is_group ? "👥" : (name?.[0]?.toUpperCase() ?? "?")}
-                  />
-                  {!c.is_group && person ? (
-                    <PresenceDot
-                      profile={person}
-                      className="absolute bottom-0 right-0 h-3.5 w-3.5"
+          {(suggestions.data ?? []).length > 0 ? (
+            <>
+              <div className="my-3 border-t border-dashed border-[#e5e5e5] dark:border-white/15" />
+              <p className="px-1 pb-2 text-xs font-bold uppercase tracking-wide text-[#929292]">
+                {t("peopleYouMayKnow")}
+              </p>
+              <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+                {(suggestions.data ?? []).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => void startConversationWith(p.id)}
+                    className="flex w-20 shrink-0 flex-col items-center gap-1.5 text-center"
+                  >
+                    <StoredImage
+                      path={p.avatar_url}
+                      alt={p.username ?? ""}
+                      className="h-14 w-14 rounded-full object-cover"
+                      fallback={p.username?.[0]?.toUpperCase() ?? "?"}
                     />
-                  ) : null}
-                  {c.unread_count > 0 ? (
-                    <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-background">
-                      {c.unread_count > 9 ? "9+" : c.unread_count}
+                    <span className="flex w-full items-center justify-center gap-1 truncate text-xs font-semibold text-[#050505] dark:text-white">
+                      <span className="truncate">{p.username}</span>
+                      {p.verified ? <Verified className="h-3 w-3 shrink-0" /> : null}
                     </span>
-                  ) : null}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
-                    <span className="truncate">{name || "Discussion"}</span>
-                    {!c.is_group && person?.verified ? <Verified /> : null}
-                    {!c.is_group && c.streak_count > 0 ? (
-                      <span className="flex shrink-0 items-center gap-0.5 text-xs font-bold text-orange-500">
-                        🔥{c.streak_count}
-                      </span>
-                    ) : null}
-                    {c.pinned ? <Pin className="h-3.5 w-3.5 shrink-0 text-[#929292]" /> : null}
-                  </p>
-                  <p className="truncate text-sm text-[#929292]">
-                    {c.request_status === "pending" ? (
-                      <span className="font-semibold text-primary">{t("requestSent")}</span>
-                    ) : (
-                      c.preview || t("startChat")
-                    )}
-                  </p>
-                </div>
-              </Link>
-              {!c.is_group && c.request_status === "accepted" ? (
-                <button
-                  onClick={() => cameraInputs.current[c.id]?.click()}
-                  aria-label={t("photo")}
-                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-[#929292] transition hover:bg-black/5 hover:text-primary dark:hover:bg-white/10"
-                >
-                  <Camera className="h-5 w-5" />
-                </button>
-              ) : null}
-              <input
-                ref={(el) => {
-                  cameraInputs.current[c.id] = el;
-                }}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void quickSendPhoto(c.id, file);
-                  e.target.value = "";
-                }}
-              />
-            </div>
-          );
-        })}
-
-        {/* Official Team Spark announcements, shown as a read-only conversation. */}
-        <Link
-          to="/messages/$id"
-          params={{ id: "team-spark" }}
-          className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
-        >
-          <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-violet-800 p-2.5 shadow-md shadow-violet-500/20">
-            <img src="/team-spark-avatar.png" alt="" className="h-full w-full object-contain" />
-            {unreadSystemCount ? (
-              <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white ring-2 ring-background">
-                {unreadSystemCount > 9 ? "9+" : unreadSystemCount}
-              </span>
-            ) : null}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
-              {t("teamSparks")}
-              <Verified />
-              <Pin className="h-3.5 w-3.5 text-[#929292]" />
-            </p>
-            <p className="truncate text-sm text-[#929292]">
-              {systemNotif
-                ? systemNotif.body === "safety_alert"
-                  ? t("safetyAlertNotif")
-                  : systemNotif.body
-                : t("notificationEmptyHint")}
-            </p>
-          </div>
-        </Link>
-
-        {(suggestions.data ?? []).length > 0 ? (
-          <>
-            <div className="my-3 border-t border-dashed border-[#e5e5e5] dark:border-white/15" />
-            <p className="px-1 pb-2 text-xs font-bold uppercase tracking-wide text-[#929292]">
-              {t("peopleYouMayKnow")}
-            </p>
-            <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
-              {(suggestions.data ?? []).map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => void startConversationWith(p.id)}
-                  className="flex w-20 shrink-0 flex-col items-center gap-1.5 text-center"
-                >
-                  <StoredImage
-                    path={p.avatar_url}
-                    alt={p.username ?? ""}
-                    className="h-14 w-14 rounded-full object-cover"
-                    fallback={p.username?.[0]?.toUpperCase() ?? "?"}
-                  />
-                  <span className="flex w-full items-center justify-center gap-1 truncate text-xs font-semibold text-[#050505] dark:text-white">
-                    <span className="truncate">{p.username}</span>
-                    {p.verified ? <Verified className="h-3 w-3 shrink-0" /> : null}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </>
-        ) : null}
-      </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
       )}
 
-      <Sheet open={showStatusPicker} onClose={() => setShowStatusPicker(false)} title={t("myStatus")}>
+      <Sheet
+        open={showStatusPicker}
+        onClose={() => setShowStatusPicker(false)}
+        title={t("myStatus")}
+      >
         <div className="space-y-2">
           {(
             [
