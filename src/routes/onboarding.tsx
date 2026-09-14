@@ -122,13 +122,21 @@ function Onboarding() {
       toast.error(error.message.includes("duplicate") ? t("usernameTaken") : error.message);
       return;
     }
+    // The profile row (source of truth) is already saved at this point - the
+    // account exists. This just mirrors onboarding_completed onto the JWT's
+    // user_metadata so _authenticated's beforeLoad can skip a profile
+    // lookup next time. Right after a Roblox sign-in the session can still
+    // be settling (it arrives via a cross-origin magic-link redirect rather
+    // than the normal in-page signUp() flow), so this occasionally fails
+    // with "Auth session missing" for a moment - that's never a reason to
+    // block navigation or scare the user, since beforeLoad already
+    // self-heals this exact mismatch by re-running the same update once it
+    // sees the profile is done but the metadata isn't.
     const { error: markerError } = await supabase.auth.updateUser({
       data: { onboarding_completed: true, onboarding_required: false },
     });
-    if (markerError) {
-      toast.error(markerError.message);
-      return;
-    }
+    if (markerError)
+      console.warn("onboarding_completed metadata sync failed:", markerError.message);
     navigate({ to: "/home", replace: true });
   }
 
