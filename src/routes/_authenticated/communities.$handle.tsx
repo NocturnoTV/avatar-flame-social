@@ -4,11 +4,13 @@ import { useState } from "react";
 import {
   ArrowLeft,
   Calendar,
+  Hash,
   Heart,
   ImagePlus,
   MessageSquare,
   Pin,
   Send,
+  Settings,
   Trophy,
   Users,
 } from "lucide-react";
@@ -17,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { PresenceDot } from "@/components/PresenceDot";
 import { Button, Input, Select, Textarea } from "@/components/ui-kit";
+import { CommunitySettingsSheet } from "@/components/CommunitySettingsSheet";
+import type { CommunityPermission } from "@/lib/communityPermissions";
 import { useSession } from "@/lib/session";
 import { uploadFile } from "@/lib/media";
 import { errorMessage, cn } from "@/lib/utils";
@@ -27,7 +31,8 @@ export const Route = createFileRoute("/_authenticated/communities/$handle")({
 });
 
 const TABS = [
-  { id: "home", label: "Accueil" },
+  { id: "channels", label: "Salons" },
+  { id: "home", label: "Fil" },
   { id: "discussions", label: "Discussions" },
   { id: "players", label: "Joueurs" },
   { id: "events", label: "Événements" },
@@ -53,9 +58,10 @@ function CommunityPage() {
   const { handle } = Route.useParams();
   const { user } = useSession();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<TabId>("home");
+  const [tab, setTab] = useState<TabId>("channels");
   const [descExpanded, setDescExpanded] = useState(false);
   const [postText, setPostText] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const community = useQuery({
     queryKey: ["community", handle],
@@ -84,6 +90,40 @@ function CommunityPage() {
     },
   });
   const isMember = !!membership.data;
+  const isOwner = !!user && community.data?.owner_id === user.id;
+
+  const myPermissions = useQuery({
+    queryKey: ["community-my-permissions", communityId, user?.id],
+    enabled: !!communityId && !!user,
+    queryFn: async () => {
+      const { data: myRoles } = await supabase
+        .from("community_member_roles")
+        .select("role_id")
+        .eq("community_id", communityId!)
+        .eq("user_id", user!.id);
+      const roleIds = (myRoles ?? []).map((r) => r.role_id);
+      const set = new Set<CommunityPermission>();
+      if (!roleIds.length) return set;
+      const { data: roles } = await supabase
+        .from("community_roles")
+        .select("permissions")
+        .in("id", roleIds);
+      for (const role of roles ?? []) {
+        for (const p of role.permissions) set.add(p as CommunityPermission);
+      }
+      return set;
+    },
+  });
+
+  function can(perm: CommunityPermission) {
+    return isOwner || (myPermissions.data?.has(perm) ?? false);
+  }
+
+  const canManageAnything =
+    isOwner ||
+    (["manage_community", "manage_channels", "manage_roles", "manage_members", "view_audit_log", "manage_affiliates"] as const).some(
+      (p) => myPermissions.data?.has(p),
+    );
 
   async function toggleJoin() {
     if (!user || !communityId) return;
@@ -183,6 +223,15 @@ function CommunityPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
+        {canManageAnything ? (
+          <button
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Paramètres de la communauté"
+            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+        ) : null}
       </div>
 
       <div className="px-4">
@@ -351,7 +400,13 @@ function CommunityPage() {
                 <p className="mt-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                   Type
                 </p>
-                <p className="mt-1">{c.visibility === "public" ? "Publique" : "Privée"}</p>
+                <p className="mt-1">
+                  {c.visibility === "public"
+                    ? "Publique"
+                    : c.visibility === "private_friends"
+                      ? "Privée — amis seulement"
+                      : "Privée — sur demande"}
+                </p>
               </div>
               {c.rules ? (
                 <div className="rounded-2xl border border-border bg-card p-4 text-sm">
@@ -359,15 +414,65 @@ function CommunityPage() {
                   <p className="whitespace-pre-wrap leading-relaxed">{c.rules}</p>
                 </div>
               ) : null}
+              <AffiliatesDisplay communityId={communityId} />
             </div>
           ) : null}
 
+          {tab === "channels" ? (
+            <ChannelsTab communityId={communityId} isMember={isMember} canManageChannels={can("manage_channels")} />
+          ) : null}
           {tab === "discussions" ? <DiscussionsTab communityId={communityId} isMember={isMember} /> : null}
           {tab === "players" ? <PlayersTab communityId={communityId} isMember={isMember} /> : null}
           {tab === "events" ? <EventsTab communityId={communityId} isMember={isMember} /> : null}
           {tab === "media" ? <MediaTab communityId={communityId} isMember={isMember} /> : null}
           {tab === "leaderboard" ? <LeaderboardTab communityId={communityId} /> : null}
         </div>
+      </div>
+
+      {communityId ? (
+        <CommunitySettingsSheet
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          communityId={communityId}
+          isOwner={isOwner}
+          can={can}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function AffiliatesDisplay({ communityId }: { communityId: string | undefined }) {
+  const affiliates = useQuery({
+    queryKey: ["community-affiliates-display", communityId],
+    enabled: !!communityId,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from("community_affiliates")
+        .select("affiliate_id")
+        .eq("community_id", communityId!);
+      const ids = (rows ?? []).map((r) => r.affiliate_id);
+      if (!ids.length) return [];
+      const { data } = await supabase.from("communities").select("id,handle,name,icon_url").in("id", ids);
+      return data ?? [];
+    },
+  });
+  if (!affiliates.data?.length) return null;
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 text-sm">
+      <p className="mb-2 font-bold">Communautés affiliées</p>
+      <div className="flex flex-wrap gap-2">
+        {affiliates.data.map((a) => (
+          <Link
+            key={a.id}
+            to="/communities/$handle"
+            params={{ handle: a.handle }}
+            className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold hover:border-primary/40"
+          >
+            <StoredImage path={a.icon_url} alt="" className="h-4 w-4 rounded" fallback="🎮" />
+            {a.name}
+          </Link>
+        ))}
       </div>
     </div>
   );
@@ -1237,6 +1342,233 @@ function LeaderboardTab({ communityId }: { communityId: string | undefined }) {
         <p className="mt-3 text-xs text-muted-foreground">
           L'XP ne s'achète pas — elle reflète uniquement ton activité dans la communauté.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function ChannelsTab({
+  communityId,
+  isMember,
+  canManageChannels,
+}: {
+  communityId: string | undefined;
+  isMember: boolean;
+  canManageChannels: boolean;
+}) {
+  const { user } = useSession();
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const [newChannelOpen, setNewChannelOpen] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+
+  const categories = useQuery({
+    queryKey: ["community-categories", communityId],
+    enabled: !!communityId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("community_channel_categories")
+        .select("id,name,position")
+        .eq("community_id", communityId!)
+        .order("position");
+      return data ?? [];
+    },
+  });
+
+  const channels = useQuery({
+    queryKey: ["community-channels", communityId],
+    enabled: !!communityId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("community_channels")
+        .select("id,category_id,name,position,is_default")
+        .eq("community_id", communityId!)
+        .order("position");
+      return data ?? [];
+    },
+  });
+
+  const activeChannel = activeChannelId ?? channels.data?.find((c) => c.is_default)?.id ?? channels.data?.[0]?.id;
+
+  const messages = useQuery({
+    queryKey: ["community-channel-messages", activeChannel],
+    enabled: !!activeChannel,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from("community_channel_messages")
+        .select("id,user_id,content,created_at")
+        .eq("channel_id", activeChannel!)
+        .order("created_at")
+        .limit(200);
+      const ids = [...new Set((rows ?? []).map((r) => r.user_id))];
+      const { data: people } = ids.length
+        ? await supabase.from("profiles").select("id,username,avatar_url").in("id", ids)
+        : { data: [] };
+      const byId = new Map((people ?? []).map((p) => [p.id, p]));
+      return (rows ?? []).map((r) => ({ ...r, author: byId.get(r.user_id) }));
+    },
+  });
+
+  async function send() {
+    if (!user || !activeChannel || !communityId || !text.trim()) return;
+    const { error } = await supabase.from("community_channel_messages").insert({
+      channel_id: activeChannel,
+      community_id: communityId,
+      user_id: user.id,
+      content: text.trim(),
+    });
+    if (error) {
+      toast.error(errorMessage(error, "Une erreur est survenue."));
+      return;
+    }
+    setText("");
+    void messages.refetch();
+  }
+
+  async function createChannel() {
+    if (!communityId || !newChannelName.trim()) return;
+    const { error } = await supabase.rpc("community_create_channel", {
+      _community: communityId,
+      _category: null,
+      _name: newChannelName.trim(),
+    });
+    if (error) {
+      toast.error(errorMessage(error, "Une erreur est survenue."));
+      return;
+    }
+    setNewChannelName("");
+    setNewChannelOpen(false);
+    void channels.refetch();
+  }
+
+  const uncategorized = (channels.data ?? []).filter((c) => !c.category_id);
+  const byCategory = (categories.data ?? []).map((cat) => ({
+    ...cat,
+    channels: (channels.data ?? []).filter((c) => c.category_id === cat.id),
+  }));
+
+  return (
+    <div className="flex gap-3">
+      <div className="w-44 shrink-0 space-y-3">
+        {uncategorized.length ? (
+          <div className="space-y-0.5">
+            {uncategorized.map((ch) => (
+              <button
+                key={ch.id}
+                onClick={() => setActiveChannelId(ch.id)}
+                className={cn(
+                  "flex w-full items-center gap-1.5 rounded-xl px-2.5 py-2 text-left text-sm font-semibold transition",
+                  activeChannel === ch.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2",
+                )}
+              >
+                <Hash className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{ch.name}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {byCategory.map((cat) => (
+          <div key={cat.id}>
+            <p className="px-2.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">
+              {cat.name}
+            </p>
+            <div className="mt-1 space-y-0.5">
+              {cat.channels.map((ch) => (
+                <button
+                  key={ch.id}
+                  onClick={() => setActiveChannelId(ch.id)}
+                  className={cn(
+                    "flex w-full items-center gap-1.5 rounded-xl px-2.5 py-2 text-left text-sm font-semibold transition",
+                    activeChannel === ch.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2",
+                  )}
+                >
+                  <Hash className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{ch.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+        {canManageChannels ? (
+          newChannelOpen ? (
+            <div className="space-y-1.5 px-1">
+              <Input
+                value={newChannelName}
+                onChange={(e) => setNewChannelName(e.target.value)}
+                placeholder="nom-du-salon"
+                className="h-8 text-xs"
+              />
+              <Button size="sm" className="w-full" onClick={() => void createChannel()}>
+                Créer
+              </Button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setNewChannelOpen(true)}
+              className="w-full rounded-xl px-2.5 py-2 text-left text-xs font-semibold text-muted-foreground hover:bg-surface-2"
+            >
+              + Nouveau salon
+            </button>
+          )
+        ) : null}
+      </div>
+
+      <div className="min-w-0 flex-1 rounded-2xl border border-border bg-card">
+        <div className="flex h-80 flex-col-reverse overflow-y-auto p-3">
+          <div>
+            {(messages.data ?? []).length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                Aucun message dans ce salon pour l'instant.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {(messages.data ?? []).map((m) => (
+                  <div key={m.id} className="flex items-start gap-2">
+                    <StoredImage
+                      path={m.author?.avatar_url}
+                      alt=""
+                      className="h-7 w-7 shrink-0 rounded-full object-cover"
+                      fallback="🎮"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-baseline gap-1.5">
+                        <span className="text-xs font-bold">{m.author?.username ?? "?"}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(m.created_at).toLocaleTimeString("fr-FR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </p>
+                      <p className="text-sm leading-snug">{m.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        {isMember ? (
+          <div className="flex items-center gap-2 border-t border-border p-2">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void send();
+              }}
+              placeholder="Écrire un message..."
+              className="min-w-0 flex-1 rounded-full bg-surface px-3.5 py-2 text-sm outline-none"
+            />
+            <button
+              onClick={() => void send()}
+              disabled={!text.trim()}
+              aria-label="Envoyer"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full spark-gradient text-white disabled:opacity-40"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -232,6 +232,210 @@ export type Database = {
         }
         Relationships: []
       }
+      community_games: {
+        Row: {
+          id: string
+          community_id: string
+          name: string
+          roblox_universe_id: string | null
+          thumbnail_url: string | null
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          name: string
+          roblox_universe_id?: string | null
+          thumbnail_url?: string | null
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          name?: string
+          roblox_universe_id?: string | null
+          thumbnail_url?: string | null
+          position?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_channel_categories: {
+        Row: { id: string; community_id: string; name: string; position: number; created_at: string }
+        Insert: {
+          id?: string
+          community_id: string
+          name: string
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          name?: string
+          position?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_channels: {
+        Row: {
+          id: string
+          community_id: string
+          category_id: string | null
+          name: string
+          position: number
+          is_default: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          category_id?: string | null
+          name: string
+          position?: number
+          is_default?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          category_id?: string | null
+          name?: string
+          position?: number
+          is_default?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_channel_messages: {
+        Row: {
+          id: string
+          channel_id: string
+          community_id: string
+          user_id: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          channel_id: string
+          community_id: string
+          user_id: string
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          channel_id?: string
+          community_id?: string
+          user_id?: string
+          content?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_roles: {
+        Row: {
+          id: string
+          community_id: string
+          name: string
+          color: string
+          position: number
+          permissions: string[]
+          is_default: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          name: string
+          color?: string
+          position?: number
+          permissions?: string[]
+          is_default?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          name?: string
+          color?: string
+          position?: number
+          permissions?: string[]
+          is_default?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_member_roles: {
+        Row: { community_id: string; user_id: string; role_id: string; assigned_at: string }
+        Insert: { community_id: string; user_id: string; role_id: string; assigned_at?: string }
+        Update: { community_id?: string; user_id?: string; role_id?: string; assigned_at?: string }
+        Relationships: []
+      }
+      community_bans: {
+        Row: {
+          community_id: string
+          user_id: string
+          banned_by: string | null
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          community_id: string
+          user_id: string
+          banned_by?: string | null
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          community_id?: string
+          user_id?: string
+          banned_by?: string | null
+          reason?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_affiliates: {
+        Row: { community_id: string; affiliate_id: string; created_at: string }
+        Insert: { community_id: string; affiliate_id: string; created_at?: string }
+        Update: { community_id?: string; affiliate_id?: string; created_at?: string }
+        Relationships: []
+      }
+      community_audit_log: {
+        Row: {
+          id: string
+          community_id: string
+          actor_id: string | null
+          action: string
+          target_user_id: string | null
+          details: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          actor_id?: string | null
+          action: string
+          target_user_id?: string | null
+          details?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          actor_id?: string | null
+          action?: string
+          target_user_id?: string | null
+          details?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       community_event_rsvps: {
         Row: {
           created_at: string
@@ -2103,6 +2307,66 @@ export type Database = {
           _reason: string
           _user: string
         }
+        Returns: undefined
+      }
+      community_has_permission: {
+        Args: { _community: string; _perm: string; _user: string }
+        Returns: boolean
+      }
+      community_role_limit: { Args: { _community: string }; Returns: number }
+      community_affiliate_limit: { Args: { _community: string }; Returns: number }
+      community_create_channel: {
+        Args: { _category: string | null; _community: string; _name: string }
+        Returns: string
+      }
+      community_rename_channel: { Args: { _channel: string; _name: string }; Returns: undefined }
+      community_move_channel: {
+        Args: { _category: string | null; _channel: string; _position: number }
+        Returns: undefined
+      }
+      community_delete_channel: { Args: { _channel: string }; Returns: undefined }
+      community_create_category: { Args: { _community: string; _name: string }; Returns: string }
+      community_delete_category: { Args: { _category: string }; Returns: undefined }
+      community_create_role: {
+        Args: { _color: string; _community: string; _name: string; _permissions: string[] }
+        Returns: string
+      }
+      community_update_role: {
+        Args: { _color: string; _name: string; _permissions: string[]; _role: string }
+        Returns: undefined
+      }
+      community_delete_role: { Args: { _role: string }; Returns: undefined }
+      community_assign_role: {
+        Args: { _community: string; _role: string; _target: string }
+        Returns: undefined
+      }
+      community_unassign_role: {
+        Args: { _community: string; _role: string; _target: string }
+        Returns: undefined
+      }
+      community_kick_member: { Args: { _community: string; _target: string }; Returns: undefined }
+      community_ban_member: {
+        Args: { _community: string; _reason: string | null; _target: string }
+        Returns: undefined
+      }
+      community_unban_member: { Args: { _community: string; _target: string }; Returns: undefined }
+      community_transfer_ownership: {
+        Args: { _community: string; _new_owner: string }
+        Returns: undefined
+      }
+      community_add_game: {
+        Args: {
+          _community: string
+          _name: string
+          _thumbnail: string | null
+          _universe_id: string | null
+        }
+        Returns: string
+      }
+      community_remove_game: { Args: { _game: string }; Returns: undefined }
+      community_add_affiliate: { Args: { _affiliate: string; _community: string }; Returns: undefined }
+      community_remove_affiliate: {
+        Args: { _affiliate: string; _community: string }
         Returns: undefined
       }
       create_group: {
