@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/shop/billing")({
   head: () => ({
     meta: [
-      { title: "Achats & Facturation — Bloxspark" },
+      { title: "Achats & Facturation - Bloxspark" },
       { name: "description", content: "Ton abonnement Spark Plus et tes factures." },
     ],
   }),
@@ -94,7 +94,7 @@ function BillingPage() {
           <>
             <div className="mt-2 flex items-center gap-2">
               <Crown className="h-5 w-5 text-primary" />
-              <p className="text-lg font-black">Spark Plus — 4,99 €/{t("month")}</p>
+              <p className="text-lg font-black">Spark Plus - 4,99 €/{t("month")}</p>
             </div>
             {expiration ? (
               <p className="mt-1 text-sm text-muted-foreground">

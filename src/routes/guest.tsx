@@ -14,12 +14,12 @@ export const Route = createFileRoute("/guest")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Guest preview — BloxSpark" },
+      { title: "Guest preview - BloxSpark" },
       {
         name: "description",
-        content: "Watch the BloxSpark video feed as a guest — no account needed to browse.",
+        content: "Watch the BloxSpark video feed as a guest - no account needed to browse.",
       },
-      { property: "og:title", content: "Guest preview — BloxSpark" },
+      { property: "og:title", content: "Guest preview - BloxSpark" },
       { property: "og:description", content: "Watch the BloxSpark video feed as a guest." },
       { property: "og:url", content: "https://bloxspark.app/guest" },
     ],

@@ -124,7 +124,7 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
           // Sparks is the app's hub: same size as every other icon, but
           // always carries the brand gradient + a soft glow so it reads as
           // special without breaking the row's rhythm. It opens the full
-          // nav menu instead of navigating directly — Sparks itself is one
+          // nav menu instead of navigating directly - Sparks itself is one
           // tap away from inside that menu.
           if (isSpark) {
             const content = (

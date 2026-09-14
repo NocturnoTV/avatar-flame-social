@@ -43,12 +43,12 @@ import {
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
-      { title: "My profile — Bloxspark" },
+      { title: "My profile - Bloxspark" },
       {
         name: "description",
         content: "Customize your Bloxspark profile: avatar, photos, bio, favorite Roblox games.",
       },
-      { property: "og:title", content: "My profile — Bloxspark" },
+      { property: "og:title", content: "My profile - Bloxspark" },
       { property: "og:description", content: "Decorate your Roblox player profile." },
     ],
   }),

@@ -7,7 +7,7 @@ export const UNREAD_CONVERSATIONS_KEY = "unread-conversations";
 
 /**
  * Real count of conversations with an unread message (last_message_at newer
- * than my own last_read_at) — used for the Messages badge everywhere
+ * than my own last_read_at) - used for the Messages badge everywhere
  * (bottom nav, side nav, the Sparks menu). Kept live via realtime so the
  * badge clears the moment a conversation is actually read, instead of
  * waiting on the 20s poll.
@@ -16,7 +16,7 @@ export function useUnreadConversations() {
   const { user } = useSession();
   const qc = useQueryClient();
   // This hook mounts several times at once (side nav, bottom nav, the
-  // Sparks menu) — supabase.channel() returns the SAME channel object for
+  // Sparks menu) - supabase.channel() returns the SAME channel object for
   // a topic that's already subscribed, and calling .on() on it after that
   // throws. Give every mount its own topic so each subscribes cleanly.
   const instanceId = useRef(Math.random().toString(36).slice(2));

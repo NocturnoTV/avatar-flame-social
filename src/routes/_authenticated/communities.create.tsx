@@ -10,7 +10,7 @@ import { errorMessage } from "@/lib/utils";
 import { searchPopularRobloxGames, type RobloxGameSearchResult } from "@/lib/roblox-games.functions";
 
 export const Route = createFileRoute("/_authenticated/communities/create")({
-  head: () => ({ meta: [{ title: "Créer une communauté — Bloxspark" }] }),
+  head: () => ({ meta: [{ title: "Créer une communauté - Bloxspark" }] }),
   component: CreateCommunity,
 });
 
@@ -131,7 +131,7 @@ function CreateCommunity() {
             className="uppercase"
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            2 à 5 lettres ou chiffres, unique — deux communautés ne peuvent pas avoir le même nom ni le même tag.
+            2 à 5 lettres ou chiffres, unique - deux communautés ne peuvent pas avoir le même nom ni le même tag.
           </p>
         </div>
 
@@ -245,8 +245,8 @@ function CreateCommunity() {
         <div>
           <Label>Visibilité</Label>
           <Select value={visibility} onChange={(e) => setVisibility(e.target.value as "public" | "private")}>
-            <option value="public">Publique — tout le monde peut trouver et rejoindre</option>
-            <option value="private">Privée — visible mais nécessite une approbation</option>
+            <option value="public">Publique - tout le monde peut trouver et rejoindre</option>
+            <option value="private">Privée - visible mais nécessite une approbation</option>
           </Select>
         </div>
 

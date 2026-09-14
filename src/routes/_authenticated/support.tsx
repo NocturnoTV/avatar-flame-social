@@ -30,7 +30,7 @@ import { errorMessage, cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/support")({
   head: () => ({
     meta: [
-      { title: "Support — Bloxspark" },
+      { title: "Support - Bloxspark" },
       { name: "description", content: "Help, FAQ, tickets and Bloxspark service status." },
     ],
   }),
@@ -74,7 +74,7 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Sparks",
       question: "Can I undo a Like?",
-      answer: "Not yet — think it through before you swipe!",
+      answer: "Not yet - think it through before you swipe!",
     },
     {
       category: "Payments",
@@ -120,7 +120,7 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Sparks",
       question: "Comment annuler un Like ?",
-      answer: "Ce n'est pas possible pour l'instant — réfléchis bien avant de swiper !",
+      answer: "Ce n'est pas possible pour l'instant - réfléchis bien avant de swiper !",
     },
     {
       category: "Paiements",
@@ -167,7 +167,7 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Sparks",
       question: "¿Puedo deshacer un Like?",
-      answer: "Todavía no — ¡piénsalo bien antes de deslizar!",
+      answer: "Todavía no - ¡piénsalo bien antes de deslizar!",
     },
     {
       category: "Pagos",
@@ -213,7 +213,7 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Sparks",
       question: "Posso desfazer uma curtida?",
-      answer: "Ainda não — pense bem antes de deslizar!",
+      answer: "Ainda não - pense bem antes de deslizar!",
     },
     {
       category: "Pagamentos",
@@ -259,7 +259,7 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Sparks",
       question: "Kann ich einen Like rückgängig machen?",
-      answer: "Noch nicht — überlege gut, bevor du wischst!",
+      answer: "Noch nicht - überlege gut, bevor du wischst!",
     },
     {
       category: "Zahlungen",
@@ -303,7 +303,7 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Sparks",
       question: "좋아요를 취소할 수 있나요?",
-      answer: "아직은 불가능합니다 — 스와이프하기 전에 신중히 생각하세요!",
+      answer: "아직은 불가능합니다 - 스와이프하기 전에 신중히 생각하세요!",
     },
     {
       category: "결제",
@@ -696,7 +696,7 @@ function SupportPage() {
                         })}
                       </p>
                       <p className="mt-0.5 font-semibold">
-                        {incident.status === "resolved" ? `🟢 ${t("supportStatusResolved")}` : `🟠 ${t("supportStatusInProgress")}`} —{" "}
+                        {incident.status === "resolved" ? `🟢 ${t("supportStatusResolved")}` : `🟠 ${t("supportStatusInProgress")}`} -{" "}
                         {incident.title}
                       </p>
                     </div>

@@ -12,9 +12,9 @@ export const Route = createFileRoute("/_authenticated/notifications")({
   },
   head: () => ({
     meta: [
-      { title: "Notifications — Bloxspark" },
+      { title: "Notifications - Bloxspark" },
       { name: "description", content: "Tes matchs, likes et nouveaux messages sur Bloxspark." },
-      { property: "og:title", content: "Notifications — Bloxspark" },
+      { property: "og:title", content: "Notifications - Bloxspark" },
       { property: "og:description", content: "Ne rate aucun spark." },
     ],
   }),

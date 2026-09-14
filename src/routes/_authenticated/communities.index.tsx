@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/communities/")({
   head: () => ({
     meta: [
-      { title: "Communautés — Bloxspark" },
+      { title: "Communautés - Bloxspark" },
       {
         name: "description",
         content: "Rejoins des communautés qui partagent tes jeux et tes intérêts.",

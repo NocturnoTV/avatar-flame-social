@@ -10,20 +10,20 @@ import { useSession } from "@/lib/session";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BloxSpark — Meet your Roblox community" },
+      { title: "BloxSpark - Meet your Roblox community" },
       {
         name: "description",
         content:
-          "Discover Roblox players, share videos, find your people and chat safely on BloxSpark. Free to join — sign up with your Roblox account.",
+          "Discover Roblox players, share videos, find your people and chat safely on BloxSpark. Free to join - sign up with your Roblox account.",
       },
-      { property: "og:title", content: "BloxSpark — The social world for Roblox players" },
+      { property: "og:title", content: "BloxSpark - The social world for Roblox players" },
       {
         property: "og:description",
         content: "Profiles, vertical videos, Sparks, stories and real conversations.",
       },
       { property: "og:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
       { property: "og:url", content: "https://bloxspark.app/" },
-      { name: "twitter:title", content: "BloxSpark — The social world for Roblox players" },
+      { name: "twitter:title", content: "BloxSpark - The social world for Roblox players" },
       {
         name: "twitter:description",
         content: "Profiles, vertical videos, Sparks, stories and real conversations.",

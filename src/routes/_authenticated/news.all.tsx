@@ -8,7 +8,7 @@ import { NEWS_CATEGORIES, newsCategoryBadgeClass, newsCategoryLabel } from "@/li
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/news/all")({
-  head: () => ({ meta: [{ title: "Toutes les actualités — Bloxspark" }] }),
+  head: () => ({ meta: [{ title: "Toutes les actualités - Bloxspark" }] }),
   component: AllNewsPage,
 });
 

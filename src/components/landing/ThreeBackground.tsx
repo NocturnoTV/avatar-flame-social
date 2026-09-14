@@ -5,7 +5,7 @@ import * as THREE from "three";
  * A drifting field of glowing violet particles behind the hero, with a
  * couple of large soft-lit icosahedra slowly tumbling through it. Reacts
  * gently to pointer movement on devices that have a real pointer (skipped
- * on touch — nothing to react to there). Particle/shape counts scale down
+ * on touch - nothing to react to there). Particle/shape counts scale down
  * under ~640px so phones stay smooth.
  */
 export function ThreeBackground() {

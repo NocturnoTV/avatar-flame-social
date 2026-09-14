@@ -21,15 +21,15 @@ export const Route = createFileRoute("/auth")({
 
   head: () => ({
     meta: [
-      { title: "Sign in — BloxSpark" },
+      { title: "Sign in - BloxSpark" },
       {
         name: "description",
         content: "Sign in or create your BloxSpark account to join the Roblox community.",
       },
-      { property: "og:title", content: "Sign in — BloxSpark" },
+      { property: "og:title", content: "Sign in - BloxSpark" },
       { property: "og:description", content: "Join BloxSpark in a few seconds." },
       { property: "og:url", content: "https://bloxspark.app/auth" },
-      // A bare sign-in form has no unique content worth ranking on its own —
+      // A bare sign-in form has no unique content worth ranking on its own -
       // keep it out of search results so people land on "/" instead.
       { name: "robots", content: "noindex, follow" },
     ],
@@ -70,7 +70,7 @@ function AuthPage() {
 
   useEffect(() => {
     // In "add account" mode we're deliberately signed in under the account being
-    // replaced — skip the passive redirect so the sign-in form stays visible.
+    // replaced - skip the passive redirect so the sign-in form stays visible.
     if (session?.user.id && !addAccount) void continueAfterAuthentication();
   }, [session?.user.id, addAccount]);
 

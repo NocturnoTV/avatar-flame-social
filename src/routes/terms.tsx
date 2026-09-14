@@ -4,13 +4,13 @@ import { LegalPage, LegalSection } from "@/components/LegalPage";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms of Use — Bloxspark" },
+      { title: "Terms of Use - Bloxspark" },
       {
         name: "description",
         content:
           "Bloxspark Terms of Use: accounts, Roblox connection, Sparks, Communities, subscriptions, content, moderation, copyright and liability.",
       },
-      { property: "og:title", content: "Terms of Use — Bloxspark" },
+      { property: "og:title", content: "Terms of Use - Bloxspark" },
       { property: "og:description", content: "The rules governing the Bloxspark service." },
       { property: "og:url", content: "https://bloxspark.app/terms" },
       { name: "robots", content: "index, follow" },
@@ -18,10 +18,10 @@ export const Route = createFileRoute("/terms")({
     links: [{ rel: "canonical", href: "https://bloxspark.app/terms" }],
   }),
   component: () => (
-    <LegalPage title="Terms of Use" updated="Last updated: September 13, 2026">
+    <LegalPage title="Terms of Use" updated="Last updated: September 14, 2026">
       <p className="text-sm leading-relaxed text-muted-foreground">
         Welcome to Bloxspark. These Terms of Use are long because we would rather be precise than
-        vague about what you're agreeing to — please read them. If any part is unclear, you can
+        vague about what you're agreeing to - please read them. If any part is unclear, you can
         reach us through the in-app Support center before you continue using the Service.
       </p>
 
@@ -29,17 +29,17 @@ export const Route = createFileRoute("/terms")({
         <p>
           These Terms of Use (the "Terms") form a binding agreement between you and Bloxspark
           governing your access to and use of the Bloxspark application, website, and related
-          services (together, the "Service") — a social, discovery, and matchmaking network built
+          services (together, the "Service") - a social, discovery, and matchmaking network built
           around the Roblox player community. By creating an account, accessing the Service, or
-          using it in any way, you accept these Terms in full. If you do not agree, you must not
-          use the Service.
+          using it in any way, you accept these Terms in full. If you do not agree, you must not use
+          the Service.
         </p>
         <p>
           Bloxspark is an independent, unofficial platform. It is not affiliated with, associated
-          with, sponsored by, endorsed by, or in any way officially connected to Roblox
-          Corporation, its subsidiaries, or its affiliates. "Roblox" and any related trademarks,
-          service marks, trade names, and logos are the property of Roblox Corporation. We use
-          them only to describe compatibility with and reference to the Roblox platform.
+          with, sponsored by, endorsed by, or in any way officially connected to Roblox Corporation,
+          its subsidiaries, or its affiliates. "Roblox" and any related trademarks, service marks,
+          trade names, and logos are the property of Roblox Corporation. We use them only to
+          describe compatibility with and reference to the Roblox platform.
         </p>
         <p>
           These Terms incorporate by reference our{" "}
@@ -58,28 +58,29 @@ export const Route = createFileRoute("/terms")({
         <p>
           The Service is available only to individuals aged thirteen (13) or older. Registration,
           account creation, or use of the Service by anyone under 13 is strictly prohibited,
-          regardless of parental permission. Any account we identify, or that is reported to us,
-          as belonging to a person under 13 will be suspended and deleted, along with associated
+          regardless of parental permission. Any account we identify, or that is reported to us, as
+          belonging to a person under 13 will be suspended and deleted, along with associated
           content, without prior notice.
         </p>
         <p>
-          Users aged 13 to 17 ("minor users") may use the Service only with the express permission
-          of a parent or legal guardian. During onboarding, a minor user must provide the name and
-          email address of a parent or legal guardian, who is deemed by that submission to have
-          reviewed and accepted these Terms and the Privacy Policy on the minor's behalf. We may
-          contact the parent or guardian to confirm this consent at any time, and may suspend the
-          account until confirmation is received.
+          Users aged 13 to 17 ("minor users") may use the Service only with the permission required
+          by the law where they live. In France, consent to processing based on consent for an
+          online service must be jointly authorized by the minor and a parent or legal guardian when
+          the minor is under 15. Where parental authorization is required, submitting a parent's
+          details is not by itself approval: Bloxspark may require a verification step and suspend
+          age-sensitive features until it is completed. A parent or guardian who authorizes an
+          account agrees to supervise the minor's use and review these Terms with them.
         </p>
         <p>
           Certain features are restricted or adapted for minor users, including narrower
           discovery/matching ranges intended to keep interactions within similar age groups and
           additional moderation sensitivity for reports involving a minor. These safeguards reduce
-          risk but cannot eliminate it — see Section 9 (Sparks, matching, and your safety) below.
+          risk but cannot eliminate it - see Section 9 (Sparks, matching, and your safety) below.
         </p>
         <p>
-          By using the Service you also represent that your use does not violate any law
-          applicable to you, including any local law that sets a higher minimum age than these
-          Terms for the use of social or matchmaking-style services.
+          By using the Service you also represent that your use does not violate any law applicable
+          to you, including any local law that sets a higher minimum age than these Terms for the
+          use of social or matchmaking-style services.
         </p>
       </LegalSection>
 
@@ -87,10 +88,10 @@ export const Route = createFileRoute("/terms")({
         <p>
           You agree to provide accurate, current, and complete information when creating and
           maintaining your account, including your Bloxspark username, your Roblox username,
-          language, and date of birth. You are solely responsible for keeping your login
-          credentials confidential and for all activity that occurs through your account, whether
-          or not authorized by you. Notify us immediately through Support if you suspect
-          unauthorized access.
+          language, and date of birth. You are solely responsible for keeping your login credentials
+          confidential and for all activity that occurs through your account, whether or not
+          authorized by you. Notify us immediately through Support if you suspect unauthorized
+          access.
         </p>
         <p>
           Username changes are limited to once every seven (7) days, enforced server-side, to
@@ -100,18 +101,18 @@ export const Route = createFileRoute("/terms")({
           Corporation.
         </p>
         <p>
-          We currently support at most a limited number of accounts associated with the same
-          person for account-switching convenience; using multiple accounts to evade a
-          suspension, manipulate Sparks matching, inflate engagement metrics, or harass another
-          user is a violation of these Terms regardless of how many accounts are involved.
+          We currently support at most a limited number of accounts associated with the same person
+          for account-switching convenience; using multiple accounts to evade a suspension,
+          manipulate Sparks matching, inflate engagement metrics, or harass another user is a
+          violation of these Terms regardless of how many accounts are involved.
         </p>
       </LegalSection>
 
       <LegalSection title="4. Connecting your Roblox account">
         <p>
           Bloxspark lets you connect a Roblox account using Roblox's own OAuth 2.0 sign-in flow.
-          When you choose to connect Roblox — whether to sign in or to link an existing Bloxspark
-          account — you are redirected to Roblox's own website to authenticate and to explicitly
+          When you choose to connect Roblox - whether to sign in or to link an existing Bloxspark
+          account - you are redirected to Roblox's own website to authenticate and to explicitly
           authorize Bloxspark. We never see, request, or store your Roblox password; the
           authentication itself happens entirely on Roblox's infrastructure.
         </p>
@@ -132,7 +133,7 @@ export const Route = createFileRoute("/terms")({
           <li>reduce impersonation and fake-account creation;</li>
           <li>
             power Sparks matching signals and favorite-game display (see Section 9) using your
-            self-selected favorite Roblox experiences — not data pulled from your Roblox account
+            self-selected favorite Roblox experiences - not data pulled from your Roblox account
             without your input; and
           </li>
           <li>prevent a single person from creating unlimited duplicate Bloxspark accounts.</li>
@@ -141,23 +142,72 @@ export const Route = createFileRoute("/terms")({
           We do not use the Roblox connection to take any action on your behalf inside Roblox, to
           access your Robux balance, inventory, or purchase history, to post or message on your
           Roblox account, or to access private Roblox account settings. You can disconnect your
-          Roblox account at any time from Settings; disconnecting may limit or disable features
-          that depend on your Roblox identity (such as Sparks) until you reconnect. You can also
-          revoke Bloxspark's access directly from your Roblox account security settings at any
-          time, independently of anything you do inside Bloxspark.
+          Roblox account at any time from Settings; disconnecting may limit or disable features that
+          depend on your Roblox identity (such as Sparks) until you reconnect. You can also revoke
+          Bloxspark's access directly from your Roblox account security settings at any time,
+          independently of anything you do inside Bloxspark.
+        </p>
+        <p>
+          Roblox requires users authorizing an OAuth application to have an eligible account. We
+          request only the OpenID Connect identity scopes needed for the features shown on the
+          consent screen. The authorization code is protected with a state value and, where
+          supported by the client, PKCE. Tokens are stored server-side, are never displayed to other
+          users, and are refreshed or revoked through Roblox's official endpoints. You must also
+          follow Roblox's Terms and Community Standards when using Roblox or Roblox assets.
         </p>
       </LegalSection>
 
-      <LegalSection title="5. Bloxspark Premium (Spark Plus) and payments">
+      <LegalSection title="5. Mobile apps, app stores, purchases, and permissions">
+        <p>
+          If you obtain Bloxspark through Apple App Store or Google Play, the store's terms also
+          apply. Digital subscriptions, profile upgrades, content promotion, and other digital
+          features offered inside a native app are purchased through Apple In-App Purchase or Google
+          Play Billing when required by the applicable store rules. Purchases made on the website
+          may be processed by Stripe. The checkout screen identifies the seller, price, billing
+          period, taxes, renewal terms, and available cancellation method before purchase.
+        </p>
+        <p>
+          Store subscriptions renew automatically unless cancelled in the Apple or Google account
+          settings before renewal. Refunds and billing disputes for store purchases are handled
+          under the store's rules. Where supported, you can restore an eligible purchase and use the
+          same entitlement on another device signed into the same Bloxspark account. Deleting
+          Bloxspark or deleting an account does not automatically cancel an external store
+          subscription, so cancel it in the relevant store as well.
+        </p>
+        <p>
+          Camera, microphone, photo library, and notification permissions are requested only when a
+          related feature needs them. You may decline or revoke a permission in device settings,
+          although the related feature may stop working. Apple and Google are not responsible for
+          Bloxspark support, moderation, or user content except as their own terms require.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="6. Recommendations, search, and engagement measurements">
+        <p>
+          Discover, Sparks, search, and creator analytics may rank or recommend content using
+          signals such as language, country, age range, favorite games, follows, blocks, reports,
+          watch time, completion, likes, comments, and recent activity. We may reduce or exclude
+          unsafe, misleading, repetitive, mature, or manipulated content. Recommendations are
+          personalized predictions, not endorsements or promises of reach.
+        </p>
+        <p>
+          A video view may be counted after a qualifying playback. Unique-view figures attempt to
+          count distinct authenticated viewers and may be adjusted to remove bots, repeats, fraud,
+          testing traffic, or technical errors. No metric is guaranteed to be permanent or exact.
+          You may use feed controls, unfollow, hide, block, or report to influence future results.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="7. Bloxspark Premium (Spark Plus) and payments">
         <p>
           Bloxspark offers an optional paid subscription, Bloxspark Premium (also referred to as
-          "Spark Plus"), that unlocks additional customization and features described in the app
-          at the time of purchase (for example, profile styling and chat personalization). Feature
+          "Spark Plus"), that unlocks additional customization and features described in the app at
+          the time of purchase (for example, profile styling and chat personalization). Feature
           availability may change over time as the Service evolves.
         </p>
         <p>
           Payments are processed by Stripe, an independent third-party payment processor. Bloxspark
-          never receives or stores your full card number, CVC, or bank credentials — Stripe handles
+          never receives or stores your full card number, CVC, or bank credentials - Stripe handles
           that data under its own terms and privacy policy. We retain only what's needed to manage
           your subscription: its status (active, cancelled, past due), its billing period, and its
           expiration or renewal date.
@@ -168,8 +218,8 @@ export const Route = createFileRoute("/terms")({
           customer portal or by contacting Support; cancelling stops future renewals but does not
           automatically refund the current billing period. Refunds, where legally required or
           granted at our discretion, are processed back to the original payment method.
-          Administrator-granted Premium (for example, promotional or support-goodwill grants) is
-          not a purchase and carries no billing relationship or refund right.
+          Administrator-granted Premium (for example, promotional or support-goodwill grants) is not
+          a purchase and carries no billing relationship or refund right.
         </p>
         <p>
           We may change the price or composition of Bloxspark Premium going forward; changes will
@@ -177,8 +227,10 @@ export const Route = createFileRoute("/terms")({
         </p>
       </LegalSection>
 
-      <LegalSection title="6. Conduct rules and prohibited content">
-        <p>You must not publish, transmit, upload, or distribute through the Service anything that:</p>
+      <LegalSection title="8. Conduct rules and prohibited content">
+        <p>
+          You must not publish, transmit, upload, or distribute through the Service anything that:
+        </p>
         <ul>
           <li>
             is sexual, sexually suggestive, or pornographic, especially anything involving or
@@ -188,18 +240,21 @@ export const Route = createFileRoute("/terms")({
           <li>is hateful, racist, sexist, homophobic, transphobic, ableist, or discriminatory;</li>
           <li>harasses, threatens, blackmails, doxxes, stalks, or intimidates any person;</li>
           <li>
-            is violent or graphic, or glorifies self-harm, suicide, disordered eating, or
-            extremist violence;
+            is violent or graphic, or glorifies self-harm, suicide, disordered eating, or extremist
+            violence;
           </li>
           <li>
             scams or defrauds others, including phishing, or the sale, trade, or solicitation of
             Robux, virtual items, accounts, or real-money trading of any kind;
           </li>
           <li>contains malicious links, malware, spam, or unsolicited commercial advertising;</li>
-          <li>infringes a third party's intellectual property or other legal rights (see Section 11); or</li>
           <li>
-            impersonates another person, a Bloxspark moderator or employee, or Roblox Corporation
-            or its staff.
+            infringes a third party's intellectual property or other legal rights (see Section 11);
+            or
+          </li>
+          <li>
+            impersonates another person, a Bloxspark moderator or employee, or Roblox Corporation or
+            its staff.
           </li>
         </ul>
         <p>You also agree not to:</p>
@@ -207,29 +262,31 @@ export const Route = createFileRoute("/terms")({
           <li>collect or harvest other users' personal data without consent;</li>
           <li>
             automate access to the Service through bots, scripts, scrapers, or unauthorized
-            third-party tools, including to inflate metrics such as views, likes, or Sparks
-            matches;
+            third-party tools, including to inflate metrics such as views, likes, or Sparks matches;
           </li>
           <li>
             attempt to bypass, disable, or interfere with security, moderation, rate-limiting, or
-            age-protection features, including the automated language-filtering described in
-            Section 8; or
+            age-protection features, including the automated language-filtering described in Section
+            8; or
           </li>
-          <li>reverse-engineer, decompile, or attempt to extract the source code of the Service, except as permitted by law.</li>
+          <li>
+            reverse-engineer, decompile, or attempt to extract the source code of the Service,
+            except as permitted by law.
+          </li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="7. User-generated content and license">
+      <LegalSection title="9. User-generated content and license">
         <p>
-          You retain ownership of the content you create and publish through the Service —
-          including avatar photos, banners, bio text, videos, comments, community posts, messages,
-          and voice messages ("Your Content"). By publishing Your Content, you grant Bloxspark a
-          worldwide, non-exclusive, royalty-free, sublicensable license to host, store, cache,
-          reproduce, adapt (for formats such as thumbnails), and display Your Content solely to
-          operate, promote within the app, and improve the Service. This license ends when you
-          delete the relevant content or your account, subject to (a) temporary backup or cache
-          copies that age out in the ordinary course of operation, and (b) copies we are legally
-          required or permitted to retain, such as reports under active review.
+          You retain ownership of the content you create and publish through the Service - including
+          avatar photos, banners, bio text, videos, comments, community posts, messages, and voice
+          messages ("Your Content"). By publishing Your Content, you grant Bloxspark a worldwide,
+          non-exclusive, royalty-free, sublicensable license to host, store, cache, reproduce, adapt
+          (for formats such as thumbnails), and display Your Content solely to operate, promote
+          within the app, and improve the Service. This license ends when you delete the relevant
+          content or your account, subject to (a) temporary backup or cache copies that age out in
+          the ordinary course of operation, and (b) copies we are legally required or permitted to
+          retain, such as reports under active review.
         </p>
         <p>
           You represent and warrant that you own or have all rights necessary to publish Your
@@ -240,7 +297,7 @@ export const Route = createFileRoute("/terms")({
         </p>
       </LegalSection>
 
-      <LegalSection title="8. Moderation, reporting, and automated enforcement">
+      <LegalSection title="10. Moderation, reporting, and automated enforcement">
         <p>
           Profiles, videos, comments, community posts, and private messages can be reported from
           within the app. Reports are reviewed by our Trust &amp; Safety team and, depending on
@@ -248,15 +305,14 @@ export const Route = createFileRoute("/terms")({
           permanent account termination without compensation or refund of any paid subscription.
         </p>
         <p>
-          To respond faster to clearly abusive language, Bloxspark also runs an automated
-          detection system that compares message and comment text against an administrator-managed
-          list of banned words (maintained in English and French, with more languages added over
-          time). When a match is detected, the system automatically sends the other participant(s)
-          in that conversation a safety notice, in their own language, reminding them to keep
-          Bloxspark respectful and encouraging them to contact Trust &amp; Safety if they are a
-          witness or victim of a rule violation. This automated check happens on our servers as
-          part of delivering the message — see the Privacy Policy for how that data is used and
-          retained.
+          To respond faster to clearly abusive language, Bloxspark also runs an automated detection
+          system that compares message and comment text against an administrator-managed list of
+          banned words (maintained in English and French, with more languages added over time). When
+          a match is detected, the system automatically sends the other participant(s) in that
+          conversation a safety notice, in their own language, reminding them to keep Bloxspark
+          respectful and encouraging them to contact Trust &amp; Safety if they are a witness or
+          victim of a rule violation. This automated check happens on our servers as part of
+          delivering the message - see the Privacy Policy for how that data is used and retained.
         </p>
         <p>
           You also have personal safety tools available at any time, including blocking a user
@@ -264,27 +320,42 @@ export const Route = createFileRoute("/terms")({
           leaving a group conversation, hiding a creator or category from your feed, and choosing
           whether your online/"active recently" status is visible to others.
         </p>
+        <p>
+          You may report content, conduct, an account, or a Community through the control nearest to
+          it. A notice concerning allegedly illegal content should identify the exact content,
+          explain the legal or factual reason, and provide reliable contact details when required.
+          We assess notices consistently and may preserve evidence, restrict access while reviewing
+          urgent risk, and notify the affected user of the decision and reason when permitted by
+          law. We do not reveal a reporter's identity unless required by law.
+        </p>
+        <p>
+          If you believe a warning, removal, recommendation restriction, suspension, or ban was a
+          mistake, you may appeal through Support. Include the affected content or account and the
+          reason you disagree. We may reject abusive, fraudulent, duplicative, or out-of-time
+          appeals. Nothing in this process limits a right to contact a regulator, court, certified
+          dispute body, or law-enforcement authority available under applicable law.
+        </p>
       </LegalSection>
 
-      <LegalSection title="9. Sparks, matching, and your safety">
+      <LegalSection title="11. Sparks, matching, and your safety">
         <p>
           Sparks is an opt-in feature that suggests other players based on shared favorite games,
           age range, country, and language you provide, so that you can find people to play with.
-          Sparks is designed around friendship and gaming — it is not intended, marketed, or
+          Sparks is designed around friendship and gaming - it is not intended, marketed, or
           moderated as a romantic dating service, and you should not treat matches as vetted or
           background-checked in any way.
         </p>
         <p>
           Bloxspark facilitates introductions but does not participate in, supervise, or guarantee
           the safety of any interaction that follows a match or a message. We strongly recommend
-          that you never share sensitive personal information — your address, school, phone
-          number, financial details, or your Roblox account password — with another user. If you
-          are a minor, never agree to meet another user in person, and tell a parent or guardian if
-          anyone asks you to.
+          that you never share sensitive personal information - your address, school, phone number,
+          financial details, or your Roblox account password - with another user. If you are a
+          minor, never agree to meet another user in person, and tell a parent or guardian if anyone
+          asks you to.
         </p>
       </LegalSection>
 
-      <LegalSection title="10. Communities">
+      <LegalSection title="12. Communities">
         <p>
           Communities let users create and join spaces organized around a shared game or interest,
           with their own posts, discussions, and (as those features roll out) events and media. A
@@ -301,12 +372,12 @@ export const Route = createFileRoute("/terms")({
         </p>
       </LegalSection>
 
-      <LegalSection title="11. Intellectual property and copyright (DMCA)">
+      <LegalSection title="13. Intellectual property and copyright (DMCA)">
         <p>
           Bloxspark's name, logo, interface design, and underlying software are owned by us or our
           licensors and are protected by intellectual property law. Nothing in these Terms grants
-          you rights in Bloxspark's own branding or software beyond what's needed to use the
-          Service normally.
+          you rights in Bloxspark's own branding or software beyond what's needed to use the Service
+          normally.
         </p>
         <p>
           If you believe content on Bloxspark infringes your copyright, submit a notice through the
@@ -322,7 +393,7 @@ export const Route = createFileRoute("/terms")({
         </p>
       </LegalSection>
 
-      <LegalSection title="12. Service availability and changes">
+      <LegalSection title="14. Service availability and changes">
         <p>
           The Service is provided "as is" and "as available." We work to keep it reliable, and our
           current Support center includes a live status page, but we do not guarantee that the
@@ -332,7 +403,7 @@ export const Route = createFileRoute("/terms")({
         </p>
       </LegalSection>
 
-      <LegalSection title="13. Disclaimers and limitation of liability">
+      <LegalSection title="15. Disclaimers and limitation of liability">
         <p>
           To the maximum extent permitted by applicable law, Bloxspark and its team disclaim all
           warranties, express or implied, regarding the Service, including implied warranties of
@@ -346,12 +417,12 @@ export const Route = createFileRoute("/terms")({
           Service, including harm arising from interactions or relationships formed between users,
           even if we have been advised of the possibility of such damages. Nothing in these Terms
           limits liability that cannot be limited under applicable law, including liability for
-          gross negligence, willful misconduct, or death or personal injury caused by our
-          negligence where the law says so.
+          gross negligence, willful misconduct, or death or personal injury caused by our negligence
+          where the law says so.
         </p>
       </LegalSection>
 
-      <LegalSection title="14. Indemnification">
+      <LegalSection title="16. Indemnification">
         <p>
           You agree to defend, indemnify, and hold harmless Bloxspark and its team from any claim,
           liability, damages, loss, or expense (including reasonable legal fees) arising from your
@@ -360,19 +431,19 @@ export const Route = createFileRoute("/terms")({
         </p>
       </LegalSection>
 
-      <LegalSection title="15. Termination">
+      <LegalSection title="17. Termination">
         <p>
           You may delete your account at any time from Settings. Deletion removes your profile,
           photos, videos, swipes, matches, and messages under the conditions described in the
           Privacy Policy. We may suspend or terminate your access, with or without notice, if you
-          violate these Terms, if required by law, or if continued access would create risk or
-          legal exposure for us or another user. Sections of these Terms that by their nature
-          should survive termination (including Sections 7, 11, 13, and 14) continue to apply after
-          your account is closed.
+          violate these Terms, if required by law, or if continued access would create risk or legal
+          exposure for us or another user. Sections of these Terms that by their nature should
+          survive termination (including Sections 7, 11, 13, and 14) continue to apply after your
+          account is closed.
         </p>
       </LegalSection>
 
-      <LegalSection title="16. Changes to these Terms">
+      <LegalSection title="18. Changes to these Terms">
         <p>
           We may update these Terms to reflect changes to the Service, our practices, or applicable
           law. We will notify you in the app of any material change before it takes effect where
@@ -382,17 +453,17 @@ export const Route = createFileRoute("/terms")({
         </p>
       </LegalSection>
 
-      <LegalSection title="17. Severability, waiver, and entire agreement">
+      <LegalSection title="19. Severability, waiver, and entire agreement">
         <p>
-          If any provision of these Terms is found unenforceable, the remaining provisions remain
-          in full effect, and the unenforceable provision will be interpreted to best reflect its
+          If any provision of these Terms is found unenforceable, the remaining provisions remain in
+          full effect, and the unenforceable provision will be interpreted to best reflect its
           original intent. Our failure to enforce a provision is not a waiver of our right to do so
           later. These Terms, together with the Privacy Policy and Community Guidelines, are the
           entire agreement between you and Bloxspark regarding the Service.
         </p>
       </LegalSection>
 
-      <LegalSection title="18. Governing law and contact">
+      <LegalSection title="20. Governing law and contact">
         <p>
           These Terms are governed by French law, without prejudice to any mandatory consumer-
           protection provisions of the law of your country of habitual residence, which continue to

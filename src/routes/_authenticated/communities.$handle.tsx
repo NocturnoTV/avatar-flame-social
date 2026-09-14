@@ -26,7 +26,7 @@ import { uploadFile } from "@/lib/media";
 import { errorMessage, cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/communities/$handle")({
-  head: () => ({ meta: [{ title: "Communauté — Bloxspark" }] }),
+  head: () => ({ meta: [{ title: "Communauté - Bloxspark" }] }),
   component: CommunityPage,
 });
 
@@ -404,8 +404,8 @@ function CommunityPage() {
                   {c.visibility === "public"
                     ? "Publique"
                     : c.visibility === "private_friends"
-                      ? "Privée — amis seulement"
-                      : "Privée — sur demande"}
+                      ? "Privée - amis seulement"
+                      : "Privée - sur demande"}
                 </p>
               </div>
               {c.rules ? (
@@ -1340,7 +1340,7 @@ function LeaderboardTab({ communityId }: { communityId: string | undefined }) {
           ))}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          L'XP ne s'achète pas — elle reflète uniquement ton activité dans la communauté.
+          L'XP ne s'achète pas - elle reflète uniquement ton activité dans la communauté.
         </p>
       </div>
     </div>

@@ -19,7 +19,7 @@ import { profileFontClass, profileGlowClass } from "@/lib/sparkPlus";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/users/$id")({
-  head: () => ({ meta: [{ title: "Profil — Bloxspark" }] }),
+  head: () => ({ meta: [{ title: "Profil - Bloxspark" }] }),
   component: PublicProfile,
 });
 
@@ -36,7 +36,7 @@ function PublicProfile() {
   // The URL uses the username (e.g. /users/arthur); resolve it to the real
   // id once here so every other query below can stay UUID-based. A raw
   // UUID in the URL (old links, or a username that never got resolved)
-  // still works — we just use it as-is.
+  // still works - we just use it as-is.
   const resolved = useQuery({
     queryKey: ["resolve-profile-id", param],
     queryFn: async () => {

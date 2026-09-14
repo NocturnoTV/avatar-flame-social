@@ -67,9 +67,9 @@ const REACTIONS = ["❤️", "😂", "😮", "😢", "🙏", "🔥"];
 export const Route = createFileRoute("/_authenticated/messages/$id")({
   head: () => ({
     meta: [
-      { title: "Chat — Bloxspark" },
+      { title: "Chat - Bloxspark" },
       { name: "description", content: "Private Bloxspark chat with voice messages and photos." },
-      { property: "og:title", content: "Chat — Bloxspark" },
+      { property: "og:title", content: "Chat - Bloxspark" },
       { property: "og:description", content: "Text, photo and voice messages." },
     ],
   }),
@@ -151,7 +151,7 @@ function Conversation() {
     },
   });
   const hasPlus = isSparkPlusActive(myPlus.data);
-  // Custom wallpaper/bubble is a Spark Plus perk — a non-Plus viewer (or one
+  // Custom wallpaper/bubble is a Spark Plus perk - a non-Plus viewer (or one
   // whose Plus lapsed) always sees the classic default, even if a custom
   // choice is still saved locally from before.
   const wallpaper = hasPlus ? wallpaperChoice : WALLPAPERS[0]!;
@@ -274,7 +274,7 @@ function Conversation() {
   });
 
   // A banned-word hit flags a "safety_alert" notification for the person who
-  // received the message — shown small, right here in the conversation, and
+  // received the message - shown small, right here in the conversation, and
   // never in the global notification feed (only the victim ever sees it).
   const safetyAlert = useQuery({
     queryKey: ["safety-alert", id, user?.id],
@@ -328,7 +328,7 @@ function Conversation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Live read receipts — as soon as the other person's last_read_at moves,
+  // Live read receipts - as soon as the other person's last_read_at moves,
   // refresh so "Vu" appears under my messages without needing to reopen.
   useEffect(() => {
     const channel = supabase
@@ -409,7 +409,7 @@ function Conversation() {
     };
   }, [id, messages, header, safetyAlert]);
 
-  // "typing…" indicator — a lightweight realtime broadcast, no table needed.
+  // "typing…" indicator - a lightweight realtime broadcast, no table needed.
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -452,7 +452,7 @@ function Conversation() {
       .eq("conversation_id", id)
       .eq("user_id", user.id)
       .then(() => {
-        // Keep the conversations list's unread badge in sync — otherwise it
+        // Keep the conversations list's unread badge in sync - otherwise it
         // stays stale until something else happens to refetch it.
         void qc.invalidateQueries({ queryKey: ["conversations", user.id] });
         void qc.invalidateQueries({ queryKey: [UNREAD_CONVERSATIONS_KEY, user.id] });
@@ -579,7 +579,7 @@ function Conversation() {
 
   // Best-effort screenshot notice: browsers give web pages no real API to
   // detect a screenshot. This catches the PrintScreen key on desktop while
-  // the tab is focused — there is no equivalent signal on mobile web at all.
+  // the tab is focused - there is no equivalent signal on mobile web at all.
   useEffect(() => {
     if (!user) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -1399,7 +1399,7 @@ function ForwardSheet({
   );
 }
 
-/** Classic bubble for messages from the other person — plain, purple-tinted. */
+/** Classic bubble for messages from the other person - plain, purple-tinted. */
 function ReceivedBubble({
   children,
   padded = true,

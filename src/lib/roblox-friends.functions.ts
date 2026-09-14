@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
  * Roblox friend lists are public data on the classic Roblox API (no OAuth
- * scope needed beyond the account link we already have) — this cross-
+ * scope needed beyond the account link we already have) - this cross-
  * references the signed-in user's Roblox friends against BloxSpark
  * accounts that have linked the same Roblox user ID.
  */
@@ -29,7 +29,7 @@ export const getRobloxFriendSuggestions = createServerFn({ method: "GET" })
         .filter((id): id is string => id !== null);
       return { robloxUserIds: ids };
     } catch {
-      // A private friends list, rate limit, or Roblox hiccup — the
+      // A private friends list, rate limit, or Roblox hiccup - the
       // suggestion feature just quietly has nothing from this source.
       return { robloxUserIds: [] };
     }

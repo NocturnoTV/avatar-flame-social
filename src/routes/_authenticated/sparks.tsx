@@ -29,9 +29,9 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/sparks")({
   head: () => ({
     meta: [
-      { title: "Sparks — Bloxspark" },
+      { title: "Sparks - Bloxspark" },
       { name: "description", content: "Swipe les profils de joueurs Roblox et trouve tes matchs." },
-      { property: "og:title", content: "Sparks — Bloxspark" },
+      { property: "og:title", content: "Sparks - Bloxspark" },
       { property: "og:description", content: "Swipe, matche et discute." },
     ],
   }),

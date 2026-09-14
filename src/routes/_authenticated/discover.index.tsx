@@ -43,13 +43,13 @@ import {
 export const Route = createFileRoute("/_authenticated/discover/")({
   head: () => ({
     meta: [
-      { title: "Découvrir — Bloxspark" },
+      { title: "Découvrir - Bloxspark" },
       {
         name: "description",
         content:
           "Le feed vidéo des joueurs Roblox : likes, favoris, abonnements et republications.",
       },
-      { property: "og:title", content: "Découvrir — Bloxspark" },
+      { property: "og:title", content: "Découvrir - Bloxspark" },
       { property: "og:description", content: "Des vidéos Roblox en boucle, façon feed vertical." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -115,7 +115,7 @@ function DiscoverPage() {
     queryFn: async () => {
       let videos: VideoRow[];
       if (tab === "foryou") {
-        // Personalized ranking — see src/lib/recommendation-engine.server.ts
+        // Personalized ranking - see src/lib/recommendation-engine.server.ts
         const rows = await getPersonalizedFeed({ data: { limit: 30 } });
         videos = rows.map((v) => ({ ...v, thumbnail_path: null }));
       } else {
@@ -213,7 +213,7 @@ function DiscoverPage() {
 
   return (
     <div className="relative h-[calc(100dvh-5.75rem)] w-full overflow-hidden bg-background lg:h-dvh">
-      {/* top bar — style TikTok : onglets centrés, actions à droite */}
+      {/* top bar - style TikTok : onglets centrés, actions à droite */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 via-black/25 to-transparent px-3 pb-8 pt-3">
         <div className="pointer-events-auto flex w-20 items-center gap-1">
           <button
@@ -724,7 +724,7 @@ function VideoSlide({
           </p>
           <p className="mt-2 flex items-center gap-2 overflow-hidden text-xs font-medium text-white/90">
             <Music2 className="h-3.5 w-3.5 shrink-0 animate-pulse" />
-            <span className="truncate">{video.sound_name || `Son original — @${username}`}</span>
+            <span className="truncate">{video.sound_name || `Son original - @${username}`}</span>
           </p>
         </div>
 
@@ -735,7 +735,7 @@ function VideoSlide({
           </div>
         </div>
 
-        {/* action rail — compact, TikTok/Instagram-style */}
+        {/* action rail - compact, TikTok/Instagram-style */}
         <div className="absolute bottom-20 right-2.5 z-20 flex flex-col items-center gap-3.5">
           <div className="relative">
             <Link
@@ -871,7 +871,7 @@ function ShareSheet({
         conversation_id: conversationId as string,
         sender_id: user.id,
         kind: "text",
-        content: `🎥 @${username} — ${link}`,
+        content: `🎥 @${username} - ${link}`,
       });
       if (msgError) throw msgError;
       await bumpShares();
@@ -983,7 +983,7 @@ function RailButton({
   );
 }
 
-/** Compact "..." menu — keeps rarer actions (Not interested) off the main rail. */
+/** Compact "..." menu - keeps rarer actions (Not interested) off the main rail. */
 function RailOverflow({ onNotInterested }: { onNotInterested: () => void }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);

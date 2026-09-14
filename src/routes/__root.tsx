@@ -82,7 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "BloxSpark — the social network for Roblox players" },
+      { title: "BloxSpark - the social network for Roblox players" },
       {
         name: "description",
         content:
@@ -91,7 +91,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "robots", content: "index, follow" },
       { name: "theme-color", content: "#7c3aed" },
       { property: "og:site_name", content: "BloxSpark" },
-      { property: "og:title", content: "BloxSpark — the social network for Roblox players" },
+      { property: "og:title", content: "BloxSpark - the social network for Roblox players" },
       {
         property: "og:description",
         content: "Discover players, share videos, match with Sparks and chat safely on BloxSpark.",
@@ -100,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
       { property: "og:locale", content: "en_US" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "BloxSpark — the social network for Roblox players" },
+      { name: "twitter:title", content: "BloxSpark - the social network for Roblox players" },
       {
         name: "twitter:description",
         content: "Discover players, share videos, match with Sparks and chat safely on BloxSpark.",

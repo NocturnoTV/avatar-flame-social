@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/news")({
   head: () => ({
     meta: [
-      { title: "Actualités Roblox — Bloxspark" },
+      { title: "Actualités Roblox - Bloxspark" },
       {
         name: "description",
         content: "Toute l'actualité Roblox : mises à jour, jeux, événements, créateurs et sécurité.",

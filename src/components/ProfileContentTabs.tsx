@@ -28,7 +28,7 @@ type LightboxTarget =
   | { kind: "photo"; list: TabPhoto[]; index: number };
 
 /**
- * The Videos / Reposts / Photos tab group shown on every profile — the
+ * The Videos / Reposts / Photos tab group shown on every profile - the
  * owner's own (/profile) and everyone else's (/users/$id) render this same
  * component, so both look identical apart from the edit affordances on the
  * Photos tab (only shown when `photosEditable` is set). Every item opens

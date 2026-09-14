@@ -1,7 +1,7 @@
 /**
  * Country picker for the Sparks profile: a fixed list of ISO-3166 alpha-2
  * codes rendered with the flag emoji trick (regional indicator symbols) and
- * localized names via the built-in Intl.DisplayNames — no manual translation
+ * localized names via the built-in Intl.DisplayNames - no manual translation
  * table needed.
  */
 export const COUNTRY_CODES = [

@@ -14,7 +14,7 @@ import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-// Public STUN only — no TURN server is configured (that requires a paid
+// Public STUN only - no TURN server is configured (that requires a paid
 // relay service). Calls connect directly between the two devices, which
 // works on most home networks but can fail behind strict corporate
 // firewalls or symmetric NATs. That's a known, disclosed limitation.
@@ -203,7 +203,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       try {
         await pc.addIceCandidate(candidate);
       } catch {
-        // Stale/duplicate candidate — safe to ignore.
+        // Stale/duplicate candidate - safe to ignore.
       }
     }
     pendingCandidatesRef.current = [];
@@ -216,7 +216,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       try {
         await pc.addIceCandidate(candidate);
       } catch {
-        // Ignore — connection may already be closing.
+        // Ignore - connection may already be closing.
       }
     } else {
       pendingCandidatesRef.current.push(candidate);
@@ -341,7 +341,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (stateRef.current.phase === "idle") return;
         toast.message(t("callEnded"));
         // Whichever side hangs up, the caller is the one that logs the call
-        // (duration + system message) — the callee just tears down locally.
+        // (duration + system message) - the callee just tears down locally.
         if (role === "caller") void finalizeCall("ended");
         else reset();
       })
@@ -448,7 +448,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const channel = supabase.channel(`calls:${user.id}`, { config: { broadcast: { self: false } } });
     channel
       .on("broadcast", { event: "invite" }, ({ payload }) => {
-        if (stateRef.current.phase !== "idle") return; // Busy — caller's ring will time out as missed.
+        if (stateRef.current.phase !== "idle") return; // Busy - caller's ring will time out as missed.
         callIdRef.current = payload.callId;
         conversationIdRef.current = payload.conversationId;
         isCallerRef.current = false;
