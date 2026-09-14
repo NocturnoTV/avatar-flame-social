@@ -696,6 +696,8 @@ const en: Dict = {
   giftSparkPlusText: "They get every Plus perk for 30 days, on you.",
   notEnoughBloxBuyForThem: "Not enough Blox. Buy a pack for them instead:",
   shopTermsLink: "Shop Terms & Refund Policy",
+  showPassword: "Show password",
+  hidePassword: "Hide password",
 };
 
 const fr: Dict = {
@@ -1386,6 +1388,8 @@ const fr: Dict = {
   giftSparkPlusText: "Il ou elle profite de tous les avantages Plus pendant 30 jours, offert par toi.",
   notEnoughBloxBuyForThem: "Pas assez de Blox. Achète plutôt un pack pour cette personne :",
   shopTermsLink: "Conditions de la boutique et politique de remboursement",
+  showPassword: "Afficher le mot de passe",
+  hidePassword: "Masquer le mot de passe",
 };
 
 const es: Dict = {
@@ -2073,6 +2077,8 @@ const es: Dict = {
   giftSparkPlusText: "Disfrutará de todas las ventajas Plus durante 30 días, de tu parte.",
   notEnoughBloxBuyForThem: "No tienes suficientes Blox. Compra un pack para esta persona:",
   shopTermsLink: "Condiciones de la tienda y política de reembolso",
+  showPassword: "Mostrar contraseña",
+  hidePassword: "Ocultar contraseña",
 };
 
 const pt: Dict = {
@@ -2760,6 +2766,8 @@ const pt: Dict = {
   giftSparkPlusText: "A pessoa aproveita todos os benefícios do Plus por 30 dias, por sua conta.",
   notEnoughBloxBuyForThem: "Blox insuficientes. Compre um pacote para essa pessoa:",
   shopTermsLink: "Termos da loja e política de reembolso",
+  showPassword: "Mostrar senha",
+  hidePassword: "Ocultar senha",
 };
 
 const de: Dict = {
@@ -3453,6 +3461,8 @@ const de: Dict = {
   giftSparkPlusText: "Die Person bekommt 30 Tage lang alle Plus-Vorteile, spendiert von dir.",
   notEnoughBloxBuyForThem: "Nicht genug Blox. Kaufe stattdessen ein Paket für diese Person:",
   shopTermsLink: "Shop-Bedingungen und Rückerstattungsrichtlinie",
+  showPassword: "Passwort anzeigen",
+  hidePassword: "Passwort verbergen",
 };
 
 const ko: Dict = {
@@ -4132,6 +4142,8 @@ const ko: Dict = {
   giftSparkPlusText: "30일 동안 모든 Plus 혜택을 선물할 수 있어요.",
   notEnoughBloxBuyForThem: "Blox가 부족해요. 대신 이 사람에게 팩을 구매해 주세요:",
   shopTermsLink: "상점 이용약관 및 환불 정책",
+  showPassword: "비밀번호 표시",
+  hidePassword: "비밀번호 숨기기",
 };
 
 const DICTS: Record<LangCode, Dict> = { en, fr, es, pt, de, ko };
