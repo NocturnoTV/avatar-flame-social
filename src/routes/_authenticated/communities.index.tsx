@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Search, Users } from "lucide-react";
+import { Activity, Plus, Search, Trophy, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { LogoWordmark } from "@/components/Logo";
@@ -33,11 +33,15 @@ type CommunityRow = {
   tags: string[];
   verified: boolean;
   member_count: number;
+  activity_points: number;
+  rank_position: number;
+  ranking_score: number;
 };
 
 const CATEGORY_FILTERS: { id: string; label: string }[] = [
   { id: "foryou", label: "Pour toi" },
   { id: "popular", label: "Populaires" },
+  { id: "ranking", label: "Classement" },
   { id: "new", label: "Nouvelles" },
   { id: "games", label: "Jeux" },
   { id: "development", label: "Développement" },
@@ -79,15 +83,28 @@ function CommunitiesPage() {
   const communities = useQuery({
     queryKey: ["communities-directory"],
     queryFn: async (): Promise<CommunityRow[]> => {
-      const { data, error } = await supabase
-        .from("communities")
-        .select(
-          "id,handle,name,description,category,language,banner_url,icon_url,tags,verified,member_count",
-        )
-        .eq("visibility", "public")
-        .order("member_count", { ascending: false });
+      const [{ data, error }, { data: rankings, error: rankingError }] = await Promise.all([
+        supabase
+          .from("communities")
+          .select(
+            "id,handle,name,description,category,language,banner_url,icon_url,tags,verified,member_count",
+          )
+          .eq("visibility", "public")
+          .order("member_count", { ascending: false }),
+        supabase.rpc("community_directory_rankings"),
+      ]);
       if (error) throw error;
-      return data ?? [];
+      if (rankingError) throw rankingError;
+      const byCommunity = new Map((rankings ?? []).map((row) => [row.community_id, row]));
+      return (data ?? []).map((community) => {
+        const ranking = byCommunity.get(community.id);
+        return {
+          ...community,
+          activity_points: Number(ranking?.activity_points ?? 0),
+          rank_position: Number(ranking?.rank_position ?? 0),
+          ranking_score: Number(ranking?.ranking_score ?? 0),
+        };
+      });
     },
   });
 
@@ -129,6 +146,8 @@ function CommunitiesPage() {
     switch (filter) {
       case "popular":
         return [...searched].sort((a, b) => b.member_count - a.member_count);
+      case "ranking":
+        return [...searched].sort((a, b) => a.rank_position - b.rank_position);
       case "new":
         return searched; // already newest-first fallback via query order tie-break
       case "fr":
@@ -154,7 +173,7 @@ function CommunitiesPage() {
   })();
 
   const recommended = filtered.slice(0, 6);
-  const popular = [...all].sort((a, b) => b.member_count - a.member_count).slice(0, 8);
+  const ranked = [...all].sort((a, b) => a.rank_position - b.rank_position).slice(0, 10);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-28 pt-4">
@@ -246,12 +265,21 @@ function CommunitiesPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-lg font-bold">Communautés populaires</h2>
-        {popular.length === 0 ? (
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold">
+              <Trophy className="h-5 w-5 text-primary" /> Classement des communautés
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Calculé selon les membres et l'activité des 30 derniers jours.
+            </p>
+          </div>
+        </div>
+        {ranked.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="mt-3 space-y-2">
-            {popular.map((c) => (
+            {ranked.map((c) => (
               <CommunityRowItem
                 key={c.id}
                 community={c}
@@ -300,6 +328,11 @@ function CommunityCard({
       <div className="relative h-24 w-full bg-gradient-to-br from-primary/40 to-spark-2/30">
         {community.banner_url ? (
           <StoredImage path={community.banner_url} alt="" className="h-full w-full object-cover" />
+        ) : null}
+        {community.rank_position > 0 ? (
+          <span className="absolute left-2 top-2 rounded-full bg-background/90 px-2.5 py-1 text-xs font-black text-foreground shadow-sm backdrop-blur">
+            #{community.rank_position}
+          </span>
         ) : null}
       </div>
       <div className="p-3">
@@ -374,6 +407,9 @@ function CommunityRowItem({
         className="h-12 w-12 shrink-0 rounded-2xl object-cover"
         fallback="🎮"
       />
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-black text-primary">
+        #{community.rank_position || "-"}
+      </span>
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1 truncate font-bold">
           {community.name}
@@ -381,6 +417,10 @@ function CommunityRowItem({
         </p>
         <p className="truncate text-xs text-muted-foreground">
           {community.member_count.toLocaleString()} membres
+        </p>
+        <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+          <Activity className="h-3 w-3" /> {community.activity_points.toLocaleString()} points
+          d'activité
         </p>
         {community.tags.length > 0 ? (
           <div className="mt-1 flex flex-wrap gap-1">
