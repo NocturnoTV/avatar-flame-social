@@ -12,6 +12,7 @@ import {
   Hash,
   Heart,
   MessageCircle,
+  Pencil,
   Play,
   Sparkles,
   Trash2,
@@ -29,6 +30,7 @@ import { useSession } from "@/lib/session";
 import { Button, Card, Input, Label } from "@/components/ui-kit";
 import { uploadFile } from "@/lib/media";
 import { useSignedUrl } from "@/components/Media";
+import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEditor";
 import { useI18n } from "@/lib/i18n";
 import { getCreatorAnalytics } from "@/lib/creator-analytics.functions";
 import { formatCount } from "./discover.index";
@@ -233,7 +235,9 @@ function StudioPage() {
               </Button>
             </Card>
           ) : (
-            rows.map((video) => <VideoCard key={video.id} video={video} onDeleted={refresh} />)
+            rows.map((video) => (
+              <VideoCard key={video.id} video={video} onDeleted={refresh} onUpdated={refresh} />
+            ))
           )}
         </div>
       ) : null}
@@ -355,22 +359,27 @@ const BOOST_TIERS = [
 function VideoCard({
   video,
   onDeleted,
+  onUpdated,
 }: {
   video: {
     id: string;
     storage_path: string;
+    thumbnail_path: string | null;
     caption: string | null;
+    hashtags: string[] | null;
     views_count: number;
     likes_count: number;
     visibility: string;
     boosted_until: string | null;
   };
   onDeleted: () => void;
+  onUpdated: () => void;
 }) {
   const { t } = useI18n();
   const url = useSignedUrl(video.storage_path);
   const [busy, setBusy] = useState(false);
   const [boosting, setBoosting] = useState(false);
+  const [editing, setEditing] = useState(false);
   const isBoosted = !!video.boosted_until && new Date(video.boosted_until).getTime() > Date.now();
 
   async function remove() {
@@ -411,16 +420,205 @@ function VideoCard({
           🚀 {isBoosted ? t("studioExtendBoost") : t("studioBoost")}
         </button>
       </div>
-      <button
-        onClick={remove}
-        disabled={busy}
-        aria-label={t("delete")}
-        className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      <div className="absolute right-2 top-2 flex gap-1.5">
+        <button
+          onClick={() => setEditing(true)}
+          aria-label={t("editVideo")}
+          className="grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+        <button
+          onClick={remove}
+          disabled={busy}
+          aria-label={t("delete")}
+          className="grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
 
       {boosting ? <BoostSheet videoId={video.id} onClose={() => setBoosting(false)} /> : null}
+      {editing && url ? (
+        <EditVideoSheet
+          video={video}
+          videoUrl={url}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            onUpdated();
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function EditVideoSheet({
+  video,
+  videoUrl,
+  onClose,
+  onSaved,
+}: {
+  video: {
+    id: string;
+    caption: string | null;
+    hashtags: string[] | null;
+    visibility: string;
+  };
+  videoUrl: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { t } = useI18n();
+  const { user } = useSession();
+  const [title, setTitle] = useState(video.caption ?? "");
+  const [tag, setTag] = useState("");
+  const [hashtags, setHashtags] = useState<string[]>(video.hashtags ?? []);
+  const [visibility, setVisibility] = useState<"public" | "sparks">(
+    video.visibility === "sparks" ? "sparks" : "public",
+  );
+  const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  function addTag() {
+    const value = tag.trim().replace(/^#+/, "").replace(/\s+/g, "");
+    if (!value || hashtags.includes(value)) {
+      setTag("");
+      return;
+    }
+    if (hashtags.length >= 5) {
+      toast.error(t("studioMaxHashtags"));
+      return;
+    }
+    setHashtags((current) => [...current, value]);
+    setTag("");
+  }
+
+  async function save() {
+    if (!user || !title.trim()) return;
+    setSaving(true);
+    try {
+      const thumbnailPath = thumbnailBlob
+        ? await uploadFile("thumbnails", user.id, thumbnailBlob, "jpg")
+        : undefined;
+      const { error } = await supabase
+        .from("videos")
+        .update({
+          caption: title.trim(),
+          hashtags,
+          visibility,
+          ...(thumbnailPath ? { thumbnail_path: thumbnailPath } : {}),
+        })
+        .eq("id", video.id);
+      if (error) throw error;
+      toast.success(t("videoUpdated"));
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errorGeneric"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-t-3xl border border-border bg-background p-5 sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-lg font-black">{t("editVideo")}</p>
+          <button onClick={onClose} aria-label={t("cancel")}>
+            <X className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-4">
+          <div>
+            <Label>{t("studioVideoTitleLabel")}</Label>
+            <Input
+              value={title}
+              maxLength={120}
+              onChange={(e) => setTitle(e.target.value)}
+              className="h-12"
+            />
+          </div>
+
+          <div>
+            <Label>{t("studioHashtagsLabel", { count: hashtags.length })}</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={tag}
+                  disabled={hashtags.length >= 5}
+                  onChange={(e) => setTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addTag();
+                    }
+                  }}
+                  placeholder="roblox"
+                  className="pl-9"
+                />
+              </div>
+              <Button variant="outline" onClick={addTag}>
+                {t("studioAdd")}
+              </Button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {hashtags.map((h) => (
+                <button
+                  key={h}
+                  onClick={() => setHashtags((all) => all.filter((x) => x !== h))}
+                  className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary"
+                >
+                  #{h} ×
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label>{t("studioVisibilityLabel")}</Label>
+            <div className="mt-2 grid gap-2.5">
+              {(
+                [
+                  ["public", t("studioEveryone"), Globe2],
+                  ["sparks", t("studioMySparksOnly"), UsersRound],
+                ] as const
+              ).map(([value, label, Icon]) => (
+                <button
+                  key={value}
+                  onClick={() => setVisibility(value)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-2xl border p-3.5 text-left",
+                    visibility === value ? "border-primary bg-primary/10" : "border-border",
+                  )}
+                >
+                  <Icon className="h-4.5 w-4.5 text-primary" />
+                  <span className="flex-1 text-sm font-semibold">{label}</span>
+                  {visibility === value ? <Check className="h-4 w-4 text-primary" /> : null}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label>{t("thumbnailTitle")}</Label>
+            <ThumbnailPicker source={videoUrl} onPick={setThumbnailBlob} />
+          </div>
+
+          <Button className="w-full" size="lg" disabled={saving} onClick={() => void save()}>
+            {saving ? t("studioPublishing") : t("save")}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -494,11 +692,15 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
   );
 }
 
+const WIZARD_TOTAL_STEPS = 5;
+
 function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
   const { t } = useI18n();
   const { user } = useSession();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [file, setFile] = useState<File | null>(null);
+  const [editedBlob, setEditedBlob] = useState<Blob | null>(null);
+  const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
   const [title, setTitle] = useState("");
   const [tag, setTag] = useState("");
   const [hashtags, setHashtags] = useState<string[]>([]);
@@ -519,6 +721,8 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
       return;
     }
     setFile(selected);
+    setEditedBlob(null);
+    setThumbnailBlob(null);
   }
   function addTag() {
     const value = tag.trim().replace(/^#+/, "").replace(/\s+/g, "");
@@ -537,12 +741,20 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
     if (!file || !user || !title.trim()) return;
     setBusy(true);
     try {
-      const path = await uploadFile("videos", user.id, file, file.name.split(".").pop() || "mp4");
+      // A montage edit (trim/text/sound) replaces the original file with a
+      // re-encoded WebM - otherwise the original file goes up untouched.
+      const uploadSource: Blob = editedBlob ?? file;
+      const ext = editedBlob ? "webm" : file.name.split(".").pop() || "mp4";
+      const path = await uploadFile("videos", user.id, uploadSource, ext);
+      const thumbnailPath = thumbnailBlob
+        ? await uploadFile("thumbnails", user.id, thumbnailBlob, "jpg")
+        : null;
       const { data: inserted, error } = await supabase
         .from("videos")
         .insert({
           user_id: user.id,
           storage_path: path,
+          thumbnail_path: thumbnailPath,
           caption: title.trim(),
           sound_name: null,
           hashtags,
@@ -571,7 +783,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
         <header className="flex items-center border-b border-border px-5 py-4">
           {step > 1 ? (
             <button
-              onClick={() => setStep((step - 1) as 1 | 2)}
+              onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4)}
               className="grid h-9 w-9 place-items-center"
             >
               <ArrowLeft />
@@ -581,14 +793,16 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
           )}
           <div className="flex-1 text-center">
             <b>{t("publishVideo")}</b>
-            <p className="text-xs text-muted-foreground">{t("studioStepOf", { step })}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("studioStepOf", { step, total: WIZARD_TOTAL_STEPS })}
+            </p>
           </div>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center">
             <X />
           </button>
         </header>
-        <div className="grid grid-cols-3 gap-2 px-5 pt-4">
-          {[1, 2, 3].map((n) => (
+        <div className="grid grid-cols-5 gap-2 px-5 pt-4">
+          {Array.from({ length: WIZARD_TOTAL_STEPS }, (_, i) => i + 1).map((n) => (
             <span
               key={n}
               className={cn("h-1.5 rounded-full", n <= step ? "bg-primary" : "bg-surface-2")}
@@ -628,7 +842,23 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
               )}
             </section>
           ) : null}
-          {step === 2 ? (
+          {step === 2 && file ? (
+            <VideoMontageEditor
+              file={file}
+              onDone={(blob) => {
+                setEditedBlob(blob);
+                setStep(3);
+              }}
+              onSkip={() => setStep(3)}
+            />
+          ) : null}
+          {step === 3 && file ? (
+            <section>
+              <h2 className="text-2xl font-black">{t("thumbnailTitle")}</h2>
+              <ThumbnailPicker source={editedBlob ?? file} onPick={setThumbnailBlob} />
+            </section>
+          ) : null}
+          {step === 4 ? (
             <section>
               <h2 className="text-2xl font-black">{t("studioGiveTitle")}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{t("studioTitleHint")}</p>
@@ -644,7 +874,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
               <p className="mt-2 text-right text-xs text-muted-foreground">{title.length}/120</p>
             </section>
           ) : null}
-          {step === 3 ? (
+          {step === 5 ? (
             <section className="space-y-7">
               <div>
                 <h2 className="text-2xl font-black">{t("studioHashtagsVisibility")}</h2>
@@ -715,22 +945,24 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
             </section>
           ) : null}
         </main>
-        <footer className="border-t border-border p-5">
-          {step < 3 ? (
-            <Button
-              className="w-full"
-              size="lg"
-              disabled={(step === 1 && !file) || (step === 2 && !title.trim())}
-              onClick={() => setStep((step + 1) as 2 | 3)}
-            >
-              {t("continue")} <ArrowRight className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button className="w-full" size="lg" disabled={busy} onClick={publish}>
-              {busy ? t("studioPublishing") : t("publishVideo")}
-            </Button>
-          )}
-        </footer>
+        {step === 2 ? null : (
+          <footer className="border-t border-border p-5">
+            {step < 5 ? (
+              <Button
+                className="w-full"
+                size="lg"
+                disabled={(step === 1 && !file) || (step === 4 && !title.trim())}
+                onClick={() => setStep((step + 1) as 2 | 3 | 4 | 5)}
+              >
+                {t("continue")} <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button className="w-full" size="lg" disabled={busy} onClick={publish}>
+                {busy ? t("studioPublishing") : t("publishVideo")}
+              </Button>
+            )}
+          </footer>
+        )}
       </div>
     </div>
   );
