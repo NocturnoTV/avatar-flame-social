@@ -29,6 +29,7 @@ export const getPersonalizedFeed = createServerFn({ method: "GET" })
       reposts_count: v.reposts_count,
       shares_count: v.shares_count,
       views_count: v.views_count,
+      boosted_until: v.boosted_until,
       reason: v.reason,
     }));
   });

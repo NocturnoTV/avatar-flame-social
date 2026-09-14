@@ -2583,6 +2583,7 @@ export type Database = {
       }
       videos: {
         Row: {
+          boosted_until: string | null
           caption: string | null
           comments_count: number
           created_at: string
@@ -2603,6 +2604,7 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          boosted_until?: string | null
           caption?: string | null
           comments_count?: number
           created_at?: string
@@ -2623,6 +2625,7 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          boosted_until?: string | null
           caption?: string | null
           comments_count?: number
           created_at?: string
@@ -2649,6 +2652,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      boost_video: {
+        Args: { _blox_cost: number; _hours: number; _video: string }
+        Returns: undefined
+      }
       mark_conversation_read: { Args: { _conversation: string }; Returns: undefined }
       ensure_daily_quests: { Args: Record<PropertyKey, never>; Returns: undefined }
       bump_quest_progress: {

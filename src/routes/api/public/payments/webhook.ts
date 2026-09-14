@@ -78,11 +78,14 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
  * role, which the protect_blox_balance trigger explicitly allows alongside
  * the SECURITY DEFINER RPCs the client itself is limited to. */
 async function handleBloxPackPurchase(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.["userId"];
-  if (!userId) {
+  const payerId = session.metadata?.["userId"];
+  if (!payerId) {
     console.error("Blox pack checkout completed with no userId in metadata");
     return;
   }
+  // A gift ("Cadeau" from a conversation, or "buy Blox for this person")
+  // credits recipientId instead of the payer.
+  const userId = session.metadata?.["recipientId"] || payerId;
   const sessionId = session.id as string;
 
   // Stripe can retry checkout.session.completed; make crediting idempotent
@@ -123,7 +126,61 @@ async function handleBloxPackPurchase(session: Stripe.Checkout.Session) {
     amount: bloxAmount,
     kind: "purchase",
     reference_id: sessionId,
-    description: `Achat de pack Blox (${price?.lookup_key ?? "inconnu"})`,
+    description:
+      userId === payerId
+        ? `Achat de pack Blox (${price?.lookup_key ?? "inconnu"})`
+        : `Pack Blox offert (${price?.lookup_key ?? "inconnu"})`,
+  });
+}
+
+/** Credits one gifted month of Spark Plus directly to the recipient. This is
+ * a one-time payment, not a Stripe subscription - there is no recurring
+ * object tied to the recipient's account, only the profile flags. */
+async function handleSparkPlusGift(session: Stripe.Checkout.Session) {
+  const recipientId = session.metadata?.["recipientId"];
+  if (!recipientId) {
+    console.error("Spark Plus gift checkout completed with no recipientId in metadata");
+    return;
+  }
+  const sessionId = session.id as string;
+
+  const supabase = getSupabase();
+  const { data: existing } = await supabase
+    .from("blox_transactions")
+    .select("id")
+    .eq("reference_id", sessionId)
+    .eq("kind", "purchase")
+    .maybeSingle();
+  if (existing) return;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("spark_plus_active,spark_plus_expires_at")
+    .eq("id", recipientId)
+    .maybeSingle();
+  if (!profile) return;
+
+  // Stack onto an existing active period instead of overwriting it.
+  const base =
+    profile.spark_plus_active && profile.spark_plus_expires_at
+      ? new Date(profile.spark_plus_expires_at)
+      : new Date();
+  const expires = new Date(Math.max(base.getTime(), Date.now()));
+  expires.setDate(expires.getDate() + 30);
+
+  await supabase
+    .from("profiles")
+    .update({ spark_plus_active: true, spark_plus_expires_at: expires.toISOString() })
+    .eq("id", recipientId);
+
+  // Reuses the Blox ledger as a general "purchases" log entry (amount 0)
+  // so gifted Spark Plus still shows up in Purchases & Billing history.
+  await supabase.from("blox_transactions").insert({
+    user_id: recipientId,
+    amount: 0,
+    kind: "purchase",
+    reference_id: sessionId,
+    description: "1 mois de Spark Plus offert",
   });
 }
 
@@ -142,6 +199,8 @@ async function handleWebhook(req: Request, env: StripeEnv) {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.mode === "payment" && session.metadata?.["kind"] === "blox_pack") {
         await handleBloxPackPurchase(session);
+      } else if (session.mode === "payment" && session.metadata?.["kind"] === "spark_plus_gift") {
+        await handleSparkPlusGift(session);
       }
       break;
     }

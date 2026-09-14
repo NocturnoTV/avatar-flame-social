@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Contact,
   Flag,
+  Gift,
   LogOut,
   MessageSquare,
   Paintbrush,
@@ -20,6 +21,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
+import { GiftSheet } from "@/components/GiftSheet";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -72,6 +74,7 @@ export function ConversationInfoSheet({
   const [bubble, setBubbleState] = useState(() => getBubbleTheme(conversationId));
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState("");
+  const [gifting, setGifting] = useState(false);
 
   const myPlus = useQuery({
     queryKey: ["my-spark-plus", user?.id],
@@ -116,7 +119,11 @@ export function ConversationInfoSheet({
         .from("contact_nicknames")
         .upsert({ owner_id: user.id, contact_id: otherId, nickname: value });
     } else {
-      await supabase.from("contact_nicknames").delete().eq("owner_id", user.id).eq("contact_id", otherId);
+      await supabase
+        .from("contact_nicknames")
+        .delete()
+        .eq("owner_id", user.id)
+        .eq("contact_id", otherId);
     }
     setEditingNickname(false);
     void contact.refetch();
@@ -173,13 +180,18 @@ export function ConversationInfoSheet({
 
   async function report(reason: string) {
     if (!user || !otherId) return;
-    await supabase.from("reports").insert({ reporter_id: user.id, target_user_id: otherId, reason });
+    await supabase
+      .from("reports")
+      .insert({ reporter_id: user.id, target_user_id: otherId, reason });
     toast.success(t("saved"));
     setReporting(false);
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 sm:items-center"
+      onClick={onClose}
+    >
       <div
         className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-t-3xl bg-white p-5 text-[#050505] dark:bg-black dark:text-white sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
@@ -199,12 +211,12 @@ export function ConversationInfoSheet({
               fallback={title[0]?.toUpperCase() ?? "?"}
             />
           ) : (
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-[#F5F5F5] text-3xl dark:bg-[#1c1c1e]">👥</div>
+            <div className="grid h-20 w-20 place-items-center rounded-full bg-[#F5F5F5] text-3xl dark:bg-[#1c1c1e]">
+              👥
+            </div>
           )}
           <p className="mt-2 text-lg font-bold">{contact.data?.nickname || title}</p>
-          {contact.data?.nickname ? (
-            <p className="text-xs text-[#929292]">@{title}</p>
-          ) : null}
+          {contact.data?.nickname ? <p className="text-xs text-[#929292]">@{title}</p> : null}
 
           {otherId ? (
             editingNickname ? (
@@ -217,7 +229,10 @@ export function ConversationInfoSheet({
                   placeholder={t("addNickname")}
                   className="min-w-0 flex-1 rounded-full bg-[#F5F5F5] px-3 py-1.5 text-sm text-[#050505] outline-none dark:bg-[#1c1c1e] dark:text-white"
                 />
-                <button onClick={() => void saveNickname()} className="text-sm font-bold text-primary">
+                <button
+                  onClick={() => void saveNickname()}
+                  className="text-sm font-bold text-primary"
+                >
                   {t("save")}
                 </button>
               </div>
@@ -250,13 +265,15 @@ export function ConversationInfoSheet({
                   username={contact.data.profile.roblox_username}
                   className="text-sm font-semibold text-[#050505] dark:text-white"
                 />
-                <p className="truncate text-[11px] text-[#929292]">ID: {contact.data.profile.roblox_user_id}</p>
+                <p className="truncate text-[11px] text-[#929292]">
+                  ID: {contact.data.profile.roblox_user_id}
+                </p>
               </div>
             </div>
           ) : null}
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+        <div className={cn("mt-5 grid gap-2 text-center", otherId ? "grid-cols-4" : "grid-cols-2")}>
           <QuickAction
             icon={UserPlus}
             label={t("newGroup")}
@@ -266,9 +283,12 @@ export function ConversationInfoSheet({
             }}
           />
           {otherId ? (
-            <Link to="/users/$id" params={{ id: otherId }} onClick={onClose}>
-              <QuickAction icon={UserRound} label={t("viewProfile")} onClick={() => {}} />
-            </Link>
+            <>
+              <Link to="/users/$id" params={{ id: otherId }} onClick={onClose}>
+                <QuickAction icon={UserRound} label={t("viewProfile")} onClick={() => {}} />
+              </Link>
+              <QuickAction icon={Gift} label={t("gift")} onClick={() => setGifting(true)} />
+            </>
           ) : null}
           <QuickAction icon={Search} label={t("search")} onClick={() => setSearching((v) => !v)} />
         </div>
@@ -288,7 +308,10 @@ export function ConversationInfoSheet({
             </div>
             <div className="max-h-40 space-y-1 overflow-y-auto">
               {results.map((r) => (
-                <p key={r.id} className="truncate rounded-xl bg-[#F5F5F5] px-3 py-2 text-sm dark:bg-[#1c1c1e]">
+                <p
+                  key={r.id}
+                  className="truncate rounded-xl bg-[#F5F5F5] px-3 py-2 text-sm dark:bg-[#1c1c1e]"
+                >
                   {r.content}
                 </p>
               ))}
@@ -378,12 +401,16 @@ export function ConversationInfoSheet({
           <Row
             icon={BellOff}
             label={t("muteMessages")}
-            right={<Toggle checked={muted} onChange={(v) => void toggle("muted", v)} disabled={busy} />}
+            right={
+              <Toggle checked={muted} onChange={(v) => void toggle("muted", v)} disabled={busy} />
+            }
           />
           <Row
             icon={Pin}
             label={t("pinConversation")}
-            right={<Toggle checked={pinned} onChange={(v) => void toggle("pinned", v)} disabled={busy} />}
+            right={
+              <Toggle checked={pinned} onChange={(v) => void toggle("pinned", v)} disabled={busy} />
+            }
           />
           {otherId ? (
             <>
@@ -415,11 +442,27 @@ export function ConversationInfoSheet({
           </div>
         ) : null}
       </div>
+
+      {gifting && otherId ? (
+        <GiftSheet
+          targetUserId={otherId}
+          targetUsername={contact.data?.nickname || title}
+          onClose={() => setGifting(false)}
+        />
+      ) : null}
     </div>
   );
 }
 
-function QuickAction({ icon: Icon, label, onClick }: { icon: typeof Search; label: string; onClick: () => void }) {
+function QuickAction({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: typeof Search;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button onClick={onClick} className="flex flex-col items-center gap-1.5">
       <span className="grid h-14 w-14 place-items-center rounded-full bg-[#F5F5F5] text-[#050505] dark:bg-[#1c1c1e] dark:text-white">
@@ -457,7 +500,15 @@ function Row({
   );
 }
 
-function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       onClick={() => onChange(!checked)}

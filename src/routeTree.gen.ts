@@ -22,6 +22,7 @@ import { Route as ParametresRouteImport } from './routes/parametres'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as ReglesRouteImport } from './routes/regles'
+import { Route as ShopTermsRouteImport } from './routes/shop-terms'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
@@ -117,6 +118,11 @@ const ProfilRoute = ProfilRouteImport.update({
 const ReglesRoute = ReglesRouteImport.update({
   id: '/regles',
   path: '/regles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopTermsRoute = ShopTermsRouteImport.update({
+  id: '/shop-terms',
+  path: '/shop-terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/profil': typeof ProfilRoute
   '/regles': typeof ReglesRoute
+  '/shop-terms': typeof ShopTermsRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/home': typeof AuthenticatedHomeRoute
@@ -348,6 +355,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/profil': typeof ProfilRoute
   '/regles': typeof ReglesRoute
+  '/shop-terms': typeof ShopTermsRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/home': typeof AuthenticatedHomeRoute
@@ -396,6 +404,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/profil': typeof ProfilRoute
   '/regles': typeof ReglesRoute
+  '/shop-terms': typeof ShopTermsRoute
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
@@ -444,6 +453,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profil'
     | '/regles'
+    | '/shop-terms'
     | '/terms'
     | '/admin'
     | '/home'
@@ -490,6 +500,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profil'
     | '/regles'
+    | '/shop-terms'
     | '/terms'
     | '/admin'
     | '/home'
@@ -537,6 +548,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profil'
     | '/regles'
+    | '/shop-terms'
     | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/home'
@@ -585,6 +597,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ProfilRoute: typeof ProfilRoute
   ReglesRoute: typeof ReglesRoute
+  ShopTermsRoute: typeof ShopTermsRoute
   TermsRoute: typeof TermsRoute
   DecouvrirStudioRoute: typeof DecouvrirStudioRoute
   DecouvrirIndexRoute: typeof DecouvrirIndexRoute
@@ -684,6 +697,13 @@ declare module '@tanstack/react-router' {
       path: '/regles'
       fullPath: '/regles'
       preLoaderRoute: typeof ReglesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shop-terms': {
+      id: '/shop-terms'
+      path: '/shop-terms'
+      fullPath: '/shop-terms'
+      preLoaderRoute: typeof ShopTermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -1014,6 +1034,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ProfilRoute: ProfilRoute,
   ReglesRoute: ReglesRoute,
+  ShopTermsRoute: ShopTermsRoute,
   TermsRoute: TermsRoute,
   DecouvrirStudioRoute: DecouvrirStudioRoute,
   DecouvrirIndexRoute: DecouvrirIndexRoute,

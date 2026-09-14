@@ -63,6 +63,9 @@ export function LegalPage({
           <Link to="/community-guidelines" className="underline">
             Community Guidelines
           </Link>
+          <Link to="/shop-terms" className="underline">
+            Shop Terms & Refund Policy
+          </Link>
         </div>
       </div>
     </div>

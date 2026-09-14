@@ -202,12 +202,13 @@ export type Candidate = {
   reposts_count: number;
   shares_count: number;
   recommendation_eligible: boolean;
+  boosted_until: string | null;
   categories: TopicCategory[];
   source: "following" | "topic" | "popular" | "recent" | "exploration";
 };
 
 const VIDEO_COLUMNS =
-  "id,user_id,storage_path,caption,sound_name,created_at,views_count,likes_count,comments_count,favorites_count,reposts_count,shares_count,recommendation_eligible,visibility";
+  "id,user_id,storage_path,caption,sound_name,created_at,views_count,likes_count,comments_count,favorites_count,reposts_count,shares_count,recommendation_eligible,visibility,boosted_until";
 
 async function attachCategories(rows: any[]): Promise<Candidate[]> {
   const ids = rows.map((r) => r.id);

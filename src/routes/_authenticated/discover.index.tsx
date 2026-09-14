@@ -7,6 +7,7 @@ import {
   Check,
   EyeOff,
   Eye,
+  Gift,
   Heart,
   ImagePlus,
   Link2,
@@ -30,6 +31,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { useSignedUrl, StoredImage } from "@/components/Media";
+import { GiftSheet } from "@/components/GiftSheet";
 import { Button } from "@/components/ui-kit";
 import { cn, errorMessage } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
@@ -73,6 +75,7 @@ type VideoRow = {
   reposts_count: number;
   shares_count: number;
   views_count: number;
+  boosted_until?: string | null;
   reason?: string;
 };
 
@@ -127,7 +130,7 @@ function DiscoverPage() {
         const { data, error } = await supabase
           .from("videos")
           .select(
-            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count",
+            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
           )
           .eq("visibility", "public")
           .in("user_id", ids)
@@ -143,7 +146,7 @@ function DiscoverPage() {
         const { data: pinned } = await supabase
           .from("videos")
           .select(
-            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count",
+            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
           )
           .eq("id", pinnedVideoId)
           .maybeSingle();
@@ -205,7 +208,7 @@ function DiscoverPage() {
         supabase
           .from("videos")
           .select(
-            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count",
+            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
           )
           .eq("visibility", "public")
           .ilike("caption", `%${query}%`)
@@ -633,12 +636,12 @@ function VideoSlide({
       watchStartRef.current = performance.now();
       if (!viewed.current && user && user.id !== video.user_id) {
         viewed.current = true;
+        // Plain insert, not an upsert - views_count is "how many times this
+        // was watched", not "how many distinct people watched it", so a
+        // repeat view (in a later session) should add a fresh row.
         void supabase
           .from("video_views")
-          .upsert(
-            { video_id: video.id, viewer_id: user.id },
-            { onConflict: "video_id,viewer_id", ignoreDuplicates: true },
-          )
+          .insert({ video_id: video.id, viewer_id: user.id })
           .then(async () => {
             const { data } = await supabase
               .from("videos")
@@ -763,6 +766,12 @@ function VideoSlide({
             Chargement de la vidéo…
           </div>
         )}
+
+        {video.boosted_until && new Date(video.boosted_until).getTime() > Date.now() ? (
+          <span className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-primary/90 px-2.5 py-1 text-[11px] font-black text-primary-foreground backdrop-blur">
+            🚀 Boostée
+          </span>
+        ) : null}
 
         {/* bottom info */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-4 pb-6 pr-24">
@@ -1408,6 +1417,8 @@ function CommentItem({
   onReact: (id: string, reaction: "like" | "dislike") => void;
 }) {
   const { t, lang } = useI18n();
+  const { user } = useSession();
+  const [gifting, setGifting] = useState(false);
   return (
     <div className="space-y-3">
       <div className="flex gap-3">
@@ -1448,6 +1459,15 @@ function CommentItem({
             >
               {t("reply")}
             </button>
+            {user && user.id !== comment.user_id ? (
+              <button
+                onClick={() => setGifting(true)}
+                aria-label={t("giftTo", { username: comment.username })}
+                className="flex items-center gap-1 hover:text-primary"
+              >
+                <Gift className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="flex w-9 shrink-0 flex-col items-center gap-3 pt-2 text-muted-foreground">
@@ -1515,6 +1535,14 @@ function CommentItem({
           </button>
         </div>
       ))}
+
+      {gifting ? (
+        <GiftSheet
+          targetUserId={comment.user_id}
+          targetUsername={comment.username}
+          onClose={() => setGifting(false)}
+        />
+      ) : null}
     </div>
   );
 }

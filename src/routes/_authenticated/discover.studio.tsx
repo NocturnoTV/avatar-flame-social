@@ -334,6 +334,14 @@ function Progress({ label, value }: { label: string; value: number }) {
   );
 }
 
+const BOOST_TIERS = [
+  { hours: 1, cost: 500 },
+  { hours: 3, cost: 1000 },
+  { hours: 6, cost: 1750 },
+  { hours: 12, cost: 3000 },
+  { hours: 24, cost: 5000 },
+];
+
 function VideoCard({
   video,
   onDeleted,
@@ -345,11 +353,15 @@ function VideoCard({
     views_count: number;
     likes_count: number;
     visibility: string;
+    boosted_until: string | null;
   };
   onDeleted: () => void;
 }) {
   const url = useSignedUrl(video.storage_path);
   const [busy, setBusy] = useState(false);
+  const [boosting, setBoosting] = useState(false);
+  const isBoosted = !!video.boosted_until && new Date(video.boosted_until).getTime() > Date.now();
+
   async function remove() {
     setBusy(true);
     const { error } = await supabase.from("videos").delete().eq("id", video.id);
@@ -368,6 +380,11 @@ function VideoCard({
       ) : (
         <div className="aspect-[9/16] animate-pulse bg-surface-2" />
       )}
+      {isBoosted ? (
+        <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-primary-foreground">
+          🚀 Boostée
+        </span>
+      ) : null}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10 text-white">
         <p className="truncate text-xs font-bold">{video.caption || "Untitled"}</p>
         <p className="mt-1 text-[11px]">
@@ -376,6 +393,12 @@ function VideoCard({
         <p className="mt-1 text-[10px] uppercase text-white/60">
           {video.visibility === "sparks" ? "My Sparks" : "Everyone"}
         </p>
+        <button
+          onClick={() => setBoosting(true)}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full bg-white/15 py-1.5 text-[11px] font-bold backdrop-blur"
+        >
+          🚀 {isBoosted ? "Prolonger le boost" : "Booster"}
+        </button>
       </div>
       <button
         onClick={remove}
@@ -385,6 +408,79 @@ function VideoCard({
       >
         <Trash2 className="h-4 w-4" />
       </button>
+
+      {boosting ? <BoostSheet videoId={video.id} onClose={() => setBoosting(false)} /> : null}
+    </div>
+  );
+}
+
+/** Spends Blox to extend videos.boosted_until - a real visibility-weighting
+ * flag elsewhere in the feed/algorithm, never a fabricated like/view/follow
+ * count. */
+function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [buying, setBuying] = useState<number | null>(null);
+
+  async function buy(hours: number, cost: number) {
+    setBuying(hours);
+    try {
+      const { error } = await supabase.rpc("boost_video", {
+        _video: videoId,
+        _blox_cost: cost,
+        _hours: hours,
+      });
+      if (error) throw error;
+      toast.success(`Vidéo boostée pour ${hours}h !`);
+      await qc.invalidateQueries({ queryKey: ["my-videos"] });
+      await qc.invalidateQueries({ queryKey: ["blox-balance"] });
+      onClose();
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message.includes("insufficient_balance")
+          ? "Pas assez de Blox pour ce boost."
+          : "Une erreur est survenue.",
+      );
+    } finally {
+      setBuying(null);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-t-3xl border border-border bg-background p-5 sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-lg font-black">🚀 Booster ma vidéo</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Le boost augmente la visibilité de ta vidéo dans le feed pendant la durée choisie. Il ne
+          garantit pas de likes, vues ou abonnés.
+        </p>
+        <div className="mt-4 space-y-2">
+          {BOOST_TIERS.map((tier) => (
+            <button
+              key={tier.hours}
+              onClick={() => void buy(tier.hours, tier.cost)}
+              disabled={buying !== null}
+              className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-bold transition hover:border-primary/40 disabled:opacity-50"
+            >
+              <span>{tier.hours}h</span>
+              <span className="flex items-center gap-1 text-primary">
+                {buying === tier.hours ? "…" : `${tier.cost.toLocaleString()} Blox`}
+              </span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-4 w-full rounded-2xl border border-border py-3 text-sm font-bold text-muted-foreground"
+        >
+          Annuler
+        </button>
+      </div>
     </div>
   );
 }

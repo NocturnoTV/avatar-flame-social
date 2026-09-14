@@ -234,7 +234,7 @@ const en: Dict = {
   videos: "Videos",
   videoWithoutCaption: "Video without a caption",
   noSearchResults: "No results found.",
-  uniqueViews: "{count} unique views",
+  uniqueViews: "{count} views",
   onlineNow: "Online now",
   lastSeen: "Last online {time}",
   offline: "Offline",
@@ -689,6 +689,13 @@ const en: Dict = {
   enableWatchHistory: "Enable watch history",
   searchWatchHistory: "Search your watch history...",
   noWatchHistory: "Nothing watched yet.",
+  gift: "Gift",
+  giftTo: "Gift to {username}",
+  giftSparkPlus: "Gift Spark Plus",
+  giftSparkPlusMonth: "Gift 1 month of Spark Plus",
+  giftSparkPlusText: "They get every Plus perk for 30 days, on you.",
+  notEnoughBloxBuyForThem: "Not enough Blox. Buy a pack for them instead:",
+  shopTermsLink: "Shop Terms & Refund Policy",
 };
 
 const fr: Dict = {
@@ -913,7 +920,7 @@ const fr: Dict = {
   videos: "Vidéos",
   videoWithoutCaption: "Vidéo sans légende",
   noSearchResults: "Aucun résultat.",
-  uniqueViews: "{count} vues uniques",
+  uniqueViews: "{count} vues",
   onlineNow: "En ligne maintenant",
   lastSeen: "Vu en ligne {time}",
   offline: "Hors ligne",
@@ -1372,6 +1379,13 @@ const fr: Dict = {
   enableWatchHistory: "Activer l'historique de visionnage",
   searchWatchHistory: "Rechercher dans ton historique...",
   noWatchHistory: "Rien regardé pour l'instant.",
+  gift: "Cadeau",
+  giftTo: "Offrir à {username}",
+  giftSparkPlus: "Offrir Spark Plus",
+  giftSparkPlusMonth: "Offrir 1 mois de Spark Plus",
+  giftSparkPlusText: "Il ou elle profite de tous les avantages Plus pendant 30 jours, offert par toi.",
+  notEnoughBloxBuyForThem: "Pas assez de Blox. Achète plutôt un pack pour cette personne :",
+  shopTermsLink: "Conditions de la boutique et politique de remboursement",
 };
 
 const es: Dict = {
@@ -1595,7 +1609,7 @@ const es: Dict = {
   videos: "Videos",
   videoWithoutCaption: "Video sin descripción",
   noSearchResults: "No se encontraron resultados.",
-  uniqueViews: "{count} vistas únicas",
+  uniqueViews: "{count} vistas",
   onlineNow: "En línea ahora",
   lastSeen: "Visto {time}",
   offline: "Sin conexión",
@@ -2052,6 +2066,13 @@ const es: Dict = {
   enableWatchHistory: "Activar historial de reproducción",
   searchWatchHistory: "Buscar en tu historial...",
   noWatchHistory: "Todavía no has visto nada.",
+  gift: "Regalo",
+  giftTo: "Regalar a {username}",
+  giftSparkPlus: "Regalar Spark Plus",
+  giftSparkPlusMonth: "Regalar 1 mes de Spark Plus",
+  giftSparkPlusText: "Disfrutará de todas las ventajas Plus durante 30 días, de tu parte.",
+  notEnoughBloxBuyForThem: "No tienes suficientes Blox. Compra un pack para esta persona:",
+  shopTermsLink: "Condiciones de la tienda y política de reembolso",
 };
 
 const pt: Dict = {
@@ -2275,7 +2296,7 @@ const pt: Dict = {
   videos: "Vídeos",
   videoWithoutCaption: "Vídeo sem legenda",
   noSearchResults: "Nenhum resultado encontrado.",
-  uniqueViews: "{count} visualizações únicas",
+  uniqueViews: "{count} visualizações",
   onlineNow: "Online agora",
   lastSeen: "Visto {time}",
   offline: "Offline",
@@ -2732,6 +2753,13 @@ const pt: Dict = {
   enableWatchHistory: "Ativar histórico de visualização",
   searchWatchHistory: "Buscar no seu histórico...",
   noWatchHistory: "Nada assistido ainda.",
+  gift: "Presente",
+  giftTo: "Presentear {username}",
+  giftSparkPlus: "Presentear Spark Plus",
+  giftSparkPlusMonth: "Presentear 1 mês de Spark Plus",
+  giftSparkPlusText: "A pessoa aproveita todos os benefícios do Plus por 30 dias, por sua conta.",
+  notEnoughBloxBuyForThem: "Blox insuficientes. Compre um pacote para essa pessoa:",
+  shopTermsLink: "Termos da loja e política de reembolso",
 };
 
 const de: Dict = {
@@ -2957,7 +2985,7 @@ const de: Dict = {
   videos: "Videos",
   videoWithoutCaption: "Video ohne Beschreibung",
   noSearchResults: "Keine Ergebnisse gefunden.",
-  uniqueViews: "{count} eindeutige Aufrufe",
+  uniqueViews: "{count} Aufrufe",
   onlineNow: "Jetzt online",
   lastSeen: "Zuletzt online {time}",
   offline: "Offline",
@@ -3418,6 +3446,13 @@ const de: Dict = {
   enableWatchHistory: "Wiedergabeverlauf aktivieren",
   searchWatchHistory: "Verlauf durchsuchen...",
   noWatchHistory: "Noch nichts angesehen.",
+  gift: "Geschenk",
+  giftTo: "An {username} verschenken",
+  giftSparkPlus: "Spark Plus verschenken",
+  giftSparkPlusMonth: "1 Monat Spark Plus verschenken",
+  giftSparkPlusText: "Die Person bekommt 30 Tage lang alle Plus-Vorteile, spendiert von dir.",
+  notEnoughBloxBuyForThem: "Nicht genug Blox. Kaufe stattdessen ein Paket für diese Person:",
+  shopTermsLink: "Shop-Bedingungen und Rückerstattungsrichtlinie",
 };
 
 const ko: Dict = {
@@ -3639,7 +3674,7 @@ const ko: Dict = {
   videos: "동영상",
   videoWithoutCaption: "설명 없는 동영상",
   noSearchResults: "검색 결과가 없습니다.",
-  uniqueViews: "고유 조회수 {count}회",
+  uniqueViews: "조회수 {count}회",
   onlineNow: "현재 온라인",
   lastSeen: "마지막 접속 {time}",
   offline: "오프라인",
@@ -4090,6 +4125,13 @@ const ko: Dict = {
   enableWatchHistory: "시청 기록 켜기",
   searchWatchHistory: "시청 기록 검색...",
   noWatchHistory: "아직 시청한 콘텐츠가 없어요.",
+  gift: "선물",
+  giftTo: "{username}님에게 선물하기",
+  giftSparkPlus: "Spark Plus 선물하기",
+  giftSparkPlusMonth: "Spark Plus 1개월 선물하기",
+  giftSparkPlusText: "30일 동안 모든 Plus 혜택을 선물할 수 있어요.",
+  notEnoughBloxBuyForThem: "Blox가 부족해요. 대신 이 사람에게 팩을 구매해 주세요:",
+  shopTermsLink: "상점 이용약관 및 환불 정책",
 };
 
 const DICTS: Record<LangCode, Dict> = { en, fr, es, pt, de, ko };

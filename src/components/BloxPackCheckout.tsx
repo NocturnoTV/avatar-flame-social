@@ -7,15 +7,20 @@ import { createBloxPackCheckout } from "@/utils/payments.functions";
  * already shows a "code promo" field - no custom promo logic needed here. */
 export function BloxPackCheckout({
   lookupKey,
+  recipientId,
   onClose,
 }: {
   lookupKey: string;
+  /** Credit someone else's balance instead of the payer's - "buy Blox for
+   * this person" from the Cadeau sheet. */
+  recipientId?: string;
   onClose?: () => void;
 }) {
   const fetchClientSecret = async (): Promise<string> => {
     const result = await createBloxPackCheckout({
       data: {
         lookupKey,
+        ...(recipientId ? { recipientId } : {}),
         returnUrl: `${window.location.origin}/shop?blox_session_id={CHECKOUT_SESSION_ID}`,
         environment: getStripeEnvironment(),
       },

@@ -349,16 +349,18 @@ function HomePage() {
         const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const ease = "power3.out";
 
+        // The quick-access nav (Discover/Sparks/Support/Shop) keeps its
+        // original CSS-only bx-pop entrance instead of joining this
+        // timeline: a JS-driven `.from()` sets opacity:0 up front and
+        // depends on this script running to reveal it again, whereas a CSS
+        // keyframe animation always settles at its end state on its own -
+        // this is core navigation, so it must never depend on GSAP loading
+        // successfully to become visible.
         const tl = gsap.timeline({ defaults: { ease, duration: reduceMotion ? 0.01 : 0.75 } });
         tl.from(heroGreetingRef.current, { y: 16, opacity: 0 })
           .from(heroTitleRef.current, { y: 26, opacity: 0, scale: 0.97 }, "-=0.4")
           .from(heroSubtitleRef.current, { y: 12, opacity: 0 }, "-=0.35")
-          .from(heroBellRef.current, { scale: 0, opacity: 0, duration: 0.5 }, "-=0.45")
-          .from(
-            navRef.current ? Array.from(navRef.current.children) : [],
-            { y: 18, opacity: 0, stagger: 0.08 },
-            "-=0.25",
-          );
+          .from(heroBellRef.current, { scale: 0, opacity: 0, duration: 0.5 }, "-=0.45");
 
         for (const ref of [discoverRef, friendsRef, sparksRef, newsRef, ctaRef]) {
           if (!ref.current) continue;
@@ -494,13 +496,17 @@ function HomePage() {
           { to: "/sparks", label: t("sparks"), icon: Flame },
           { to: "/support", label: t("support"), icon: LifeBuoy },
           { to: "/shop", label: t("shop"), icon: ShoppingBag },
-        ].map((item) => (
+        ].map((item, i) => (
           <Link
             key={item.to}
             to={item.to}
             onMouseMove={magnetize}
             onMouseLeave={unmagnetize}
-            className="flex min-w-[112px] flex-1 items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black text-primary transition hover:border-primary/40 hover:bg-primary/15"
+            className={cn(
+              "flex min-w-[112px] flex-1 items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black text-primary transition hover:border-primary/40 hover:bg-primary/15",
+              "bx-pop",
+              `bx-delay-${i + 1}`,
+            )}
           >
             <item.icon className="h-4 w-4" />
             {item.label}

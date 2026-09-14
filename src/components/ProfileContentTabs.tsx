@@ -278,12 +278,8 @@ function LightboxVideo({ video }: { video: TabVideo }) {
   useEffect(() => {
     if (!user) return;
     const timer = window.setTimeout(() => {
-      void supabase
-        .from("video_views")
-        .upsert(
-          { video_id: video.id, viewer_id: user.id },
-          { onConflict: "video_id,viewer_id", ignoreDuplicates: true },
-        );
+      // Plain insert - views_count counts watch events, not distinct viewers.
+      void supabase.from("video_views").insert({ video_id: video.id, viewer_id: user.id });
     }, 1200);
     return () => window.clearTimeout(timer);
   }, [user, video.id]);
