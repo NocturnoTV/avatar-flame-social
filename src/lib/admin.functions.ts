@@ -31,7 +31,7 @@ export const adminListMembers = createServerFn({ method: "GET" })
         (supabaseAdmin as any)
           .from("profiles")
           .select(
-            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,moderation_status,warning_count,banned_until,moderation_note,spark_plus_active,spark_plus_expires_at",
+            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,moderation_status,warning_count,banned_until,moderation_note,spark_plus_active,spark_plus_expires_at,birth_date,parent_name,parent_email,parental_consent,blox_balance",
           )
           .order("created_at", { ascending: false }),
         supabaseAdmin.from("user_roles").select("user_id,role"),
@@ -72,6 +72,15 @@ export const adminListMembers = createServerFn({ method: "GET" })
         roles: rolesById.get(String(profile["id"])) ?? [],
         sparkPlusActive: Boolean(profile["spark_plus_active"]),
         sparkPlusExpiresAt: (profile["spark_plus_expires_at"] as string | null) ?? null,
+        birthDate: (profile["birth_date"] as string | null) ?? null,
+        parentName: canManageCredentials
+          ? ((profile["parent_name"] as string | null) ?? null)
+          : null,
+        parentEmail: canManageCredentials
+          ? ((profile["parent_email"] as string | null) ?? null)
+          : null,
+        parentalConsent: Boolean(profile["parental_consent"]),
+        bloxBalance: Number(profile["blox_balance"] ?? 0),
       };
     });
   });
@@ -83,7 +92,7 @@ export const adminGetMemberDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await requireStaff(context.userId);
-    const [videos, messages, notifications, reports, audit] = await Promise.all([
+    const [videos, messages, notifications, reports, audit, matches] = await Promise.all([
       supabaseAdmin
         .from("videos")
         .select("id,storage_path,caption,visibility,views_count,created_at")
@@ -114,17 +123,80 @@ export const adminGetMemberDetail = createServerFn({ method: "GET" })
         .eq("target_user_id", data.userId)
         .order("created_at", { ascending: false })
         .limit(100),
+      supabaseAdmin
+        .from("matches")
+        .select("id,user_a,user_b,created_at")
+        .or(`user_a.eq.${data.userId},user_b.eq.${data.userId}`)
+        .order("created_at", { ascending: false })
+        .limit(100),
     ]);
-    for (const result of [videos, messages, notifications, reports, audit]) {
+    for (const result of [videos, messages, notifications, reports, audit, matches]) {
       if (result.error) throw result.error;
     }
+
+    const matchPartnerIds = (matches.data ?? []).map((m) =>
+      m.user_a === data.userId ? m.user_b : m.user_a,
+    );
+    const { data: matchPartners } = matchPartnerIds.length
+      ? await supabaseAdmin.from("profiles").select("id,username").in("id", matchPartnerIds)
+      : { data: [] as { id: string; username: string | null }[] };
+    const partnerById = new Map((matchPartners ?? []).map((p) => [p.id, p.username]));
+
     return {
       videos: videos.data ?? [],
       messages: messages.data ?? [],
       notifications: notifications.data ?? [],
       reports: reports.data ?? [],
       audit: audit.data ?? [],
+      matches: (matches.data ?? []).map((m) => ({
+        id: m.id,
+        created_at: m.created_at,
+        partnerUsername: partnerById.get(m.user_a === data.userId ? m.user_b : m.user_a) ?? null,
+      })),
     };
+  });
+
+/** Signs the admin in as another user, for support/debugging. Uses a
+ * Supabase-generated magic link rather than exposing any credential - the
+ * admin's own session is untouched until they actually open the link. Every
+ * call is written to admin_audit_log; only admins (not moderators) may do
+ * this, and only against a non-admin target. */
+export const adminImpersonate = createServerFn({ method: "POST" })
+  .validator(detailSchema)
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await requireStaff(context.userId, true);
+    if (data.userId === context.userId) throw new Error("cannot_impersonate_self");
+
+    const { data: targetRoles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.userId);
+    if ((targetRoles ?? []).some((r) => r.role === "admin")) {
+      throw new Error("cannot_impersonate_admin");
+    }
+
+    const { data: authUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(
+      data.userId,
+    );
+    if (userError || !authUser.user.email) throw userError ?? new Error("no_email_on_account");
+
+    const { data: link, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email: authUser.user.email,
+    });
+    if (linkError || !link.properties?.action_link) {
+      throw linkError ?? new Error("could_not_create_session_link");
+    }
+
+    await supabaseAdmin.from("admin_audit_log").insert({
+      admin_id: context.userId,
+      action: "impersonate",
+      target_user_id: data.userId,
+      details: "Generated a sign-in link to take control of this account",
+    });
+
+    return { url: link.properties.action_link };
   });
 
 const actionSchema = z.object({

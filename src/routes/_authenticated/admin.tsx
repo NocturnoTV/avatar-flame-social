@@ -5,16 +5,26 @@ import {
   AlertTriangle,
   Ban,
   BadgeCheck,
+  BarChart3,
   Bell,
+  Coins,
   Crown,
   Eye,
+  FileWarning,
+  Film,
+  Gauge,
+  Heart,
   KeyRound,
+  LogIn,
   Mail,
   MessagesSquare,
   Newspaper,
   Plus,
+  Repeat,
+  ScrollText,
   Search,
   ShieldCheck,
+  TrendingUp,
   Trash2,
   Unlock,
   UserRound,
@@ -30,7 +40,18 @@ import { useRoles, type AppRole } from "@/lib/roles";
 import { cn, errorMessage } from "@/lib/utils";
 import { StoredImage } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
-import { adminGetMemberDetail, adminListMembers, adminManageMember } from "@/lib/admin.functions";
+import {
+  adminGetMemberDetail,
+  adminImpersonate,
+  adminListMembers,
+  adminManageMember,
+} from "@/lib/admin.functions";
+import {
+  adminAnalytics,
+  adminBilling,
+  adminSearchContent,
+  adminSuspiciousActivity,
+} from "@/lib/admin-insights.functions";
 import { ageFrom } from "@/lib/decorations";
 import { uploadFile } from "@/lib/media";
 import { NEWS_CATEGORIES, slugify } from "@/lib/newsCategories";
@@ -46,7 +67,16 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "overview" | "members" | "reports" | "conversations" | "news" | "news_portal" | "audit";
+type Tab =
+  | "overview"
+  | "analytics"
+  | "members"
+  | "moderation"
+  | "content"
+  | "conversations"
+  | "news"
+  | "news_portal"
+  | "billing";
 
 function AdminPage() {
   const { user } = useSession();
@@ -71,24 +101,26 @@ function AdminPage() {
   if (loading) return <div className="p-6 text-sm text-muted-foreground">Chargement…</div>;
   if (!isStaff) return null;
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "overview", label: "Vue d'ensemble" },
-    { id: "members", label: "Membres" },
-    { id: "reports", label: "Signalements" },
-    { id: "conversations", label: "Conversations" },
-    { id: "news", label: "Bandeau accueil" },
-    { id: "news_portal", label: "Actualités Roblox" },
-    { id: "audit", label: "Journal" },
+  const tabs: { id: Tab; label: string; icon: typeof Gauge }[] = [
+    { id: "overview", label: "Overview", icon: Gauge },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "members", label: "Users", icon: Users },
+    { id: "moderation", label: "Moderation", icon: ShieldCheck },
+    { id: "content", label: "Content", icon: Film },
+    { id: "conversations", label: "Conversations", icon: MessagesSquare },
+    { id: "news", label: "Home Banner", icon: Newspaper },
+    { id: "news_portal", label: "Roblox News", icon: Newspaper },
+    { id: "billing", label: "Billing", icon: Coins },
   ];
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 pt-5 pb-10">
+    <div className="mx-auto w-full max-w-5xl px-4 pt-5 pb-10">
       <header className="flex items-center gap-3">
         <ShieldCheck className="h-7 w-7 text-primary" />
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold">Administration</h1>
+          <h1 className="truncate text-2xl font-bold">Admin</h1>
           <p className="text-xs text-muted-foreground">
-            {isAdmin ? "Administrateur" : "Modérateur"} · accès restreint et journalisé
+            {isAdmin ? "Administrator" : "Moderator"} · access is restricted and logged
           </p>
         </div>
       </header>
@@ -99,12 +131,13 @@ function AdminPage() {
             key={x.id}
             onClick={() => setTab(x.id)}
             className={cn(
-              "shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition",
+              "flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition",
               tab === x.id
                 ? "spark-gradient text-white"
                 : "border border-border text-muted-foreground",
             )}
           >
+            <x.icon className="h-3.5 w-3.5" />
             {x.label}
           </button>
         ))}
@@ -112,56 +145,282 @@ function AdminPage() {
 
       <div className="mt-5">
         {tab === "overview" ? <Overview /> : null}
+        {tab === "analytics" ? <Analytics /> : null}
         {tab === "members" ? <Members isAdmin={isAdmin} log={log} /> : null}
-        {tab === "reports" ? <Reports log={log} /> : null}
+        {tab === "moderation" ? <Moderation log={log} /> : null}
+        {tab === "content" ? <Content /> : null}
         {tab === "conversations" ? <Conversations log={log} /> : null}
         {tab === "news" ? <NewsAdmin log={log} /> : null}
         {tab === "news_portal" ? <NewsPortalAdmin log={log} /> : null}
-        {tab === "audit" ? <Audit /> : null}
+        {tab === "billing" ? <Billing /> : null}
       </div>
     </div>
   );
 }
 
-function useCount(table: string, filter?: (q: ReturnType<typeof supabase.from>) => unknown) {
-  return useQuery({
-    queryKey: ["admin-count", table],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from(table as never)
-        .select("*", { count: "exact", head: true });
-      void filter;
-      return count ?? 0;
-    },
-  });
+/** Minimal dependency-free bar chart - this dashboard has enough moving
+ * parts already without pulling in a charting library for what is, in the
+ * end, "value per day for the last N days". */
+function BarChart({
+  data,
+  height = 80,
+  color = "hsl(var(--primary))",
+}: {
+  data: { date: string; count: number }[];
+  height?: number;
+  color?: string;
+}) {
+  const max = Math.max(1, ...data.map((d) => d.count));
+  return (
+    <div className="flex items-end gap-[2px]" style={{ height }}>
+      {data.map((d) => (
+        <div
+          key={d.date}
+          title={`${d.date}: ${d.count}`}
+          className="min-w-[3px] flex-1 rounded-t-sm opacity-80 transition hover:opacity-100"
+          style={{ height: `${Math.max(2, (d.count / max) * 100)}%`, background: color }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: number | string | undefined;
+  icon: typeof Gauge;
+  hint?: string;
+  tone?: "default" | "warning";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-3xl border p-4",
+        tone === "warning" && Number(value) > 0
+          ? "border-amber-500/40 bg-amber-500/5"
+          : "border-border bg-card",
+      )}
+    >
+      <Icon
+        className={cn(
+          "h-5 w-5",
+          tone === "warning" && Number(value) > 0 ? "text-amber-500" : "text-primary",
+        )}
+      />
+      <p className="mt-2 text-2xl font-bold">{value ?? "-"}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      {hint ? <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
+
+function useAdminAnalytics() {
+  return useQuery({ queryKey: ["admin-analytics"], queryFn: () => adminAnalytics() });
 }
 
 function Overview() {
-  const members = useCount("profiles");
-  const matches = useCount("matches");
-  const messages = useCount("messages");
-  const videos = useCount("videos");
-  const reports = useCount("reports");
-  const requests = useCount("data_requests");
-
-  const cards = [
-    { label: "Membres", value: members.data, icon: Users },
-    { label: "Matchs", value: matches.data, icon: BadgeCheck },
-    { label: "Messages", value: messages.data, icon: MessagesSquare },
-    { label: "Vidéos", value: videos.data, icon: Eye },
-    { label: "Signalements", value: reports.data, icon: AlertTriangle },
-    { label: "Demandes RGPD", value: requests.data, icon: ShieldCheck },
-  ];
+  const analytics = useAdminAnalytics();
+  const o = analytics.data?.overview;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {cards.map((c) => (
-        <div key={c.label} className="rounded-3xl border border-border bg-card p-4">
-          <c.icon className="h-5 w-5 text-primary" />
-          <p className="mt-2 text-2xl font-bold">{c.value ?? "-"}</p>
-          <p className="text-xs text-muted-foreground">{c.label}</p>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Total users" value={o?.totalUsers} icon={Users} />
+        <StatCard label="New users (30d)" value={o?.newUsers30} icon={TrendingUp} />
+        <StatCard label="Matches" value={o?.totalMatches} icon={Heart} />
+        <StatCard label="Messages (30d)" value={o?.totalMessages30} icon={MessagesSquare} />
+        <StatCard label="Videos" value={o?.totalVideos} icon={Film} />
+        <StatCard label="Communities" value={o?.totalCommunities} icon={Users} />
+        <StatCard
+          label="Open reports"
+          value={o?.openReports}
+          icon={AlertTriangle}
+          tone="warning"
+          hint="Needs moderation"
+        />
+        <StatCard
+          label="Pending GDPR requests"
+          value={o?.pendingDataRequests}
+          icon={ShieldCheck}
+          tone="warning"
+          hint="Needs a response"
+        />
+      </div>
+
+      {analytics.data ? (
+        <div className="rounded-3xl border border-border bg-card p-4">
+          <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+            Signups - last 30 days
+          </p>
+          <div className="mt-3">
+            <BarChart data={analytics.data.global.signupsByDay} />
+          </div>
         </div>
-      ))}
+      ) : null}
+    </div>
+  );
+}
+
+const ANALYTICS_TABS = [
+  { id: "global", label: "Global" },
+  { id: "monetization", label: "Monetization" },
+  { id: "retention", label: "Retention" },
+  { id: "sparks", label: "Sparks" },
+  { id: "messages", label: "Messages" },
+] as const;
+
+function Analytics() {
+  const [sub, setSub] = useState<(typeof ANALYTICS_TABS)[number]["id"]>("global");
+  const analytics = useAdminAnalytics();
+  const data = analytics.data;
+
+  return (
+    <div className="space-y-4">
+      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+        {ANALYTICS_TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSub(t.id)}
+            className={cn(
+              "shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition",
+              sub === t.id
+                ? "bg-primary text-primary-foreground"
+                : "border border-border text-muted-foreground",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {!data ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+
+      {data && sub === "global" ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <StatCard label="DAU (7d)" value={data.global.dau} icon={Gauge} />
+            <StatCard label="MAU (30d)" value={data.global.mau} icon={TrendingUp} />
+            <StatCard
+              label="Stickiness"
+              value={`${data.global.stickiness}%`}
+              icon={BarChart3}
+              hint="DAU / MAU"
+            />
+          </div>
+          <div className="rounded-3xl border border-border bg-card p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+              Signups by day
+            </p>
+            <div className="mt-3">
+              <BarChart data={data.global.signupsByDay} />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {data && sub === "monetization" ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard
+              label="Spark Plus active"
+              value={data.monetization.sparkPlusActive}
+              icon={Crown}
+            />
+            <StatCard
+              label="Estimated MRR"
+              value={`${data.monetization.estimatedMrr.toLocaleString()} €`}
+              icon={Coins}
+              hint="Active subs × 4.99 €"
+            />
+            <StatCard
+              label="Blox packs purchased"
+              value={data.monetization.packPurchaseCount}
+              icon={Coins}
+            />
+          </div>
+          <div className="rounded-3xl border border-border bg-card p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+              Blox purchases by day
+            </p>
+            <div className="mt-3">
+              <BarChart data={data.monetization.bloxPurchasesByDay} color="#22D3EE" />
+            </div>
+          </div>
+          <div className="rounded-3xl border border-border bg-card p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+              Blox flow by kind (net amount)
+            </p>
+            <div className="mt-3 space-y-1.5">
+              {Object.entries(data.monetization.bloxByKind).map(([kind, amount]) => (
+                <div key={kind} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{kind}</span>
+                  <span className={cn("font-bold", amount < 0 && "text-destructive")}>
+                    {amount.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {data && sub === "retention" ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard
+              label="Day-1 retention"
+              value={`${data.retention.day1Retention}%`}
+              icon={TrendingUp}
+              hint={`Cohort of ${data.retention.cohortSize} users`}
+            />
+            <StatCard label="DAU" value={data.retention.dau} icon={Gauge} />
+            <StatCard label="MAU" value={data.retention.mau} icon={Users} />
+          </div>
+        </div>
+      ) : null}
+
+      {data && sub === "sparks" ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard label="Total matches" value={data.sparks.totalMatches} icon={Heart} />
+            <StatCard label="Swipes (30d)" value={data.sparks.swipes30} icon={Repeat} />
+            <StatCard
+              label="Match rate"
+              value={`${data.sparks.matchRatePercent}%`}
+              icon={BarChart3}
+              hint="Matches / swipes"
+            />
+          </div>
+          <div className="rounded-3xl border border-border bg-card p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+              Matches by day
+            </p>
+            <div className="mt-3">
+              <BarChart data={data.sparks.matchesByDay} color="#EC4899" />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {data && sub === "messages" ? (
+        <div className="space-y-4">
+          <StatCard label="Messages (30d)" value={data.messages.total30} icon={MessagesSquare} />
+          <div className="rounded-3xl border border-border bg-card p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+              Messages by day
+            </p>
+            <div className="mt-3">
+              <BarChart data={data.messages.byDay} color="#3B82F6" />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -175,6 +434,20 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [impersonating, setImpersonating] = useState(false);
+
+  async function impersonate(userId: string) {
+    setImpersonating(true);
+    try {
+      const result = await adminImpersonate({ data: { userId } });
+      toast.success("Sign-in link generated - opening it in a new tab.");
+      window.open(result.url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error(errorMessage(err, "Could not generate a sign-in link"));
+    } finally {
+      setImpersonating(false);
+    }
+  }
 
   const members = useQuery({ queryKey: ["admin-members-v2"], queryFn: () => adminListMembers() });
   const detail = useQuery({
@@ -390,12 +663,13 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {[
-                [detail.data?.videos.length ?? 0, "vidéos"],
+                [detail.data?.videos.length ?? 0, "videos"],
                 [detail.data?.messages.length ?? 0, "messages"],
-                [detail.data?.reports.length ?? 0, "signalements"],
-                [detail.data?.notifications.length ?? 0, "notifications"],
+                [detail.data?.matches.length ?? 0, "matches"],
+                [detail.data?.reports.length ?? 0, "reports"],
+                [detail.data?.notifications.length ?? 0, "notifs"],
               ].map(([value, label]) => (
                 <div key={String(label)} className="rounded-2xl bg-primary/10 p-2 text-center">
                   <p className="font-black text-primary">{value}</p>
@@ -403,6 +677,69 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                 </div>
               ))}
             </div>
+
+            <section className="space-y-2 rounded-2xl bg-surface p-3 text-xs">
+              <p className="flex items-center justify-between">
+                <span className="text-muted-foreground">Signed up</span>
+                <span className="font-semibold">
+                  {new Date(String(selected.created_at)).toLocaleDateString()}
+                </span>
+              </p>
+              <p className="flex items-center justify-between">
+                <span className="text-muted-foreground">Birth date</span>
+                <span className="font-semibold">
+                  {selected.birthDate
+                    ? `${ageFrom(String(selected.birthDate))} y/o (${new Date(String(selected.birthDate)).toLocaleDateString()})`
+                    : "Unknown"}
+                </span>
+              </p>
+              <p className="flex items-center justify-between">
+                <span className="text-muted-foreground">Blox balance</span>
+                <span className="font-semibold">
+                  {Number(selected.bloxBalance ?? 0).toLocaleString()}
+                </span>
+              </p>
+              {selected.birthDate &&
+              ageFrom(String(selected.birthDate)) !== null &&
+              ageFrom(String(selected.birthDate))! < 15 ? (
+                <div className="mt-1 rounded-xl bg-amber-500/10 p-2">
+                  <p className="font-bold text-amber-600">Under 15 - parental consent required</p>
+                  <p className="mt-0.5">
+                    Consent on file: {selected.parentalConsent ? "Yes" : "No"}
+                  </p>
+                  {selected.parentName ? <p>Parent: {String(selected.parentName)}</p> : null}
+                  {selected.parentEmail ? (
+                    <p>Parent email: {String(selected.parentEmail)}</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
+
+            {detail.data?.matches.length ? (
+              <section>
+                <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  Matches
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {detail.data.matches.slice(0, 20).map((m) => (
+                    <span key={m.id} className="rounded-full bg-surface px-2.5 py-1 text-[11px]">
+                      @{m.partnerUsername ?? "unknown"}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {isAdmin && !(selected.roles as string[]).includes("admin") ? (
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={impersonating}
+                onClick={() => void impersonate(String(selected.id))}
+              >
+                <LogIn className="mr-1 h-4 w-4" /> Log in as this user
+              </Button>
+            ) : null}
 
             <section className="space-y-3">
               <h3 className="flex items-center gap-2 font-black">
@@ -675,8 +1012,10 @@ type ReportProfile = {
   birth_date: string | null;
 };
 
-function Reports({ log }: { log: LogFn }) {
-  const [subTab, setSubTab] = useState<"reports" | "banned_words">("reports");
+function Moderation({ log }: { log: LogFn }) {
+  const [subTab, setSubTab] = useState<"reports" | "banned_words" | "suspicious" | "logs">(
+    "reports",
+  );
   const [fileUserId, setFileUserId] = useState<string | null>(null);
 
   const reports = useQuery({
@@ -748,18 +1087,20 @@ function Reports({ log }: { log: LogFn }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
         {(
           [
-            ["reports", "Signalements"],
-            ["banned_words", "Mots bannis"],
+            ["reports", "Reports"],
+            ["banned_words", "Banned Words"],
+            ["suspicious", "Suspicious Activity"],
+            ["logs", "Logs"],
           ] as const
         ).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setSubTab(id)}
             className={cn(
-              "rounded-full px-4 py-2 text-sm font-semibold transition",
+              "shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition",
               subTab === id
                 ? "bg-primary text-primary-foreground"
                 : "border border-border text-muted-foreground",
@@ -772,8 +1113,12 @@ function Reports({ log }: { log: LogFn }) {
 
       {subTab === "banned_words" ? (
         <BannedWords log={log} />
+      ) : subTab === "suspicious" ? (
+        <SuspiciousActivity log={log} />
+      ) : subTab === "logs" ? (
+        <Audit />
       ) : (reports.data ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun signalement.</p>
+        <p className="text-sm text-muted-foreground">No reports.</p>
       ) : (
         <div className="space-y-3">
           {(reports.data ?? []).map((r) => {
@@ -896,7 +1241,10 @@ function Reports({ log }: { log: LogFn }) {
                 </p>
                 <div className="space-y-1.5">
                   {fileDetail.data.audit.slice(0, 10).map((a) => (
-                    <p key={a.id} className="rounded-xl bg-surface p-2 text-xs text-muted-foreground">
+                    <p
+                      key={a.id}
+                      className="rounded-xl bg-surface p-2 text-xs text-muted-foreground"
+                    >
                       {a.action} {a.details ? `- ${a.details}` : ""} ·{" "}
                       {new Date(a.created_at).toLocaleString("fr-FR")}
                     </p>
@@ -934,7 +1282,9 @@ function ReportPersonCard({
           fallback="🎮"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{profile?.username ?? fallbackId.slice(0, 8)}</p>
+          <p className="truncate text-sm font-semibold">
+            {profile?.username ?? fallbackId.slice(0, 8)}
+          </p>
           <RobloxIdentity
             displayName={profile?.roblox_display_name ?? null}
             username={profile?.roblox_username ?? null}
@@ -945,7 +1295,12 @@ function ReportPersonCard({
           </p>
         </div>
       </div>
-      <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => onOpenFile(fallbackId)}>
+      <Button
+        size="sm"
+        variant="outline"
+        className="mt-2 w-full"
+        onClick={() => onOpenFile(fallbackId)}
+      >
         <Eye className="mr-1 h-3.5 w-3.5" /> Consulter le dossier
       </Button>
     </div>
@@ -974,7 +1329,9 @@ function BannedWords({ log }: { log: LogFn }) {
     if (!value) return;
     const { error } = await supabase.from("banned_words").insert({ word: value, language });
     if (error) {
-      toast.error(error.message.includes("duplicate") ? "Ce mot est déjà dans la liste." : error.message);
+      toast.error(
+        error.message.includes("duplicate") ? "Ce mot est déjà dans la liste." : error.message,
+      );
       return;
     }
     setWord("");
@@ -1005,7 +1362,11 @@ function BannedWords({ log }: { log: LogFn }) {
             placeholder="Ajouter un mot"
             onKeyDown={(e) => e.key === "Enter" && addWord()}
           />
-          <Select value={language} onChange={(e) => setLanguage(e.target.value as "en" | "fr")} className="w-28">
+          <Select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as "en" | "fr")}
+            className="w-28"
+          >
             <option value="fr">FR</option>
             <option value="en">EN</option>
           </Select>
@@ -1015,10 +1376,12 @@ function BannedWords({ log }: { log: LogFn }) {
         </div>
       </div>
 
-      {([
-        ["Français", fr],
-        ["English", en],
-      ] as const).map(([label, list]) => (
+      {(
+        [
+          ["Français", fr],
+          ["English", en],
+        ] as const
+      ).map(([label, list]) => (
         <div key={label}>
           <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
             {label} ({list.length})
@@ -1124,6 +1487,7 @@ function Conversations({ log }: { log: LogFn }) {
 }
 
 function Audit() {
+  const [query, setQuery] = useState("");
   const logs = useQuery({
     queryKey: ["admin-audit"],
     queryFn: async () => {
@@ -1131,25 +1495,356 @@ function Audit() {
         .from("admin_audit_log")
         .select("id,action,details,created_at,admin_id,target_user_id")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(300);
       return data ?? [];
     },
   });
 
-  if ((logs.data ?? []).length === 0)
-    return <p className="text-sm text-muted-foreground">Aucune action enregistrée.</p>;
+  const filtered = (logs.data ?? []).filter((l) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return `${l.action} ${l.details ?? ""} ${l.target_user_id ?? ""}`.toLowerCase().includes(q);
+  });
 
   return (
-    <div className="space-y-2">
-      {(logs.data ?? []).map((l) => (
-        <div key={l.id} className="rounded-2xl border border-border bg-card p-3 text-sm">
-          <p className="font-semibold">{l.action}</p>
-          <p className="text-xs text-muted-foreground">
-            {new Date(l.created_at).toLocaleString("fr-FR")}
-            {l.details ? ` · ${l.details}` : ""}
-          </p>
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Filter by action, detail, or user id…"
+          className="pl-10"
+        />
+      </div>
+      {filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No logged actions.</p>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((l) => (
+            <div key={l.id} className="rounded-2xl border border-border bg-card p-3 text-sm">
+              <p className="font-semibold">{l.action}</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(l.created_at).toLocaleString()}
+                {l.details ? ` · ${l.details}` : ""}
+                {l.target_user_id ? ` · target ${l.target_user_id.slice(0, 8)}` : ""}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SuspiciousActivity({ log }: { log: LogFn }) {
+  const [sanctioning, setSanctioning] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const cases = useQuery({
+    queryKey: ["admin-suspicious"],
+    queryFn: () => adminSuspiciousActivity(),
+  });
+
+  async function sanction(userId: string, action: "warn" | "ban") {
+    setBusy(true);
+    try {
+      await adminManageMember({
+        data: {
+          action,
+          userId,
+          value:
+            action === "ban"
+              ? "Automatic sanction: banned word detected"
+              : "Banned word detected in a conversation",
+        },
+      });
+      await log(`suspicious_activity_${action}`, userId);
+      toast.success(action === "ban" ? "Account banned" : "Warning sent");
+      setSanctioning(null);
+      void cases.refetch();
+    } catch (err) {
+      toast.error(errorMessage(err, "Action failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (cases.isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!(cases.data ?? []).length) {
+    return <p className="text-sm text-muted-foreground">No flagged conversations right now.</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        A banned word was detected in each conversation below. Showing up to 10 messages before it
+        and every message that followed.
+      </p>
+      {(cases.data ?? []).map((c) => (
+        <div
+          key={c.conversationId}
+          className="rounded-3xl border border-destructive/30 bg-card p-4"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-sm font-black">
+              <FileWarning className="h-4 w-4 text-destructive" /> @
+              {c.senderUsername ?? c.senderId.slice(0, 8)}
+            </p>
+            <span className="text-[11px] text-muted-foreground">
+              {new Date(c.flaggedAt).toLocaleString()}
+            </span>
+          </div>
+
+          <div className="mt-3 max-h-64 space-y-1.5 overflow-y-auto rounded-2xl bg-surface p-3">
+            {c.before.map((m) => (
+              <p key={m.id} className="text-xs text-muted-foreground">
+                <span className="font-bold">@{m.username ?? m.sender_id.slice(0, 8)}:</span>{" "}
+                {m.content ?? "(media)"}
+              </p>
+            ))}
+            <p className="rounded-lg bg-destructive/15 p-2 text-xs font-bold text-destructive">
+              @{c.flaggedMessage.username ?? c.senderId.slice(0, 8)}: {c.flaggedMessage.content}
+            </p>
+            {c.after.map((m) => (
+              <p key={m.id} className="text-xs text-muted-foreground">
+                <span className="font-bold">@{m.username ?? m.sender_id.slice(0, 8)}:</span>{" "}
+                {m.content ?? "(media)"}
+              </p>
+            ))}
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            {sanctioning === c.conversationId ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => sanction(c.senderId, "warn")}
+                >
+                  Confirm warning
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  disabled={busy}
+                  onClick={() => sanction(c.senderId, "ban")}
+                >
+                  Confirm ban
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setSanctioning(null)}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setSanctioning(c.conversationId)}>
+                <Ban className="mr-1 h-3.5 w-3.5" /> Apply a sanction
+              </Button>
+            )}
+          </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function Content() {
+  const [query, setQuery] = useState("");
+  const [openVideo, setOpenVideo] = useState<string | null>(null);
+
+  const results = useQuery({
+    queryKey: ["admin-content-search", query.trim()],
+    queryFn: () => adminSearchContent({ data: { query: query.trim() } }),
+  });
+
+  const video = (results.data ?? []).find((v) => v.id === openVideo);
+
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by creator, caption, #hashtag, or comment text…"
+          className="pl-10"
+        />
+      </div>
+
+      {results.isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+      {!results.isLoading && !(results.data ?? []).length ? (
+        <p className="text-sm text-muted-foreground">No videos found.</p>
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(results.data ?? []).map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setOpenVideo(v.id)}
+            className="rounded-3xl border border-border bg-card p-4 text-left transition hover:border-primary/40"
+          >
+            <p className="truncate text-sm font-bold">{v.caption || "Untitled video"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              @{v.creatorUsername ?? "unknown"} · {v.creatorRobloxUsername ?? "no Roblox"}
+            </p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {v.creatorEmail ?? "no email"}
+            </p>
+            <p className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+              <span>{v.views_count} views</span>
+              <span>{v.likes_count} likes</span>
+              <span>{v.comments_count} comments</span>
+              <span className="uppercase">{v.visibility}</span>
+            </p>
+            {v.hashtags?.length ? (
+              <p className="mt-1 truncate text-[11px] text-primary">
+                {v.hashtags.map((h) => `#${h}`).join(" ")}
+              </p>
+            ) : null}
+          </button>
+        ))}
+      </div>
+
+      <Sheet open={!!video} onClose={() => setOpenVideo(null)} title="Video">
+        {video ? (
+          <div className="space-y-3 text-sm">
+            <p className="font-black">{video.caption || "Untitled video"}</p>
+            <div className="rounded-2xl bg-surface p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                Creator
+              </p>
+              <p className="mt-1">@{video.creatorUsername ?? "unknown"}</p>
+              <p className="text-xs text-muted-foreground">
+                {video.creatorRobloxUsername ?? "no Roblox"}
+              </p>
+              <p className="text-xs text-muted-foreground">{video.creatorEmail ?? "no email"}</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">UID: {video.user_id}</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Storage path: <span className="break-all">{video.storage_path}</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Created {new Date(video.created_at).toLocaleString()}
+            </p>
+          </div>
+        ) : null}
+      </Sheet>
+    </div>
+  );
+}
+
+function Billing() {
+  const billing = useQuery({ queryKey: ["admin-billing"], queryFn: () => adminBilling() });
+  const [txFilter, setTxFilter] = useState("");
+
+  const filteredTx = (billing.data?.transactions ?? []).filter((t) => {
+    const q = txFilter.trim().toLowerCase();
+    if (!q) return true;
+    return `${t.kind} ${t.description ?? ""} ${t.username ?? ""} ${t.reference_id ?? ""}`
+      .toLowerCase()
+      .includes(q);
+  });
+
+  return (
+    <div className="space-y-5">
+      {billing.data ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            label="Blox in circulation"
+            value={billing.data.economy.totalBloxInCirculation.toLocaleString()}
+            icon={Coins}
+          />
+          <StatCard
+            label="Total Blox purchased"
+            value={billing.data.economy.totalPurchased.toLocaleString()}
+            icon={TrendingUp}
+          />
+          <StatCard
+            label="Spent on badges"
+            value={billing.data.economy.totalSpentOnBadges.toLocaleString()}
+            icon={BadgeCheck}
+          />
+          <StatCard
+            label="Quest rewards paid"
+            value={billing.data.economy.totalQuestRewards.toLocaleString()}
+            icon={Gauge}
+          />
+        </div>
+      ) : null}
+
+      <section>
+        <h2 className="flex items-center gap-2 text-lg font-black">
+          <Crown className="h-4 w-4 text-primary" /> Subscriptions
+        </h2>
+        <div className="mt-3 space-y-2">
+          {(billing.data?.subscriptions ?? []).slice(0, 30).map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center justify-between rounded-2xl border border-border bg-card p-3 text-sm"
+            >
+              <span className="min-w-0 truncate">
+                @{s.username ?? s.user_id.slice(0, 8)} · {s.price_id} · {s.environment}
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold",
+                  s.status === "active"
+                    ? "bg-emerald-500/15 text-emerald-500"
+                    : "bg-surface-2 text-muted-foreground",
+                )}
+              >
+                {s.status}
+              </span>
+            </div>
+          ))}
+          {!(billing.data?.subscriptions ?? []).length ? (
+            <p className="text-sm text-muted-foreground">No subscriptions yet.</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="flex items-center gap-2 text-lg font-black">
+          <ScrollText className="h-4 w-4 text-primary" /> Transaction logs
+        </h2>
+        <div className="relative mt-3">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={txFilter}
+            onChange={(e) => setTxFilter(e.target.value)}
+            placeholder="Filter by kind, user, description, reference…"
+            className="pl-10"
+          />
+        </div>
+        <div className="mt-3 space-y-1.5">
+          {filteredTx.map((t) => (
+            <div key={t.id} className="rounded-2xl border border-border bg-card p-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="min-w-0 truncate font-semibold">
+                  @{t.username ?? t.user_id.slice(0, 8)} · {t.kind}
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 font-black",
+                    t.amount < 0 ? "text-destructive" : "text-emerald-500",
+                  )}
+                >
+                  {t.amount > 0 ? "+" : ""}
+                  {t.amount.toLocaleString()}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                {new Date(t.created_at).toLocaleString()}
+                {t.description ? ` · ${t.description}` : ""}
+              </p>
+            </div>
+          ))}
+          {!filteredTx.length ? (
+            <p className="text-sm text-muted-foreground">No transactions match.</p>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }
@@ -1453,7 +2148,12 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
   async function uploadImage(file: File) {
     if (!user || !form) return;
     try {
-      const path = await uploadFile("news-articles", user.id, file, file.name.split(".").pop() ?? "jpg");
+      const path = await uploadFile(
+        "news-articles",
+        user.id,
+        file,
+        file.name.split(".").pop() ?? "jpg",
+      );
       setForm({ ...form, image_url: path });
     } catch {
       toast.error("Une erreur est survenue.");
@@ -1474,11 +2174,20 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
       source_url: form.source_url.trim() || null,
       status: form.status,
       featured: form.featured,
-      scheduled_for: form.status === "scheduled" && form.scheduled_for ? new Date(form.scheduled_for).toISOString() : null,
+      scheduled_for:
+        form.status === "scheduled" && form.scheduled_for
+          ? new Date(form.scheduled_for).toISOString()
+          : null,
       published_at: form.status === "published" ? new Date().toISOString() : null,
       reading_time_minutes: Number(form.reading_time_minutes) || 3,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      key_points: form.key_points.split("\n").map((t) => t.trim()).filter(Boolean),
+      tags: form.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+      key_points: form.key_points
+        .split("\n")
+        .map((t) => t.trim())
+        .filter(Boolean),
       author_id: user.id,
     };
     const { error } = form.id
@@ -1489,7 +2198,11 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
       toast.error(errorMessage(error, "Une erreur est survenue."));
       return;
     }
-    await log(form.id ? "news_article_update" : "news_article_create", undefined, form.title.trim());
+    await log(
+      form.id ? "news_article_update" : "news_article_create",
+      undefined,
+      form.title.trim(),
+    );
     toast.success("Enregistré.");
     setForm(null);
     void articles.refetch();
@@ -1500,7 +2213,6 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
     await log("news_article_delete", undefined, title);
     void articles.refetch();
   }
-
 
   if (form) {
     return (
@@ -1550,7 +2262,10 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
         </div>
         <div>
           <Label>Slug (URL)</Label>
-          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })} />
+          <Input
+            value={form.slug}
+            onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })}
+          />
         </div>
         <div>
           <Label>Chapô (max 300 caractères)</Label>
@@ -1564,10 +2279,15 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
         <div>
           <Label>Contenu</Label>
           <p className="mb-1 text-xs text-muted-foreground">
-            Paragraphes séparés par une ligne vide. Commence une ligne par "## " pour un titre de section
-            (utilisé pour le sommaire). Une ligne commençant par "&gt; " devient une citation.
+            Paragraphes séparés par une ligne vide. Commence une ligne par "## " pour un titre de
+            section (utilisé pour le sommaire). Une ligne commençant par "&gt; " devient une
+            citation.
           </p>
-          <Textarea value={form.content} rows={10} onChange={(e) => setForm({ ...form, content: e.target.value })} />
+          <Textarea
+            value={form.content}
+            rows={10}
+            onChange={(e) => setForm({ ...form, content: e.target.value })}
+          />
         </div>
         <div>
           <Label>Points clés (un par ligne)</Label>
@@ -1580,7 +2300,10 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Catégorie</Label>
-            <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            <Select
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            >
               {NEWS_CATEGORIES.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
@@ -1600,11 +2323,17 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Source</Label>
-            <Input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+            <Input
+              value={form.source}
+              onChange={(e) => setForm({ ...form, source: e.target.value })}
+            />
           </div>
           <div>
             <Label>Lien source externe (optionnel)</Label>
-            <Input value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} />
+            <Input
+              value={form.source_url}
+              onChange={(e) => setForm({ ...form, source_url: e.target.value })}
+            />
           </div>
         </div>
         <div>
@@ -1614,7 +2343,10 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Statut</Label>
-            <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+            <Select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+            >
               <option value="draft">Brouillon</option>
               <option value="scheduled">Programmé</option>
               <option value="published">Publié</option>
@@ -1641,7 +2373,11 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
           Mettre à la une
         </label>
 
-        <Button className="w-full" disabled={!form.title.trim() || saving} onClick={() => void save()}>
+        <Button
+          className="w-full"
+          disabled={!form.title.trim() || saving}
+          onClick={() => void save()}
+        >
           {saving ? "Enregistrement..." : "Enregistrer"}
         </Button>
       </div>
@@ -1658,7 +2394,10 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
       </div>
       <div className="space-y-2">
         {(articles.data ?? []).map((a) => (
-          <div key={a.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+          <div
+            key={a.id}
+            className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
+          >
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold">
                 {a.featured ? "★ " : ""}
@@ -1671,7 +2410,10 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
                 {NEWS_CATEGORIES.find((c) => c.id === a.category)?.label ?? a.category}
               </p>
             </div>
-            <button onClick={() => void startEdit(a.id)} className="text-xs font-semibold text-primary">
+            <button
+              onClick={() => void startEdit(a.id)}
+              className="text-xs font-semibold text-primary"
+            >
               Modifier
             </button>
             <button
@@ -1684,7 +2426,9 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
           </div>
         ))}
         {articles.data?.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Aucun article pour l'instant.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Aucun article pour l'instant.
+          </p>
         ) : null}
       </div>
     </div>
