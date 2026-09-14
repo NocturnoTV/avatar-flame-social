@@ -21,6 +21,13 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Local secrets — never commit real keys (Stripe, Supabase, Roblox, etc.).
+# Configure them in the host's secret manager instead. .env.example
+# documents which variables are needed.
+.env
+.env.local
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
