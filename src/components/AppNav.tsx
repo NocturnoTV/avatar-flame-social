@@ -5,25 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
+import { useUnreadConversations } from "@/lib/unreadConversations";
 import { cn } from "@/lib/utils";
 import { LogoWordmark } from "@/components/Logo";
-
-function useUnread() {
-  const { user } = useSession();
-  const { data = 0 } = useQuery({
-    queryKey: ["unread-notifications", user?.id],
-    enabled: !!user,
-    refetchInterval: 20000,
-    queryFn: async () => {
-      const { count } = await supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("read", false);
-      return count ?? 0;
-    },
-  });
-  return data;
-}
 
 // Shares its cache with AppMenu's own profile query (same queryKey) so the
 // avatar shown on the bottom-nav "Profil" tab never re-fetches twice.
@@ -63,7 +47,7 @@ function useActive() {
 export function SideNav() {
   const items = useItems();
   const isActive = useActive();
-  const unread = useUnread();
+  const unread = useUnreadConversations();
   const { t } = useI18n();
 
   return (
@@ -126,7 +110,7 @@ export function SideNav() {
 export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
   const items = useItems();
   const isActive = useActive();
-  const unread = useUnread();
+  const unread = useUnreadConversations();
   const myAvatar = useMyAvatar();
 
   return (

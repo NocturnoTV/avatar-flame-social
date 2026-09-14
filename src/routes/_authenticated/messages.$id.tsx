@@ -41,6 +41,7 @@ import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
+import { UNREAD_CONVERSATIONS_KEY } from "@/lib/unreadConversations";
 import { cn, errorMessage } from "@/lib/utils";
 
 const EMOJIS = [
@@ -327,6 +328,28 @@ function Conversation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Live read receipts — as soon as the other person's last_read_at moves,
+  // refresh so "Vu" appears under my messages without needing to reopen.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`read-receipts-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversation_participants",
+          filter: `conversation_id=eq.${id}`,
+        },
+        () => void header.refetch(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   async function reactTo(message: Message, emoji: string) {
     if (!user) return;
     const mine = (reactions.data ?? []).find(
@@ -432,6 +455,7 @@ function Conversation() {
         // Keep the conversations list's unread badge in sync — otherwise it
         // stays stale until something else happens to refetch it.
         void qc.invalidateQueries({ queryKey: ["conversations", user.id] });
+        void qc.invalidateQueries({ queryKey: [UNREAD_CONVERSATIONS_KEY, user.id] });
       });
   }, [id, user, messages.data, qc]);
 

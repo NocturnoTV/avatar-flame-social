@@ -31,6 +31,7 @@ import { LogoWordmark } from "@/components/Logo";
 import { Sheet } from "@/components/ui-kit";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
+import { useUnreadConversations } from "@/lib/unreadConversations";
 import { cn, errorMessage } from "@/lib/utils";
 import {
   MAX_SAVED_ACCOUNTS,
@@ -74,28 +75,6 @@ function useUnreadNotifications() {
   return data;
 }
 
-function useUnreadConversations() {
-  const { user } = useSession();
-  const { data = 0 } = useQuery({
-    queryKey: ["unread-conversations", user?.id],
-    enabled: !!user,
-    refetchInterval: 20000,
-    queryFn: async () => {
-      const [{ data: mine }, { data: convos }] = await Promise.all([
-        supabase.from("conversation_participants").select("conversation_id,last_read_at").eq("user_id", user!.id),
-        supabase.from("conversations").select("id,last_message_at").eq("request_status", "accepted"),
-      ]);
-      const readAt = new Map((mine ?? []).map((m) => [m.conversation_id, m.last_read_at]));
-      const mineIds = new Set((mine ?? []).map((m) => m.conversation_id));
-      return (convos ?? []).filter((c) => {
-        if (!mineIds.has(c.id)) return false;
-        const lastRead = readAt.get(c.id);
-        return !lastRead || new Date(c.last_message_at).getTime() > new Date(lastRead).getTime();
-      }).length;
-    },
-  });
-  return data;
-}
 
 function Badge({ count }: { count: number }) {
   if (!count) return null;
