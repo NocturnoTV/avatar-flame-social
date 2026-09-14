@@ -1,7 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, Flame, MessageCircle, Play, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { LogoWordmark } from "@/components/Logo";
 import { ThreeBackground } from "@/components/landing/ThreeBackground";
@@ -9,7 +7,11 @@ import { Button } from "@/components/ui-kit";
 import { LANGUAGES, useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
-gsap.registerPlugin(ScrollTrigger);
+// GSAP (and its ScrollTrigger plugin) touch `window`/`document` as soon as
+// they're imported. This route is server-rendered for SEO, and importing
+// them at module scope ran that browser-only code during SSR (Node) and
+// crashed the whole app. Both are loaded dynamically, client-side only,
+// from inside the effect below instead.
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -82,67 +84,90 @@ function Landing() {
     { icon: MessageCircle, title: t("landingChatTitle"), text: t("landingChatText") },
   ];
 
+  const gsapRef = useRef<typeof import("gsap").gsap | null>(null);
+
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const ease = "power3.out";
+    let ctx: ReturnType<typeof import("gsap").gsap.context> | undefined;
+    let cancelled = false;
 
-      // Hero entrance — a confident stagger, not a fade-fest.
-      const tl = gsap.timeline({ defaults: { ease, duration: reduceMotion ? 0.01 : 0.9 } });
-      tl.from(heroEyebrowRef.current, { y: 24, opacity: 0 })
-        .from(heroTitleRef.current, { y: 50, opacity: 0, scale: 0.96 }, "-=0.55")
-        .from(heroTextRef.current, { y: 30, opacity: 0 }, "-=0.55")
-        .from(heroCtaRef.current, { y: 24, opacity: 0 }, "-=0.5")
-        .from(heroTrustRef.current, { y: 16, opacity: 0 }, "-=0.45");
+    void (async () => {
+      // Loaded dynamically, client-side only: GSAP and ScrollTrigger touch
+      // `window`/`document` on import, which would run during this route's
+      // server-side render otherwise.
+      const [{ gsap }, { ScrollTrigger }] = await Promise.all([
+        import("gsap"),
+        import("gsap/ScrollTrigger"),
+      ]);
+      if (cancelled) return;
+      gsap.registerPlugin(ScrollTrigger);
+      gsapRef.current = gsap;
 
-      if (!reduceMotion) {
-        // A slow ambient pulse on the primary CTA glow so the page never
-        // looks static, even before you scroll or touch anything.
-        gsap.to(heroCtaRef.current, {
-          keyframes: [{ filter: "brightness(1.08)" }, { filter: "brightness(1)" }],
-          duration: 2.4,
-          repeat: -1,
-          ease: "sine.inOut",
-        });
-      }
+      ctx = gsap.context(() => {
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const ease = "power3.out";
 
-      if (featureHeadingRef.current) {
-        gsap.from(featureHeadingRef.current.children, {
-          y: 40,
-          opacity: 0,
-          duration: 0.8,
-          stagger: 0.12,
-          ease,
-          scrollTrigger: { trigger: featureHeadingRef.current, start: "top 85%" },
-        });
-      }
+        // Hero entrance — a confident stagger, not a fade-fest.
+        const tl = gsap.timeline({ defaults: { ease, duration: reduceMotion ? 0.01 : 0.9 } });
+        tl.from(heroEyebrowRef.current, { y: 24, opacity: 0 })
+          .from(heroTitleRef.current, { y: 50, opacity: 0, scale: 0.96 }, "-=0.55")
+          .from(heroTextRef.current, { y: 30, opacity: 0 }, "-=0.55")
+          .from(heroCtaRef.current, { y: 24, opacity: 0 }, "-=0.5")
+          .from(heroTrustRef.current, { y: 16, opacity: 0 }, "-=0.45");
 
-      if (featureCardsRef.current) {
-        gsap.from(featureCardsRef.current.children, {
-          y: 60,
-          opacity: 0,
-          duration: 0.8,
-          stagger: 0.15,
-          ease,
-          scrollTrigger: { trigger: featureCardsRef.current, start: "top 82%" },
-        });
-      }
+        if (!reduceMotion) {
+          // A slow ambient pulse on the primary CTA glow so the page never
+          // looks static, even before you scroll or touch anything.
+          gsap.to(heroCtaRef.current, {
+            keyframes: [{ filter: "brightness(1.08)" }, { filter: "brightness(1)" }],
+            duration: 2.4,
+            repeat: -1,
+            ease: "sine.inOut",
+          });
+        }
 
-      if (ctaSectionRef.current) {
-        gsap.from(ctaSectionRef.current, {
-          scale: 0.92,
-          opacity: 0,
-          duration: 1,
-          ease,
-          scrollTrigger: { trigger: ctaSectionRef.current, start: "top 85%" },
-        });
-      }
-    }, rootRef);
+        if (featureHeadingRef.current) {
+          gsap.from(featureHeadingRef.current.children, {
+            y: 40,
+            opacity: 0,
+            duration: 0.8,
+            stagger: 0.12,
+            ease,
+            scrollTrigger: { trigger: featureHeadingRef.current, start: "top 85%" },
+          });
+        }
 
-    return () => ctx.revert();
+        if (featureCardsRef.current) {
+          gsap.from(featureCardsRef.current.children, {
+            y: 60,
+            opacity: 0,
+            duration: 0.8,
+            stagger: 0.15,
+            ease,
+            scrollTrigger: { trigger: featureCardsRef.current, start: "top 82%" },
+          });
+        }
+
+        if (ctaSectionRef.current) {
+          gsap.from(ctaSectionRef.current, {
+            scale: 0.92,
+            opacity: 0,
+            duration: 1,
+            ease,
+            scrollTrigger: { trigger: ctaSectionRef.current, start: "top 85%" },
+          });
+        }
+      }, rootRef);
+    })();
+
+    return () => {
+      cancelled = true;
+      ctx?.revert();
+    };
   }, []);
 
   function magnetize(e: React.MouseEvent<HTMLElement>) {
+    const gsap = gsapRef.current;
+    if (!gsap) return;
     const el = e.currentTarget;
     const rect = el.getBoundingClientRect();
     const relX = e.clientX - rect.left - rect.width / 2;
@@ -150,6 +175,8 @@ function Landing() {
     gsap.to(el, { x: relX * 0.18, y: relY * 0.35, duration: 0.4, ease: "power2.out" });
   }
   function unmagnetize(e: React.MouseEvent<HTMLElement>) {
+    const gsap = gsapRef.current;
+    if (!gsap) return;
     gsap.to(e.currentTarget, { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1,0.4)" });
   }
 
