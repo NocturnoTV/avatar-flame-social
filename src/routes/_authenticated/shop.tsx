@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { ArrowLeft, BadgeCheck, Check, Crown, Sparkles, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
-import { createSparkPlusCheckout } from "@/lib/spark-plus.functions";
+import { SparkPlusCheckout } from "@/components/SparkPlusCheckout";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { createPortalSession } from "@/utils/payments.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 
 export const Route = createFileRoute("/_authenticated/shop")({
   head: () => ({ meta: [{ title: "Spark Plus — Bloxspark" }] }),
