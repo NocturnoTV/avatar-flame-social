@@ -8,7 +8,7 @@ import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/news/saved")({
-  head: () => ({ meta: [{ title: "Enregistrés — Bloxspark" }] }),
+  head: () => ({ meta: [{ title: "Enregistrés - Bloxspark" }] }),
   component: SavedNewsPage,
 });
 

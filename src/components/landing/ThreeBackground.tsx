@@ -2,10 +2,10 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 /**
- * A drifting field of glowing purple particles behind the hero, with a
+ * A drifting field of glowing violet particles behind the hero, with a
  * couple of large soft-lit icosahedra slowly tumbling through it. Reacts
  * gently to pointer movement on devices that have a real pointer (skipped
- * on touch — nothing to react to there). Particle/shape counts scale down
+ * on touch - nothing to react to there). Particle/shape counts scale down
  * under ~640px so phones stay smooth.
  */
 export function ThreeBackground() {
@@ -43,7 +43,7 @@ export function ThreeBackground() {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     const material = new THREE.PointsMaterial({
-      color: 0xc084fc,
+      color: 0xe879f9,
       size: isSmall ? 0.05 : 0.06,
       transparent: true,
       opacity: 0.75,
@@ -59,7 +59,7 @@ export function ThreeBackground() {
       const size = 0.6 + Math.random() * 1.1;
       const geo = new THREE.IcosahedronGeometry(size, 0);
       const mat = new THREE.MeshBasicMaterial({
-        color: i % 2 === 0 ? 0xa855f7 : 0xc084fc,
+        color: i % 2 === 0 ? 0x8b5cf6 : 0xe879f9,
         wireframe: true,
         transparent: true,
         opacity: 0.35,

@@ -34,7 +34,7 @@ import { formatCount } from "./discover.index";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/discover/studio")({
-  head: () => ({ meta: [{ title: "Creator Studio — Bloxspark" }] }),
+  head: () => ({ meta: [{ title: "Creator Studio - Bloxspark" }] }),
   component: StudioPage,
 });
 

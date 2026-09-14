@@ -12,6 +12,36 @@ import {
 } from "@/lib/roblox-oauth.server";
 
 const returnToSchema = z.object({ returnTo: z.enum(["/onboarding", "/settings"]) });
+const ROBLOX_SIGN_IN_USER_ID = "00000000-0000-0000-0000-000000000000";
+
+function robloxAuthorizeUrl(state: string, nonce: string, verifier: string) {
+  const url = new URL("https://apis.roblox.com/oauth/v1/authorize");
+  url.search = new URLSearchParams({
+    client_id: ROBLOX_CLIENT_ID,
+    redirect_uri: ROBLOX_REDIRECT_URI,
+    response_type: "code",
+    scope: "openid profile",
+    state,
+    nonce,
+    code_challenge: pkceChallenge(verifier),
+    code_challenge_method: "S256",
+  }).toString();
+  return url.toString();
+}
+
+export const beginRobloxSignIn = createServerFn({ method: "POST" }).handler(async () => {
+  const state = randomUrlSafe();
+  const verifier = randomUrlSafe(48);
+  const nonce = randomUrlSafe();
+  await saveOAuthState({
+    state,
+    verifier,
+    nonce,
+    userId: ROBLOX_SIGN_IN_USER_ID,
+    returnTo: "/onboarding",
+  });
+  return { url: robloxAuthorizeUrl(state, nonce, verifier) };
+});
 
 export const beginRobloxOAuth = createServerFn({ method: "POST" })
   .validator(returnToSchema)
@@ -28,18 +58,7 @@ export const beginRobloxOAuth = createServerFn({ method: "POST" })
       returnTo: data.returnTo,
     });
 
-    const url = new URL("https://apis.roblox.com/oauth/v1/authorize");
-    url.search = new URLSearchParams({
-      client_id: ROBLOX_CLIENT_ID,
-      redirect_uri: ROBLOX_REDIRECT_URI,
-      response_type: "code",
-      scope: "openid profile",
-      state,
-      nonce,
-      code_challenge: pkceChallenge(verifier),
-      code_challenge_method: "S256",
-    }).toString();
-    return { url: url.toString() };
+    return { url: robloxAuthorizeUrl(state, nonce, verifier) };
   });
 
 export const syncRobloxAccount = createServerFn({ method: "POST" })

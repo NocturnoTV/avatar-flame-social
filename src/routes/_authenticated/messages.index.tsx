@@ -34,7 +34,7 @@ import { Verified } from "@/components/Verified";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/messages/")({
-  head: () => ({ meta: [{ title: "Messages — Bloxspark" }] }),
+  head: () => ({ meta: [{ title: "Messages - Bloxspark" }] }),
   component: MessagesPage,
 });
 
@@ -281,7 +281,7 @@ function MessagesPage() {
         .from("notifications")
         .select("id,kind,body,read,created_at,actor_id,conversation_id")
         // Safety alerts are shown small, inline in the affected conversation
-        // (visible only to the person who received the flagged message) —
+        // (visible only to the person who received the flagged message) -
         // never in this global notification feed.
         .neq("body", "safety_alert")
         .order("created_at", { ascending: false })
@@ -322,7 +322,7 @@ function MessagesPage() {
 
   const matchedIds = new Set((matches.data ?? []).map((m) => m.id));
 
-  // "People you may know" — Roblox friends (via the linked account) and
+  // "People you may know" - Roblox friends (via the linked account) and
   // people you share a mutual Spark/match with, excluding anyone you
   // already have a conversation with.
   const suggestions = useQuery({
@@ -381,7 +381,7 @@ function MessagesPage() {
   });
 
   // Searching now looks across every BloxSpark user, not just existing
-  // conversations — split into your Sparks and everyone else.
+  // conversations - split into your Sparks and everyone else.
   const userSearch = useQuery({
     queryKey: ["user-search", search.trim()],
     enabled: !!user && search.trim().length >= 2,

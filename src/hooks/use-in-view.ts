@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 /**
  * Tracks whether an element has scrolled into the viewport at least once.
  * Used to trigger "reveal on scroll" animations (see components/Reveal.tsx).
- * Fires once, then disconnects — sections don't re-hide when scrolled past.
+ * Fires once, then disconnects - sections don't re-hide when scrolled past.
  */
 export function useInView<T extends HTMLElement>(options?: IntersectionObserverInit) {
   const ref = useRef<T | null>(null);

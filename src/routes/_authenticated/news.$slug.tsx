@@ -22,7 +22,7 @@ import { useSession } from "@/lib/session";
 import { errorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/news/$slug")({
-  head: () => ({ meta: [{ title: "Actualité — Bloxspark" }] }),
+  head: () => ({ meta: [{ title: "Actualité - Bloxspark" }] }),
   component: ArticlePage,
 });
 
@@ -170,7 +170,7 @@ function ArticlePage() {
       try {
         await navigator.share({ title: article.data?.title ?? "BloxSpark", url: window.location.href });
       } catch {
-        // Cancelled — nothing to do.
+        // Cancelled - nothing to do.
       }
     } else {
       await copyLink();

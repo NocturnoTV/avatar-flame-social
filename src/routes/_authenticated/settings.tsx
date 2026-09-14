@@ -26,12 +26,12 @@ import { RobloxConnection } from "@/components/RobloxConnection";
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — Bloxspark" },
+      { title: "Settings - Bloxspark" },
       {
         name: "description",
         content: "Manage your Bloxspark account, notifications, privacy and security.",
       },
-      { property: "og:title", content: "Settings — Bloxspark" },
+      { property: "og:title", content: "Settings - Bloxspark" },
       { property: "og:description", content: "Manage your Bloxspark account." },
     ],
   }),
@@ -381,7 +381,7 @@ function SettingsPage() {
             {t("deletionScheduledText", {
               date: pendingDeletion.scheduled_for
                 ? new Date(pendingDeletion.scheduled_for).toLocaleDateString(lang)
-                : "—",
+                : "-",
             })}
           </p>
           <Button size="sm" variant="outline" className="mt-3" onClick={cancelDeletion}>

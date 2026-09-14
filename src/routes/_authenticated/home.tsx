@@ -24,12 +24,12 @@ import heroAsset from "@/assets/onboarding-hero.png.asset.json";
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
     meta: [
-      { title: "Home — Bloxspark" },
+      { title: "Home - Bloxspark" },
       {
         name: "description",
         content: "Your Bloxspark feed: friends, trending videos and today's Roblox news.",
       },
-      { property: "og:title", content: "Home — Bloxspark" },
+      { property: "og:title", content: "Home - Bloxspark" },
       { property: "og:description", content: "Friends, trending videos and Roblox news." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -251,7 +251,7 @@ function HomePage() {
     },
   });
 
-  // Amis / Abonnements — people the user follows.
+  // Amis / Abonnements - people the user follows.
   const following = useQuery({
     queryKey: ["home-following", user?.id],
     enabled: !!user,
@@ -275,7 +275,7 @@ function HomePage() {
     },
   });
 
-  // Mes matchs Sparks — mutual matches from the swipe deck.
+  // Mes matchs Sparks - mutual matches from the swipe deck.
   const sparkMatches = useQuery({
     queryKey: ["home-spark-matches", user?.id],
     enabled: !!user,
@@ -426,7 +426,7 @@ function HomePage() {
 
   return (
     <div ref={rootRef} className="mx-auto max-w-3xl px-4 pb-28 pt-4 lg:pb-12">
-      {/* Hero — stays pinned at the top */}
+      {/* Hero - stays pinned at the top */}
       <header className="relative overflow-hidden rounded-[2rem] border border-border">
         <img
           src={heroAsset.url}
@@ -508,7 +508,7 @@ function HomePage() {
         ))}
       </nav>
 
-      {/* 1. Découvrir — vidéos du moment */}
+      {/* 1. Découvrir - vidéos du moment */}
       <div ref={discoverRef} className="mt-8">
         <section>
           <SectionHeader
@@ -621,7 +621,7 @@ function HomePage() {
         <NewsSection />
       </div>
 
-      {/* 5. CTA — poster du contenu */}
+      {/* 5. CTA - poster du contenu */}
       <div ref={ctaRef} className="mt-8 mb-4">
         <Link
           to="/discover/studio"

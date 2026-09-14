@@ -18,7 +18,7 @@ export function parseYouTubeId(url: string): string | null {
 }
 
 /**
- * Renders a profile banner: an animated banner (Spark Plus perk — an
+ * Renders a profile banner: an animated banner (Spark Plus perk - an
  * uploaded video or a YouTube link) takes priority, then a static image,
  * then the classic gradient fallback.
  */

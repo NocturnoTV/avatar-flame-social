@@ -4,13 +4,13 @@ import { LegalPage, LegalSection } from "@/components/LegalPage";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy — Bloxspark" },
+      { title: "Privacy Policy - Bloxspark" },
       {
         name: "description",
         content:
-          "How Bloxspark collects, uses, shares, and protects your data — including what we receive from Roblox's OAuth sign-in and exactly why — and the rights available to you.",
+          "How Bloxspark collects, uses, shares, and protects your data - including what we receive from Roblox's OAuth sign-in and exactly why - and the rights available to you.",
       },
-      { property: "og:title", content: "Privacy Policy — Bloxspark" },
+      { property: "og:title", content: "Privacy Policy - Bloxspark" },
       { property: "og:description", content: "Your data and your rights, explained clearly." },
       { property: "og:url", content: "https://bloxspark.app/privacy" },
       { name: "robots", content: "index, follow" },
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/privacy")({
     links: [{ rel: "canonical", href: "https://bloxspark.app/privacy" }],
   }),
   component: () => (
-    <LegalPage title="Privacy Policy" updated="Last updated: September 13, 2026">
+    <LegalPage title="Privacy Policy" updated="Last updated: September 14, 2026">
       <p className="text-sm leading-relaxed text-muted-foreground">
         This policy is intentionally detailed, including a dedicated explanation of the Roblox
         sign-in connection, because we'd rather over-explain than leave you guessing about what we
@@ -29,8 +29,8 @@ export const Route = createFileRoute("/privacy")({
         <p>
           Bloxspark is the data controller responsible for the personal data collected through the
           app. Bloxspark is an independent service and is not affiliated with Roblox Corporation.
-          This policy explains what data we collect, why, how long we keep it, who else sees it,
-          and how you can exercise your rights over it.
+          This policy explains what data we collect, why, how long we keep it, who else sees it, and
+          how you can exercise your rights over it.
         </p>
       </LegalSection>
 
@@ -43,19 +43,19 @@ export const Route = createFileRoute("/privacy")({
           </li>
           <li>
             <strong>Profile data</strong>: Bloxspark username, language, date of birth (used to
-            calculate age and apply minor protections), bio, country, favorite games, external
-            link, profile decorations (banner, frame, theme), and — for Bloxspark Premium
-            subscribers — chosen profile font and glow style.
+            calculate age and apply minor protections), bio, country, favorite games, external link,
+            profile decorations (banner, frame, theme), and - for Bloxspark Premium subscribers -
+            chosen profile font and glow style.
           </li>
           <li>
             <strong>Roblox OAuth data</strong>: if you connect or sign in with Roblox, we receive
             your Roblox user ID, Roblox username, display name, avatar image, and the time of
-            connection. Section 3 below explains this in full detail — what we get, what we never
+            connection. Section 3 below explains this in full detail - what we get, what we never
             get, and exactly why we use it.
           </li>
           <li>
-            <strong>Parental data</strong>: for users aged 13 to 17, the name and email address of
-            a parent or legal guardian and a record of their consent.
+            <strong>Parental data</strong>: for users aged 13 to 17, the name and email address of a
+            parent or legal guardian and a record of their consent.
           </li>
           <li>
             <strong>Content</strong>: uploaded avatar photos, profile photos, banners, videos and
@@ -73,19 +73,26 @@ export const Route = createFileRoute("/privacy")({
             (one real view per distinct account).
           </li>
           <li>
-            <strong>Trust &amp; Safety data</strong>: reports you file or that are filed against
-            you (including the reported content and your account details), automated safety-notice
+            <strong>Trust &amp; Safety data</strong>: reports you file or that are filed against you
+            (including the reported content and your account details), automated safety-notice
             triggers from our banned-word detection system (see Section 4), moderation notes,
             warnings, and support tickets you submit.
           </li>
           <li>
             <strong>Payment data</strong>: for Bloxspark Premium, the status, billing period, and
-            expiration date of your subscription. We do not collect or store your card number,
-            CVC, or bank details — those go directly to Stripe. See Section 6.
+            expiration date of your subscription. We do not collect or store your card number, CVC,
+            or bank details - those go directly to Stripe. See Section 6.
           </li>
           <li>
             <strong>Technical data</strong>: sign-in logs and data strictly required for security,
-            abuse prevention, and diagnosing bugs you report.
+            abuse prevention, and diagnosing bugs you report, including IP address, device and
+            browser type, operating system, language, timestamps, referring page, crash details, and
+            an approximate location inferred from IP when needed for security or localization.
+          </li>
+          <li>
+            <strong>Device permissions</strong>: content you choose through the camera, microphone,
+            or photo library, and a push-notification token if you enable notifications. We do not
+            access these sources before you grant the relevant operating-system permission.
           </li>
         </ul>
         <p>
@@ -115,7 +122,7 @@ export const Route = createFileRoute("/privacy")({
           <li>show a verified Roblox identity on your Bloxspark profile;</li>
           <li>reduce impersonation and duplicate or fake account creation;</li>
           <li>
-            support Sparks matching and the games you choose to feature on your profile — your
+            support Sparks matching and the games you choose to feature on your profile - your
             favorite games are picked by you, not read automatically from your Roblox library; and
           </li>
           <li>keep the connection status (connected, last synced) visible to you in Settings.</li>
@@ -132,8 +139,45 @@ export const Route = createFileRoute("/privacy")({
           Roblox identifiers and avatar link from your profile (some features that depend on it,
           like Sparks, become unavailable until you reconnect). Independently of that, you can
           revoke Bloxspark's authorization at any time from your own Roblox account's security
-          settings — doing so on Roblox's side will also break the connection on ours the next time
+          settings - doing so on Roblox's side will also break the connection on ours the next time
           we try to use it.
+        </p>
+        <p>
+          Bloxspark uses Roblox's authorization-code flow and requests only the OpenID Connect
+          scopes shown on Roblox's consent screen, such as <code>openid</code> and
+          <code> profile</code>. We use state validation and PKCE where supported to protect the
+          redirect. Short-lived access tokens and rotating refresh tokens are kept server-side,
+          encrypted or otherwise access-controlled, and are never placed in public profiles,
+          analytics, logs intended for users, or advertising systems. We revoke or delete tokens
+          when you disconnect, delete your account, or when continued access is no longer needed.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="3A. Mobile permissions and notifications">
+        <p>
+          The mobile app may request camera access to record a video or story, microphone access to
+          record sound or a voice message, photo-library access to select media, and notification
+          permission to deliver messages, moderation notices, security alerts, and activity you
+          choose to receive. Each permission is requested in context. You can refuse or revoke it in
+          device settings; the rest of the app remains available except for the feature that
+          requires that permission. Bloxspark does not currently require precise device location.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="3B. Recommendations, measurements, and automated decisions">
+        <p>
+          We use watch time, completion, likes, comments, follows, blocks, reports, language,
+          country, age range, favorite games, and recent activity to rank Discover, Sparks, search,
+          and creator insights. Unique-view records help distinguish viewers and remove suspected
+          automated or repeated traffic. You can affect recommendations by hiding content,
+          unfollowing, blocking, reporting, and changing interests or favorite games.
+        </p>
+        <p>
+          Automated systems may detect spam, abusive words, suspicious engagement, or content that
+          should receive less distribution. Significant account penalties receive human review when
+          reasonably available, and you may contest a moderation decision through Support. We do not
+          use automated decisions that produce legal or similarly significant effects without the
+          safeguards required by applicable law.
         </p>
       </LegalSection>
 
@@ -141,7 +185,7 @@ export const Route = createFileRoute("/privacy")({
         <p>
           To respond quickly to clearly abusive language, messages and comments are automatically
           checked against an administrator-managed list of banned words (currently maintained in
-          English and French). This check happens as part of delivering your message — the content
+          English and French). This check happens as part of delivering your message - the content
           itself is processed the same way any message is (see retention in Section 8) and is not
           shared outside Bloxspark for this purpose.
         </p>
@@ -184,22 +228,22 @@ export const Route = createFileRoute("/privacy")({
       <LegalSection title="6. Who we share data with">
         <p>
           We do not sell your personal data, and we do not use it for third-party targeted
-          advertising. We share data only with service providers who act on our instructions
-          (data processors) and only to the extent needed to run the Service:
+          advertising. We share data only with service providers who act on our instructions (data
+          processors) and only to the extent needed to run the Service:
         </p>
         <ul>
           <li>
-            <strong>Supabase</strong> — our database, authentication, and file-storage
+            <strong>Supabase</strong> - our database, authentication, and file-storage
             infrastructure provider. Nearly all data described in Section 2 is stored on Supabase's
             infrastructure, protected by the access rules described in Section 7.
           </li>
           <li>
-            <strong>Stripe</strong> — our payment processor for Bloxspark Premium. Stripe receives
+            <strong>Stripe</strong> - our payment processor for Bloxspark Premium. Stripe receives
             and stores your payment details directly under its own privacy policy; we only receive
             your subscription status back from Stripe.
           </li>
           <li>
-            <strong>Roblox Corporation</strong> — acts as the identity provider when you choose to
+            <strong>Roblox Corporation</strong> - acts as the identity provider when you choose to
             connect or sign in with Roblox, under the OAuth flow described in Section 3. We send
             Roblox only the standard OAuth authorization request; Roblox does not receive your
             Bloxspark content or activity from us.
@@ -207,7 +251,7 @@ export const Route = createFileRoute("/privacy")({
         </ul>
         <p>
           Data may also be disclosed to competent authorities when required by law, in response to
-          valid legal process, or when necessary to protect a person's physical safety — especially
+          valid legal process, or when necessary to protect a person's physical safety - especially
           that of a minor.
         </p>
       </LegalSection>
@@ -216,10 +260,10 @@ export const Route = createFileRoute("/privacy")({
         <p>
           Your username, Roblox username, age, country, language, bio, favorite games, decorations,
           videos, photos, and community memberships are visible to other users on your public
-          profile and in Sparks, Discover, and Communities, depending on the visibility settings
-          you choose. Your email address, exact date of birth, parental contact information, and
-          the fact that Sparks is opt-in mean none of that is displayed publicly unless you
-          explicitly share it.
+          profile and in Sparks, Discover, and Communities, depending on the visibility settings you
+          choose. Your email address, exact date of birth, parental contact information, and the
+          fact that Sparks is opt-in mean none of that is displayed publicly unless you explicitly
+          share it.
         </p>
         <p>
           Private and group messages are accessible only to conversation participants and, when a
@@ -242,7 +286,10 @@ export const Route = createFileRoute("/privacy")({
       <LegalSection title="9. Retention periods">
         <ul>
           <li>Account and profile data: retained while the account remains active.</li>
-          <li>Messages, videos, photos, and community posts: retained until they or the account are deleted.</li>
+          <li>
+            Messages, videos, photos, and community posts: retained until they or the account are
+            deleted.
+          </li>
           <li>
             Roblox OAuth identifiers: retained while the connection is active; deleted when you
             disconnect Roblox or delete your account.
@@ -251,7 +298,12 @@ export const Route = createFileRoute("/privacy")({
             Subscription and billing status: retained for the life of the subscription and for a
             reasonable period after for accounting and dispute purposes, as required by law.
           </li>
-          <li>Security logs, reports, and support tickets: retained for up to twelve (12) months after resolution.</li>
+          <li>
+            Security logs, ordinary reports, and support tickets: normally retained for up to twelve
+            (12) months after resolution. Records involving serious abuse, child safety, fraud,
+            legal claims, or a valid preservation request may be kept longer where necessary and
+            permitted by law.
+          </li>
           <li>
             After account deletion: erased within thirty (30) days, except where retention is
             required by law or needed to prevent repeated serious abuse (for example, a record
@@ -262,10 +314,10 @@ export const Route = createFileRoute("/privacy")({
 
       <LegalSection title="10. International data transfers">
         <p>
-          Our service providers may process data in countries other than your own, including
-          outside the European Economic Area. Where that happens, we rely on the safeguards those
-          providers make available (such as standard contractual clauses) to ensure your data
-          continues to receive an adequate level of protection.
+          Our service providers may process data in countries other than your own, including outside
+          the European Economic Area. Where that happens, we rely on the safeguards those providers
+          make available (such as standard contractual clauses) to ensure your data continues to
+          receive an adequate level of protection.
         </p>
       </LegalSection>
 
@@ -278,10 +330,19 @@ export const Route = createFileRoute("/privacy")({
           Support center so we can investigate.
         </p>
         <p>
-          For users aged 13 to 17, we collect a parent or guardian's name and email address solely
-          to obtain and, where needed, confirm consent as described in the Terms of Use; that
-          contact information is not displayed publicly and is used only for consent-related
-          communication.
+          For users aged 13 to 17, we collect a parent or guardian's name and email address when
+          required to obtain and verify authorization, respond to a youth-safety issue, or satisfy
+          local law. In France, a user under 15 cannot alone provide valid consent for consent-based
+          processing by an online service; joint authorization from the minor and holder of parental
+          responsibility is required. Age thresholds vary by country. We make reasonable efforts to
+          verify required authorization and do not treat the child's entry of an adult's email
+          address as conclusive proof of consent.
+        </p>
+        <p>
+          We do not use profiling-based advertising for users we know are minors. We limit access to
+          exact birth dates and parental details, use age information to apply safety rules, and may
+          restrict discovery or contact features where needed to protect a minor. Parents and
+          guardians may request access, correction, or deletion through Support.
         </p>
       </LegalSection>
 
@@ -289,13 +350,13 @@ export const Route = createFileRoute("/privacy")({
         <p>
           Under the GDPR and other applicable regulations, you have the right to access, correct,
           erase, restrict, object to the processing of, and receive a portable copy of your data.
-          You may also withdraw consent at any time where processing is based on it. Legal
-          guardians may exercise these rights on behalf of a minor.
+          You may also withdraw consent at any time where processing is based on it. Legal guardians
+          may exercise these rights on behalf of a minor.
         </p>
         <p>
           You can exercise most of these rights directly in the app: edit your profile, delete
           photos, videos, or messages, disconnect your Roblox account, or permanently delete your
-          account from Settings. For any other request — including a data export — contact us
+          account from Settings. For any other request - including a data export - contact us
           through the in-app Support center. You may also lodge a complaint with your local data
           protection supervisory authority.
         </p>
@@ -310,11 +371,28 @@ export const Route = createFileRoute("/privacy")({
         </p>
       </LegalSection>
 
+      <LegalSection title="13A. Apple App Privacy and Google Play Data Safety disclosures">
+        <p>
+          The privacy answers shown in an app-store listing must accurately describe the specific
+          mobile build, every included software development kit, and every data flow. Depending on
+          the features enabled in that build, disclosures may include contact information,
+          identifiers, user content, purchases, product interaction, diagnostics, and coarse
+          location inferred from IP. Data may be linked to your account when needed to provide the
+          Service, secure it, personalize it, or measure it. Bloxspark does not sell this data or
+          use it for third-party targeted advertising.
+        </p>
+        <p>
+          If an app-store disclosure and this policy appear inconsistent, contact Support. We will
+          investigate and correct the inaccurate disclosure or data practice. Store forms are a
+          summary and do not replace this policy.
+        </p>
+      </LegalSection>
+
       <LegalSection title="14. Changes to this policy">
         <p>
-          We may update this policy as the Service evolves. We will notify you in the app before
-          any material change takes effect. Continued use of the Service after a change takes
-          effect constitutes acceptance of the updated policy.
+          We may update this policy as the Service evolves. We will notify you in the app before any
+          material change takes effect. Continued use of the Service after a change takes effect
+          constitutes acceptance of the updated policy.
         </p>
       </LegalSection>
 

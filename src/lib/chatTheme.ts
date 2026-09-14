@@ -1,13 +1,13 @@
 /**
  * Per-conversation, per-viewer chat personalization (wallpaper + bubble
- * color). Purely a local display preference — like a phone's chat theme —
+ * color). Purely a local display preference - like a phone's chat theme -
  * so it lives in localStorage rather than a synced table.
  */
 export type Wallpaper = {
   id: string;
   label: string;
   css: string;
-  /** Only "default" differs by theme — a chosen wallpaper stays as chosen. */
+  /** Only "default" differs by theme - a chosen wallpaper stays as chosen. */
   darkCss?: string;
 };
 

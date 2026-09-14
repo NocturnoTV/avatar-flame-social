@@ -11,7 +11,7 @@ import {
   recordWatchEvent,
 } from "@/lib/recommendation-engine.server";
 
-/** Personalized "For You" feed — see recommendation-engine.server.ts for the pipeline. */
+/** Personalized "For You" feed - see recommendation-engine.server.ts for the pipeline. */
 export const getPersonalizedFeed = createServerFn({ method: "GET" })
   .validator(z.object({ limit: z.number().int().min(1).max(60).default(30) }))
   .middleware([requireSupabaseAuth])

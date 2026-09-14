@@ -15,7 +15,7 @@ import { LANGUAGES } from "@/lib/i18n";
 import { errorMessage, cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/communities/$handle")({
-  head: () => ({ meta: [{ title: "Communauté — Bloxspark" }] }),
+  head: () => ({ meta: [{ title: "Communauté - Bloxspark" }] }),
   component: CommunityPage,
 });
 
@@ -452,7 +452,7 @@ function LeaderboardTab({ communityId }: { communityId: string | undefined }) {
           ))}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          L'XP ne s'achète pas — elle reflète uniquement ton activité dans la communauté.
+          L'XP ne s'achète pas - elle reflète uniquement ton activité dans la communauté.
         </p>
       </div>
     </div>
@@ -503,6 +503,17 @@ function CommunityHome({
           label="Catégorie"
           value={CATEGORY_LABELS[community.category] ?? community.category}
         />
+        <StatChip
+          label="Type"
+          value={
+            community.visibility === "public"
+              ? "Publique"
+              : community.visibility === "private_friends"
+                ? "Privée - amis seulement"
+                : "Privée - sur demande"
+          }
+        />
+        {community.game_name ? <StatChip label="Jeu associé" value={community.game_name} /> : null}
         <StatChip
           label="Créée le"
           value={new Date(community.created_at).toLocaleDateString("fr-FR")}

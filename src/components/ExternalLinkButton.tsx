@@ -3,7 +3,7 @@ import { Link2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 
-/** A profile's external link — always gated behind a leaving-BloxSpark warning. */
+/** A profile's external link - always gated behind a leaving-BloxSpark warning. */
 export function ExternalLinkButton({ url }: { url: string }) {
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);

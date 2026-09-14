@@ -27,7 +27,7 @@ function writeAll(accounts: SavedAccount[]) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
   } catch {
-    // Storage full or unavailable — the switcher degrades to "no saved accounts".
+    // Storage full or unavailable - the switcher degrades to "no saved accounts".
   }
 }
 

@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/shop")({
   head: () => ({
     meta: [
-      { title: "Spark Plus — Bloxspark" },
+      { title: "Spark Plus - Bloxspark" },
       { name: "description", content: "Débloque des personnalisations exclusives sur Bloxspark." },
     ],
   }),

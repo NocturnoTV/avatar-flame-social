@@ -14,11 +14,34 @@ export type LangCode = (typeof LANGUAGES)[number]["code"];
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  landingShowcaseEyebrow: "Made to feel alive",
+  landingShowcaseTitle: "Your whole Roblox world, in one place.",
+  landingShowcaseText:
+    "A profile that feels like you. A feed shaped by your games. A community ready for your next moment.",
+  landingIdentityTitle: "Your Roblox identity, instantly",
+  landingIdentityText:
+    "Connect once and bring your username, avatar and favorite games into a profile that is unmistakably yours.",
+  landingFeedTitle: "Discover your next obsession",
+  landingFeedText:
+    "Swipe through videos, stories and creators chosen around the games and communities you already love.",
+  landingMessagesTitle: "Turn moments into friendships",
+  landingMessagesText:
+    "React, reply, share and talk with the people who understand your Roblox universe.",
+  landingJourneyEyebrow: "Easy from the first spark",
+  landingJourneyTitle: "From Roblox player to BloxSpark creator in minutes.",
+  landingStep1Title: "Connect Roblox",
+  landingStep1Text: "Your public identity appears automatically.",
+  landingStep2Title: "Shape your world",
+  landingStep2Text: "Choose your games, style and the people you want to meet.",
+  landingStep3Title: "Create your spark",
+  landingStep3Text: "Post, discover and start conversations that keep going.",
   landingEyebrow: "The Roblox social universe",
   landingHeroTitle: "Play together. Create together. Belong somewhere.",
   landingHeroText:
     "BloxSpark brings Roblox players together through real profiles, vertical videos, stories, Sparks and conversations that never feel empty.",
   landingJoin: "Join BloxSpark",
+  landingJoinNow: "Join BloxSpark Now",
+  landingCtaEyebrow: "BloxSpark is waiting",
   landingSafe: "Designed for safer connections",
   landingCommunity: "Built around your games",
   landingBuiltFor: "Made for Roblox players",
@@ -52,7 +75,7 @@ const en: Dict = {
   notInterestedDone: "Got it, we'll show you less of this.",
   leavingBloxsparkTitle: "You're leaving BloxSpark",
   leavingBloxsparkBody:
-    "This site isn't managed by BloxSpark — we're not responsible for third-party content.",
+    "This site isn't managed by BloxSpark - we're not responsible for third-party content.",
   continueAnyway: "Continue",
   externalLink: "External link",
   externalLinkPlaceholder: "https://...",
@@ -132,7 +155,7 @@ const en: Dict = {
   translationUnavailable: "AI translation is not available in this browser yet.",
   tagline: "The social spark for Roblox players",
   heroSub:
-    "Meet players who share your games, your language and your style. Swipe, match, chat — with voice notes, groups and profiles you can decorate.",
+    "Meet players who share your games, your language and your style. Swipe, match, chat - with voice notes, groups and profiles you can decorate.",
   getStarted: "Create my account",
   signIn: "Sign in",
   signUp: "Sign up",
@@ -140,6 +163,7 @@ const en: Dict = {
   email: "Email",
   password: "Password",
   continueGoogle: "Continue with Google",
+  continueRoblox: "Continue with Roblox",
   orEmail: "or with your email",
   haveAccount: "Already have an account?",
   identifierLabel: "Roblox or BloxSpark username",
@@ -303,7 +327,8 @@ const en: Dict = {
   purchasesAndBilling: "Purchases & Billing",
   billingCurrentPlan: "Current plan",
   billingNoSubscription: "You don't have an active subscription.",
-  billingCancelHint: "You can cancel anytime — you'll keep Spark Plus until the end of the period you already paid for.",
+  billingCancelHint:
+    "You can cancel anytime - you'll keep Spark Plus until the end of the period you already paid for.",
   billingInvoices: "Invoices",
   billingNoInvoices: "No invoices yet.",
   billingViewInvoice: "View invoice",
@@ -327,13 +352,13 @@ const en: Dict = {
   shopFaqTitle: "Frequently asked questions",
   shopFaqCancelQ: "Can I cancel anytime?",
   shopFaqCancelA:
-    "Yes. Cancel whenever you want from Purchases & Billing — you keep Spark Plus until the end of the period you already paid for.",
+    "Yes. Cancel whenever you want from Purchases & Billing - you keep Spark Plus until the end of the period you already paid for.",
   shopFaqCustomizationQ: "What happens to my customizations if I cancel?",
   shopFaqCustomizationA:
-    "Your choices (font, glow, banner, chat bubbles) are kept in your account but stop being applied — everyone sees the default look again. Resubscribe anytime to get them back instantly.",
+    "Your choices (font, glow, banner, chat bubbles) are kept in your account but stop being applied - everyone sees the default look again. Resubscribe anytime to get them back instantly.",
   shopFaqRenewQ: "Does it renew automatically?",
   shopFaqRenewA:
-    "Yes, it's a monthly subscription that renews automatically until you cancel — no surprise, you're billed the same amount each month.",
+    "Yes, it's a monthly subscription that renews automatically until you cancel - no surprise, you're billed the same amount each month.",
   shopFaqPaymentQ: "What payment methods are accepted?",
   shopFaqPaymentA: "Any card accepted by Stripe (Visa, Mastercard, American Express, and more).",
   shopFaqInvoiceQ: "How do I get an invoice?",
@@ -510,7 +535,7 @@ const en: Dict = {
   micPermissionDenied: "Allow microphone access to make calls.",
   callAlreadyActive: "You're already on a call.",
   callEnded: "Call ended",
-  callConnectFailed: "Couldn't connect the call — try again on a different network.",
+  callConnectFailed: "Couldn't connect the call - try again on a different network.",
   muteMessages: "Mute messages",
   pinConversation: "Pin to top",
   viewProfile: "View profile",
@@ -596,11 +621,34 @@ const en: Dict = {
 };
 
 const fr: Dict = {
+  landingShowcaseEyebrow: "Pensé pour être vivant",
+  landingShowcaseTitle: "Tout ton univers Roblox, au même endroit.",
+  landingShowcaseText:
+    "Un profil qui te ressemble. Un fil adapté à tes jeux. Une communauté prête pour ton prochain moment.",
+  landingIdentityTitle: "Ton identité Roblox, instantanément",
+  landingIdentityText:
+    "Connecte-toi une fois et retrouve ton pseudo, ton avatar et tes jeux favoris dans un profil vraiment unique.",
+  landingFeedTitle: "Découvre ta prochaine passion",
+  landingFeedText:
+    "Parcours des vidéos, stories et créateurs choisis autour des jeux et communautés que tu aimes.",
+  landingMessagesTitle: "Transforme les moments en amitiés",
+  landingMessagesText:
+    "Réagis, réponds, partage et discute avec ceux qui comprennent ton univers Roblox.",
+  landingJourneyEyebrow: "Simple dès la première étincelle",
+  landingJourneyTitle: "De joueur Roblox à créateur BloxSpark en quelques minutes.",
+  landingStep1Title: "Connecte Roblox",
+  landingStep1Text: "Ton identité publique apparaît automatiquement.",
+  landingStep2Title: "Crée ton univers",
+  landingStep2Text: "Choisis tes jeux, ton style et les personnes que tu veux rencontrer.",
+  landingStep3Title: "Lance ton Spark",
+  landingStep3Text: "Publie, découvre et commence des conversations qui durent.",
   landingEyebrow: "L’univers social Roblox",
   landingHeroTitle: "Jouez ensemble. Créez ensemble. Trouvez votre communauté.",
   landingHeroText:
     "BloxSpark réunit les joueurs Roblox avec de vrais profils, des vidéos verticales, des stories, des Sparks et des conversations vivantes.",
   landingJoin: "Rejoindre BloxSpark",
+  landingJoinNow: "Rejoindre BloxSpark maintenant",
+  landingCtaEyebrow: "BloxSpark n'attend que toi",
   landingSafe: "Des rencontres plus sûres",
   landingCommunity: "Construit autour de tes jeux",
   landingBuiltFor: "Pensé pour les joueurs Roblox",
@@ -635,7 +683,7 @@ const fr: Dict = {
   notInterestedDone: "Compris, tu en verras moins.",
   leavingBloxsparkTitle: "Tu quittes BloxSpark",
   leavingBloxsparkBody:
-    "Ce site n'est pas géré par BloxSpark — nous ne sommes pas responsables du contenu des sites tiers.",
+    "Ce site n'est pas géré par BloxSpark - nous ne sommes pas responsables du contenu des sites tiers.",
   continueAnyway: "Continuer",
   externalLink: "Lien externe",
   externalLinkPlaceholder: "https://...",
@@ -715,7 +763,7 @@ const fr: Dict = {
   translationUnavailable: "La traduction IA n’est pas encore disponible dans ce navigateur.",
   tagline: "L'étincelle sociale des joueurs Roblox",
   heroSub:
-    "Rencontre des joueurs qui partagent tes jeux, ta langue et ton style. Swipe, matche, discute — messages vocaux, groupes et profils à décorer.",
+    "Rencontre des joueurs qui partagent tes jeux, ta langue et ton style. Swipe, matche, discute - messages vocaux, groupes et profils à décorer.",
   getStarted: "Créer mon compte",
   signIn: "Se connecter",
   signUp: "S'inscrire",
@@ -723,6 +771,7 @@ const fr: Dict = {
   email: "E-mail",
   password: "Mot de passe",
   continueGoogle: "Continuer avec Google",
+  continueRoblox: "Continuer avec Roblox",
   orEmail: "ou avec ton e-mail",
   haveAccount: "Tu as déjà un compte ?",
   identifierLabel: "Pseudo Roblox ou BloxSpark",
@@ -888,7 +937,8 @@ const fr: Dict = {
   purchasesAndBilling: "Achats & Facturation",
   billingCurrentPlan: "Abonnement actuel",
   billingNoSubscription: "Tu n'as pas d'abonnement actif.",
-  billingCancelHint: "Tu peux annuler à tout moment — tu gardes Spark Plus jusqu'à la fin de la période déjà payée.",
+  billingCancelHint:
+    "Tu peux annuler à tout moment - tu gardes Spark Plus jusqu'à la fin de la période déjà payée.",
   billingInvoices: "Factures",
   billingNoInvoices: "Aucune facture pour l'instant.",
   billingViewInvoice: "Voir la facture",
@@ -912,13 +962,13 @@ const fr: Dict = {
   shopFaqTitle: "Questions fréquentes",
   shopFaqCancelQ: "Puis-je annuler à tout moment ?",
   shopFaqCancelA:
-    "Oui. Annule quand tu veux depuis Achats & Facturation — tu gardes Spark Plus jusqu'à la fin de la période déjà payée.",
+    "Oui. Annule quand tu veux depuis Achats & Facturation - tu gardes Spark Plus jusqu'à la fin de la période déjà payée.",
   shopFaqCustomizationQ: "Que deviennent mes personnalisations si j'annule ?",
   shopFaqCustomizationA:
-    "Tes choix (police, halo, bannière, bulles de discussion) restent enregistrés sur ton compte mais ne s'affichent plus — tout le monde revoit le style par défaut. Réabonne-toi à tout moment pour les récupérer instantanément.",
+    "Tes choix (police, halo, bannière, bulles de discussion) restent enregistrés sur ton compte mais ne s'affichent plus - tout le monde revoit le style par défaut. Réabonne-toi à tout moment pour les récupérer instantanément.",
   shopFaqRenewQ: "Est-ce que ça se renouvelle automatiquement ?",
   shopFaqRenewA:
-    "Oui, c'est un abonnement mensuel qui se renouvelle automatiquement jusqu'à ce que tu annules — pas de surprise, même montant prélevé chaque mois.",
+    "Oui, c'est un abonnement mensuel qui se renouvelle automatiquement jusqu'à ce que tu annules - pas de surprise, même montant prélevé chaque mois.",
   shopFaqPaymentQ: "Quels moyens de paiement sont acceptés ?",
   shopFaqPaymentA: "Toute carte acceptée par Stripe (Visa, Mastercard, American Express, et plus).",
   shopFaqInvoiceQ: "Comment obtenir une facture ?",
@@ -1097,7 +1147,7 @@ const fr: Dict = {
   micPermissionDenied: "Autorise l'accès au micro pour passer des appels.",
   callAlreadyActive: "Tu es déjà en appel.",
   callEnded: "Appel terminé",
-  callConnectFailed: "Impossible de connecter l'appel — réessaie sur un autre réseau.",
+  callConnectFailed: "Impossible de connecter l'appel - réessaie sur un autre réseau.",
   muteMessages: "Mettre les messages en sourdine",
   pinConversation: "Épingler en haut",
   viewProfile: "Voir le profil",
@@ -1183,11 +1233,34 @@ const fr: Dict = {
 };
 
 const es: Dict = {
+  landingShowcaseEyebrow: "Creado para sentirse vivo",
+  landingShowcaseTitle: "Todo tu mundo Roblox, en un solo lugar.",
+  landingShowcaseText:
+    "Un perfil que se siente tuyo. Un feed basado en tus juegos. Una comunidad lista para tu próximo momento.",
+  landingIdentityTitle: "Tu identidad Roblox, al instante",
+  landingIdentityText:
+    "Conecta una vez y lleva tu usuario, avatar y juegos favoritos a un perfil inconfundiblemente tuyo.",
+  landingFeedTitle: "Descubre tu próxima obsesión",
+  landingFeedText:
+    "Explora vídeos, stories y creadores elegidos alrededor de los juegos y comunidades que ya amas.",
+  landingMessagesTitle: "Convierte momentos en amistades",
+  landingMessagesText:
+    "Reacciona, responde, comparte y habla con quienes entienden tu universo Roblox.",
+  landingJourneyEyebrow: "Fácil desde la primera chispa",
+  landingJourneyTitle: "De jugador Roblox a creador BloxSpark en minutos.",
+  landingStep1Title: "Conecta Roblox",
+  landingStep1Text: "Tu identidad pública aparece automáticamente.",
+  landingStep2Title: "Crea tu mundo",
+  landingStep2Text: "Elige tus juegos, estilo y las personas que quieres conocer.",
+  landingStep3Title: "Crea tu Spark",
+  landingStep3Text: "Publica, descubre e inicia conversaciones que continúan.",
   landingEyebrow: "El universo social de Roblox",
   landingHeroTitle: "Jueguen juntos. Creen juntos. Encuentren su comunidad.",
   landingHeroText:
     "BloxSpark reúne a jugadores de Roblox con perfiles reales, vídeos verticales, historias, Sparks y conversaciones vivas.",
   landingJoin: "Unirme a BloxSpark",
+  landingJoinNow: "Unirme a BloxSpark ahora",
+  landingCtaEyebrow: "BloxSpark te espera",
   landingSafe: "Conexiones más seguras",
   landingCommunity: "Creado alrededor de tus juegos",
   landingBuiltFor: "Hecho para jugadores de Roblox",
@@ -1221,7 +1294,7 @@ const es: Dict = {
   notInterestedDone: "Entendido, verás menos de esto.",
   leavingBloxsparkTitle: "Estás saliendo de BloxSpark",
   leavingBloxsparkBody:
-    "Este sitio no está gestionado por BloxSpark — no somos responsables del contenido de sitios de terceros.",
+    "Este sitio no está gestionado por BloxSpark - no somos responsables del contenido de sitios de terceros.",
   continueAnyway: "Continuar",
   externalLink: "Enlace externo",
   externalLinkPlaceholder: "https://...",
@@ -1301,7 +1374,7 @@ const es: Dict = {
   translationUnavailable: "La traducción con IA aún no está disponible en este navegador.",
   tagline: "La chispa social de los jugadores de Roblox",
   heroSub:
-    "Conoce a jugadores que comparten tus juegos, tu idioma y tu estilo. Desliza, haz match y chatea — con notas de voz, grupos y perfiles decorables.",
+    "Conoce a jugadores que comparten tus juegos, tu idioma y tu estilo. Desliza, haz match y chatea - con notas de voz, grupos y perfiles decorables.",
   getStarted: "Crear mi cuenta",
   signIn: "Iniciar sesión",
   signUp: "Registrarse",
@@ -1309,6 +1382,7 @@ const es: Dict = {
   email: "Correo",
   password: "Contraseña",
   continueGoogle: "Continuar con Google",
+  continueRoblox: "Continuar con Roblox",
   orEmail: "o con tu correo",
   haveAccount: "¿Ya tienes cuenta?",
   identifierLabel: "Usuario de Roblox o BloxSpark",
@@ -1472,7 +1546,8 @@ const es: Dict = {
   purchasesAndBilling: "Compras y Facturación",
   billingCurrentPlan: "Plan actual",
   billingNoSubscription: "No tienes una suscripción activa.",
-  billingCancelHint: "Puedes cancelar cuando quieras — conservas Spark Plus hasta el final del período ya pagado.",
+  billingCancelHint:
+    "Puedes cancelar cuando quieras - conservas Spark Plus hasta el final del período ya pagado.",
   billingInvoices: "Facturas",
   billingNoInvoices: "Aún no hay facturas.",
   billingViewInvoice: "Ver factura",
@@ -1496,15 +1571,16 @@ const es: Dict = {
   shopFaqTitle: "Preguntas frecuentes",
   shopFaqCancelQ: "¿Puedo cancelar en cualquier momento?",
   shopFaqCancelA:
-    "Sí. Cancela cuando quieras desde Compras y Facturación — conservas Spark Plus hasta el final del período ya pagado.",
+    "Sí. Cancela cuando quieras desde Compras y Facturación - conservas Spark Plus hasta el final del período ya pagado.",
   shopFaqCustomizationQ: "¿Qué pasa con mis personalizaciones si cancelo?",
   shopFaqCustomizationA:
-    "Tus elecciones (fuente, brillo, banner, burbujas) se guardan en tu cuenta pero dejan de aplicarse — todos vuelven a ver el estilo por defecto. Vuelve a suscribirte cuando quieras para recuperarlas al instante.",
+    "Tus elecciones (fuente, brillo, banner, burbujas) se guardan en tu cuenta pero dejan de aplicarse - todos vuelven a ver el estilo por defecto. Vuelve a suscribirte cuando quieras para recuperarlas al instante.",
   shopFaqRenewQ: "¿Se renueva automáticamente?",
   shopFaqRenewA:
-    "Sí, es una suscripción mensual que se renueva automáticamente hasta que canceles — sin sorpresas, el mismo importe cada mes.",
+    "Sí, es una suscripción mensual que se renueva automáticamente hasta que canceles - sin sorpresas, el mismo importe cada mes.",
   shopFaqPaymentQ: "¿Qué métodos de pago se aceptan?",
-  shopFaqPaymentA: "Cualquier tarjeta aceptada por Stripe (Visa, Mastercard, American Express y más).",
+  shopFaqPaymentA:
+    "Cualquier tarjeta aceptada por Stripe (Visa, Mastercard, American Express y más).",
   shopFaqInvoiceQ: "¿Cómo obtengo una factura?",
   shopFaqInvoiceA: "Cada factura está disponible en cualquier momento desde Compras y Facturación.",
   sparkPlusCheckoutUnavailable: "El pago de Spark Plus aún no está configurado.",
@@ -1679,7 +1755,7 @@ const es: Dict = {
   micPermissionDenied: "Permite el acceso al micrófono para hacer llamadas.",
   callAlreadyActive: "Ya estás en una llamada.",
   callEnded: "Llamada finalizada",
-  callConnectFailed: "No se pudo conectar la llamada — inténtalo en otra red.",
+  callConnectFailed: "No se pudo conectar la llamada - inténtalo en otra red.",
   muteMessages: "Silenciar mensajes",
   pinConversation: "Fijar arriba",
   viewProfile: "Ver perfil",
@@ -1766,11 +1842,34 @@ const es: Dict = {
 };
 
 const pt: Dict = {
+  landingShowcaseEyebrow: "Feito para ganhar vida",
+  landingShowcaseTitle: "Todo o seu mundo Roblox, em um só lugar.",
+  landingShowcaseText:
+    "Um perfil com a sua cara. Um feed moldado pelos seus jogos. Uma comunidade pronta para o próximo momento.",
+  landingIdentityTitle: "Sua identidade Roblox, na hora",
+  landingIdentityText:
+    "Conecte uma vez e leve usuário, avatar e jogos favoritos para um perfil que é totalmente seu.",
+  landingFeedTitle: "Descubra sua próxima paixão",
+  landingFeedText:
+    "Explore vídeos, stories e criadores escolhidos pelos jogos e comunidades que você já ama.",
+  landingMessagesTitle: "Transforme momentos em amizades",
+  landingMessagesText:
+    "Reaja, responda, compartilhe e converse com quem entende seu universo Roblox.",
+  landingJourneyEyebrow: "Fácil desde a primeira faísca",
+  landingJourneyTitle: "De jogador Roblox a criador BloxSpark em minutos.",
+  landingStep1Title: "Conecte o Roblox",
+  landingStep1Text: "Sua identidade pública aparece automaticamente.",
+  landingStep2Title: "Crie seu mundo",
+  landingStep2Text: "Escolha seus jogos, estilo e as pessoas que quer conhecer.",
+  landingStep3Title: "Crie seu Spark",
+  landingStep3Text: "Publique, descubra e comece conversas que continuam.",
   landingEyebrow: "O universo social do Roblox",
   landingHeroTitle: "Joguem juntos. Criem juntos. Encontrem sua comunidade.",
   landingHeroText:
     "BloxSpark reúne jogadores de Roblox com perfis reais, vídeos verticais, stories, Sparks e conversas vivas.",
   landingJoin: "Entrar no BloxSpark",
+  landingJoinNow: "Entrar no BloxSpark agora",
+  landingCtaEyebrow: "O BloxSpark está esperando",
   landingSafe: "Conexões mais seguras",
   landingCommunity: "Feito ao redor dos seus jogos",
   landingBuiltFor: "Criado para jogadores de Roblox",
@@ -1804,7 +1903,7 @@ const pt: Dict = {
   notInterestedDone: "Entendido, você verá menos disso.",
   leavingBloxsparkTitle: "Você está saindo do BloxSpark",
   leavingBloxsparkBody:
-    "Este site não é gerenciado pelo BloxSpark — não somos responsáveis pelo conteúdo de sites de terceiros.",
+    "Este site não é gerenciado pelo BloxSpark - não somos responsáveis pelo conteúdo de sites de terceiros.",
   continueAnyway: "Continuar",
   externalLink: "Link externo",
   externalLinkPlaceholder: "https://...",
@@ -1884,7 +1983,7 @@ const pt: Dict = {
   translationUnavailable: "A tradução por IA ainda não está disponível neste navegador.",
   tagline: "A faísca social dos jogadores de Roblox",
   heroSub:
-    "Conheça jogadores que curtem os mesmos jogos, idioma e estilo. Deslize, dê match e converse — com áudios, grupos e perfis personalizáveis.",
+    "Conheça jogadores que curtem os mesmos jogos, idioma e estilo. Deslize, dê match e converse - com áudios, grupos e perfis personalizáveis.",
   getStarted: "Criar minha conta",
   signIn: "Entrar",
   signUp: "Cadastrar",
@@ -1892,6 +1991,7 @@ const pt: Dict = {
   email: "E-mail",
   password: "Senha",
   continueGoogle: "Continuar com Google",
+  continueRoblox: "Continuar com Roblox",
   orEmail: "ou com seu e-mail",
   haveAccount: "Já tem uma conta?",
   identifierLabel: "Usuário do Roblox ou BloxSpark",
@@ -2056,7 +2156,8 @@ const pt: Dict = {
   purchasesAndBilling: "Compras e Faturamento",
   billingCurrentPlan: "Plano atual",
   billingNoSubscription: "Você não tem uma assinatura ativa.",
-  billingCancelHint: "Você pode cancelar quando quiser — mantém o Spark Plus até o fim do período já pago.",
+  billingCancelHint:
+    "Você pode cancelar quando quiser - mantém o Spark Plus até o fim do período já pago.",
   billingInvoices: "Faturas",
   billingNoInvoices: "Nenhuma fatura ainda.",
   billingViewInvoice: "Ver fatura",
@@ -2080,15 +2181,16 @@ const pt: Dict = {
   shopFaqTitle: "Perguntas frequentes",
   shopFaqCancelQ: "Posso cancelar a qualquer momento?",
   shopFaqCancelA:
-    "Sim. Cancele quando quiser em Compras e Faturamento — você mantém o Spark Plus até o fim do período já pago.",
+    "Sim. Cancele quando quiser em Compras e Faturamento - você mantém o Spark Plus até o fim do período já pago.",
   shopFaqCustomizationQ: "O que acontece com minhas personalizações se eu cancelar?",
   shopFaqCustomizationA:
-    "Suas escolhas (fonte, brilho, banner, bolhas de chat) ficam salvas na sua conta, mas deixam de ser aplicadas — todos voltam a ver o visual padrão. Assine novamente quando quiser para recuperá-las na hora.",
+    "Suas escolhas (fonte, brilho, banner, bolhas de chat) ficam salvas na sua conta, mas deixam de ser aplicadas - todos voltam a ver o visual padrão. Assine novamente quando quiser para recuperá-las na hora.",
   shopFaqRenewQ: "Ele renova automaticamente?",
   shopFaqRenewA:
-    "Sim, é uma assinatura mensal que renova automaticamente até você cancelar — sem surpresas, o mesmo valor todo mês.",
+    "Sim, é uma assinatura mensal que renova automaticamente até você cancelar - sem surpresas, o mesmo valor todo mês.",
   shopFaqPaymentQ: "Quais formas de pagamento são aceitas?",
-  shopFaqPaymentA: "Qualquer cartão aceito pela Stripe (Visa, Mastercard, American Express e mais).",
+  shopFaqPaymentA:
+    "Qualquer cartão aceito pela Stripe (Visa, Mastercard, American Express e mais).",
   shopFaqInvoiceQ: "Como recebo uma nota fiscal?",
   shopFaqInvoiceA: "Cada fatura está disponível a qualquer momento em Compras e Faturamento.",
   sparkPlusCheckoutUnavailable: "O pagamento do Spark Plus ainda não está configurado.",
@@ -2263,7 +2365,7 @@ const pt: Dict = {
   micPermissionDenied: "Permita o acesso ao microfone para fazer chamadas.",
   callAlreadyActive: "Você já está em uma chamada.",
   callEnded: "Chamada encerrada",
-  callConnectFailed: "Não foi possível conectar a chamada — tente em outra rede.",
+  callConnectFailed: "Não foi possível conectar a chamada - tente em outra rede.",
   muteMessages: "Silenciar mensagens",
   pinConversation: "Fixar no topo",
   viewProfile: "Ver perfil",
@@ -2349,11 +2451,34 @@ const pt: Dict = {
 };
 
 const de: Dict = {
+  landingShowcaseEyebrow: "Gemacht, um lebendig zu wirken",
+  landingShowcaseTitle: "Deine ganze Roblox-Welt an einem Ort.",
+  landingShowcaseText:
+    "Ein Profil wie du. Ein Feed für deine Spiele. Eine Community, bereit für deinen nächsten Moment.",
+  landingIdentityTitle: "Deine Roblox-Identität, sofort",
+  landingIdentityText:
+    "Einmal verbinden und Benutzername, Avatar und Lieblingsspiele in dein unverwechselbares Profil übernehmen.",
+  landingFeedTitle: "Entdecke deine nächste Leidenschaft",
+  landingFeedText:
+    "Erlebe Videos, Stories und Creator rund um die Spiele und Communities, die du bereits liebst.",
+  landingMessagesTitle: "Aus Momenten werden Freundschaften",
+  landingMessagesText:
+    "Reagiere, antworte, teile und sprich mit Menschen, die deine Roblox-Welt verstehen.",
+  landingJourneyEyebrow: "Einfach ab dem ersten Spark",
+  landingJourneyTitle: "Vom Roblox-Spieler zum BloxSpark-Creator in wenigen Minuten.",
+  landingStep1Title: "Roblox verbinden",
+  landingStep1Text: "Deine öffentliche Identität erscheint automatisch.",
+  landingStep2Title: "Gestalte deine Welt",
+  landingStep2Text: "Wähle deine Spiele, deinen Stil und Menschen, die du kennenlernen willst.",
+  landingStep3Title: "Erzeuge deinen Spark",
+  landingStep3Text: "Poste, entdecke und starte Gespräche, die weitergehen.",
   landingEyebrow: "Das soziale Roblox-Universum",
   landingHeroTitle: "Zusammen spielen. Zusammen erschaffen. Eine Community finden.",
   landingHeroText:
     "BloxSpark verbindet Roblox-Spieler mit echten Profilen, vertikalen Videos, Storys, Sparks und lebendigen Gesprächen.",
   landingJoin: "BloxSpark beitreten",
+  landingJoinNow: "Jetzt BloxSpark beitreten",
+  landingCtaEyebrow: "BloxSpark wartet auf dich",
   landingSafe: "Für sichere Kontakte entwickelt",
   landingCommunity: "Rund um deine Spiele gebaut",
   landingBuiltFor: "Für Roblox-Spieler gemacht",
@@ -2388,7 +2513,7 @@ const de: Dict = {
   notInterestedDone: "Alles klar, du siehst weniger davon.",
   leavingBloxsparkTitle: "Du verlässt BloxSpark",
   leavingBloxsparkBody:
-    "Diese Seite wird nicht von BloxSpark verwaltet — wir sind nicht für Inhalte Dritter verantwortlich.",
+    "Diese Seite wird nicht von BloxSpark verwaltet - wir sind nicht für Inhalte Dritter verantwortlich.",
   continueAnyway: "Weiter",
   externalLink: "Externer Link",
   externalLinkPlaceholder: "https://...",
@@ -2468,7 +2593,7 @@ const de: Dict = {
   translationUnavailable: "Die KI-Übersetzung ist in diesem Browser noch nicht verfügbar.",
   tagline: "Der soziale Funke für Roblox-Spieler",
   heroSub:
-    "Triff Spieler mit denselben Spielen, derselben Sprache und deinem Stil. Swipe, matche, chatte — mit Sprachnachrichten, Gruppen und Profilen zum Gestalten.",
+    "Triff Spieler mit denselben Spielen, derselben Sprache und deinem Stil. Swipe, matche, chatte - mit Sprachnachrichten, Gruppen und Profilen zum Gestalten.",
   getStarted: "Konto erstellen",
   signIn: "Anmelden",
   signUp: "Registrieren",
@@ -2477,6 +2602,7 @@ const de: Dict = {
   email: "E-Mail",
   password: "Passwort",
   continueGoogle: "Mit Google fortfahren",
+  continueRoblox: "Mit Roblox fortfahren",
   orEmail: "oder mit deiner E-Mail",
   haveAccount: "Schon ein Konto?",
   identifierLabel: "Roblox- oder BloxSpark-Name",
@@ -2629,7 +2755,8 @@ const de: Dict = {
   supportUrgentTitle: "Brauchst du sofort Hilfe?",
   supportUrgentText: "Unser Team ist für dich da.",
   supportCreateNewTicket: "Neues Ticket erstellen →",
-  supportTicketValidation: "Füge einen Betreff und eine Beschreibung mit mindestens 10 Zeichen hinzu.",
+  supportTicketValidation:
+    "Füge einen Betreff und eine Beschreibung mit mindestens 10 Zeichen hinzu.",
   supportTicketSent: "Ticket gesendet. Unser Team meldet sich bald bei dir.",
   sparkPlusHero:
     "Heb dich mit mehr Profiloptionen und zusätzlicher Reichweite für deine besten Inhalte ab.",
@@ -2641,7 +2768,8 @@ const de: Dict = {
   purchasesAndBilling: "Käufe & Abrechnung",
   billingCurrentPlan: "Aktuelles Abo",
   billingNoSubscription: "Du hast kein aktives Abo.",
-  billingCancelHint: "Du kannst jederzeit kündigen — du behältst Spark Plus bis zum Ende des bereits bezahlten Zeitraums.",
+  billingCancelHint:
+    "Du kannst jederzeit kündigen - du behältst Spark Plus bis zum Ende des bereits bezahlten Zeitraums.",
   billingInvoices: "Rechnungen",
   billingNoInvoices: "Noch keine Rechnungen.",
   billingViewInvoice: "Rechnung ansehen",
@@ -2665,15 +2793,16 @@ const de: Dict = {
   shopFaqTitle: "Häufig gestellte Fragen",
   shopFaqCancelQ: "Kann ich jederzeit kündigen?",
   shopFaqCancelA:
-    "Ja. Kündige jederzeit unter Käufe & Abrechnung — du behältst Spark Plus bis zum Ende des bereits bezahlten Zeitraums.",
+    "Ja. Kündige jederzeit unter Käufe & Abrechnung - du behältst Spark Plus bis zum Ende des bereits bezahlten Zeitraums.",
   shopFaqCustomizationQ: "Was passiert mit meinen Anpassungen, wenn ich kündige?",
   shopFaqCustomizationA:
-    "Deine Einstellungen (Schrift, Glow, Banner, Chatblasen) bleiben in deinem Konto gespeichert, werden aber nicht mehr angezeigt — alle sehen wieder den Standardstil. Abonniere jederzeit erneut, um sie sofort zurückzuholen.",
+    "Deine Einstellungen (Schrift, Glow, Banner, Chatblasen) bleiben in deinem Konto gespeichert, werden aber nicht mehr angezeigt - alle sehen wieder den Standardstil. Abonniere jederzeit erneut, um sie sofort zurückzuholen.",
   shopFaqRenewQ: "Verlängert es sich automatisch?",
   shopFaqRenewA:
-    "Ja, es ist ein monatliches Abo, das sich automatisch verlängert, bis du kündigst — keine Überraschungen, derselbe Betrag jeden Monat.",
+    "Ja, es ist ein monatliches Abo, das sich automatisch verlängert, bis du kündigst - keine Überraschungen, derselbe Betrag jeden Monat.",
   shopFaqPaymentQ: "Welche Zahlungsmethoden werden akzeptiert?",
-  shopFaqPaymentA: "Jede von Stripe akzeptierte Karte (Visa, Mastercard, American Express und mehr).",
+  shopFaqPaymentA:
+    "Jede von Stripe akzeptierte Karte (Visa, Mastercard, American Express und mehr).",
   shopFaqInvoiceQ: "Wie bekomme ich eine Rechnung?",
   shopFaqInvoiceA: "Jede Rechnung ist jederzeit unter Käufe & Abrechnung verfügbar.",
   sparkPlusCheckoutUnavailable: "Spark Plus-Zahlung ist noch nicht eingerichtet.",
@@ -2848,7 +2977,7 @@ const de: Dict = {
   micPermissionDenied: "Erlaube den Mikrofonzugriff, um Anrufe zu tätigen.",
   callAlreadyActive: "Du bist bereits in einem Anruf.",
   callEnded: "Anruf beendet",
-  callConnectFailed: "Anruf konnte nicht verbunden werden — versuche es in einem anderen Netzwerk.",
+  callConnectFailed: "Anruf konnte nicht verbunden werden - versuche es in einem anderen Netzwerk.",
   muteMessages: "Nachrichten stummschalten",
   pinConversation: "Oben anheften",
   viewProfile: "Profil ansehen",
@@ -2937,11 +3066,33 @@ const de: Dict = {
 };
 
 const ko: Dict = {
+  landingShowcaseEyebrow: "살아 움직이도록 설계",
+  landingShowcaseTitle: "나의 Roblox 세계를 한곳에.",
+  landingShowcaseText:
+    "나다운 프로필, 좋아하는 게임에 맞춘 피드, 다음 순간을 함께할 커뮤니티를 만나보세요.",
+  landingIdentityTitle: "Roblox 정체성을 즉시 연결",
+  landingIdentityText:
+    "한 번 연결하면 사용자 이름, 아바타, 좋아하는 게임이 나만의 프로필에 자동으로 표시됩니다.",
+  landingFeedTitle: "새로운 최애를 발견하세요",
+  landingFeedText:
+    "좋아하는 게임과 커뮤니티를 중심으로 선택된 영상, 스토리, 크리에이터를 만나보세요.",
+  landingMessagesTitle: "순간을 우정으로",
+  landingMessagesText: "Roblox 세계를 이해하는 사람들과 반응하고, 답하고, 공유하고, 대화하세요.",
+  landingJourneyEyebrow: "첫 Spark부터 간편하게",
+  landingJourneyTitle: "몇 분 만에 Roblox 플레이어에서 BloxSpark 크리에이터로.",
+  landingStep1Title: "Roblox 연결",
+  landingStep1Text: "공개 정체성이 자동으로 나타납니다.",
+  landingStep2Title: "나만의 세계 만들기",
+  landingStep2Text: "게임과 스타일, 만나고 싶은 사람을 선택하세요.",
+  landingStep3Title: "Spark 만들기",
+  landingStep3Text: "게시하고 발견하며 계속 이어지는 대화를 시작하세요.",
   landingEyebrow: "Roblox 소셜 유니버스",
   landingHeroTitle: "함께 플레이하고, 함께 만들고, 나만의 커뮤니티를 만나세요.",
   landingHeroText:
     "BloxSpark는 실제 프로필, 세로 영상, 스토리, Sparks와 생생한 대화로 Roblox 플레이어를 연결합니다.",
   landingJoin: "BloxSpark 시작하기",
+  landingJoinNow: "지금 BloxSpark 시작하기",
+  landingCtaEyebrow: "BloxSpark가 기다리고 있어요",
   landingSafe: "더 안전한 연결을 위한 설계",
   landingCommunity: "좋아하는 게임 중심의 커뮤니티",
   landingBuiltFor: "Roblox 플레이어를 위해",
@@ -3055,7 +3206,7 @@ const ko: Dict = {
   translationUnavailable: "이 브라우저에서는 아직 AI 번역을 사용할 수 없습니다.",
   tagline: "로블록스 플레이어를 위한 소셜 스파크",
   heroSub:
-    "같은 게임, 같은 언어, 같은 취향의 플레이어를 만나보세요. 스와이프하고 매치하고 대화하세요 — 음성 메시지, 그룹, 꾸밀 수 있는 프로필까지.",
+    "같은 게임, 같은 언어, 같은 취향의 플레이어를 만나보세요. 스와이프하고 매치하고 대화하세요 - 음성 메시지, 그룹, 꾸밀 수 있는 프로필까지.",
   getStarted: "계정 만들기",
   signIn: "로그인",
   signUp: "가입하기",
@@ -3063,6 +3214,7 @@ const ko: Dict = {
   email: "이메일",
   password: "비밀번호",
   continueGoogle: "Google로 계속하기",
+  continueRoblox: "Roblox로 계속하기",
   orEmail: "또는 이메일로",
   haveAccount: "이미 계정이 있나요?",
   identifierLabel: "Roblox 또는 BloxSpark 아이디",
@@ -3225,7 +3377,8 @@ const ko: Dict = {
   purchasesAndBilling: "구매 및 결제",
   billingCurrentPlan: "현재 플랜",
   billingNoSubscription: "활성화된 구독이 없습니다.",
-  billingCancelHint: "언제든지 해지할 수 있습니다 — 이미 결제한 기간이 끝날 때까지 Spark Plus를 유지합니다.",
+  billingCancelHint:
+    "언제든지 해지할 수 있습니다 - 이미 결제한 기간이 끝날 때까지 Spark Plus를 유지합니다.",
   billingInvoices: "영수증",
   billingNoInvoices: "아직 영수증이 없습니다.",
   billingViewInvoice: "영수증 보기",
@@ -3252,9 +3405,10 @@ const ko: Dict = {
     "네. 구매 및 결제에서 언제든지 해지할 수 있으며, 이미 결제한 기간이 끝날 때까지 Spark Plus를 유지합니다.",
   shopFaqCustomizationQ: "해지하면 제 커스터마이징은 어떻게 되나요?",
   shopFaqCustomizationA:
-    "선택한 항목(폰트, 발광 효과, 배너, 채팅 말풍선)은 계정에 저장되지만 더 이상 적용되지 않습니다 — 모두에게 기본 스타일이 다시 보입니다. 언제든 다시 구독하면 즉시 복원됩니다.",
+    "선택한 항목(폰트, 발광 효과, 배너, 채팅 말풍선)은 계정에 저장되지만 더 이상 적용되지 않습니다 - 모두에게 기본 스타일이 다시 보입니다. 언제든 다시 구독하면 즉시 복원됩니다.",
   shopFaqRenewQ: "자동으로 갱신되나요?",
-  shopFaqRenewA: "네, 해지할 때까지 매달 자동으로 갱신되는 구독입니다 — 매달 동일한 금액이 청구됩니다.",
+  shopFaqRenewA:
+    "네, 해지할 때까지 매달 자동으로 갱신되는 구독입니다 - 매달 동일한 금액이 청구됩니다.",
   shopFaqPaymentQ: "어떤 결제 수단을 사용할 수 있나요?",
   shopFaqPaymentA: "Stripe에서 지원하는 모든 카드(Visa, Mastercard, American Express 등).",
   shopFaqInvoiceQ: "영수증은 어떻게 받나요?",
@@ -3431,7 +3585,7 @@ const ko: Dict = {
   micPermissionDenied: "통화하려면 마이크 접근을 허용해 주세요.",
   callAlreadyActive: "이미 통화 중입니다.",
   callEnded: "통화 종료",
-  callConnectFailed: "통화를 연결할 수 없습니다 — 다른 네트워크에서 다시 시도해 주세요.",
+  callConnectFailed: "통화를 연결할 수 없습니다 - 다른 네트워크에서 다시 시도해 주세요.",
   muteMessages: "메시지 알림 끄기",
   pinConversation: "상단 고정",
   viewProfile: "프로필 보기",
@@ -3581,14 +3735,14 @@ function fallbackT(key: keyof typeof en, vars?: Record<string, string | number>)
  * Falls back to English instead of throwing when no I18nProvider is found.
  * This can legitimately happen for a moment during a hot-reload (Vite can
  * re-evaluate this module independently of its consumers, temporarily
- * pointing them at a stale I18nContext) — throwing here used to blank the
+ * pointing them at a stale I18nContext) - throwing here used to blank the
  * whole app, which is worse than briefly showing English text.
  */
 export function useI18n() {
   const ctx = useContext(I18nContext);
   if (!ctx) {
     if (import.meta.env.DEV) {
-      console.warn("useI18n() called outside I18nProvider — falling back to English.");
+      console.warn("useI18n() called outside I18nProvider - falling back to English.");
     }
     return { lang: "en" as LangCode, setLang: () => {}, t: fallbackT };
   }

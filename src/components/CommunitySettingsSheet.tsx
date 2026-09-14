@@ -212,8 +212,8 @@ function ProfileSettings({ communityId }: { communityId: string }) {
           className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
         >
           <option value="public">Publique</option>
-          <option value="private_request">Privée — sur demande</option>
-          <option value="private_friends">Privée — amis seulement</option>
+          <option value="private_request">Privée - sur demande</option>
+          <option value="private_friends">Privée - amis seulement</option>
         </select>
       </div>
 

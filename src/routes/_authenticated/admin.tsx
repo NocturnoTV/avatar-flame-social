@@ -38,7 +38,7 @@ import { NEWS_CATEGORIES, slugify } from "@/lib/newsCategories";
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Administration — Bloxspark" },
+      { title: "Administration - Bloxspark" },
       { name: "description", content: "Espace de modération réservé à l'équipe Bloxspark." },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -158,7 +158,7 @@ function Overview() {
       {cards.map((c) => (
         <div key={c.label} className="rounded-3xl border border-border bg-card p-4">
           <c.icon className="h-5 w-5 text-primary" />
-          <p className="mt-2 text-2xl font-bold">{c.value ?? "—"}</p>
+          <p className="mt-2 text-2xl font-bold">{c.value ?? "-"}</p>
           <p className="text-xs text-muted-foreground">{c.label}</p>
         </div>
       ))}
@@ -313,7 +313,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                   Vu{" "}
                   {member.last_active_at
                     ? new Date(String(member.last_active_at)).toLocaleDateString("fr-FR")
-                    : "—"}
+                    : "-"}
                 </span>
                 <span>{(member.roles as string[]).join(", ") || "membre"}</span>
               </div>
@@ -604,7 +604,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                       {notification.kind} · {notification.read ? "lue" : "non lue"} ·{" "}
                       {new Date(notification.created_at).toLocaleString("fr-FR")}
                     </p>
-                    <p className="mt-1 break-words text-sm">{notification.body || "—"}</p>
+                    <p className="mt-1 break-words text-sm">{notification.body || "-"}</p>
                   </div>
                 ))}
               </div>
@@ -897,7 +897,7 @@ function Reports({ log }: { log: LogFn }) {
                 <div className="space-y-1.5">
                   {fileDetail.data.audit.slice(0, 10).map((a) => (
                     <p key={a.id} className="rounded-xl bg-surface p-2 text-xs text-muted-foreground">
-                      {a.action} {a.details ? `— ${a.details}` : ""} ·{" "}
+                      {a.action} {a.details ? `- ${a.details}` : ""} ·{" "}
                       {new Date(a.created_at).toLocaleString("fr-FR")}
                     </p>
                   ))}
@@ -1319,7 +1319,7 @@ function NewsAdmin({ log }: { log: (a: string, u?: string, d?: string) => Promis
               <div className="min-w-0">
                 <p className="truncate font-bold">{n.title}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {n.subtitle ?? "—"} · {n.published ? "publiée" : "brouillon"} · ordre {n.position}
+                  {n.subtitle ?? "-"} · {n.published ? "publiée" : "brouillon"} · ordre {n.position}
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">

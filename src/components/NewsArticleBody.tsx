@@ -22,11 +22,11 @@ export function parseArticleContent(content: string): ArticleBlock[] {
     } else if (text.startsWith("> ")) {
       const lines = text.split("\n");
       const quoteLines = lines.filter((l) => l.startsWith("> ")).map((l) => l.slice(2));
-      const attributionLine = lines.find((l) => l.startsWith("— ") || l.startsWith("- "));
+      const attributionLine = lines.find((l) => l.startsWith("- ") || l.startsWith("- "));
       blocks.push({
         type: "quote",
         text: quoteLines.join(" "),
-        attribution: attributionLine ? attributionLine.replace(/^[—-]\s*/, "") : null,
+        attribution: attributionLine ? attributionLine.replace(/^[--]\s*/, "") : null,
       });
     } else {
       blocks.push({ type: "paragraph", text });
@@ -56,7 +56,7 @@ export function NewsArticleBody({ content }: { content: string }) {
               <span className="text-3xl leading-none text-primary/60">&ldquo;</span>
               <p className="-mt-3 text-base italic leading-relaxed text-white/90">{block.text}</p>
               {block.attribution ? (
-                <p className="mt-2 text-sm font-semibold text-muted-foreground">— {block.attribution}</p>
+                <p className="mt-2 text-sm font-semibold text-muted-foreground">- {block.attribution}</p>
               ) : null}
             </blockquote>
           );

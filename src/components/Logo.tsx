@@ -1,7 +1,7 @@
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-/** The square "B" mark — the default logo used across the app. */
+/** The square "B" mark - the default logo used across the app. */
 export function Logo({
   className,
   forceVariant,

@@ -22,7 +22,7 @@ export function presenceStatus(profile: PresenceProfile): PresenceStatus {
 
 /**
  * Small colored ring shown on a profile photo: green = online, gray =
- * offline, red = do not disturb. Never used on video thumbnails — only on
+ * offline, red = do not disturb. Never used on video thumbnails - only on
  * real profile-picture spots (messages, conversation header, profile pages).
  */
 export function PresenceDot({

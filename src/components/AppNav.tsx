@@ -1,5 +1,23 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Compass, Home, Send, Settings, Sparkles, User } from "lucide-react";
+import {
+  Bell,
+  Bookmark,
+  Clock,
+  Compass,
+  Crown,
+  Gamepad2,
+  HelpCircle,
+  Home,
+  MessageCircle,
+  Newspaper,
+  Play,
+  Receipt,
+  Send,
+  Settings,
+  Sparkles,
+  User,
+  Users,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
@@ -39,16 +57,103 @@ function useItems() {
   ];
 }
 
+function useUnreadNotifications() {
+  const { user } = useSession();
+  const { data = 0 } = useQuery({
+    queryKey: ["unread-notifications", user?.id],
+    enabled: !!user,
+    refetchInterval: 20000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("read", false);
+      return count ?? 0;
+    },
+  });
+  return data;
+}
+
 function useActive() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (to: string) => pathname === to || pathname.startsWith(to + "/");
 }
 
 export function SideNav() {
-  const items = useItems();
   const isActive = useActive();
   const unread = useUnreadConversations();
+  const unreadNotifications = useUnreadNotifications();
   const { t } = useI18n();
+  const primaryItems = [
+    { to: "/home", icon: Home, label: t("home") },
+    { to: "/discover", icon: Compass, label: t("discover") },
+    { to: "/discover", icon: Play, label: t("menuVideos") },
+    { to: "/sparks", icon: Sparkles, label: t("sparks"), featured: true },
+    { to: "/communities", icon: Users, label: t("menuCommunities") },
+    { to: "/news", icon: Newspaper, label: t("newsFeedTitle") },
+    { icon: Gamepad2, label: t("menuGames"), disabled: true },
+    { to: "/messages", icon: MessageCircle, label: t("messages"), badge: unread },
+    {
+      to: "/notifications",
+      icon: Bell,
+      label: t("notifications"),
+      badge: unreadNotifications,
+    },
+    { to: "/profile", icon: User, label: t("profile") },
+  ];
+  const secondaryItems = [
+    { to: "/shop", icon: Crown, label: t("menuPremium") },
+    { to: "/shop/billing", icon: Receipt, label: t("purchasesAndBilling") },
+    { to: "/news/saved", icon: Bookmark, label: t("menuSaved") },
+    { icon: Clock, label: t("menuRecent"), disabled: true },
+    { to: "/support", icon: HelpCircle, label: t("support") },
+    { to: "/settings", icon: Settings, label: t("settings") },
+  ];
+
+  const renderItem = (item: (typeof primaryItems)[number], group: string) => {
+    const active = item.to ? isActive(item.to) : false;
+    return item.disabled || !item.to ? (
+      <div
+        key={`${group}-${item.label}`}
+        className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground opacity-45"
+      >
+        <item.icon className="h-5 w-5 shrink-0" />
+        <span className="truncate">{item.label}</span>
+        <span className="ml-auto rounded-full bg-surface-2 px-2 py-0.5 text-[9px] font-bold uppercase">
+          {t("comingSoon")}
+        </span>
+      </div>
+    ) : (
+      <Link
+        key={`${group}-${item.to}-${item.label}`}
+        to={item.to}
+        className={cn(
+          "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
+          active
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-surface hover:text-foreground",
+        )}
+      >
+        <span
+          className={cn(
+            "relative grid h-8 w-8 shrink-0 place-items-center rounded-lg transition",
+            item.featured && "spark-gradient text-white shadow-[0_0_14px_rgba(168,85,247,.45)]",
+            active &&
+              !item.featured &&
+              "bg-primary text-primary-foreground shadow-sm shadow-primary/25",
+          )}
+        >
+          <item.icon className="h-4.5 w-4.5" fill={item.featured ? "currentColor" : "none"} />
+          {item.badge ? (
+            <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white ring-2 ring-background">
+              {item.badge > 9 ? "9+" : item.badge}
+            </span>
+          ) : null}
+        </span>
+        <span className="truncate">{item.label}</span>
+      </Link>
+    );
+  };
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-background/80 backdrop-blur-xl lg:flex">
@@ -57,51 +162,13 @@ export function SideNav() {
           <LogoWordmark className="h-10 w-auto" />
         </Link>
       </div>
-      <nav className="flex-1 space-y-1 px-3">
-        {items.map((item) => {
-          const active = isActive(item.to);
-          const isSpark = item.to === "/sparks";
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                "group flex items-center gap-4 rounded-2xl px-4 py-3 text-[15px] font-semibold transition-all",
-                active
-                  ? "bg-surface-2 text-primary"
-                  : "text-muted-foreground hover:bg-surface hover:text-foreground",
-              )}
-            >
-              {isSpark ? (
-                <span
-                  className={cn(
-                    "spark-gradient grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow-[0_0_16px_rgba(168,85,247,.55)]",
-                  )}
-                >
-                  <item.icon className="h-5 w-5" fill="currentColor" />
-                </span>
-              ) : (
-                <item.icon className="h-6 w-6 shrink-0" strokeWidth={active ? 2.6 : 2} />
-              )}
-              <span className="truncate">{item.label}</span>
-              {item.to === "/messages" && unread ? (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              ) : null}
-            </Link>
-          );
-        })}
-        <Link
-          to="/settings"
-          className="group flex items-center gap-4 rounded-2xl px-4 py-3 text-[15px] font-semibold text-muted-foreground transition-all hover:bg-surface hover:text-foreground"
-        >
-          <Settings className="h-6 w-6 shrink-0" />
-          <span className="truncate">{t("settings")}</span>
-        </Link>
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+        {primaryItems.map((item) => renderItem(item, "primary"))}
+        <div className="mx-3 my-3 border-t border-border" />
+        {secondaryItems.map((item) => renderItem(item, "secondary"))}
       </nav>
-      <p className="px-6 pb-6 text-[10px] leading-relaxed text-muted-foreground">
-        Bloxspark n'est ni affilié, ni approuvé, ni sponsorisé par Roblox Corporation.
+      <p className="border-t border-border px-5 py-4 text-[9px] leading-relaxed text-muted-foreground">
+        {t("notAffiliated")}
       </p>
     </aside>
   );
@@ -124,16 +191,14 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
           // Sparks is the app's hub: same size as every other icon, but
           // always carries the brand gradient + a soft glow so it reads as
           // special without breaking the row's rhythm. It opens the full
-          // nav menu instead of navigating directly — Sparks itself is one
+          // nav menu instead of navigating directly - Sparks itself is one
           // tap away from inside that menu.
           if (isSpark) {
             const content = (
               <>
                 <span className="relative grid h-8 w-10 place-items-center rounded-xl">
                   <span
-                    className={cn(
-                      "bx-glow absolute inset-0 rounded-xl spark-gradient blur-[6px]",
-                    )}
+                    className={cn("bx-glow absolute inset-0 rounded-xl spark-gradient blur-[6px]")}
                   />
                   <span className="spark-gradient relative grid h-8 w-10 place-items-center rounded-xl text-white shadow-[0_0_10px_rgba(168,85,247,.55)]">
                     <item.icon className="h-5 w-5" fill="currentColor" />
@@ -180,7 +245,9 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
               <span
                 className={cn(
                   "relative grid h-8 w-10 place-items-center rounded-xl transition-all",
-                  active && !isProfile && "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+                  active &&
+                    !isProfile &&
+                    "bg-primary text-primary-foreground shadow-md shadow-primary/25",
                   active && isProfile && "rounded-full ring-2 ring-primary",
                 )}
               >

@@ -2,7 +2,7 @@
  * BLOXSPARK PERSONALIZED VIDEO RECOMMENDATION ENGINE
  * ===================================================
  * Server-only. A proprietary, heuristic scoring + ranking pipeline for the
- * Discover "For You" feed — built around the same principles as modern
+ * Discover "For You" feed - built around the same principles as modern
  * short-video recommenders (watch time, completion, interactions, freshness,
  * exploration, diversity, negative feedback, quality, safety) without
  * copying any specific product's algorithm.
@@ -14,7 +14,7 @@
  *   fully implemented and wired to real Supabase data.
  * - `predicted_watch/completion/like/comment/share/follow` are heuristic
  *   estimators built from the user's own affinities blended with each
- *   video's observed ratios — not trained ML models. Swapping them for real
+ *   video's observed ratios - not trained ML models. Swapping them for real
  *   predictive models later only means changing the bodies of the small
  *   `predict*` functions below; every caller is unaffected.
  * - Anti-fraud is rule-based (burst + new-account heuristics), not ML.
@@ -134,7 +134,7 @@ function timeDecay(value: number, updatedAt: string, halfLifeDays: number, neutr
 }
 
 // ---------------------------------------------------------------------------
-// 1. getUserInterestProfile — section 4 & 17
+// 1. getUserInterestProfile - section 4 & 17
 // ---------------------------------------------------------------------------
 
 export async function getUserInterestProfile(
@@ -185,7 +185,7 @@ export async function getUserCreatorAffinity(
 }
 
 // ---------------------------------------------------------------------------
-// 2. getCandidateVideos — section 6 & 15 (step 1)
+// 2. getCandidateVideos - section 6 & 15 (step 1)
 // ---------------------------------------------------------------------------
 
 export type Candidate = {
@@ -315,7 +315,7 @@ export async function getCandidateVideos(userId: string): Promise<Candidate[]> {
 }
 
 // ---------------------------------------------------------------------------
-// 3. filterIneligibleVideos — section 11 & 13
+// 3. filterIneligibleVideos - section 11 & 13
 // ---------------------------------------------------------------------------
 
 export async function filterIneligibleVideos(
@@ -353,7 +353,7 @@ export async function filterIneligibleVideos(
 }
 
 // ---------------------------------------------------------------------------
-// 4. calculateVideoScore — section 3
+// 4. calculateVideoScore - section 3
 // ---------------------------------------------------------------------------
 
 type VideoStats = {
@@ -464,7 +464,7 @@ export async function calculateVideoScore(
 }
 
 // ---------------------------------------------------------------------------
-// 5. applyFreshnessScore — section 9
+// 5. applyFreshnessScore - section 9
 // ---------------------------------------------------------------------------
 
 export function applyFreshnessScore(video: ScoredVideo, config: EngineConfig): ScoredVideo {
@@ -474,7 +474,7 @@ export function applyFreshnessScore(video: ScoredVideo, config: EngineConfig): S
 }
 
 // ---------------------------------------------------------------------------
-// 6. applyDiversityPenalty — section 10 (greedy re-ranking / MMR-style)
+// 6. applyDiversityPenalty - section 10 (greedy re-ranking / MMR-style)
 // ---------------------------------------------------------------------------
 
 export function applyDiversityPenalty(videos: ScoredVideo[], limit: number): ScoredVideo[] {
@@ -517,7 +517,7 @@ export function applyDiversityPenalty(videos: ScoredVideo[], limit: number): Sco
 }
 
 // ---------------------------------------------------------------------------
-// 7. applyExploration — section 6
+// 7. applyExploration - section 6
 // ---------------------------------------------------------------------------
 
 export function applyExploration(
@@ -546,7 +546,7 @@ export function applyExploration(
 }
 
 // ---------------------------------------------------------------------------
-// 8. rankVideos + generatePersonalizedFeed — section 15 (full pipeline)
+// 8. rankVideos + generatePersonalizedFeed - section 15 (full pipeline)
 // ---------------------------------------------------------------------------
 
 export async function rankVideos(userId: string, candidates: Candidate[], limit: number) {
@@ -586,7 +586,7 @@ export async function generatePersonalizedFeed(userId: string, limit = 30) {
 }
 
 // ---------------------------------------------------------------------------
-// 9. Interaction recording -> affinity learning — section 4, 5, 17, 18, 19
+// 9. Interaction recording -> affinity learning - section 4, 5, 17, 18, 19
 // ---------------------------------------------------------------------------
 
 async function bumpTopicAffinity(
@@ -643,7 +643,7 @@ async function bumpCreatorAffinity(
 /**
  * Rule-based anti-fraud (section 14): dampens how much a burst of activity
  * from a very new or abnormally fast-firing account can move affinities.
- * Not ML — a cheap, honest first line of defense. A real fraud model
+ * Not ML - a cheap, honest first line of defense. A real fraud model
  * (device/IP clustering, graph analysis) is a natural v2.
  */
 async function trustWeight(userId: string): Promise<number> {

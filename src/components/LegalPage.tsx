@@ -14,7 +14,7 @@ export function LegalPage({
 }) {
   return (
     <div className="min-h-screen bg-background px-5 pb-20 pt-6">
-      <div className="mx-auto w-full max-w-2xl">
+      <div className="mx-auto w-full max-w-4xl">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground">
             <ArrowLeft className="h-4 w-4" /> Bloxspark
@@ -22,8 +22,29 @@ export function LegalPage({
           <Logo className="h-10" />
         </div>
 
-        <h1 className="mt-8 text-3xl font-bold tracking-tight">{title}</h1>
+        <h1 className="mt-10 text-4xl font-black tracking-tight sm:text-5xl">{title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{updated}</p>
+
+        <div className="mt-7 grid gap-3 rounded-3xl border border-border bg-card p-5 text-sm sm:grid-cols-4">
+          <div>
+            <p className="font-bold text-foreground">Minimum age</p>
+            <p className="mt-1 text-muted-foreground">13 years old</p>
+          </div>
+          <div>
+            <p className="font-bold text-foreground">Your controls</p>
+            <p className="mt-1 text-muted-foreground">Report, block, delete</p>
+          </div>
+          <div>
+            <p className="font-bold text-foreground">Roblox</p>
+            <p className="mt-1 text-muted-foreground">Independent service</p>
+          </div>
+          <div>
+            <p className="font-bold text-foreground">Questions</p>
+            <Link to="/support" className="mt-1 block text-primary underline">
+              Open Support
+            </Link>
+          </div>
+        </div>
 
         <div className="mt-8 space-y-8">{children}</div>
 
@@ -51,8 +72,8 @@ export function LegalPage({
 export function LegalSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="space-y-3 text-sm leading-relaxed text-muted-foreground [&_li]:ml-5 [&_li]:list-disc [&_ul]:space-y-1.5">
+      <h2 className="text-xl font-black tracking-tight text-foreground sm:text-2xl">{title}</h2>
+      <div className="space-y-3 text-[15px] leading-7 text-muted-foreground [&_li]:ml-5 [&_li]:list-disc [&_ul]:space-y-2">
         {children}
       </div>
     </section>

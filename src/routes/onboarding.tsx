@@ -17,12 +17,12 @@ export const Route = createFileRoute("/onboarding")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Inscription — Bloxspark" },
+      { title: "Inscription - Bloxspark" },
       {
         name: "description",
         content: "Renseigne ton pseudo, ton compte Roblox, ta langue et ta date de naissance.",
       },
-      { property: "og:title", content: "Inscription — Bloxspark" },
+      { property: "og:title", content: "Inscription - Bloxspark" },
       { property: "og:description", content: "Crée ton profil Bloxspark en trois étapes." },
     ],
   }),
