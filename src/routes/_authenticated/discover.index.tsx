@@ -958,7 +958,7 @@ function ShareSheet({
         conversation_id: conversationId as string,
         sender_id: user.id,
         kind: "text",
-        content: `🎥 @${username} - ${link}`,
+        content: `video:${video.id}`,
       });
       if (msgError) throw msgError;
       await bumpShares();
