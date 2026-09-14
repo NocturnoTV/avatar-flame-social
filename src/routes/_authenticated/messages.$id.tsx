@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Camera,
+  ChevronRight,
   Copy,
+  ExternalLink,
   Flag,
   Forward,
   ImagePlus,
@@ -136,6 +138,7 @@ function Conversation() {
   const [reportingMessage, setReportingMessage] = useState<Message | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
   const [lightbox, setLightbox] = useState<Message | null>(null);
+  const [externalUrl, setExternalUrl] = useState<string | null>(null);
   const [wallpaperChoice, setWallpaperLocal] = useState(() => getWallpaper(id));
   const [bubbleChoice, setBubbleLocal] = useState(() => getBubbleTheme(id));
   const myPlus = useQuery({
@@ -777,7 +780,9 @@ function Conversation() {
                   </div>
                 ) : null}
 
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     if (m.kind === "image") setLightbox(m);
                   }}
@@ -797,16 +802,12 @@ function Conversation() {
                   )}
                 >
                   {m.kind === "text" ? (
-                    mine ? (
-                      <p
-                        className="whitespace-pre-wrap break-words rounded-[26px] px-[30px] py-[18px] text-[15px] text-white shadow-sm"
-                        style={{ background: bubbleGradient }}
-                      >
-                        {m.content}
-                      </p>
-                    ) : (
-                      <ReceivedBubble>{m.content}</ReceivedBubble>
-                    )
+                    <MessageText
+                      content={m.content}
+                      mine={mine}
+                      bubbleGradient={bubbleGradient}
+                      onExternalLink={setExternalUrl}
+                    />
                   ) : null}
 
                   {m.kind === "image" ? <ImageBubble path={m.media_url} mine={mine} /> : null}
@@ -849,7 +850,7 @@ function Conversation() {
                       ))}
                     </div>
                   ) : null}
-                </button>
+                </div>
 
                 {mine ? <div className="w-7 shrink-0" /> : null}
               </div>
@@ -1127,6 +1128,21 @@ function Conversation() {
             <X className="h-6 w-6" />
           </button>
           <LightboxImage path={lightbox.media_url} />
+        </div>
+      ) : null}
+
+      {externalUrl ? (
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-black/65 p-4 backdrop-blur-sm" onClick={() => setExternalUrl(null)}>
+          <section className="w-full max-w-sm rounded-[2rem] border border-border bg-background p-6 text-foreground shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/15 text-amber-600"><ExternalLink className="h-6 w-6" /></span>
+            <h2 className="mt-4 text-xl font-black">{t("externalLink")}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("externalLinkWarning")}</p>
+            <p className="mt-4 break-all rounded-2xl border border-border bg-surface p-3 text-xs font-semibold">{externalUrl}</p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={() => setExternalUrl(null)}>{t("back")}</Button>
+              <Button onClick={() => { window.open(externalUrl, "_blank", "noopener,noreferrer"); setExternalUrl(null); }}>{t("continueAnyway")}</Button>
+            </div>
+          </section>
         </div>
       ) : null}
 
@@ -1433,6 +1449,83 @@ function ImageBubble({ path, mine }: { path: string | null; mine: boolean }) {
       )}
     </div>
   );
+}
+
+function sharedVideoId(content: string | null) {
+  if (!content) return null;
+  const marker = content.match(/^video:([0-9a-f-]{36})$/i);
+  if (marker?.[1]) return marker[1];
+  try {
+    const url = content.match(/https?:\/\/[^\s]+/i)?.[0];
+    if (!url) return null;
+    const parsed = new URL(url);
+    return parsed.pathname === "/discover" ? parsed.searchParams.get("v") : null;
+  } catch {
+    return null;
+  }
+}
+
+function MessageText({
+  content,
+  mine,
+  bubbleGradient,
+  onExternalLink,
+}: {
+  content: string | null;
+  mine: boolean;
+  bubbleGradient: string;
+  onExternalLink: (url: string) => void;
+}) {
+  const videoId = sharedVideoId(content);
+  if (videoId) return <SharedVideoCard videoId={videoId} mine={mine} />;
+  const body = <LinkifiedText content={content ?? ""} mine={mine} onExternalLink={onExternalLink} />;
+  return mine ? (
+    <p className="whitespace-pre-wrap break-words rounded-[26px] px-[30px] py-[18px] text-[15px] text-white shadow-sm" style={{ background: bubbleGradient }}>{body}</p>
+  ) : (
+    <ReceivedBubble>{body}</ReceivedBubble>
+  );
+}
+
+function LinkifiedText({ content, mine, onExternalLink }: { content: string; mine: boolean; onExternalLink: (url: string) => void }) {
+  const parts = content.split(/(https?:\/\/[^\s]+)/gi);
+  return <>{parts.map((part, index) => {
+    if (!/^https?:\/\//i.test(part)) return <span key={`${index}-${part}`}>{part}</span>;
+    let internal = false;
+    try { internal = new URL(part).origin === window.location.origin; } catch { internal = false; }
+    return internal ? (
+      <a key={`${index}-${part}`} href={part} onClick={(event) => event.stopPropagation()} className={cn("break-all font-bold underline underline-offset-2", mine ? "text-white" : "text-primary")}>{part}</a>
+    ) : (
+      <span key={`${index}-${part}`} role="link" tabIndex={0} onClick={(event) => { event.stopPropagation(); onExternalLink(part); }} onKeyDown={(event) => { if (event.key === "Enter") onExternalLink(part); }} className={cn("cursor-pointer break-all font-bold underline underline-offset-2", mine ? "text-white" : "text-primary")}>{part}</span>
+    );
+  })}</>;
+}
+
+function SharedVideoCard({ videoId, mine }: { videoId: string; mine: boolean }) {
+  const { t } = useI18n();
+  const [playing, setPlaying] = useState(false);
+  const video = useQuery({
+    queryKey: ["shared-video-message", videoId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("videos").select("id,user_id,storage_path,thumbnail_path,caption,views_count").eq("id", videoId).maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const { data: profile } = await supabase.from("profiles").select("username,avatar_url").eq("id", data.user_id).maybeSingle();
+      return { ...data, profile };
+    },
+  });
+  const videoUrl = useSignedUrl(video.data?.storage_path ?? null);
+  const thumbnailUrl = useSignedUrl(video.data?.thumbnail_path ?? null);
+  if (video.isLoading) return <div className="h-52 w-60 animate-pulse rounded-3xl bg-surface" />;
+  if (!video.data) return <ReceivedBubble>{t("noFeedVideos")}</ReceivedBubble>;
+  return <article className={cn("w-64 overflow-hidden rounded-3xl border shadow-lg", mine ? "border-white/20 bg-[#24113e] text-white" : "border-border bg-card text-foreground")}>
+    <div className="relative aspect-[4/5] bg-black">
+      {playing && videoUrl ? <video src={videoUrl} poster={thumbnailUrl ?? undefined} controls autoPlay playsInline className="h-full w-full object-contain" onClick={(event) => event.stopPropagation()} /> : <button className="relative h-full w-full" onClick={(event) => { event.stopPropagation(); setPlaying(true); }}>
+        {thumbnailUrl ? <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" /> : <video src={videoUrl ?? undefined} preload="metadata" muted className="h-full w-full object-cover" />}
+        <span className="absolute inset-0 grid place-items-center bg-black/20"><span className="grid h-14 w-14 place-items-center rounded-full bg-white/90 text-black shadow-xl"><Play className="ml-1 h-6 w-6 fill-current" /></span></span>
+      </button>}
+    </div>
+    <div className="p-3"><div className="flex items-center gap-2"><StoredImage path={video.data.profile?.avatar_url ?? null} alt="" className="h-7 w-7 rounded-full" fallback="?" /><p className="truncate text-xs font-black">@{video.data.profile?.username ?? t("someone")}</p></div><p className="mt-2 line-clamp-2 text-sm font-semibold">{video.data.caption || t("videoFeed")}</p><Link to="/discover" search={{ v: videoId }} onClick={(event) => event.stopPropagation()} className="mt-2 inline-flex text-xs font-bold text-primary">{t("discover")} <ChevronRight className="h-3.5 w-3.5" /></Link></div>
+  </article>;
 }
 
 function LightboxImage({ path }: { path: string | null }) {

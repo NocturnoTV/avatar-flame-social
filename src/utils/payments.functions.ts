@@ -15,7 +15,20 @@ export type InvoiceRow = {
   hostedInvoiceUrl: string | null | undefined;
   invoicePdf: string | null | undefined;
 };
-type InvoicesResult = { invoices: InvoiceRow[] } | { invoices: []; error: string };
+export type PurchaseRow = {
+  id: string;
+  label: string;
+  amountTotal: number;
+  currency: string;
+  paymentStatus: string;
+  status: string | null;
+  mode: string;
+  created: number;
+  receiptUrl: string | null;
+};
+type InvoicesResult =
+  | { invoices: InvoiceRow[]; purchases: PurchaseRow[]; customer: boolean }
+  | { invoices: []; purchases: []; customer: false; error: string };
 
 async function resolveOrCreateCustomer(
   stripe: ReturnType<typeof createStripeClient>,
@@ -211,12 +224,33 @@ export const listInvoices = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (!sub?.stripe_customer_id) return { invoices: [] };
-
     try {
       const stripe = createStripeClient(data.environment);
-      const invoices = await stripe.invoices.list({ customer: sub.stripe_customer_id, limit: 24 });
+      const { data: auth } = await supabase.auth.getUser();
+      let customerId = sub?.stripe_customer_id ?? null;
+      if (!customerId) {
+        const found = await stripe.customers.search({
+          query: `metadata['userId']:'${userId}'`,
+          limit: 1,
+        });
+        customerId = found.data[0]?.id ?? null;
+      }
+      if (!customerId && auth.user?.email) {
+        const found = await stripe.customers.list({ email: auth.user.email, limit: 1 });
+        customerId = found.data[0]?.id ?? null;
+      }
+      if (!customerId) return { invoices: [], purchases: [], customer: false };
+
+      const [invoices, sessions] = await Promise.all([
+        stripe.invoices.list({ customer: customerId, limit: 36 }),
+        stripe.checkout.sessions.list({
+          customer: customerId,
+          limit: 50,
+          expand: ["data.line_items", "data.payment_intent.latest_charge"],
+        }),
+      ]);
       return {
+        customer: true,
         invoices: invoices.data.map((inv) => ({
           id: inv.id ?? "",
           number: inv.number,
@@ -227,9 +261,40 @@ export const listInvoices = createServerFn({ method: "POST" })
           hostedInvoiceUrl: inv.hosted_invoice_url,
           invoicePdf: inv.invoice_pdf,
         })),
+        purchases: sessions.data
+          .filter((session) => session.payment_status !== "unpaid")
+          .map((session) => {
+            const paymentIntent =
+              typeof session.payment_intent === "object" ? session.payment_intent : null;
+            const charge =
+              paymentIntent && typeof paymentIntent.latest_charge === "object"
+                ? paymentIntent.latest_charge
+                : null;
+            return {
+              id: session.id,
+              label:
+                session.line_items?.data
+                  .map((item) => item.description)
+                  .filter(Boolean)
+                  .join(", ") ||
+                (session.mode === "subscription" ? "Spark Plus" : "BloxSpark purchase"),
+              amountTotal: session.amount_total ?? 0,
+              currency: session.currency ?? "eur",
+              paymentStatus: session.payment_status,
+              status: session.status,
+              mode: session.mode,
+              created: session.created,
+              receiptUrl: charge?.receipt_url ?? null,
+            };
+          }),
       };
     } catch (error) {
-      return { invoices: [], error: getStripeErrorMessage(error) };
+      return {
+        invoices: [],
+        purchases: [],
+        customer: false,
+        error: getStripeErrorMessage(error),
+      };
     }
   });
 

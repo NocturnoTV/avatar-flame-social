@@ -23,7 +23,6 @@ import {
   SlidersHorizontal,
   Smile,
   Sparkles,
-  ThumbsDown,
   Volume2,
   VolumeX,
   X,
@@ -117,7 +116,7 @@ function DiscoverPage() {
   });
 
   const feed = useQuery({
-    queryKey: ["feed", tab, following.data?.join(","), pinnedVideoId],
+    queryKey: ["feed", user?.id, tab, following.data?.join(","), pinnedVideoId],
     enabled: !!user && following.isFetched,
     queryFn: async () => {
       let videos: VideoRow[];
@@ -125,9 +124,23 @@ function DiscoverPage() {
         // Personalized ranking - see src/lib/recommendation-engine.server.ts
         const rows = await getPersonalizedFeed({ data: { limit: 30 } });
         videos = rows.map((v) => ({ ...v, thumbnail_path: null }));
+        const { data: ownVideos, error: ownVideosError } = await supabase
+          .from("videos")
+          .select(
+            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
+          )
+          .eq("user_id", user!.id)
+          .eq("visibility", "public")
+          .order("created_at", { ascending: false })
+          .limit(12);
+        if (ownVideosError) throw ownVideosError;
+        const ownIds = new Set((ownVideos ?? []).map((video) => video.id));
+        videos = [
+          ...((ownVideos ?? []) as VideoRow[]),
+          ...videos.filter((video) => !ownIds.has(video.id)),
+        ];
       } else {
-        const ids = following.data ?? [];
-        if (ids.length === 0) return { videos: [] as VideoRow[], profiles: {} };
+        const ids = [...new Set([user!.id, ...(following.data ?? [])])];
         const { data, error } = await supabase
           .from("videos")
           .select(
@@ -295,7 +308,29 @@ function DiscoverPage() {
       </div>
 
       {feed.isLoading ? (
-        <div className="grid h-full place-items-center text-white/60">Chargement…</div>
+        <div className="relative grid h-full place-items-center overflow-hidden bg-[#07040d] text-white">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(168,85,247,.22),transparent_38%)]" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full border border-primary/10" />
+          <div className="relative flex flex-col items-center">
+            <div className="relative grid h-24 w-24 place-items-center">
+              <span className="absolute inset-0 animate-spin rounded-full border-[3px] border-white/10 border-t-primary border-r-fuchsia-400 shadow-[0_0_34px_rgba(168,85,247,.35)]" />
+              <span className="absolute inset-3 animate-[spin_1.4s_linear_infinite_reverse] rounded-full border-2 border-white/5 border-b-violet-300" />
+              <span className="spark-gradient grid h-12 w-12 place-items-center rounded-2xl text-xl font-black text-white shadow-[0_0_24px_rgba(168,85,247,.55)]">
+                B
+              </span>
+            </div>
+            <p className="mt-6 text-sm font-black tracking-wide">{t("loading")}</p>
+            <div className="mt-3 flex gap-1.5" aria-hidden="true">
+              {[0, 1, 2].map((index) => (
+                <span
+                  key={index}
+                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary"
+                  style={{ animationDelay: `${index * 140}ms` }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       ) : displayedVideos.length === 0 ? (
         <div className="grid h-full place-items-center px-8 text-center">
           <div className="space-y-4">
@@ -957,7 +992,7 @@ function ShareSheet({
         conversation_id: conversationId as string,
         sender_id: user.id,
         kind: "text",
-        content: `🎥 @${username} - ${link}`,
+        content: `video:${video.id}`,
       });
       if (msgError) throw msgError;
       await bumpShares();
@@ -1051,17 +1086,28 @@ function RailButton({
   activeClass?: string | undefined;
   label: string;
 }) {
+  const [burst, setBurst] = useState(0);
   return (
     <button
-      onClick={onClick}
+      onClick={() => {
+        setBurst((value) => value + 1);
+        onClick();
+      }}
       aria-label={label}
-      className="flex flex-col items-center gap-0.5 transition active:scale-90"
+      className="group relative flex flex-col items-center gap-0.5 transition active:scale-90"
     >
+      {active ? (
+        <span key={burst} className="pointer-events-none absolute left-1/2 top-3 bx-reaction-burst">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <i key={index} style={{ "--burst-index": index } as React.CSSProperties} />
+          ))}
+        </span>
+      ) : null}
       <Icon
         className={cn(
           "h-[26px] w-[26px] text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.5)] transition-transform duration-200",
           active && activeClass,
-          active && "scale-110",
+          active && "scale-110 bx-reaction-pop",
         )}
       />
       <span className="text-[11px] font-bold text-white drop-shadow">{formatCount(count)}</span>
@@ -1113,6 +1159,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const [media, setMedia] = useState<{ url: string; type: "gif" | "sticker" } | null>(null);
   const [sort, setSort] = useState<"popular" | "recent">("popular");
   const [commentSearch, setCommentSearch] = useState("");
+  const [giftingCreator, setGiftingCreator] = useState(false);
 
   const myProfile = useQuery({
     queryKey: ["comment-composer-profile", user?.id],
@@ -1127,6 +1174,18 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     },
   });
 
+  const videoCreator = useQuery({
+    queryKey: ["comment-video-creator", video.user_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username,avatar_url")
+        .eq("id", video.user_id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   const comments = useQuery({
     queryKey: ["video-comments", video.id],
     queryFn: async () => {
@@ -1136,7 +1195,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         .eq("video_id", video.id)
         .order("created_at", { ascending: false });
       const rows = data ?? [];
-      const ids = [...new Set(rows.map((r) => r.user_id))];
+      const ids = [...new Set([...rows.map((r) => r.user_id), video.user_id])];
       const people: Record<string, { username: string; avatar_url: string | null }> = {};
       if (ids.length) {
         const { data: p } = await supabase
@@ -1164,9 +1223,13 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         likes_count: reactions.filter(
           (reaction) => reaction.comment_id === r.id && reaction.reaction === "like",
         ).length,
-        dislikes_count: reactions.filter(
-          (reaction) => reaction.comment_id === r.id && reaction.reaction === "dislike",
-        ).length,
+        creator_liked: reactions.some(
+          (reaction) =>
+            reaction.comment_id === r.id &&
+            reaction.user_id === video.user_id &&
+            reaction.reaction === "like",
+        ),
+        creator_avatar_url: people[video.user_id]?.avatar_url ?? null,
         my_reaction:
           reactions.find(
             (reaction) => reaction.comment_id === r.id && reaction.user_id === user?.id,
@@ -1203,10 +1266,10 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     await qc.invalidateQueries({ queryKey: ["feed"] });
   }
 
-  async function react(commentId: string, reaction: "like" | "dislike") {
+  async function react(commentId: string) {
     if (!user) return;
     const current = comments.data?.find((comment) => comment.id === commentId)?.my_reaction;
-    if (current === reaction) {
+    if (current === "like") {
       const { error } = await supabase
         .from("video_comment_reactions")
         .delete()
@@ -1219,7 +1282,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     } else {
       const { error } = await supabase
         .from("video_comment_reactions")
-        .upsert({ comment_id: commentId, user_id: user.id, reaction });
+        .upsert({ comment_id: commentId, user_id: user.id, reaction: "like" });
       if (error) {
         toast.error(t("errorGeneric"));
         return;
@@ -1232,14 +1295,15 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-md bx-sheet-backdrop"
       onClick={onClose}
     >
       <div
-        className="app-background flex h-[78dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[2rem] border border-b-0 border-border shadow-[0_-24px_70px_-30px_rgba(0,0,0,.8)] sm:h-[82dvh] sm:rounded-[2rem] sm:border-b"
+        className="app-background relative flex h-[82dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[2.25rem] border border-b-0 border-primary/20 shadow-[0_-30px_100px_-25px_rgba(124,58,237,.65)] bx-comments-enter sm:h-[86dvh] sm:rounded-[2.25rem] sm:border-b"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-primary/10 to-transparent" />
+        <div className="relative mx-auto mt-2 h-1 w-11 rounded-full bg-primary/35" />
         <label className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-purple-400/30 bg-purple-500/15 px-4 py-2.5 text-sm shadow-[0_10px_30px_-20px_rgba(168,85,247,.8)] focus-within:border-purple-500">
           <Search className="h-4 w-4 shrink-0 text-purple-500" />
           <span className="sr-only">{t("commentSearchTopic")}</span>
@@ -1273,7 +1337,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             <X className="h-6 w-6" />
           </button>
         </div>
-        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
+        <div className="relative flex-1 space-y-1 overflow-y-auto px-3 py-4 sm:px-5">
           {comments.data?.length ? (
             [...comments.data]
               .filter((comment) => !comment.parent_id)
@@ -1356,7 +1420,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             </button>
           </div>
         ) : null}
-        <div className="flex items-center gap-2 border-t border-border bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="relative flex items-center gap-2 border-t border-primary/15 bg-card/90 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-15px_40px_-25px_rgba(124,58,237,.7)] backdrop-blur-2xl">
           <StoredImage
             path={myProfile.data?.avatar_url}
             alt={myProfile.data?.username ?? ""}
@@ -1385,10 +1449,30 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
           >
             <ImagePlus className="h-5 w-5" />
           </button>
+          {user?.id !== video.user_id ? (
+            <button
+              onClick={() => setGiftingCreator(true)}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white shadow-[0_6px_20px_-6px_rgba(168,85,247,.9)] transition hover:scale-105 active:scale-90"
+              aria-label={t("giftTo", {
+                username: videoCreator.data?.username ?? "creator",
+              })}
+            >
+              <Gift className="h-5 w-5" />
+            </button>
+          ) : null}
           <Button size="icon" onClick={send} aria-label="Envoyer" disabled={!text.trim() && !media}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        {giftingCreator ? (
+          <GiftSheet
+            targetUserId={video.user_id}
+            targetUsername={videoCreator.data?.username ?? "creator"}
+            videoId={video.id}
+            onGiftSent={() => void comments.refetch()}
+            onClose={() => setGiftingCreator(false)}
+          />
+        ) : null}
       </div>
     </div>
   );
@@ -1405,7 +1489,8 @@ type RichComment = {
   username: string;
   avatar_url: string | null;
   likes_count: number;
-  dislikes_count: number;
+  creator_liked: boolean;
+  creator_avatar_url: string | null;
   my_reaction: string | null;
 };
 
@@ -1427,19 +1512,18 @@ function CommentItem({
   comment: RichComment;
   replies: RichComment[];
   onReply: (id: string, username: string) => void;
-  onReact: (id: string, reaction: "like" | "dislike") => void;
+  onReact: (id: string) => void;
 }) {
   const { t, lang } = useI18n();
-  const { user } = useSession();
-  const [gifting, setGifting] = useState(false);
+  const [likeBurst, setLikeBurst] = useState(0);
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 rounded-3xl px-2 py-3 transition-colors hover:bg-primary/[0.035]">
       <div className="flex gap-3">
         <Link to="/users/$id" params={{ id: comment.username || comment.user_id }}>
           <StoredImage
             path={comment.avatar_url}
             alt={comment.username}
-            className="h-10 w-10 shrink-0 rounded-full"
+            className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-background shadow-md"
             fallback={comment.username[0]?.toUpperCase() ?? "?"}
           />
         </Link>
@@ -1451,9 +1535,27 @@ function CommentItem({
           >
             @{comment.username}
           </Link>
-          <p className="mt-0.5 text-sm leading-relaxed text-foreground">
-            <MentionText text={comment.content} />
-          </p>
+          {comment.media_type === "gift" ? (
+            <div className="mt-1 overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-500 p-[1px] shadow-[0_10px_30px_-15px_rgba(217,70,239,.9)] bx-gift-comment">
+              <div className="flex items-center gap-3 rounded-[calc(1rem-1px)] bg-black/20 px-3 py-2.5 text-white backdrop-blur-sm">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/20 text-xl shadow-inner">
+                  🎁
+                </span>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[.16em] text-white/75">
+                    Cadeau au créateur
+                  </p>
+                  <p className="text-base font-black">
+                    {Number(comment.media_url ?? 0).toLocaleString()} Blox
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-0.5 text-[15px] leading-relaxed text-foreground">
+              <MentionText text={comment.content} />
+            </p>
+          )}
           {comment.media_type === "gif" && comment.media_url ? (
             <img
               src={comment.media_url}
@@ -1472,32 +1574,41 @@ function CommentItem({
             >
               {t("reply")}
             </button>
-            {user && user.id !== comment.user_id ? (
-              <button
-                onClick={() => setGifting(true)}
-                aria-label={t("giftTo", { username: comment.username })}
-                className="flex items-center gap-1 hover:text-primary"
-              >
-                <Gift className="h-3.5 w-3.5" />
-              </button>
+            {comment.creator_liked ? (
+              <span className="flex items-center gap-1.5 rounded-full bg-rose-500/10 px-2 py-1 text-[10px] font-bold text-rose-500">
+                <span className="relative">
+                  <StoredImage
+                    path={comment.creator_avatar_url}
+                    alt=""
+                    className="h-4 w-4 rounded-full object-cover"
+                    fallback="♥"
+                  />
+                  <Heart className="absolute -bottom-1 -right-1 h-2.5 w-2.5 fill-rose-500 text-rose-500" />
+                </span>
+                Aimé par le créateur
+              </span>
             ) : null}
           </div>
         </div>
         <div className="flex w-9 shrink-0 flex-col items-center gap-3 pt-2 text-muted-foreground">
           <button
-            onClick={() => void onReact(comment.id, "like")}
-            className={cn("flex flex-col items-center text-purple-500 transition active:scale-90")}
+            onClick={() => {
+              setLikeBurst((value) => value + 1);
+              void onReact(comment.id);
+            }}
+            className="group relative flex flex-col items-center text-muted-foreground transition active:scale-75"
             aria-label="J’aime"
           >
-            <Heart className={cn("h-6 w-6", comment.my_reaction === "like" && "fill-current")} />
+            {comment.my_reaction === "like" ? (
+              <span key={likeBurst} className="bx-mini-heart-burst" />
+            ) : null}
+            <Heart
+              className={cn(
+                "h-6 w-6 transition",
+                comment.my_reaction === "like" && "fill-rose-500 text-rose-500 bx-reaction-pop",
+              )}
+            />
             <span className="text-[11px]">{comment.likes_count || ""}</span>
-          </button>
-          <button
-            onClick={() => void onReact(comment.id, "dislike")}
-            className={cn(comment.my_reaction === "dislike" && "text-primary")}
-            aria-label="Je n’aime pas"
-          >
-            <ThumbsDown className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -1539,23 +1650,20 @@ function CommentItem({
             </div>
           </div>
           <button
-            onClick={() => void onReact(r.id, "like")}
-            className="flex w-9 shrink-0 flex-col items-center pt-2 text-purple-500 transition active:scale-90"
+            onClick={() => void onReact(r.id)}
+            className="flex w-9 shrink-0 flex-col items-center pt-2 text-muted-foreground transition active:scale-75"
             aria-label="J’aime"
           >
-            <Heart className={cn("h-5 w-5", r.my_reaction === "like" && "fill-current")} />
+            <Heart
+              className={cn(
+                "h-5 w-5",
+                r.my_reaction === "like" && "fill-rose-500 text-rose-500 bx-reaction-pop",
+              )}
+            />
             <span className="text-[11px]">{r.likes_count || ""}</span>
           </button>
         </div>
       ))}
-
-      {gifting ? (
-        <GiftSheet
-          targetUserId={comment.user_id}
-          targetUsername={comment.username}
-          onClose={() => setGifting(false)}
-        />
-      ) : null}
     </div>
   );
 }

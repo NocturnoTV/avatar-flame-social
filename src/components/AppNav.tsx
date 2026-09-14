@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
+  BookOpen,
   Bookmark,
   Clock,
   Compass,
@@ -91,6 +92,7 @@ export function SideNav() {
     { to: "/sparks", icon: Sparkles, label: t("sparks"), featured: true },
     { to: "/communities", icon: Users, label: t("menuCommunities") },
     { to: "/news", icon: Newspaper, label: t("newsFeedTitle") },
+    { to: "/wiki", icon: BookOpen, label: t("wiki") },
     { icon: Gamepad2, label: t("menuGames"), disabled: true },
     { to: "/messages", icon: MessageCircle, label: t("messages"), badge: unread },
     {

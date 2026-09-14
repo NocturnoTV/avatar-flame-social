@@ -444,10 +444,7 @@ function HomePage() {
         <div className="absolute inset-0 flex flex-col justify-between p-4">
           <div className="flex items-start justify-between">
             <LogoWordmark className="h-8 w-auto bx-float" forceVariant="dark" />
-            <div className="flex items-center gap-2">
-              <Link to="/shop">
-                <BloxBalanceChip className="border-white/20 bg-black/40 text-white backdrop-blur" />
-              </Link>
+            <div className="absolute right-3 top-3 z-20 flex items-center gap-2 sm:right-4 sm:top-4">
               <Link
                 ref={heroBellRef}
                 to="/notifications"
@@ -460,6 +457,13 @@ function HomePage() {
                     {counters.data.unread > 9 ? "9+" : counters.data.unread}
                   </span>
                 ) : null}
+              </Link>
+              <Link
+                to="/shop"
+                aria-label="Blox"
+                className="transition hover:-translate-y-0.5 active:scale-95"
+              >
+                <BloxBalanceChip className="border-white/25 bg-black/55 text-white shadow-[0_8px_24px_-10px_rgba(0,0,0,.9)] backdrop-blur-xl" />
               </Link>
             </div>
           </div>

@@ -808,10 +808,13 @@ function ChannelsTab({
     void channels.refetch();
   }
 
-  const uncategorized = (channels.data ?? []).filter((c) => !c.category_id);
+  // The default channel is kept in the database for compatibility with existing
+  // communities, but CommunityHome is the only home entry shown in navigation.
+  const visibleChannels = (channels.data ?? []).filter((c) => !c.is_default);
+  const uncategorized = visibleChannels.filter((c) => !c.category_id);
   const byCategory = (categories.data ?? []).map((cat) => ({
     ...cat,
-    channels: (channels.data ?? []).filter((c) => c.category_id === cat.id),
+    channels: visibleChannels.filter((c) => c.category_id === cat.id),
   }));
 
   const channelButtonClass = (active: boolean) =>

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
   BookOpen,
@@ -22,12 +22,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { LogoWordmark } from "@/components/Logo";
 import { StoredImage } from "@/components/Media";
-import { Button, Input, Select, Textarea } from "@/components/ui-kit";
+import { Button, Input, Select, Sheet, Textarea } from "@/components/ui-kit";
 import { useI18n, type LangCode } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { errorMessage, cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/support")({
+  validateSearch: (search: Record<string, unknown>): { ticket?: string } =>
+    typeof search["ticket"] === "string" ? { ticket: search["ticket"] } : {},
   head: () => ({
     meta: [
       { title: "Support - Bloxspark" },
@@ -47,12 +49,237 @@ const SERVICE_ICONS: Record<(typeof SERVICE_IDS)[number], typeof Server> = {
   storage: Paperclip,
 };
 
+const TICKET_CATEGORIES: Record<LangCode, [string, string, string, string][]> = {
+  en: [
+    [
+      "general",
+      "❓",
+      "Questions & General Support",
+      "Questions or issues that do not fit another category.",
+    ],
+    [
+      "trust_safety",
+      "🛡️",
+      "Trust & Safety / Moderation",
+      "Report users, harmful content, harassment or inappropriate behavior.",
+    ],
+    [
+      "technical",
+      "🐛",
+      "Technical Issues & Bugs",
+      "Report bugs, errors, crashes or features that are not working.",
+    ],
+    [
+      "billing",
+      "💳",
+      "Purchases & Billing",
+      "Get help with payments, purchases, refunds or billing issues.",
+    ],
+    ["copyright", "©️", "Copyright & DMCA", "Submit copyright infringement or DMCA requests."],
+    ["account", "🔐", "Account & Login", "Get help with login, account access or account issues."],
+    ["feedback", "💡", "Feedback & Suggestions", "Share ideas and feedback to improve BloxSpark."],
+    [
+      "partnerships",
+      "🤝",
+      "Partnerships & Business",
+      "Contact us about partnerships, collaborations or business.",
+    ],
+    ["legal", "⚖️", "Legal Requests", "Submit legal requests or other legal matters."],
+  ],
+  fr: [
+    [
+      "general",
+      "❓",
+      "Questions et aide générale",
+      "Questions ou problèmes qui ne correspondent à aucune autre catégorie.",
+    ],
+    [
+      "trust_safety",
+      "🛡️",
+      "Sécurité et modération",
+      "Signaler un utilisateur, du contenu dangereux, du harcèlement ou un comportement inapproprié.",
+    ],
+    [
+      "technical",
+      "🐛",
+      "Problèmes techniques et bugs",
+      "Signaler un bug, une erreur, un plantage ou une fonction qui ne marche pas.",
+    ],
+    [
+      "billing",
+      "💳",
+      "Achats et facturation",
+      "Obtenir de l'aide pour un paiement, un achat, un remboursement ou une facture.",
+    ],
+    [
+      "copyright",
+      "©️",
+      "Droits d’auteur et DMCA",
+      "Envoyer une demande liée aux droits d’auteur ou au DMCA.",
+    ],
+    [
+      "account",
+      "🔐",
+      "Compte et connexion",
+      "Obtenir de l'aide pour se connecter ou accéder à son compte.",
+    ],
+    ["feedback", "💡", "Avis et suggestions", "Partager des idées pour améliorer BloxSpark."],
+    [
+      "partnerships",
+      "🤝",
+      "Partenariats et entreprises",
+      "Nous contacter pour un partenariat, une collaboration ou une demande commerciale.",
+    ],
+    ["legal", "⚖️", "Demandes juridiques", "Envoyer une demande juridique ou liée au droit."],
+  ],
+  es: [
+    [
+      "general",
+      "❓",
+      "Preguntas y ayuda general",
+      "Preguntas o problemas que no encajan en otra categoría.",
+    ],
+    [
+      "trust_safety",
+      "🛡️",
+      "Seguridad y moderación",
+      "Denuncia usuarios, contenido dañino, acoso o conducta inapropiada.",
+    ],
+    [
+      "technical",
+      "🐛",
+      "Problemas técnicos y errores",
+      "Informa de errores, bloqueos o funciones que no funcionan.",
+    ],
+    [
+      "billing",
+      "💳",
+      "Compras y facturación",
+      "Ayuda con pagos, compras, reembolsos o facturación.",
+    ],
+    ["copyright", "©️", "Copyright y DMCA", "Envía solicitudes de copyright o DMCA."],
+    [
+      "account",
+      "🔐",
+      "Cuenta e inicio de sesión",
+      "Ayuda para iniciar sesión o acceder a tu cuenta.",
+    ],
+    ["feedback", "💡", "Opiniones y sugerencias", "Comparte ideas para mejorar BloxSpark."],
+    [
+      "partnerships",
+      "🤝",
+      "Alianzas y negocios",
+      "Contacta sobre alianzas, colaboraciones o negocios.",
+    ],
+    ["legal", "⚖️", "Solicitudes legales", "Envía solicitudes u otros asuntos legales."],
+  ],
+  pt: [
+    [
+      "general",
+      "❓",
+      "Perguntas e suporte geral",
+      "Perguntas ou problemas que não cabem em outra categoria.",
+    ],
+    [
+      "trust_safety",
+      "🛡️",
+      "Segurança e moderação",
+      "Denuncie usuários, conteúdo nocivo, assédio ou comportamento impróprio.",
+    ],
+    [
+      "technical",
+      "🐛",
+      "Problemas técnicos e bugs",
+      "Relate bugs, erros, falhas ou recursos que não funcionam.",
+    ],
+    [
+      "billing",
+      "💳",
+      "Compras e faturamento",
+      "Ajuda com pagamentos, compras, reembolsos ou cobrança.",
+    ],
+    [
+      "copyright",
+      "©️",
+      "Direitos autorais e DMCA",
+      "Envie solicitações de direitos autorais ou DMCA.",
+    ],
+    ["account", "🔐", "Conta e login", "Ajuda com login e acesso à conta."],
+    ["feedback", "💡", "Feedback e sugestões", "Compartilhe ideias para melhorar o BloxSpark."],
+    [
+      "partnerships",
+      "🤝",
+      "Parcerias e negócios",
+      "Fale sobre parcerias, colaborações ou negócios.",
+    ],
+    ["legal", "⚖️", "Solicitações legais", "Envie solicitações ou outros assuntos legais."],
+  ],
+  de: [
+    [
+      "general",
+      "❓",
+      "Fragen und allgemeine Hilfe",
+      "Fragen oder Probleme, die in keine andere Kategorie passen.",
+    ],
+    [
+      "trust_safety",
+      "🛡️",
+      "Sicherheit und Moderation",
+      "Melde Nutzer, schädliche Inhalte, Belästigung oder unangemessenes Verhalten.",
+    ],
+    [
+      "technical",
+      "🐛",
+      "Technische Probleme und Fehler",
+      "Melde Fehler, Abstürze oder nicht funktionierende Funktionen.",
+    ],
+    [
+      "billing",
+      "💳",
+      "Käufe und Abrechnung",
+      "Hilfe bei Zahlungen, Käufen, Erstattungen oder Abrechnung.",
+    ],
+    ["copyright", "©️", "Urheberrecht und DMCA", "Reiche Urheberrechts- oder DMCA-Anfragen ein."],
+    ["account", "🔐", "Konto und Anmeldung", "Hilfe bei Anmeldung und Kontozugriff."],
+    ["feedback", "💡", "Feedback und Vorschläge", "Teile Ideen zur Verbesserung von BloxSpark."],
+    [
+      "partnerships",
+      "🤝",
+      "Partnerschaften und Geschäft",
+      "Kontakt für Partnerschaften, Kooperationen oder Geschäftliches.",
+    ],
+    ["legal", "⚖️", "Rechtliche Anfragen", "Reiche rechtliche Anfragen ein."],
+  ],
+  ko: [
+    ["general", "❓", "질문 및 일반 지원", "다른 카테고리에 해당하지 않는 질문이나 문제입니다."],
+    [
+      "trust_safety",
+      "🛡️",
+      "신뢰 및 안전 / 운영",
+      "사용자, 유해 콘텐츠, 괴롭힘 또는 부적절한 행동을 신고하세요.",
+    ],
+    [
+      "technical",
+      "🐛",
+      "기술 문제 및 버그",
+      "버그, 오류, 충돌 또는 작동하지 않는 기능을 신고하세요.",
+    ],
+    ["billing", "💳", "구매 및 결제", "결제, 구매, 환불 또는 청구 관련 도움을 받으세요."],
+    ["copyright", "©️", "저작권 및 DMCA", "저작권 침해 또는 DMCA 요청을 제출하세요."],
+    ["account", "🔐", "계정 및 로그인", "로그인이나 계정 접근 도움을 받으세요."],
+    ["feedback", "💡", "의견 및 제안", "BloxSpark 개선 아이디어를 공유하세요."],
+    ["partnerships", "🤝", "파트너십 및 비즈니스", "파트너십, 협업 또는 비즈니스 문의입니다."],
+    ["legal", "⚖️", "법적 요청", "법적 요청이나 관련 사안을 제출하세요."],
+  ],
+};
+
 const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answer: string }[]> = {
   en: [
     {
       category: "Account",
       question: "How do I link my Roblox account?",
-      answer: 'Go to Settings → Roblox account, then tap "Connect my Roblox account" and authorize Bloxspark.',
+      answer:
+        'Go to Settings → Roblox account, then tap "Connect my Roblox account" and authorize Bloxspark.',
     },
     {
       category: "Account",
@@ -79,7 +306,8 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Payments",
       question: "How does Bloxspark Premium work?",
-      answer: "Bloxspark Premium (Spark Plus) unlocks profile customization and chat bubble themes, among other perks.",
+      answer:
+        "Bloxspark Premium (Spark Plus) unlocks profile customization and chat bubble themes, among other perks.",
     },
     {
       category: "Security",
@@ -98,12 +326,13 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
       category: "Compte",
       question: "Comment lier mon compte Roblox ?",
       answer:
-        "Va dans Réglages → Compte Roblox, puis clique sur \"Connecter mon compte Roblox\" et autorise Bloxspark.",
+        'Va dans Réglages → Compte Roblox, puis clique sur "Connecter mon compte Roblox" et autorise Bloxspark.',
     },
     {
       category: "Compte",
       question: "Comment modifier mon profil ?",
-      answer: "Depuis l'onglet Profil, clique sur ta photo ou ta bannière pour tout modifier directement.",
+      answer:
+        "Depuis l'onglet Profil, clique sur ta photo ou ta bannière pour tout modifier directement.",
     },
     {
       category: "Roblox",
@@ -132,12 +361,12 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
       category: "Sécurité",
       question: "Comment signaler un utilisateur ?",
       answer:
-        "Depuis son profil ou une conversation, ouvre le menu \"...\" puis \"Signaler\". Notre équipe Trust & Safety traite chaque signalement.",
+        'Depuis son profil ou une conversation, ouvre le menu "..." puis "Signaler". Notre équipe Trust & Safety traite chaque signalement.',
     },
     {
       category: "Sécurité",
       question: "Comment bloquer quelqu'un ?",
-      answer: "Depuis le menu \"...\" d'une conversation ou d'un profil, sélectionne \"Bloquer\".",
+      answer: 'Depuis le menu "..." d\'une conversation ou d\'un profil, sélectionne "Bloquer".',
     },
   ],
   es: [
@@ -172,7 +401,8 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Pagos",
       question: "¿Cómo funciona Bloxspark Premium?",
-      answer: "Bloxspark Premium (Spark Plus) desbloquea la personalización de perfil y temas de burbujas de chat, entre otras ventajas.",
+      answer:
+        "Bloxspark Premium (Spark Plus) desbloquea la personalización de perfil y temas de burbujas de chat, entre otras ventajas.",
     },
     {
       category: "Seguridad",
@@ -218,7 +448,8 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Pagamentos",
       question: "Como funciona o Bloxspark Premium?",
-      answer: "O Bloxspark Premium (Spark Plus) libera a personalização de perfil e temas de bolhas de chat, entre outras vantagens.",
+      answer:
+        "O Bloxspark Premium (Spark Plus) libera a personalização de perfil e temas de bolhas de chat, entre outras vantagens.",
     },
     {
       category: "Segurança",
@@ -264,7 +495,8 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Zahlungen",
       question: "Wie funktioniert Bloxspark Premium?",
-      answer: "Bloxspark Premium (Spark Plus) schaltet unter anderem Profilanpassung und Chat-Bubble-Designs frei.",
+      answer:
+        "Bloxspark Premium (Spark Plus) schaltet unter anderem Profilanpassung und Chat-Bubble-Designs frei.",
     },
     {
       category: "Sicherheit",
@@ -282,7 +514,8 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "계정",
       question: "Roblox 계정을 어떻게 연결하나요?",
-      answer: '설정 → Roblox 계정으로 이동한 다음 "내 Roblox 계정 연결"을 눌러 Bloxspark를 승인하세요.',
+      answer:
+        '설정 → Roblox 계정으로 이동한 다음 "내 Roblox 계정 연결"을 눌러 Bloxspark를 승인하세요.',
     },
     {
       category: "계정",
@@ -292,7 +525,8 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "Roblox",
       question: "Roblox 로그인이 안 되는 이유는 무엇인가요?",
-      answer: "팝업 차단이 되어 있지 않은지 확인한 후 다시 시도해 주세요. 계속되면 티켓을 생성해 주세요.",
+      answer:
+        "팝업 차단이 되어 있지 않은지 확인한 후 다시 시도해 주세요. 계속되면 티켓을 생성해 주세요.",
     },
     {
       category: "Sparks",
@@ -308,12 +542,14 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
     {
       category: "결제",
       question: "Bloxspark 프리미엄은 어떻게 작동하나요?",
-      answer: "Bloxspark 프리미엄(Spark Plus)은 프로필 커스터마이징과 채팅 버블 테마 등을 제공합니다.",
+      answer:
+        "Bloxspark 프리미엄(Spark Plus)은 프로필 커스터마이징과 채팅 버블 테마 등을 제공합니다.",
     },
     {
       category: "보안",
       question: "사용자를 어떻게 신고하나요?",
-      answer: '프로필이나 대화방에서 "..." 메뉴를 열고 "신고"를 선택하세요. 저희 신뢰 및 안전팀이 모든 신고를 검토합니다.',
+      answer:
+        '프로필이나 대화방에서 "..." 메뉴를 열고 "신고"를 선택하세요. 저희 신뢰 및 안전팀이 모든 신고를 검토합니다.',
     },
     {
       category: "보안",
@@ -324,6 +560,7 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
 };
 
 function SupportPage() {
+  const { ticket: linkedTicketId } = Route.useSearch();
   const { t, lang } = useI18n();
   const { user } = useSession();
   const [search, setSearch] = useState("");
@@ -331,16 +568,12 @@ function SupportPage() {
   const [view, setView] = useState<"home" | "newTicket" | "myTickets">("home");
   const [openFaq, setOpenFaq] = useState<string | null>(null);
 
-  const CATEGORIES = [
-    { id: "account", label: t("supportCatAccount") },
-    { id: "roblox", label: t("supportCatRoblox") },
-    { id: "payment", label: t("supportCatPayment") },
-    { id: "sparks", label: t("supportCatSparks") },
-    { id: "report", label: t("supportCatReport") },
-    { id: "bug", label: t("supportCatBug") },
-    { id: "copyright", label: t("supportCatCopyright") },
-    { id: "other", label: t("supportCatOther") },
-  ] as const;
+  const CATEGORIES = TICKET_CATEGORIES[lang].map(([id, emoji, label, description]) => ({
+    id,
+    emoji,
+    label,
+    description,
+  }));
 
   const SERVICES = SERVICE_IDS.map((id) => ({
     id,
@@ -378,12 +611,20 @@ function SupportPage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [ticketCategory, setTicketCategory] = useState<string>("bug");
-  const [severity, setSeverity] = useState("low");
+  const [ticketCategory, setTicketCategory] = useState<string>("general");
   const [sending, setSending] = useState(false);
-  const [ticketFilter, setTicketFilter] = useState<"all" | "pending" | "in_progress" | "resolved" | "wont_fix">(
-    "all",
-  );
+  const [openTicketId, setOpenTicketId] = useState<string | null>(null);
+  const [ticketReply, setTicketReply] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
+
+  useEffect(() => {
+    if (!linkedTicketId) return;
+    setView("myTickets");
+    setOpenTicketId(linkedTicketId);
+  }, [linkedTicketId]);
+  const [ticketFilter, setTicketFilter] = useState<
+    "all" | "pending" | "in_progress" | "resolved" | "wont_fix"
+  >("all");
 
   const myProfile = useQuery({
     queryKey: ["support-my-profile", user?.id],
@@ -447,12 +688,44 @@ function SupportPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("bug_reports")
-        .select("id,title,description,category,severity,status,created_at")
+        .select("id,title,description,category,severity,status,created_at,last_activity_at")
         .eq("reporter_id", user!.id)
         .order("created_at", { ascending: false });
       return data ?? [];
     },
   });
+
+  const ticketMessages = useQuery({
+    queryKey: ["support-ticket-messages", openTicketId],
+    enabled: !!openTicketId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("support_ticket_messages")
+        .select("id,author_id,body,is_staff,created_at")
+        .eq("ticket_id", openTicketId!)
+        .order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function replyToTicket() {
+    if (!user || !openTicketId || !ticketReply.trim() || sendingReply) return;
+    setSendingReply(true);
+    const { error } = await supabase.from("support_ticket_messages").insert({
+      ticket_id: openTicketId,
+      author_id: user.id,
+      body: ticketReply.trim(),
+      is_staff: false,
+    });
+    setSendingReply(false);
+    if (error) {
+      toast.error(errorMessage(error, t("errorGeneric")));
+      return;
+    }
+    setTicketReply("");
+    await Promise.all([ticketMessages.refetch(), tickets.refetch()]);
+  }
 
   async function submitTicket() {
     if (!user || !title.trim() || description.trim().length < 10) {
@@ -465,7 +738,6 @@ function SupportPage() {
       title: title.trim(),
       description: description.trim(),
       category: ticketCategory,
-      severity,
       page_url: window.location.href,
     });
     setSending(false);
@@ -496,11 +768,31 @@ function SupportPage() {
     let filtered = source;
     if (category) {
       const keywordsByCategory: Record<string, string[]> = {
-        account: ["compte", "account", "cuenta", "conta", "konto", "계정", "profil", "profile", "perfil"],
+        account: [
+          "compte",
+          "account",
+          "cuenta",
+          "conta",
+          "konto",
+          "계정",
+          "profil",
+          "profile",
+          "perfil",
+        ],
         roblox: ["roblox"],
         payment: ["premium", "paiement", "payment", "pago", "pagamento", "zahlung", "결제"],
         sparks: ["sparks", "spark", "like", "match"],
-        report: ["signaler", "report", "reportar", "denunciar", "melde", "신고", "bloquer", "block", "차단"],
+        report: [
+          "signaler",
+          "report",
+          "reportar",
+          "denunciar",
+          "melde",
+          "신고",
+          "bloquer",
+          "block",
+          "차단",
+        ],
         bug: ["bug", "error", "fehler", "버그"],
         copyright: ["droit", "copyright", "dmca", "auteur", "urheberrecht", "저작권"],
         other: [],
@@ -613,7 +905,7 @@ function SupportPage() {
                     : "border border-border text-muted-foreground",
                 )}
               >
-                {c.label}
+                {c.emoji} {c.label}
               </button>
             ))}
           </div>
@@ -632,14 +924,18 @@ function SupportPage() {
               icon={BookOpen}
               title={t("supportFaqCardTitle")}
               description={t("supportFaqCardDesc")}
-              onClick={() => document.getElementById("faq-section")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() =>
+                document.getElementById("faq-section")?.scrollIntoView({ behavior: "smooth" })
+              }
             />
             <FeatureCard
               icon={Server}
               title={t("supportStatusCardTitle")}
               description={t("supportStatusCardDesc")}
               badge={allOperational ? "🟢" : undefined}
-              onClick={() => document.getElementById("status-section")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() =>
+                document.getElementById("status-section")?.scrollIntoView({ behavior: "smooth" })
+              }
             />
             <FeatureCard
               icon={Users}
@@ -652,12 +948,24 @@ function SupportPage() {
           <section id="status-section" className="mt-8">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-lg font-bold">
-                <span className={cn("h-2.5 w-2.5 rounded-full", allOperational ? "bg-[#22C55E]" : "bg-[#F59E0B]")} />
+                <span
+                  className={cn(
+                    "h-2.5 w-2.5 rounded-full",
+                    allOperational ? "bg-[#22C55E]" : "bg-[#F59E0B]",
+                  )}
+                />
                 {t("supportServicesTitle")}
               </h2>
             </div>
-            <p className={cn("mt-1 text-sm font-semibold", allOperational ? "text-[#22C55E]" : "text-[#F59E0B]")}>
-              {allOperational ? t("supportAllOperational") : overall?.message || t("supportDegradedOngoing")}
+            <p
+              className={cn(
+                "mt-1 text-sm font-semibold",
+                allOperational ? "text-[#22C55E]" : "text-[#F59E0B]",
+              )}
+            >
+              {allOperational
+                ? t("supportAllOperational")
+                : overall?.message || t("supportDegradedOngoing")}
             </p>
             <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
               {perService.map((s) => (
@@ -687,7 +995,10 @@ function SupportPage() {
                 </p>
                 <div className="space-y-2">
                   {incidents.data!.map((incident) => (
-                    <div key={incident.id} className="rounded-2xl border border-border bg-card p-3 text-sm">
+                    <div
+                      key={incident.id}
+                      className="rounded-2xl border border-border bg-card p-3 text-sm"
+                    >
                       <p className="text-xs text-muted-foreground">
                         {new Date(incident.started_at).toLocaleDateString(lang, {
                           day: "numeric",
@@ -696,8 +1007,10 @@ function SupportPage() {
                         })}
                       </p>
                       <p className="mt-0.5 font-semibold">
-                        {incident.status === "resolved" ? `🟢 ${t("supportStatusResolved")}` : `🟠 ${t("supportStatusInProgress")}`} -{" "}
-                        {incident.title}
+                        {incident.status === "resolved"
+                          ? `🟢 ${t("supportStatusResolved")}`
+                          : `🟠 ${t("supportStatusInProgress")}`}{" "}
+                        - {incident.title}
                       </p>
                     </div>
                   ))}
@@ -710,7 +1023,9 @@ function SupportPage() {
             <h2 className="text-lg font-bold">{t("supportPopularArticles")}</h2>
             <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
               {filteredFaq.length === 0 ? (
-                <p className="p-6 text-center text-sm text-muted-foreground">{t("supportNoResults")}</p>
+                <p className="p-6 text-center text-sm text-muted-foreground">
+                  {t("supportNoResults")}
+                </p>
               ) : (
                 filteredFaq.map((f) => (
                   <div key={f.id}>
@@ -727,7 +1042,9 @@ function SupportPage() {
                       />
                     </button>
                     {openFaq === f.id ? (
-                      <p className="bx-pop px-4 pb-4 text-sm leading-relaxed text-muted-foreground">{f.answer}</p>
+                      <p className="bx-pop px-4 pb-4 text-sm leading-relaxed text-muted-foreground">
+                        {f.answer}
+                      </p>
                     ) : null}
                   </div>
                 ))
@@ -741,21 +1058,27 @@ function SupportPage() {
               className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-4 text-center"
             >
               <Send className="h-5 w-5 text-primary" />
-              <span className="text-xs font-semibold text-muted-foreground">contact@bloxspark.com</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                contact@bloxspark.com
+              </span>
             </a>
             <button
               onClick={() => setView("myTickets")}
               className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-4 text-center"
             >
               <BookOpen className="h-5 w-5 text-primary" />
-              <span className="text-xs font-semibold text-muted-foreground">{t("supportMyTicketsCard")}</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {t("supportMyTicketsCard")}
+              </span>
             </button>
             <button
               onClick={() => toast(t("supportDiscordSoon"))}
               className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-4 text-center"
             >
               <Users className="h-5 w-5 text-primary" />
-              <span className="text-xs font-semibold text-muted-foreground">{t("supportDiscordCard")}</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {t("supportDiscordCard")}
+              </span>
             </button>
           </section>
         </>
@@ -781,21 +1104,13 @@ function SupportPage() {
             <Select value={ticketCategory} onChange={(e) => setTicketCategory(e.target.value)}>
               {CATEGORIES.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.label}
+                  {c.emoji} {c.label}
                 </option>
               ))}
             </Select>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("priority")}
-            </label>
-            <Select value={severity} onChange={(e) => setSeverity(e.target.value)}>
-              <option value="low">{t("priorityLow")}</option>
-              <option value="medium">{t("priorityMedium")}</option>
-              <option value="high">{t("priorityHigh")}</option>
-              <option value="critical">{t("priorityCritical")}</option>
-            </Select>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              {CATEGORIES.find((item) => item.id === ticketCategory)?.description}
+            </p>
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -857,10 +1172,16 @@ function SupportPage() {
 
           <div className="mt-3 space-y-2">
             {filteredTickets.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">{t("supportNoTickets")}</p>
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                {t("supportNoTickets")}
+              </p>
             ) : (
               filteredTickets.map((ticket) => (
-                <div key={ticket.id} className="rounded-2xl border border-border bg-card p-4">
+                <button
+                  key={ticket.id}
+                  onClick={() => setOpenTicketId(ticket.id)}
+                  className="w-full rounded-2xl border border-border bg-card p-4 text-left transition hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+                >
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
@@ -878,14 +1199,110 @@ function SupportPage() {
                     </span>
                   </div>
                   <p className="mt-2 font-bold">{ticket.title}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{ticket.description}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    {ticket.description}
+                  </p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {new Date(ticket.created_at).toLocaleString(lang)}
                   </p>
-                </div>
+                  <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-primary">
+                    <MessageCircle className="h-3.5 w-3.5" /> Open conversation
+                  </p>
+                </button>
               ))
             )}
           </div>
+
+          <Sheet
+            open={!!openTicketId}
+            onClose={() => setOpenTicketId(null)}
+            title={
+              tickets.data?.find((ticket) => ticket.id === openTicketId)?.title ?? t("support")
+            }
+          >
+            {(() => {
+              const ticket = tickets.data?.find((item) => item.id === openTicketId);
+              if (!ticket) return null;
+              const closed = ["resolved", "wont_fix"].includes(ticket.status);
+              return (
+                <div className="flex min-h-[60dvh] flex-col gap-4">
+                  <div className="rounded-2xl border border-border bg-surface p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase text-primary">
+                        {ticketStatusLabel(ticket.status)}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        #{ticket.id.slice(0, 8)}
+                      </span>
+                    </div>
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
+                      {ticket.description}
+                    </p>
+                  </div>
+                  <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl bg-surface p-3">
+                    {(ticketMessages.data ?? []).length === 0 ? (
+                      <p className="py-10 text-center text-sm text-muted-foreground">
+                        Your conversation with BloxSpark Support will appear here.
+                      </p>
+                    ) : (
+                      (ticketMessages.data ?? []).map((message) => (
+                        <div
+                          key={message.id}
+                          className={cn("flex", message.is_staff ? "justify-start" : "justify-end")}
+                        >
+                          <div
+                            className={cn(
+                              "max-w-[86%] rounded-2xl px-3.5 py-2.5",
+                              message.is_staff
+                                ? "rounded-bl-md border border-primary/20 bg-card"
+                                : "rounded-br-md bg-primary text-primary-foreground",
+                            )}
+                          >
+                            <p className="text-[11px] font-black">
+                              {message.is_staff ? "BloxSpark Support" : t("you")}
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm">{message.body}</p>
+                            <p
+                              className={cn(
+                                "mt-1 text-[10px]",
+                                message.is_staff
+                                  ? "text-muted-foreground"
+                                  : "text-primary-foreground/70",
+                              )}
+                            >
+                              {new Date(message.created_at).toLocaleString(lang)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {closed ? (
+                    <p className="rounded-2xl bg-surface p-3 text-center text-sm text-muted-foreground">
+                      This ticket is closed.
+                    </p>
+                  ) : (
+                    <div className="flex items-end gap-2 rounded-2xl border border-border bg-card p-2">
+                      <Textarea
+                        rows={2}
+                        value={ticketReply}
+                        onChange={(event) => setTicketReply(event.target.value)}
+                        placeholder={t("supportResponseHint")}
+                        className="min-h-12 border-0 bg-transparent"
+                      />
+                      <Button
+                        size="icon"
+                        disabled={!ticketReply.trim() || sendingReply}
+                        onClick={() => void replyToTicket()}
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </Sheet>
 
           <div className="mt-6 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5">
             <Headphones className="h-8 w-8 text-primary" />

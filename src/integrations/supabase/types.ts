@@ -91,6 +91,7 @@ export type Database = {
           handled_at: string | null
           handled_by: string | null
           id: string
+          last_activity_at: string
           moderator_note: string | null
           page_url: string | null
           reporter_id: string
@@ -105,6 +106,7 @@ export type Database = {
           handled_at?: string | null
           handled_by?: string | null
           id?: string
+          last_activity_at?: string
           moderator_note?: string | null
           page_url?: string | null
           reporter_id: string
@@ -119,12 +121,40 @@ export type Database = {
           handled_at?: string | null
           handled_by?: string | null
           id?: string
+          last_activity_at?: string
           moderator_note?: string | null
           page_url?: string | null
           reporter_id?: string
           severity?: string
           status?: string
           title?: string
+        }
+        Relationships: []
+      }
+      support_ticket_messages: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          is_staff: boolean
+          ticket_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          ticket_id?: string
         }
         Relationships: []
       }
@@ -2690,6 +2720,20 @@ export type Database = {
       }
       community_role_limit: { Args: { _community: string }; Returns: number }
       community_affiliate_limit: { Args: { _community: string }; Returns: number }
+      community_directory_rankings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          activity_points: number
+          community_id: string
+          member_count: number
+          rank_position: number
+          ranking_score: number
+        }[]
+      }
+      gift_video_creator: {
+        Args: { _amount: number; _video: string }
+        Returns: string
+      }
       community_create_channel: {
         Args: { _category: string | null; _community: string; _name: string }
         Returns: string
