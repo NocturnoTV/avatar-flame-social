@@ -447,7 +447,7 @@ function HomePage() {
             <div className="absolute right-3 top-3 z-20 flex items-center gap-2 sm:right-4 sm:top-4">
               <Link
                 ref={heroBellRef}
-                to="/notifications"
+                to="/messages"
                 aria-label="Notifications"
                 className="relative grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90"
               >

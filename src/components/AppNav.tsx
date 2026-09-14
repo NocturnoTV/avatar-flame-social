@@ -1,6 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Bell,
   BookOpen,
   Bookmark,
   Clock,
@@ -94,12 +93,11 @@ export function SideNav() {
     { to: "/news", icon: Newspaper, label: t("newsFeedTitle") },
     { to: "/wiki", icon: BookOpen, label: t("wiki") },
     { icon: Gamepad2, label: t("menuGames"), disabled: true },
-    { to: "/messages", icon: MessageCircle, label: t("messages"), badge: unread },
     {
-      to: "/notifications",
-      icon: Bell,
-      label: t("notifications"),
-      badge: unreadNotifications,
+      to: "/messages",
+      icon: MessageCircle,
+      label: t("messages"),
+      badge: unread + unreadNotifications,
     },
     { to: "/profile", icon: User, label: t("profile") },
   ];

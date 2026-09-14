@@ -609,14 +609,25 @@ function MessagesPage() {
   const filtered = visible.filter((c) =>
     (c.is_group ? c.name : c.others[0]?.username)?.toLowerCase().includes(search.toLowerCase()),
   );
+  // Team Spark absorbs the welcome message plus every video-activity
+  // notification (likes, comments, favorites, reposts) - only Sparks'
+  // own match/like/super activity stays in the "recent activity" row below.
+  const TEAM_SPARK_KINDS = [
+    "system",
+    "video_like",
+    "video_comment",
+    "video_favorite",
+    "video_repost",
+  ];
   const activity = (notifications.data ?? []).filter(
-    (n) => n.kind !== "message" && n.kind !== "system",
+    (n) => n.kind !== "message" && !TEAM_SPARK_KINDS.includes(n.kind),
   );
   const latestActivity = activity[0];
-  const systemNotif = (notifications.data ?? []).find((n) => n.kind === "system");
-  const unreadSystemCount = (notifications.data ?? []).filter(
-    (n) => n.kind === "system" && !n.read,
-  ).length;
+  const teamSparkNotifs = (notifications.data ?? []).filter((n) =>
+    TEAM_SPARK_KINDS.includes(n.kind),
+  );
+  const systemNotif = teamSparkNotifs[0];
+  const unreadSystemCount = teamSparkNotifs.filter((n) => !n.read).length;
   const unreadCount = activity.filter((n) => !n.read).length;
 
   return (
@@ -869,6 +880,37 @@ function MessagesPage() {
             </button>
           ) : null}
 
+          {/* Team Spark: welcome message + video likes/comments/favorites/reposts,
+              shown as a read-only conversation rather than a separate page. */}
+          <Link
+            to="/messages/$id"
+            params={{ id: "team-spark" }}
+            className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+          >
+            <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-violet-800 p-2.5 shadow-md shadow-violet-500/20">
+              <img src="/team-spark-avatar.png" alt="" className="h-full w-full object-contain" />
+              {unreadSystemCount ? (
+                <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white ring-2 ring-background">
+                  {unreadSystemCount > 9 ? "9+" : unreadSystemCount}
+                </span>
+              ) : null}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
+                {t("teamSparks")}
+                <Verified />
+                <Pin className="h-3.5 w-3.5 text-[#929292]" />
+              </p>
+              <p className="truncate text-sm text-[#929292]">
+                {systemNotif
+                  ? systemNotif.body === "safety_alert"
+                    ? t("safetyAlertNotif")
+                    : systemNotif.body
+                  : t("notificationEmptyHint")}
+              </p>
+            </div>
+          </Link>
+
           {!filtered.length ? (
             <p className="py-14 text-center text-sm text-[#929292]">{t("noConversations")}</p>
           ) : null}
@@ -950,36 +992,6 @@ function MessagesPage() {
               </div>
             );
           })}
-
-          {/* Official Team Spark announcements, shown as a read-only conversation. */}
-          <Link
-            to="/messages/$id"
-            params={{ id: "team-spark" }}
-            className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
-          >
-            <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-violet-800 p-2.5 shadow-md shadow-violet-500/20">
-              <img src="/team-spark-avatar.png" alt="" className="h-full w-full object-contain" />
-              {unreadSystemCount ? (
-                <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white ring-2 ring-background">
-                  {unreadSystemCount > 9 ? "9+" : unreadSystemCount}
-                </span>
-              ) : null}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
-                {t("teamSparks")}
-                <Verified />
-                <Pin className="h-3.5 w-3.5 text-[#929292]" />
-              </p>
-              <p className="truncate text-sm text-[#929292]">
-                {systemNotif
-                  ? systemNotif.body === "safety_alert"
-                    ? t("safetyAlertNotif")
-                    : systemNotif.body
-                  : t("notificationEmptyHint")}
-              </p>
-            </div>
-          </Link>
 
           {(suggestions.data ?? []).length > 0 ? (
             <>
@@ -1229,7 +1241,10 @@ function MessagesPage() {
               <CheckCheck className="h-4 w-4" /> {t("markAllRead")}
             </button>
           </div>
-          {(notifications.data ?? [])
+          {/* Team Spark (welcome + video likes/comments/favorites/reposts)
+              lives in its own pinned thread now, not here - this stays
+              scoped to Sparks' own match/like/super activity. */}
+          {activity
             .filter((notification) => {
               if (notificationFilter === "unread") return !notification.read;
               if (notificationFilter === "system") return notification.kind === "system";

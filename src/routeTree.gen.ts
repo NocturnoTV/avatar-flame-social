@@ -27,7 +27,6 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedNewsRouteImport } from './routes/_authenticated/news'
-import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedRecentRouteImport } from './routes/_authenticated/recent'
 import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated/rewards'
@@ -146,12 +145,6 @@ const AuthenticatedNewsRoute = AuthenticatedNewsRouteImport.update({
   path: '/news',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedNotificationsRoute =
-  AuthenticatedNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -319,7 +312,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/home': typeof AuthenticatedHomeRoute
   '/news': typeof AuthenticatedNewsRouteWithChildren
-  '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recent': typeof AuthenticatedRecentRoute
   '/rewards': typeof AuthenticatedRewardsRoute
@@ -367,7 +359,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/home': typeof AuthenticatedHomeRoute
   '/news': typeof AuthenticatedNewsRouteWithChildren
-  '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recent': typeof AuthenticatedRecentRoute
   '/rewards': typeof AuthenticatedRewardsRoute
@@ -417,7 +408,6 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/news': typeof AuthenticatedNewsRouteWithChildren
-  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recent': typeof AuthenticatedRecentRoute
   '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
@@ -467,7 +457,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/home'
     | '/news'
-    | '/notifications'
     | '/profile'
     | '/recent'
     | '/rewards'
@@ -515,7 +504,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/home'
     | '/news'
-    | '/notifications'
     | '/profile'
     | '/recent'
     | '/rewards'
@@ -564,7 +552,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/home'
     | '/_authenticated/news'
-    | '/_authenticated/notifications'
     | '/_authenticated/profile'
     | '/_authenticated/recent'
     | '/_authenticated/rewards'
@@ -744,13 +731,6 @@ declare module '@tanstack/react-router' {
       path: '/news'
       fullPath: '/news'
       preLoaderRoute: typeof AuthenticatedNewsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/notifications': {
-      id: '/_authenticated/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
@@ -982,7 +962,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedNewsRoute: typeof AuthenticatedNewsRouteWithChildren
-  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRecentRoute: typeof AuthenticatedRecentRoute
   AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
@@ -1007,7 +986,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedNewsRoute: AuthenticatedNewsRouteWithChildren,
-  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRecentRoute: AuthenticatedRecentRoute,
   AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,

@@ -251,7 +251,7 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
         </span>
         {user ? <BloxBalanceChip className="mr-1" /> : null}
         <Link
-          to="/notifications"
+          to="/messages"
           onClick={(e) => {
             e.stopPropagation();
             onClose();
@@ -328,15 +328,7 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           label={t("messages")}
           to="/messages"
           active={isActive("/messages")}
-          badge={unreadMessages}
-          onClick={onClose}
-        />
-        <Row
-          icon={Bell}
-          label={t("notifications")}
-          to="/notifications"
-          active={isActive("/notifications")}
-          badge={unreadNotifs}
+          badge={unreadMessages + unreadNotifs}
           onClick={onClose}
         />
         <Row

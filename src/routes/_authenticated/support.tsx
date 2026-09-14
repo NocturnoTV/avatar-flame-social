@@ -835,7 +835,7 @@ function SupportPage() {
         <LogoWordmark className="h-6 w-auto" />
         <div className="flex items-center gap-2">
           <Link
-            to="/notifications"
+            to="/messages"
             aria-label={t("notifications")}
             className="relative grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-surface-2"
           >
