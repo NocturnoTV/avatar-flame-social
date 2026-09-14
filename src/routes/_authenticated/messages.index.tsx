@@ -29,6 +29,7 @@ import { PresenceDot } from "@/components/PresenceDot";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
+import { getRobloxFriendSuggestions } from "@/lib/roblox-friends.functions";
 import { Verified } from "@/components/Verified";
 import { cn } from "@/lib/utils";
 
@@ -320,6 +321,64 @@ function MessagesPage() {
   });
 
   const matchedIds = new Set((matches.data ?? []).map((m) => m.id));
+
+  // "People you may know" — Roblox friends (via the linked account) and
+  // people you share a mutual Spark/match with, excluding anyone you
+  // already have a conversation with.
+  const suggestions = useQuery({
+    queryKey: ["message-suggestions", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<Person[]> => {
+      const existingIds = new Set([
+        ...matchedIds,
+        ...(conversations.data ?? []).flatMap((c) => c.others.map((o) => o.id)),
+        user!.id,
+      ]);
+
+      const [{ data: myMatchRows }, robloxResult] = await Promise.all([
+        supabase.from("matches").select("user_a,user_b").or(`user_a.eq.${user!.id},user_b.eq.${user!.id}`),
+        getRobloxFriendSuggestions().catch(() => ({ robloxUserIds: [] as string[] })),
+      ]);
+      const myMatchIds = (myMatchRows ?? []).map((m) => (m.user_a === user!.id ? m.user_b : m.user_a));
+
+      // Mutual Sparks: people matched with someone I'm matched with.
+      const mutualCounts = new Map<string, number>();
+      if (myMatchIds.length) {
+        const { data: theirMatches } = await supabase
+          .from("matches")
+          .select("user_a,user_b")
+          .or(myMatchIds.map((id) => `user_a.eq.${id},user_b.eq.${id}`).join(","));
+        for (const row of theirMatches ?? []) {
+          for (const candidate of [row.user_a, row.user_b]) {
+            if (existingIds.has(candidate)) continue;
+            mutualCounts.set(candidate, (mutualCounts.get(candidate) ?? 0) + 1);
+          }
+        }
+      }
+
+      // Roblox friends who also have a BloxSpark account.
+      const robloxIds = robloxResult.robloxUserIds;
+      const { data: robloxMatches } = robloxIds.length
+        ? await supabase.from("profiles").select("id").in("roblox_user_id", robloxIds)
+        : { data: [] };
+      for (const row of robloxMatches ?? []) {
+        if (existingIds.has(row.id)) continue;
+        mutualCounts.set(row.id, (mutualCounts.get(row.id) ?? 0) + 10); // Roblox friends rank first.
+      }
+
+      const rankedIds = [...mutualCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([id]) => id);
+      if (!rankedIds.length) return [];
+      const { data: people } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,verified")
+        .in("id", rankedIds);
+      const byId = new Map((people ?? []).map((p) => [p.id, p]));
+      return rankedIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => p !== undefined);
+    },
+  });
 
   // Searching now looks across every BloxSpark user, not just existing
   // conversations — split into your Sparks and everyone else.
@@ -875,6 +934,35 @@ function MessagesPage() {
             </p>
           </div>
         </Link>
+
+        {(suggestions.data ?? []).length > 0 ? (
+          <>
+            <div className="my-3 border-t border-dashed border-[#e5e5e5] dark:border-white/15" />
+            <p className="px-1 pb-2 text-xs font-bold uppercase tracking-wide text-[#929292]">
+              {t("peopleYouMayKnow")}
+            </p>
+            <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+              {(suggestions.data ?? []).map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => void startConversationWith(p.id)}
+                  className="flex w-20 shrink-0 flex-col items-center gap-1.5 text-center"
+                >
+                  <StoredImage
+                    path={p.avatar_url}
+                    alt={p.username ?? ""}
+                    className="h-14 w-14 rounded-full object-cover"
+                    fallback={p.username?.[0]?.toUpperCase() ?? "?"}
+                  />
+                  <span className="flex w-full items-center justify-center gap-1 truncate text-xs font-semibold text-[#050505] dark:text-white">
+                    <span className="truncate">{p.username}</span>
+                    {p.verified ? <Verified className="h-3 w-3 shrink-0" /> : null}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
       )}
 
