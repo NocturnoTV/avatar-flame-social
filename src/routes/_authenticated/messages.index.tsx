@@ -113,6 +113,8 @@ function MessagesPage() {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [newGroup, setNewGroup] = useState(false);
+  const [groupSheetTab, setGroupSheetTab] = useState<"friends" | "group">("friends");
+  const [friendQuery, setFriendQuery] = useState("");
   const [groupTitle, setGroupTitle] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
@@ -429,6 +431,31 @@ function MessagesPage() {
     },
   });
 
+  // Separate from the header's search bar (userSearch above) so the "+"
+  // sheet's "Add friends" tab has its own query, keyed on its own text.
+  const friendSearch = useQuery({
+    queryKey: ["friend-search", friendQuery.trim()],
+    enabled: !!user && friendQuery.trim().length >= 2,
+    queryFn: async () => {
+      const { data: blocked } = await supabase
+        .from("blocks")
+        .select("blocked_id,blocker_id")
+        .or(`blocker_id.eq.${user!.id},blocked_id.eq.${user!.id}`);
+      const excluded = new Set(
+        (blocked ?? [])
+          .flatMap((b) => [b.blocked_id, b.blocker_id])
+          .filter((id) => id !== user!.id),
+      );
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,verified")
+        .ilike("username", `%${friendQuery.trim()}%`)
+        .neq("id", user!.id)
+        .limit(40);
+      return (data ?? []).filter((p) => !excluded.has(p.id));
+    },
+  });
+
   async function startConversationWith(targetId: string) {
     try {
       const { data: conversationId, error } = await supabase.rpc("start_direct_message", {
@@ -634,8 +661,11 @@ function MessagesPage() {
     <div className="app-background mx-auto min-h-screen w-full max-w-lg px-4 pb-28 pt-5 text-[#050505] dark:text-white">
       <header className="flex h-[52px] items-center justify-between">
         <button
-          onClick={() => setNewGroup(true)}
-          aria-label={t("newGroup")}
+          onClick={() => {
+            setGroupSheetTab("friends");
+            setNewGroup(true);
+          }}
+          aria-label={t("addFriends")}
           className="grid h-10 w-10 place-items-center rounded-full text-[#050505] hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
         >
           <UserPlus className="h-5 w-5" />
@@ -1055,41 +1085,121 @@ function MessagesPage() {
         </div>
       </Sheet>
 
-      <Sheet open={newGroup} onClose={() => setNewGroup(false)} title={t("newGroup")}>
+      <Sheet
+        open={newGroup}
+        onClose={() => {
+          setNewGroup(false);
+          setFriendQuery("");
+        }}
+        title={groupSheetTab === "friends" ? t("addFriends") : t("newGroup")}
+      >
         <div className="space-y-4">
-          <Input
-            placeholder={t("groupName")}
-            value={groupTitle}
-            onChange={(e) => setGroupTitle(e.target.value)}
-          />
-          <div className="max-h-64 space-y-2 overflow-y-auto">
-            {(matches.data ?? []).map((m) => (
-              <label
-                key={m.id}
-                className="flex items-center gap-3 rounded-2xl p-2 hover:bg-surface-2"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.includes(m.id)}
-                  onChange={(e) =>
-                    setSelected((s) =>
-                      e.target.checked ? [...s, m.id] : s.filter((x) => x !== m.id),
-                    )
-                  }
-                />
-                <StoredImage
-                  path={m.avatar_url}
-                  alt={m.username ?? ""}
-                  className="h-10 w-10 rounded-full"
-                  fallback={m.username?.[0] ?? "?"}
-                />
-                <span className="font-semibold">{m.username}</span>
-              </label>
-            ))}
+          <div className="flex gap-1.5 rounded-2xl bg-surface-2 p-1">
+            <button
+              onClick={() => setGroupSheetTab("friends")}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold transition",
+                groupSheetTab === "friends"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              <UserPlus className="h-4 w-4" /> {t("addFriends")}
+            </button>
+            <button
+              onClick={() => setGroupSheetTab("group")}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold transition",
+                groupSheetTab === "group"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              <Users className="h-4 w-4" /> {t("newGroup")}
+            </button>
           </div>
-          <Button className="w-full" onClick={() => void createGroup()}>
-            {t("create")}
-          </Button>
+
+          {groupSheetTab === "friends" ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3.5 py-2.5">
+                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <input
+                  autoFocus
+                  value={friendQuery}
+                  onChange={(e) => setFriendQuery(e.target.value)}
+                  placeholder={t("searchByUsername")}
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                />
+              </div>
+              <div className="max-h-72 space-y-1 overflow-y-auto">
+                {friendQuery.trim().length < 2 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    {t("searchByUsername")}
+                  </p>
+                ) : friendSearch.isLoading ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">{t("loading")}</p>
+                ) : !friendSearch.data?.length ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">{t("noResults")}</p>
+                ) : (
+                  friendSearch.data.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => void startConversationWith(p.id)}
+                      className="flex w-full items-center gap-3 rounded-2xl p-2 text-left transition hover:bg-surface-2"
+                    >
+                      <StoredImage
+                        path={p.avatar_url}
+                        alt={p.username ?? ""}
+                        className="h-10 w-10 shrink-0 rounded-full object-cover"
+                        fallback={p.username?.[0]?.toUpperCase() ?? "?"}
+                      />
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <span className="truncate font-semibold">{p.username}</span>
+                        {p.verified ? <Verified /> : null}
+                      </span>
+                      <UserPlus className="h-4 w-4 shrink-0 text-primary" />
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <Input
+                placeholder={t("groupName")}
+                value={groupTitle}
+                onChange={(e) => setGroupTitle(e.target.value)}
+              />
+              <div className="max-h-64 space-y-2 overflow-y-auto">
+                {(matches.data ?? []).map((m) => (
+                  <label
+                    key={m.id}
+                    className="flex items-center gap-3 rounded-2xl p-2 hover:bg-surface-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(m.id)}
+                      onChange={(e) =>
+                        setSelected((s) =>
+                          e.target.checked ? [...s, m.id] : s.filter((x) => x !== m.id),
+                        )
+                      }
+                    />
+                    <StoredImage
+                      path={m.avatar_url}
+                      alt={m.username ?? ""}
+                      className="h-10 w-10 rounded-full"
+                      fallback={m.username?.[0] ?? "?"}
+                    />
+                    <span className="font-semibold">{m.username}</span>
+                  </label>
+                ))}
+              </div>
+              <Button className="w-full" onClick={() => void createGroup()}>
+                {t("create")}
+              </Button>
+            </>
+          )}
         </div>
       </Sheet>
 
