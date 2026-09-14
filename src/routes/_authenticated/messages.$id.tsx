@@ -272,6 +272,33 @@ function Conversation() {
     },
   });
 
+  // A banned-word hit flags a "safety_alert" notification for the person who
+  // received the message — shown small, right here in the conversation, and
+  // never in the global notification feed (only the victim ever sees it).
+  const safetyAlert = useQuery({
+    queryKey: ["safety-alert", id, user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("notifications")
+        .select("id")
+        .eq("conversation_id", id)
+        .eq("user_id", user!.id)
+        .eq("body", "safety_alert")
+        .eq("read", false)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  async function dismissSafetyAlert() {
+    if (!safetyAlert.data) return;
+    await supabase.from("notifications").update({ read: true }).eq("id", safetyAlert.data.id);
+    void safetyAlert.refetch();
+  }
+
   const messageIds = (messages.data ?? []).map((m) => m.id);
   const reactions = useQuery({
     queryKey: ["message-reactions", id, messageIds.join(",")],
@@ -350,13 +377,14 @@ function Conversation() {
           setOtherTyping(false);
           void messages.refetch();
           void header.refetch();
+          void safetyAlert.refetch();
         },
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [id, messages, header]);
+  }, [id, messages, header, safetyAlert]);
 
   // "typing…" indicator — a lightweight realtime broadcast, no table needed.
   useEffect(() => {
@@ -633,6 +661,21 @@ function Conversation() {
           <MoreVertical className="h-5 w-5" />
         </button>
       </header>
+
+      {safetyAlert.data ? (
+        <div className="flex items-center justify-between gap-2 bg-amber-500/10 px-4 py-2">
+          <p className="text-[11px] leading-snug text-amber-600 dark:text-amber-300">
+            {t("safetyAlertNotif")}
+          </p>
+          <button
+            onClick={() => void dismissSafetyAlert()}
+            aria-label={t("cancel")}
+            className="shrink-0 text-amber-600 dark:text-amber-300"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : null}
 
       {header.data?.requestStatus === "pending" ? (
         header.data.isRequester ? (

@@ -3,11 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
   Camera,
+  Check,
   CheckCheck,
   ChevronRight,
+  EyeOff,
   Heart,
   Inbox,
   MessageCircle,
+  Moon,
   Newspaper,
   Pin,
   Plus,
@@ -115,11 +118,44 @@ function MessagesPage() {
   const [showRequests, setShowRequests] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState<
     "all" | "unread" | "social" | "system"
   >("all");
   const storyInput = useRef<HTMLInputElement>(null);
   const cameraInputs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const myPresence = useQuery({
+    queryKey: ["my-presence", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("show_online_status,dnd")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  async function setPresenceStatus(status: "online" | "offline" | "dnd") {
+    if (!user) return;
+    await supabase
+      .from("profiles")
+      .update({
+        show_online_status: status !== "offline",
+        dnd: status === "dnd",
+      })
+      .eq("id", user.id);
+    setShowStatusPicker(false);
+    void myPresence.refetch();
+  }
+
+  const myStatus: "online" | "offline" | "dnd" = myPresence.data?.dnd
+    ? "dnd"
+    : myPresence.data?.show_online_status === false
+      ? "offline"
+      : "online";
 
   const conversations = useQuery({
     queryKey: ["conversations", user?.id],
@@ -243,6 +279,10 @@ function MessagesPage() {
       const { data, error } = await supabase
         .from("notifications")
         .select("id,kind,body,read,created_at,actor_id,conversation_id")
+        // Safety alerts are shown small, inline in the affected conversation
+        // (visible only to the person who received the flagged message) —
+        // never in this global notification feed.
+        .neq("body", "safety_alert")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -450,9 +490,20 @@ function MessagesPage() {
         </button>
         <h1 className="flex items-center gap-1.5 text-[22px] font-black text-[#050505] dark:text-white">
           {t("messages")}
-          <span className="grid h-5 w-5 place-items-center rounded-md bg-[#F5F5F5] dark:bg-[#1c1c1e]">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-[#20D778]" />
-          </span>
+          <button
+            onClick={() => setShowStatusPicker(true)}
+            aria-label={t("myStatus")}
+            className="grid h-5 w-5 place-items-center rounded-md bg-[#F5F5F5] dark:bg-[#1c1c1e]"
+          >
+            <span
+              className={cn(
+                "h-2 w-2 rounded-full",
+                myStatus === "online" && "animate-pulse bg-[#20D778]",
+                myStatus === "dnd" && "bg-red-500",
+                myStatus === "offline" && "bg-[#929292]",
+              )}
+            />
+          </button>
         </h1>
         <div className="flex items-center">
           <button
@@ -728,6 +779,33 @@ function MessagesPage() {
           </div>
         </Link>
       </div>
+
+      <Sheet open={showStatusPicker} onClose={() => setShowStatusPicker(false)} title={t("myStatus")}>
+        <div className="space-y-2">
+          {(
+            [
+              { id: "online", label: t("onlineNow"), icon: Check, dot: "bg-[#20D778]" },
+              { id: "dnd", label: t("doNotDisturb"), icon: Moon, dot: "bg-red-500" },
+              { id: "offline", label: t("appearOffline"), icon: EyeOff, dot: "bg-[#929292]" },
+            ] as const
+          ).map((option) => (
+            <button
+              key={option.id}
+              onClick={() => void setPresenceStatus(option.id)}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition",
+                myStatus === option.id
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:bg-surface-2",
+              )}
+            >
+              <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", option.dot)} />
+              <span className="flex-1 text-sm font-semibold">{option.label}</span>
+              {myStatus === option.id ? <Check className="h-4 w-4 text-primary" /> : null}
+            </button>
+          ))}
+        </div>
+      </Sheet>
 
       <Sheet open={newGroup} onClose={() => setNewGroup(false)} title={t("newGroup")}>
         <div className="space-y-4">
