@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
@@ -15,6 +15,11 @@ export const UNREAD_CONVERSATIONS_KEY = "unread-conversations";
 export function useUnreadConversations() {
   const { user } = useSession();
   const qc = useQueryClient();
+  // This hook mounts several times at once (side nav, bottom nav, the
+  // Sparks menu) — supabase.channel() returns the SAME channel object for
+  // a topic that's already subscribed, and calling .on() on it after that
+  // throws. Give every mount its own topic so each subscribes cleanly.
+  const instanceId = useRef(Math.random().toString(36).slice(2));
 
   const { data = 0 } = useQuery({
     queryKey: [UNREAD_CONVERSATIONS_KEY, user?.id],
@@ -43,7 +48,7 @@ export function useUnreadConversations() {
     const invalidate = () =>
       void qc.invalidateQueries({ queryKey: [UNREAD_CONVERSATIONS_KEY, user.id] });
     const channel = supabase
-      .channel(`unread-conversations-${user.id}`)
+      .channel(`unread-conversations-${user.id}-${instanceId.current}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, invalidate)
       .on(
         "postgres_changes",
