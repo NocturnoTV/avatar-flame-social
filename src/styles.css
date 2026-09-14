@@ -276,6 +276,16 @@
   50% { opacity: 1; transform: scale(1.25) rotate(25deg); }
 }
 
+@keyframes bx-aurora {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(24px, -18px, 0) scale(1.12); }
+}
+
+@keyframes bx-cta-orbit {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.045); }
+}
+
 @utility bx-landing-reveal {
   animation: bx-landing-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -294,6 +304,14 @@
   animation: bx-cta-star 1.7s ease-in-out infinite;
 }
 
+@utility bx-aurora {
+  animation: bx-aurora 8s ease-in-out infinite;
+}
+
+@utility bx-cta-orbit {
+  animation: bx-cta-orbit 2.2s ease-in-out infinite;
+}
+
 @utility bx-star-cta {
   isolation: isolate;
 }
@@ -302,7 +320,9 @@
   .bx-landing-reveal,
   .bx-banner-sheen,
   .bx-cta-shine,
-  .bx-cta-star {
+  .bx-cta-star,
+  .bx-aurora,
+  .bx-cta-orbit {
     animation: none !important;
     opacity: 1;
     transform: none;
