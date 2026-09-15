@@ -63,8 +63,12 @@ const REPORT_SCENARIOS = [
 ] as const;
 
 export const Route = createFileRoute("/_authenticated/discover/")({
-  validateSearch: (search: Record<string, unknown>): { v?: string } =>
-    typeof search["v"] === "string" ? { v: search["v"] } : {},
+  validateSearch: (search: Record<string, unknown>): { v?: string; c?: string } => ({
+    ...(typeof search["v"] === "string" ? { v: search["v"] } : {}),
+    // Present (any value) when arriving from an "Activités" notification
+    // about a comment - auto-opens that video's comments sheet.
+    ...(typeof search["c"] === "string" ? { c: search["c"] } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Découvrir - Bloxspark" },
@@ -108,7 +112,7 @@ export function formatCount(n: number) {
 function DiscoverPage() {
   const { user } = useSession();
   const { t } = useI18n();
-  const { v: pinnedVideoId } = Route.useSearch();
+  const { v: pinnedVideoId, c: openCommentsFor } = Route.useSearch();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"foryou" | "following">("foryou");
   const [muted, setMuted] = useState(
@@ -248,6 +252,14 @@ function DiscoverPage() {
       return { videos, profiles };
     },
   });
+
+  // Deep-linked from an "Activités" notification about a comment - open
+  // that video's comments sheet as soon as it's loaded.
+  useEffect(() => {
+    if (!openCommentsFor || !pinnedVideoId || openCommentsFor !== pinnedVideoId) return;
+    const video = feed.data?.videos.find((v) => v.id === pinnedVideoId);
+    if (video) setComments(video);
+  }, [openCommentsFor, pinnedVideoId, feed.data]);
 
   const searchResults = useQuery({
     queryKey: ["discover-search", searchQuery.trim().toLowerCase()],

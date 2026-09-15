@@ -1680,32 +1680,38 @@ export type Database = {
         Row: {
           actor_id: string | null;
           body: string | null;
+          comment_id: string | null;
           conversation_id: string | null;
           created_at: string;
           id: string;
           kind: Database["public"]["Enums"]["notification_kind"];
           read: boolean;
           user_id: string;
+          video_id: string | null;
         };
         Insert: {
           actor_id?: string | null;
           body?: string | null;
+          comment_id?: string | null;
           conversation_id?: string | null;
           created_at?: string;
           id?: string;
           kind: Database["public"]["Enums"]["notification_kind"];
           read?: boolean;
           user_id: string;
+          video_id?: string | null;
         };
         Update: {
           actor_id?: string | null;
           body?: string | null;
+          comment_id?: string | null;
           conversation_id?: string | null;
           created_at?: string;
           id?: string;
           kind?: Database["public"]["Enums"]["notification_kind"];
           read?: boolean;
           user_id?: string;
+          video_id?: string | null;
         };
         Relationships: [
           {
@@ -1713,6 +1719,20 @@ export type Database = {
             columns: ["conversation_id"];
             isOneToOne: false;
             referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_video_id_fkey";
+            columns: ["video_id"];
+            isOneToOne: false;
+            referencedRelation: "videos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_comment_id_fkey";
+            columns: ["comment_id"];
+            isOneToOne: false;
+            referencedRelation: "video_comments";
             referencedColumns: ["id"];
           },
         ];
@@ -2954,7 +2974,8 @@ export type Database = {
         | "video_comment"
         | "video_comment_reply"
         | "video_favorite"
-        | "video_repost";
+        | "video_repost"
+        | "video_mention";
       swipe_action: "like" | "pass" | "super";
     };
     CompositeTypes: {
@@ -3090,6 +3111,7 @@ export const Constants = {
         "video_comment_reply",
         "video_favorite",
         "video_repost",
+        "video_mention",
       ],
       swipe_action: ["like", "pass", "super"],
     },

@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
+  AtSign,
+  Bookmark,
   Camera,
   ChevronRight,
   Copy,
@@ -11,13 +13,16 @@ import {
   Flag,
   Forward,
   Gift,
+  Heart,
   ImagePlus,
   Mail,
+  MessageCircle,
   Mic,
   MoreVertical,
   Pause,
   Phone,
   Play,
+  Repeat2,
   Reply,
   Send,
   ShieldCheck,
@@ -47,10 +52,7 @@ import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
-import {
-  ACTIVITY_NOTIFICATION_KINDS,
-  localizeActivityNotification,
-} from "@/lib/activityNotifications";
+import { ACTIVITY_NOTIFICATION_KINDS, localizeActivityAction } from "@/lib/activityNotifications";
 import { UNREAD_CONVERSATIONS_KEY } from "@/lib/unreadConversations";
 import { cn, errorMessage } from "@/lib/utils";
 
@@ -1371,7 +1373,38 @@ type ActivityNotificationRow = {
   body: string | null;
   read: boolean;
   created_at: string;
+  video_id: string | null;
+  comment_id: string | null;
+  actor_id: string | null;
   actor: { username: string | null; avatar_url: string | null } | null;
+};
+
+type ActivityTab = "all" | "comments" | "mentions" | "likes" | "other";
+
+const ACTIVITY_TAB_KINDS: Record<ActivityTab, readonly string[] | null> = {
+  all: null,
+  comments: ["video_comment", "video_comment_reply"],
+  mentions: ["video_mention"],
+  likes: ["video_like", "video_favorite"],
+  other: ["video_repost"],
+};
+
+const ACTIVITY_KIND_ICON: Record<string, typeof Heart> = {
+  video_like: Heart,
+  video_favorite: Bookmark,
+  video_repost: Repeat2,
+  video_comment: MessageCircle,
+  video_comment_reply: MessageCircle,
+  video_mention: AtSign,
+};
+
+const ACTIVITY_KIND_ICON_CLASS: Record<string, string> = {
+  video_like: "bg-red-500 text-white",
+  video_favorite: "bg-amber-400 text-white",
+  video_repost: "bg-sky-500 text-white",
+  video_comment: "bg-primary text-primary-foreground",
+  video_comment_reply: "bg-primary text-primary-foreground",
+  video_mention: "bg-violet-500 text-white",
 };
 
 function ActivitiesConversation() {
@@ -1379,7 +1412,7 @@ function ActivitiesConversation() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<ActivityTab>("all");
 
   const activities = useQuery({
     queryKey: ["activities-notifications", user?.id],
@@ -1387,10 +1420,10 @@ function ActivitiesConversation() {
     queryFn: async (): Promise<ActivityNotificationRow[]> => {
       const { data, error } = await supabase
         .from("notifications")
-        .select("id,kind,body,read,created_at,actor_id")
+        .select("id,kind,body,read,created_at,actor_id,video_id,comment_id")
         .eq("user_id", user!.id)
         .in("kind", ACTIVITY_NOTIFICATION_KINDS)
-        .order("created_at");
+        .order("created_at", { ascending: false });
       if (error) throw error;
       const rows = data ?? [];
       const actorIds = [...new Set(rows.map((r) => r.actor_id).filter(Boolean))] as string[];
@@ -1401,6 +1434,18 @@ function ActivitiesConversation() {
       return rows.map((r) => ({ ...r, actor: r.actor_id ? (byId.get(r.actor_id) ?? null) : null }));
     },
   });
+
+  const TABS: { id: ActivityTab; label: string }[] = [
+    { id: "all", label: t("activitiesTabAll") },
+    { id: "comments", label: t("activitiesTabComments") },
+    { id: "mentions", label: t("activitiesTabMentions") },
+    { id: "likes", label: t("activitiesTabLikes") },
+    { id: "other", label: t("activitiesTabOther") },
+  ];
+  const kindsForTab = ACTIVITY_TAB_KINDS[tab];
+  const filtered = (activities.data ?? []).filter(
+    (item) => !kindsForTab || kindsForTab.includes(item.kind),
+  );
 
   useEffect(() => {
     if (!user || !activities.data?.some((item) => !item.read)) return;
@@ -1439,9 +1484,20 @@ function ActivitiesConversation() {
     };
   }, [activities, user]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activities.data?.length]);
+  function openTarget(item: ActivityNotificationRow) {
+    if (!item.video_id) return;
+    const isCommentKind =
+      item.kind === "video_comment" ||
+      item.kind === "video_comment_reply" ||
+      item.kind === "video_mention";
+    void navigate({
+      to: "/discover",
+      search:
+        isCommentKind && item.comment_id
+          ? { v: item.video_id, c: item.comment_id }
+          : { v: item.video_id },
+    });
+  }
 
   return (
     <div className="app-background flex h-[calc(100dvh-6rem)] flex-col text-foreground lg:h-screen">
@@ -1462,61 +1518,103 @@ function ActivitiesConversation() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 py-5">
-        <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-end">
-          <div className="mb-6 text-center">
-            <div className="mx-auto grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-white shadow-xl shadow-blue-500/20">
-              <Mail className="h-8 w-8" />
-            </div>
-            <h1 className="mt-3 text-xl font-black">{t("activitiesTitle")}</h1>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-              {t("activitiesSubtitle")}
-            </p>
-          </div>
+      <div className="no-scrollbar flex shrink-0 gap-2 overflow-x-auto border-b border-border bg-background px-3 py-2.5">
+        {TABS.map((tabItem) => (
+          <button
+            key={tabItem.id}
+            onClick={() => setTab(tabItem.id)}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold transition",
+              tab === tabItem.id
+                ? "bg-primary text-primary-foreground"
+                : "border border-border text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10",
+            )}
+          >
+            {tabItem.label}
+          </button>
+        ))}
+      </div>
 
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-2xl">
           {activities.isLoading ? (
-            <div className="space-y-3">
-              {[0, 1, 2].map((item) => (
-                <div
-                  key={item}
-                  className="h-20 w-[min(88%,34rem)] animate-pulse rounded-[24px] bg-muted"
-                />
+            <div className="space-y-1 px-3 py-4">
+              {[0, 1, 2, 3].map((item) => (
+                <div key={item} className="h-16 animate-pulse rounded-2xl bg-muted" />
               ))}
             </div>
-          ) : activities.data?.length ? (
-            <div className="space-y-4">
-              {activities.data.map((item) => {
+          ) : filtered.length ? (
+            <div className="divide-y divide-border px-1">
+              {filtered.map((item) => {
                 const actorName = item.actor?.username ?? t("someone");
+                const ActionIcon = ACTIVITY_KIND_ICON[item.kind] ?? Mail;
                 return (
-                  <article key={item.id} className="flex items-end gap-2">
-                    <StoredImage
-                      path={item.actor?.avatar_url}
-                      alt={actorName}
-                      className="h-8 w-8 shrink-0 rounded-full object-cover"
-                      fallback={actorName[0]?.toUpperCase() ?? "?"}
-                    />
-                    <div className="max-w-[82%]">
-                      <div className="rounded-[24px] rounded-bl-md bg-gradient-to-br from-sky-500 to-blue-700 px-4 py-3 text-white shadow-sm">
-                        <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                          {localizeActivityNotification(t, item.kind, actorName, item.body)}
-                        </p>
-                      </div>
-                      <p className="mt-1 px-1 text-[10px] text-muted-foreground">
+                  <div
+                    key={item.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openTarget(item)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") openTarget(item);
+                    }}
+                    className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.05]"
+                  >
+                    <Link
+                      to="/users/$id"
+                      params={{ id: item.actor_id ?? "" }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="relative shrink-0"
+                      aria-label={actorName}
+                    >
+                      <StoredImage
+                        path={item.actor?.avatar_url}
+                        alt={actorName}
+                        className="h-12 w-12 rounded-full object-cover"
+                        fallback={actorName[0]?.toUpperCase() ?? "?"}
+                      />
+                      <span
+                        className={cn(
+                          "absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full ring-2 ring-background",
+                          ACTIVITY_KIND_ICON_CLASS[item.kind] ??
+                            "bg-primary text-primary-foreground",
+                        )}
+                      >
+                        <ActionIcon className="h-3 w-3" fill="currentColor" />
+                      </span>
+                      {!item.read ? (
+                        <span className="absolute -left-1 -top-1 h-3 w-3 rounded-full bg-sky-500 ring-2 ring-background" />
+                      ) : null}
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[15px] leading-snug">
+                        <Link
+                          to="/users/$id"
+                          params={{ id: item.actor_id ?? "" }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-bold hover:underline"
+                        >
+                          @{actorName}
+                        </Link>{" "}
+                        <span className="text-foreground/85">
+                          {localizeActivityAction(t, item.kind, item.body)}
+                        </span>
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         {formatLastSeen(item.created_at, lang)}
                       </p>
                     </div>
-                  </article>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
                 );
               })}
             </div>
           ) : (
-            <div className="my-auto rounded-3xl border border-dashed border-blue-500/30 bg-blue-500/5 px-6 py-10 text-center">
+            <div className="mx-3 mt-6 rounded-3xl border border-dashed border-blue-500/30 bg-blue-500/5 px-6 py-10 text-center">
               <Mail className="mx-auto h-8 w-8 text-blue-500" />
               <p className="mt-3 text-sm font-semibold">{t("noNotifications")}</p>
               <p className="mt-1 text-xs text-muted-foreground">{t("notificationEmptyHint")}</p>
             </div>
           )}
-          <div ref={bottomRef} />
         </div>
       </main>
     </div>

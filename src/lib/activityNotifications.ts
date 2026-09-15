@@ -10,6 +10,7 @@ export const ACTIVITY_NOTIFICATION_KINDS = [
   "video_repost",
   "video_comment",
   "video_comment_reply",
+  "video_mention",
 ] as const;
 
 export type ActivityNotificationKind = (typeof ACTIVITY_NOTIFICATION_KINDS)[number];
@@ -43,6 +44,38 @@ export function localizeActivityNotification(
       return t("notifVideoCommentBody", { name: actorName, text: body ?? "" });
     case "video_comment_reply":
       return t("notifVideoCommentReplyBody", { name: actorName, text: body ?? "" });
+    case "video_mention":
+      return t("notifVideoMentionBody", { name: actorName, text: body ?? "" });
+    default:
+      return body ?? "";
+  }
+}
+
+/**
+ * Same as localizeActivityNotification, but without the actor's name baked
+ * into the sentence - for the "Activités" tabbed list, where the actor's
+ * avatar and username are already shown separately on the row, e.g.
+ * "@alice" + "a répondu à ton commentaire: salut, ça va ?" rather than
+ * repeating the name inside the sentence itself.
+ */
+export function localizeActivityAction(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  kind: string,
+  body: string | null,
+): string {
+  switch (kind) {
+    case "video_like":
+      return t("notifVideoLikeAction");
+    case "video_favorite":
+      return t("notifVideoFavoriteAction");
+    case "video_repost":
+      return t("notifVideoRepostAction");
+    case "video_comment":
+      return t("notifVideoCommentAction", { text: body ?? "" });
+    case "video_comment_reply":
+      return t("notifVideoCommentReplyAction", { text: body ?? "" });
+    case "video_mention":
+      return t("notifVideoMentionAction", { text: body ?? "" });
     default:
       return body ?? "";
   }
