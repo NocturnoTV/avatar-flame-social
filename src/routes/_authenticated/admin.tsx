@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   BarChart3,
   Bell,
+  Building2,
   CheckCircle2,
   Coins,
   Crown,
@@ -49,6 +50,7 @@ import {
   adminListMembers,
   adminManageMember,
 } from "@/lib/admin.functions";
+import { adminListCommunities, adminManageCommunity } from "@/lib/admin-communities.functions";
 import {
   adminAnalytics,
   adminBilling,
@@ -75,6 +77,7 @@ type Tab =
   | "overview"
   | "analytics"
   | "members"
+  | "communities"
   | "tickets"
   | "moderation"
   | "content"
@@ -110,6 +113,7 @@ function AdminPage() {
     { id: "overview", label: "Overview", icon: Gauge },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "members", label: "Users", icon: Users },
+    { id: "communities", label: "Communities", icon: Building2 },
     { id: "tickets", label: "Tickets", icon: Headphones },
     { id: "moderation", label: "Moderation", icon: ShieldCheck },
     { id: "content", label: "Content", icon: Film },
@@ -153,6 +157,7 @@ function AdminPage() {
         {tab === "overview" ? <Overview /> : null}
         {tab === "analytics" ? <Analytics /> : null}
         {tab === "members" ? <Members isAdmin={isAdmin} log={log} /> : null}
+        {tab === "communities" ? <CommunitiesAdmin /> : null}
         {tab === "tickets" ? <Tickets /> : null}
         {tab === "moderation" ? <Moderation log={log} /> : null}
         {tab === "content" ? <Content /> : null}
@@ -1068,6 +1073,164 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
           </div>
         ) : null}
       </Sheet>
+    </div>
+  );
+}
+
+const COMMUNITY_VISIBILITY_LABELS: Record<string, string> = {
+  public: "Publique",
+  private_request: "Privée (sur demande)",
+  private_friends: "Privée (amis uniquement)",
+};
+
+function CommunitiesAdmin() {
+  const [search, setSearch] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const communities = useQuery({
+    queryKey: ["admin-communities"],
+    queryFn: () => adminListCommunities(),
+  });
+
+  const rows = (communities.data ?? []).filter((c) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.handle.toLowerCase().includes(q) ||
+      (c.owner_username ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  async function act(
+    communityId: string,
+    action: "verify" | "unverify" | "set_visibility" | "delete",
+    visibility?: "public" | "private_request" | "private_friends",
+  ) {
+    setBusyId(communityId);
+    try {
+      await adminManageCommunity({ data: { action, communityId, visibility } });
+      toast.success("Action enregistrée et journalisée");
+      await communities.refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function deleteCommunity(id: string, name: string) {
+    if (
+      !confirm(`Supprimer définitivement la communauté "${name}" ? Cette action est irréversible.`)
+    )
+      return;
+    void act(id, "delete");
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">
+          Centre de contrôle
+        </p>
+        <h2 className="mt-1 text-2xl font-black">Gestion des communautés</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Certifie, restreins la visibilité ou supprime une communauté - toute action est
+          journalisée.
+        </p>
+        <div className="relative mt-4">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nom, handle ou propriétaire"
+            className="bg-background/70 pl-10"
+          />
+        </div>
+      </div>
+
+      {communities.isLoading ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">Chargement…</p>
+      ) : rows.length === 0 ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">Aucune communauté.</p>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {rows.map((community) => {
+            const busy = busyId === community.id;
+            return (
+              <article
+                key={community.id}
+                className="rounded-3xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40"
+              >
+                <div className="flex gap-3">
+                  <StoredImage
+                    path={community.icon_url}
+                    alt=""
+                    className="h-14 w-14 rounded-2xl"
+                    fallback="👥"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 truncate font-black">
+                      {community.name} {community.verified ? <Verified /> : null}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">@{community.handle}</p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      Propriétaire : {community.owner_username ?? "inconnu"}
+                    </p>
+                  </div>
+                  <span className="h-fit shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase text-primary">
+                    {community.member_count} membres
+                  </span>
+                </div>
+
+                <div className="mt-3">
+                  <Label>Visibilité</Label>
+                  <Select
+                    value={community.visibility}
+                    disabled={busy}
+                    onChange={(e) =>
+                      void act(
+                        community.id,
+                        "set_visibility",
+                        e.target.value as "public" | "private_request" | "private_friends",
+                      )
+                    }
+                  >
+                    {Object.entries(COMMUNITY_VISIBILITY_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() =>
+                      void act(community.id, community.verified ? "unverify" : "verify")
+                    }
+                  >
+                    <BadgeCheck className="mr-1 h-3.5 w-3.5" />
+                    {community.verified ? "Décertifier" : "Certifier"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    disabled={busy}
+                    onClick={() => deleteCommunity(community.id, community.name)}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" /> Supprimer
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
