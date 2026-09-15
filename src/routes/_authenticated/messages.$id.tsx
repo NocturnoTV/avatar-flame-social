@@ -611,7 +611,7 @@ function Conversation() {
   const list = messages.data ?? [];
 
   return (
-    <div className="app-background mx-auto flex h-[calc(100dvh-6rem)] w-full max-w-md flex-col text-foreground lg:h-screen">
+    <div className="app-background mx-auto flex h-[100dvh] w-full max-w-md flex-col text-foreground lg:h-screen">
       {/* En-tête fixe */}
       <header className="flex h-[74px] shrink-0 items-center gap-3 border-b border-border bg-background px-4">
         <Link to="/messages" aria-label={t("back")} className="text-[#050505] dark:text-white">
@@ -950,7 +950,7 @@ function Conversation() {
         ) : null}
 
         {/* Barre de composition */}
-        <div className="flex items-center gap-2 pb-3">
+        <div className="flex items-center gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             onClick={() => cameraRef.current?.click()}
             aria-label={t("photo")}
@@ -1323,7 +1323,7 @@ function TeamSparkConversation() {
   }, [announcements.data?.length]);
 
   return (
-    <div className="app-background flex h-[calc(100dvh-6rem)] flex-col text-foreground lg:h-screen">
+    <div className="app-background flex h-[100dvh] flex-col text-foreground lg:h-screen">
       <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border bg-background px-3">
         <button
           onClick={() => void navigate({ to: "/messages" })}
@@ -1552,7 +1552,7 @@ function ActivitiesConversation() {
   }
 
   return (
-    <div className="app-background flex h-[calc(100dvh-6rem)] flex-col text-foreground lg:h-screen">
+    <div className="app-background flex h-[100dvh] flex-col text-foreground lg:h-screen">
       <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border bg-background px-3">
         <button
           onClick={() => void navigate({ to: "/messages" })}

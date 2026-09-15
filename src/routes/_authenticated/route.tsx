@@ -11,6 +11,7 @@ import { BottomNav, SideNav } from "@/components/AppNav";
 import { AppMenu } from "@/components/AppMenu";
 import { CallProvider } from "@/components/CallProvider";
 import { useSession } from "@/lib/session";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -112,14 +113,20 @@ function AppLayout() {
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+  // Inside a single conversation, the tab bar has nothing useful to do and
+  // just eats screen space from the message list / composer - hide it there
+  // (both list still floats on /messages itself) and let the conversation
+  // use the full viewport height instead of the space normally reserved for
+  // the floating pill nav.
+  const inConversation = pathname.startsWith("/messages/");
   return (
     <CallProvider>
       <div className="app-background min-h-screen">
         <SideNav />
-        <div className="pb-24 lg:ml-64 lg:pb-0">
+        <div className={cn("lg:ml-64 lg:pb-0", inConversation ? "pb-0" : "pb-24")}>
           <Outlet />
         </div>
-        <BottomNav onOpenMenu={() => setMenuOpen(true)} />
+        {!inConversation ? <BottomNav onOpenMenu={() => setMenuOpen(true)} /> : null}
         <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       </div>
     </CallProvider>
