@@ -22,6 +22,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Android App Links: bloxspark.app URLs opened anywhere on the
+                 device (a link tapped in another app, an SMS, or - crucially -
+                 the system browser tab the Roblox sign-in flow runs in, see
+                 src/lib/native.ts's openExternal()) open straight into this
+                 app instead of a browser tab, once Android verifies
+                 public/.well-known/assetlinks.json against this app's
+                 signing certificate. autoVerify requires the app to actually
+                 be installed from a source Android trusts for verification
+                 (Play Store) to run the handshake - it silently falls back
+                 to "open in browser" until then, never crashes. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="bloxspark.app" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -41,7 +58,9 @@
     <!-- Video posting, voice messages and photo/camera uploads in the web
          app use getUserMedia()/file inputs inside the WebView, which need
          these declared even though there's no separate native camera/mic
-         feature - see MainActivity's onPermissionRequest override. -->
+         feature - Capacitor's own BridgeWebChromeClient already prompts
+         for and grants these at runtime once they're declared here, no
+         custom MainActivity code needed. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
