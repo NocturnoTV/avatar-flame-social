@@ -444,7 +444,11 @@ export type Database = {
           community_id: string;
           content: string;
           created_at: string;
+          duration_ms: number | null;
           id: string;
+          kind: string;
+          media_url: string | null;
+          reply_to_id: string | null;
           user_id: string;
         };
         Insert: {
@@ -452,7 +456,11 @@ export type Database = {
           community_id: string;
           content: string;
           created_at?: string;
+          duration_ms?: number | null;
           id?: string;
+          kind?: string;
+          media_url?: string | null;
+          reply_to_id?: string | null;
           user_id: string;
         };
         Update: {
@@ -460,7 +468,11 @@ export type Database = {
           community_id?: string;
           content?: string;
           created_at?: string;
+          duration_ms?: number | null;
           id?: string;
+          kind?: string;
+          media_url?: string | null;
+          reply_to_id?: string | null;
           user_id?: string;
         };
         Relationships: [
@@ -480,6 +492,38 @@ export type Database = {
           },
         ];
       };
+      community_channel_message_reactions: {
+        Row: {
+          created_at: string;
+          emoji: string;
+          id: string;
+          message_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          emoji: string;
+          id?: string;
+          message_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          emoji?: string;
+          id?: string;
+          message_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "community_channel_message_reactions_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "community_channel_messages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       community_channels: {
         Row: {
           category_id: string | null;
@@ -487,6 +531,7 @@ export type Database = {
           created_at: string;
           id: string;
           is_default: boolean;
+          kind: string;
           name: string;
           position: number;
         };
@@ -496,6 +541,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           is_default?: boolean;
+          kind?: string;
           name: string;
           position?: number;
         };
@@ -505,6 +551,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           is_default?: boolean;
+          kind?: string;
           name?: string;
           position?: number;
         };
@@ -3114,7 +3161,7 @@ export type Database = {
         Returns: string;
       };
       community_create_channel: {
-        Args: { _category: string; _community: string; _name: string };
+        Args: { _category: string; _community: string; _kind?: string; _name: string };
         Returns: string;
       };
       community_create_role: {

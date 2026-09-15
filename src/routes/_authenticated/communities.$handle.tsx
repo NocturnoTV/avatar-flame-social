@@ -25,6 +25,7 @@ import { PresenceDot } from "@/components/PresenceDot";
 import { Verified } from "@/components/Verified";
 import { Button, Input } from "@/components/ui-kit";
 import { CommunitySettingsSheet } from "@/components/CommunitySettingsSheet";
+import { CommunityMobileChannels } from "@/components/CommunityMobileChannels";
 import type { CommunityPermission } from "@/lib/communityPermissions";
 import type { Database } from "@/integrations/supabase/types";
 import { useSession } from "@/lib/session";
@@ -250,18 +251,31 @@ function CommunityPage() {
 
         <div className="mt-4">
           {tab === "channels" ? (
-            <ChannelsTab
-              communityId={communityId}
-              community={c}
-              isMember={isMember}
-              canManageChannels={can("manage_channels")}
-              onOpenLeaderboard={() => setTab("leaderboard")}
-            />
+            <div className="hidden lg:block">
+              <ChannelsTab
+                communityId={communityId}
+                community={c}
+                isMember={isMember}
+                canManageChannels={can("manage_channels")}
+                onOpenLeaderboard={() => setTab("leaderboard")}
+              />
+            </div>
           ) : null}
           {tab === "members" ? <MembersTab communityId={communityId} ownerId={c.owner_id} /> : null}
           {tab === "leaderboard" ? <LeaderboardTab communityId={communityId} /> : null}
         </div>
       </div>
+
+      {tab === "channels" ? (
+        <CommunityMobileChannels
+          communityId={communityId}
+          community={c}
+          isMember={isMember}
+          canManageChannels={can("manage_channels")}
+          onOpenHome={() => undefined}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      ) : null}
 
       {communityId ? (
         <CommunitySettingsSheet
