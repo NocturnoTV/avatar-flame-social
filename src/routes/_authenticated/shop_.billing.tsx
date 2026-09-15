@@ -3,22 +3,28 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
+  Bookmark,
   CalendarDays,
   CheckCircle2,
   CreditCard,
   Crown,
   Download,
   ExternalLink,
+  Eye,
+  Heart,
   HelpCircle,
   LoaderCircle,
+  MessageCircle,
   Receipt,
   RefreshCw,
   ShoppingBag,
+  Video,
   WalletCards,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { StoredImage } from "@/components/Media";
 import { Button, Sheet } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -43,6 +49,10 @@ const COPY = {
     purchases: "Purchases",
     invoices: "Invoices",
     blox: "Blox activity",
+    studio: "Creator Studio",
+    studioHint: "Your videos and performance stats.",
+    studioOpenFull: "Open the full Creator Studio",
+    studioNoVideos: "No videos published yet.",
     totalSpent: "Total paid",
     payments: "Payments",
     plan: "Membership",
@@ -75,6 +85,10 @@ const COPY = {
     purchases: "Achats",
     invoices: "Factures",
     blox: "Activité Blox",
+    studio: "Creator Studio",
+    studioHint: "Tes vidéos et tes statistiques de performance.",
+    studioOpenFull: "Ouvrir le Creator Studio complet",
+    studioNoVideos: "Aucune vidéo publiée pour l'instant.",
     totalSpent: "Total payé",
     payments: "Paiements",
     plan: "Abonnement",
@@ -107,6 +121,10 @@ const COPY = {
     purchases: "Compras",
     invoices: "Facturas",
     blox: "Actividad Blox",
+    studio: "Estudio de creador",
+    studioHint: "Tus vídeos y estadísticas de rendimiento.",
+    studioOpenFull: "Abrir el Estudio de creador completo",
+    studioNoVideos: "Aún no has publicado ningún vídeo.",
     totalSpent: "Total pagado",
     payments: "Pagos",
     plan: "Suscripción",
@@ -139,6 +157,10 @@ const COPY = {
     purchases: "Compras",
     invoices: "Faturas",
     blox: "Atividade Blox",
+    studio: "Estúdio do criador",
+    studioHint: "Seus vídeos e estatísticas de desempenho.",
+    studioOpenFull: "Abrir o Estúdio do criador completo",
+    studioNoVideos: "Nenhum vídeo publicado ainda.",
     totalSpent: "Total pago",
     payments: "Pagamentos",
     plan: "Assinatura",
@@ -171,6 +193,10 @@ const COPY = {
     purchases: "Käufe",
     invoices: "Rechnungen",
     blox: "Blox-Aktivität",
+    studio: "Creator Studio",
+    studioHint: "Deine Videos und Performance-Statistiken.",
+    studioOpenFull: "Vollständiges Creator Studio öffnen",
+    studioNoVideos: "Noch keine Videos veröffentlicht.",
     totalSpent: "Gesamt bezahlt",
     payments: "Zahlungen",
     plan: "Mitgliedschaft",
@@ -202,6 +228,10 @@ const COPY = {
     purchases: "구매",
     invoices: "청구서",
     blox: "Blox 활동",
+    studio: "크리에이터 스튜디오",
+    studioHint: "내 동영상과 실적 통계를 확인하세요.",
+    studioOpenFull: "크리에이터 스튜디오 전체 보기",
+    studioNoVideos: "아직 게시한 동영상이 없습니다.",
     totalSpent: "총 결제액",
     payments: "결제",
     plan: "멤버십",
@@ -264,7 +294,9 @@ function BillingPage() {
   const navigate = useNavigate();
   const { session_id: newSubscriptionSessionId } = Route.useSearch();
   const copy = COPY[lang as keyof typeof COPY] ?? COPY.en;
-  const [view, setView] = useState<"overview" | "purchases" | "invoices" | "blox">("overview");
+  const [view, setView] = useState<"overview" | "purchases" | "invoices" | "blox" | "studio">(
+    "overview",
+  );
   const [subscribing, setSubscribing] = useState(false);
 
   // getStripeEnvironment() throws when Stripe isn't configured for this
@@ -324,6 +356,32 @@ function BillingPage() {
       return data ?? [];
     },
   });
+
+  // "Creator Studio" tab preview - the same real per-video numbers as the
+  // full /discover/studio page, just condensed here for quick reference.
+  const myVideos = useQuery({
+    queryKey: ["billing-my-videos", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("videos")
+        .select(
+          "id,thumbnail_path,caption,views_count,likes_count,comments_count,favorites_count,reposts_count,created_at",
+        )
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+  const studioTotals = (myVideos.data ?? []).reduce(
+    (acc, v) => ({
+      views: acc.views + v.views_count,
+      likes: acc.likes + v.likes_count,
+      comments: acc.comments + v.comments_count,
+      favorites: acc.favorites + v.favorites_count,
+    }),
+    { views: 0, likes: 0, comments: 0, favorites: 0 },
+  );
 
   // Landed back here after subscribing to Spark Plus from this very page
   // (see the "no active plan" card below) - confirm it, then drop the
@@ -417,6 +475,7 @@ function BillingPage() {
             ["purchases", copy.purchases],
             ["invoices", copy.invoices],
             ["blox", copy.blox],
+            ["studio", copy.studio],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -753,6 +812,76 @@ function BillingPage() {
               </div>
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {view === "studio" ? (
+        <section className="mt-6">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-black">
+              <Video className="h-5 w-5 text-primary" /> {copy.studio}
+            </h2>
+            <Link
+              to="/discover/studio"
+              className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+            >
+              {copy.studioOpenFull} <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{copy.studioHint}</p>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-2xl border border-border bg-card p-3 text-center">
+              <Eye className="mx-auto h-4 w-4 text-primary" />
+              <p className="mt-1 text-sm font-black">{studioTotals.views.toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground">{t("statViews")}</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-3 text-center">
+              <Heart className="mx-auto h-4 w-4 text-primary" />
+              <p className="mt-1 text-sm font-black">{studioTotals.likes.toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground">{t("statLikes")}</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-3 text-center">
+              <MessageCircle className="mx-auto h-4 w-4 text-primary" />
+              <p className="mt-1 text-sm font-black">{studioTotals.comments.toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground">{t("statComments")}</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-3 text-center">
+              <Bookmark className="mx-auto h-4 w-4 text-primary" />
+              <p className="mt-1 text-sm font-black">{studioTotals.favorites.toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground">{t("statFavorites")}</p>
+            </div>
+          </div>
+
+          {myVideos.isLoading ? (
+            <div className="mt-4 flex justify-center py-10">
+              <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          ) : !myVideos.data?.length ? (
+            <p className="mt-4 rounded-3xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+              {copy.studioNoVideos}
+            </p>
+          ) : (
+            <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {myVideos.data.map((v) => (
+                <Link
+                  key={v.id}
+                  to="/discover/studio"
+                  className="group relative aspect-[9/16] overflow-hidden rounded-xl bg-surface-2"
+                >
+                  <StoredImage
+                    path={v.thumbnail_path}
+                    alt={v.caption ?? ""}
+                    className="h-full w-full object-cover transition group-hover:scale-105"
+                    fallback="🎬"
+                  />
+                  <span className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1.5 text-[10px] font-bold text-white">
+                    <Eye className="h-3 w-3" /> {v.views_count.toLocaleString()}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
 

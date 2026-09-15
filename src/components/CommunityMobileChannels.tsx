@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ChevronDown,
+  Crown,
   Hash,
   Home,
   Image as ImageIcon,
@@ -16,6 +17,7 @@ import {
   Search,
   Send,
   Square,
+  Trophy,
   Users,
   Volume2,
   X,
@@ -122,6 +124,31 @@ export function CommunityMobileChannels({
   });
 
   const isHome = activeChannelId === HOME_ID;
+
+  const owner = useQuery({
+    queryKey: ["community-owner", community.owner_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,verified")
+        .eq("id", community.owner_id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  // Same directory ranking used on the Communities list - so "#N" here means
+  // the same thing it does everywhere else in the app, not a page-local guess.
+  const ranking = useQuery({
+    queryKey: ["community-directory-rankings"],
+    enabled: isHome,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("community_directory_rankings");
+      return data ?? [];
+    },
+  });
+  const myRank = ranking.data?.find((r) => r.community_id === communityId);
+
   const activeChannel = (channels.data ?? []).find((c) => c.id === activeChannelId);
   const isVoiceChannel = activeChannel?.kind === "voice";
 
@@ -359,6 +386,13 @@ export function CommunityMobileChannels({
         )}
       >
         <div className="flex items-center gap-3 border-b border-white/10 p-4">
+          <Link
+            to="/communities"
+            aria-label="Retour aux communautés"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+          >
+            <ArrowLeft className="h-4.5 w-4.5" />
+          </Link>
           <StoredImage
             path={community.icon_url}
             alt={community.name}
@@ -536,19 +570,85 @@ export function CommunityMobileChannels({
         </header>
 
         {isHome ? (
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+            <div className="flex items-center gap-3">
               <StoredImage
                 path={community.icon_url}
                 alt=""
-                className="h-16 w-16 rounded-2xl object-cover"
+                className="h-16 w-16 shrink-0 rounded-2xl object-cover"
                 fallback="🎮"
               />
-              <p className="text-sm">
-                Fais glisser depuis le bord gauche ou touche{" "}
-                <ArrowLeft className="inline h-3.5 w-3.5" /> pour voir les salons.
-              </p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-lg font-black">{community.name}</p>
+                <p className="text-xs text-muted-foreground">@{community.handle}</p>
+              </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-border bg-card p-3">
+                <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                  <Trophy className="h-3 w-3" /> Classement
+                </p>
+                <p className="mt-1 text-sm font-bold">
+                  {myRank ? `#${myRank.rank_position}` : "—"}{" "}
+                  <span className="font-normal text-muted-foreground">
+                    / {ranking.data?.length ?? 0} communautés
+                  </span>
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-3">
+                <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                  <Users className="h-3 w-3" /> Membres
+                </p>
+                <p className="mt-1 text-sm font-bold">{community.member_count.toLocaleString()}</p>
+              </div>
+            </div>
+
+            {owner.data ? (
+              <Link
+                to="/users/$id"
+                params={{ id: owner.data.id }}
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition hover:border-primary/40"
+              >
+                <StoredImage
+                  path={owner.data.avatar_url}
+                  alt=""
+                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                  fallback="🎮"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                    <Crown className="h-3 w-3 text-amber-400" /> Propriétaire
+                  </p>
+                  <p className="truncate text-sm font-bold">{owner.data.username ?? "?"}</p>
+                </div>
+              </Link>
+            ) : null}
+
+            {community.description ? (
+              <div className="rounded-2xl border border-border bg-card p-3">
+                <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                  Description
+                </p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {community.description}
+                </p>
+              </div>
+            ) : null}
+
+            {community.rules ? (
+              <div className="rounded-2xl border border-border bg-card p-3">
+                <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                  Règles
+                </p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{community.rules}</p>
+              </div>
+            ) : null}
+
+            <p className="flex items-center justify-center gap-1.5 pt-1 text-center text-xs text-muted-foreground">
+              Glisse depuis le bord gauche ou touche <ArrowLeft className="h-3 w-3" /> pour voir les
+              salons.
+            </p>
           </div>
         ) : isVoiceChannel ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
