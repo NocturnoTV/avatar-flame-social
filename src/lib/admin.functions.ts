@@ -53,9 +53,7 @@ export const adminListMembers = createServerFn({ method: "GET" })
       const auth = authById.get(String(profile["id"]));
       const rawPriv = profile["profiles_private"];
       const priv = (Array.isArray(rawPriv) ? rawPriv[0] : rawPriv) as
-        | Record<string, unknown>
-        | null
-        | undefined;
+        Record<string, unknown> | null | undefined;
       return {
         id: String(profile["id"]),
         username: (profile["username"] as string | null) ?? null,
@@ -78,7 +76,9 @@ export const adminListMembers = createServerFn({ method: "GET" })
         sparkPlusActive: Boolean(profile["spark_plus_active"]),
         sparkPlusExpiresAt: (profile["spark_plus_expires_at"] as string | null) ?? null,
         birthDate: (priv?.["birth_date"] as string | null) ?? null,
-        parentName: canManageCredentials ? ((priv?.["parent_name"] as string | null) ?? null) : null,
+        parentName: canManageCredentials
+          ? ((priv?.["parent_name"] as string | null) ?? null)
+          : null,
         parentEmail: canManageCredentials
           ? ((priv?.["parent_email"] as string | null) ?? null)
           : null,
@@ -213,6 +213,8 @@ const actionSchema = z.object({
     "hide_video",
     "restore_video",
     "delete_video",
+    "approve_video",
+    "reject_video",
     "grant_spark_plus",
     "revoke_spark_plus",
     "grant_blox",
@@ -384,6 +386,25 @@ export const adminManageMember = createServerFn({ method: "POST" })
           .eq("user_id", data.userId);
         if (error) throw error;
       }
+    }
+
+    if (data.action === "approve_video" || data.action === "reject_video") {
+      if (!data.targetId) throw new Error("video_required");
+      const { error } = await supabaseAdmin
+        .from("videos")
+        .update({ moderation_status: data.action === "approve_video" ? "approved" : "rejected" })
+        .eq("id", data.targetId)
+        .eq("user_id", data.userId);
+      if (error) throw error;
+      // Second Team Spark message: the decision on this account's first
+      // video - rendered client-side in the viewer's current language, same
+      // marker pattern as safety_alert / purchase_thanks.
+      await supabaseAdmin.from("notifications").insert({
+        user_id: data.userId,
+        kind: "system",
+        body: data.action === "approve_video" ? "video_approved" : "video_rejected",
+        video_id: data.targetId,
+      });
     }
 
     const { error: auditError } = await supabaseAdmin.from("admin_audit_log").insert({

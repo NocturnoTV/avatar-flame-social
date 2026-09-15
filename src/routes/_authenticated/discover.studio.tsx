@@ -741,6 +741,13 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
     if (!file || !user || !title.trim()) return;
     setBusy(true);
     try {
+      // New accounts' very first video is held for review (server-enforced,
+      // see the enforce_first_video_moderation trigger - this count is only
+      // to decide which success message to show, not to gate anything).
+      const { count: existingVideoCount } = await supabase
+        .from("videos")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
       // A montage edit (trim/text/sound) replaces the original file with a
       // re-encoded WebM - otherwise the original file goes up untouched.
       const uploadSource: Blob = editedBlob ?? file;
@@ -769,7 +776,11 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
           _entity_id: inserted.id,
         });
       }
-      toast.success(t("studioVideoPublished"));
+      if ((existingVideoCount ?? 0) === 0) {
+        toast.success(t("studioFirstVideoPendingNotice"), { duration: 12000 });
+      } else {
+        toast.success(t("studioVideoPublished"));
+      }
       onDone();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("studioPublishFailed"));

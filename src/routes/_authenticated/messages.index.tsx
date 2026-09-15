@@ -1002,7 +1002,15 @@ function MessagesPage() {
                 {systemNotif
                   ? systemNotif.body === "safety_alert"
                     ? t("safetyAlertNotif")
-                    : systemNotif.body
+                    : systemNotif.body === "video_pending_review"
+                      ? t("notifVideoPendingReview")
+                      : systemNotif.body === "video_approved"
+                        ? t("notifVideoApproved")
+                        : systemNotif.body === "video_rejected"
+                          ? t("notifVideoRejected")
+                          : systemNotif.body?.startsWith("purchase_thanks:")
+                            ? t("purchaseThanksCta")
+                            : systemNotif.body
                   : t("notificationEmptyHint")}
               </p>
             </div>

@@ -3076,6 +3076,7 @@ export type Database = {
           hashtags: string[];
           id: string;
           likes_count: number;
+          moderation_status: string;
           recommendation_eligible: boolean;
           reposts_count: number;
           shares_count: number;
@@ -3097,6 +3098,7 @@ export type Database = {
           hashtags?: string[];
           id?: string;
           likes_count?: number;
+          moderation_status?: string;
           recommendation_eligible?: boolean;
           reposts_count?: number;
           shares_count?: number;
@@ -3118,6 +3120,7 @@ export type Database = {
           hashtags?: string[];
           id?: string;
           likes_count?: number;
+          moderation_status?: string;
           recommendation_eligible?: boolean;
           reposts_count?: number;
           shares_count?: number;

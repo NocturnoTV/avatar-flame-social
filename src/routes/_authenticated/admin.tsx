@@ -2562,6 +2562,104 @@ function SuspiciousActivity({ log }: { log: LogFn }) {
   );
 }
 
+/** First videos from a brand-new account are held for review (see the
+ *  enforce_first_video_moderation DB trigger) - this is where staff clears
+ *  the queue. Approving/rejecting fires the second Team Spark message via
+ *  the same adminManageMember action used for every other moderation tool. */
+function PendingVideosReview() {
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const pending = useQuery({
+    queryKey: ["admin-pending-videos"],
+    queryFn: async () => {
+      const { data: videos, error } = await supabase
+        .from("videos")
+        .select("id,caption,storage_path,thumbnail_path,created_at,user_id")
+        .eq("moderation_status", "pending")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const userIds = [...new Set((videos ?? []).map((v) => v.user_id))];
+      const { data: creators } = userIds.length
+        ? await supabase.from("profiles").select("id,username,avatar_url").in("id", userIds)
+        : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] };
+      const byId = new Map((creators ?? []).map((c) => [c.id, c]));
+      return (videos ?? []).map((v) => ({ ...v, creator: byId.get(v.user_id) ?? null }));
+    },
+  });
+
+  async function decide(video: { id: string; user_id: string }, approve: boolean) {
+    setBusyId(video.id);
+    try {
+      await adminManageMember({
+        data: {
+          action: approve ? "approve_video" : "reject_video",
+          userId: video.user_id,
+          targetId: video.id,
+        },
+      });
+      toast.success(approve ? "Vidéo approuvée" : "Vidéo refusée");
+      await pending.refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  if (!pending.data?.length) return null;
+
+  return (
+    <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-4">
+      <p className="flex items-center gap-2 font-black text-amber-600 dark:text-amber-400">
+        <AlertTriangle className="h-4 w-4" /> Premières vidéos en attente de modération (
+        {pending.data.length})
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {pending.data.map((v) => (
+          <div key={v.id} className="rounded-2xl border border-border bg-card p-3">
+            <div className="flex gap-3">
+              <StoredImage
+                path={v.thumbnail_path}
+                alt=""
+                className="h-16 w-11 shrink-0 rounded-lg object-cover"
+                fallback="🎬"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold">{v.caption || "Sans titre"}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  @{v.creator?.username ?? "inconnu"}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {new Date(v.created_at).toLocaleString("fr-FR")}
+                </p>
+              </div>
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button
+                size="sm"
+                disabled={busyId === v.id}
+                onClick={() => void decide(v, true)}
+                className="flex-1"
+              >
+                <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Approuver
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busyId === v.id}
+                className="flex-1 text-destructive"
+                onClick={() => void decide(v, false)}
+              >
+                <Ban className="mr-1 h-3.5 w-3.5" /> Refuser
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Content() {
   const [query, setQuery] = useState("");
   const [openVideo, setOpenVideo] = useState<string | null>(null);
@@ -2575,6 +2673,7 @@ function Content() {
 
   return (
     <div className="space-y-4">
+      <PendingVideosReview />
       <div className="relative">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input

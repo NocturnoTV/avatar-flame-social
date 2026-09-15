@@ -1221,6 +1221,7 @@ type TeamSparkNotification = {
   body: string | null;
   read: boolean;
   created_at: string;
+  video_id: string | null;
 };
 
 function TeamSparkConversation() {
@@ -1236,7 +1237,7 @@ function TeamSparkConversation() {
     queryFn: async (): Promise<TeamSparkNotification[]> => {
       const { data, error } = await supabase
         .from("notifications")
-        .select("id,body,read,created_at")
+        .select("id,body,read,created_at,video_id")
         .eq("user_id", user!.id)
         .in("kind", TEAM_SPARK_NOTIFICATION_KINDS)
         // Safety-alert markers reuse kind "system" but are shown inline in
@@ -1348,14 +1349,22 @@ function TeamSparkConversation() {
                       <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
                         {announcement.body === "safety_alert"
                           ? t("safetyAlertNotif")
-                          : announcement.body?.startsWith("purchase_thanks:")
-                            ? (() => {
-                                const [, kind, amount] = announcement.body!.split(":");
-                                return kind === "blox"
-                                  ? t("purchaseThanksBloxBody", { amount: Number(amount) || 0 })
-                                  : t("purchaseThanksSparkPlusBody");
-                              })()
-                            : announcement.body}
+                          : announcement.body === "video_pending_review"
+                            ? t("notifVideoPendingReview")
+                            : announcement.body === "video_approved"
+                              ? t("notifVideoApproved")
+                              : announcement.body === "video_rejected"
+                                ? t("notifVideoRejected")
+                                : announcement.body?.startsWith("purchase_thanks:")
+                                  ? (() => {
+                                      const [, kind, amount] = announcement.body!.split(":");
+                                      return kind === "blox"
+                                        ? t("purchaseThanksBloxBody", {
+                                            amount: Number(amount) || 0,
+                                          })
+                                        : t("purchaseThanksSparkPlusBody");
+                                    })()
+                                  : announcement.body}
                       </p>
                       {announcement.body?.startsWith("purchase_thanks:") ? (
                         <Link
@@ -1363,6 +1372,15 @@ function TeamSparkConversation() {
                           className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/25"
                         >
                           {t("purchaseThanksCta")}
+                        </Link>
+                      ) : null}
+                      {announcement.body === "video_approved" && announcement.video_id ? (
+                        <Link
+                          to="/discover"
+                          search={{ v: announcement.video_id }}
+                          className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/25"
+                        >
+                          {t("videoApprovedCta")}
                         </Link>
                       ) : null}
                     </div>

@@ -328,6 +328,13 @@ const en: Dict = {
   studioMaxFileSize: "Maximum file size is 200 MB.",
   studioMaxHashtags: "You can add up to 5 hashtags.",
   studioVideoPublished: "Video published 🎉",
+  studioFirstVideoPendingNotice:
+    "Your account is new and this is your first video: it will be analyzed by AI and then manually reviewed by moderation. This process can take up to 24h in rare cases.",
+  notifVideoPendingReview:
+    "Your first video is pending review 🎬 First by AI, then manually by our team (can take up to 24h).",
+  notifVideoApproved: "Your video was approved and is now live 🎉",
+  notifVideoRejected: "Your video was rejected for not following our community guidelines.",
+  videoApprovedCta: "View video",
   studioPublishFailed: "Publishing failed",
   studioStepOf: "Step {step} of {total}",
   studioChooseVideo: "Choose your video",
@@ -1214,6 +1221,14 @@ const fr: Dict = {
   studioMaxFileSize: "La taille maximale du fichier est de 200 Mo.",
   studioMaxHashtags: "Tu peux ajouter jusqu'à 5 hashtags.",
   studioVideoPublished: "Vidéo publiée 🎉",
+  studioFirstVideoPendingNotice:
+    "Ton compte est récent et c'est ta première vidéo : elle va être analysée par une IA puis vérifiée manuellement par la modération. Ce processus peut prendre jusqu'à 24h dans de rares cas.",
+  notifVideoPendingReview:
+    "Ta première vidéo est en attente de validation 🎬 Elle va être analysée par une IA puis manuellement par notre équipe (jusqu'à 24h dans de rares cas).",
+  notifVideoApproved: "Ta vidéo a été validée et est maintenant en ligne 🎉",
+  notifVideoRejected:
+    "Ta vidéo a été refusée car elle ne respecte pas nos règles de la communauté.",
+  videoApprovedCta: "Voir la vidéo",
   studioPublishFailed: "La publication a échoué",
   studioStepOf: "Étape {step} sur {total}",
   studioChooseVideo: "Choisis ta vidéo",
@@ -2104,6 +2119,13 @@ const es: Dict = {
   studioMaxFileSize: "El tamaño máximo del archivo es de 200 MB.",
   studioMaxHashtags: "Puedes añadir hasta 5 hashtags.",
   studioVideoPublished: "¡Vídeo publicado! 🎉",
+  studioFirstVideoPendingNotice:
+    "Tu cuenta es reciente y este es tu primer vídeo: será analizado por una IA y luego revisado manualmente por moderación. Este proceso puede tardar hasta 24h en casos excepcionales.",
+  notifVideoPendingReview:
+    "Tu primer vídeo está en revisión 🎬 Primero por IA, luego manualmente por nuestro equipo (puede tardar hasta 24h).",
+  notifVideoApproved: "Tu vídeo fue aprobado y ya está publicado 🎉",
+  notifVideoRejected: "Tu vídeo fue rechazado por no cumplir nuestras normas.",
+  videoApprovedCta: "Ver el vídeo",
   studioPublishFailed: "Error al publicar",
   studioStepOf: "Paso {step} de {total}",
   studioChooseVideo: "Elige tu vídeo",
@@ -2992,6 +3014,13 @@ const pt: Dict = {
   studioMaxFileSize: "O tamanho máximo do arquivo é 200 MB.",
   studioMaxHashtags: "Você pode adicionar até 5 hashtags.",
   studioVideoPublished: "Vídeo publicado 🎉",
+  studioFirstVideoPendingNotice:
+    "Sua conta é recente e este é seu primeiro vídeo: ele será analisado por uma IA e depois verificado manualmente pela moderação. Esse processo pode levar até 24h em casos raros.",
+  notifVideoPendingReview:
+    "Seu primeiro vídeo está em análise 🎬 Primeiro por IA, depois manualmente pela nossa equipe (pode levar até 24h).",
+  notifVideoApproved: "Seu vídeo foi aprovado e já está no ar 🎉",
+  notifVideoRejected: "Seu vídeo foi recusado por não seguir nossas diretrizes.",
+  videoApprovedCta: "Ver o vídeo",
   studioPublishFailed: "Falha ao publicar",
   studioStepOf: "Etapa {step} de {total}",
   studioChooseVideo: "Escolha seu vídeo",
@@ -3881,6 +3910,13 @@ const de: Dict = {
   studioMaxFileSize: "Die maximale Dateigröße beträgt 200 MB.",
   studioMaxHashtags: "Du kannst bis zu 5 Hashtags hinzufügen.",
   studioVideoPublished: "Video veröffentlicht 🎉",
+  studioFirstVideoPendingNotice:
+    "Dein Konto ist neu und das ist dein erstes Video: Es wird zuerst von einer KI und danach manuell von der Moderation geprüft. Das kann in seltenen Fällen bis zu 24 Stunden dauern.",
+  notifVideoPendingReview:
+    "Dein erstes Video wird geprüft 🎬 Erst durch eine KI, dann manuell von unserem Team (kann bis zu 24h dauern).",
+  notifVideoApproved: "Dein Video wurde freigegeben und ist jetzt live 🎉",
+  notifVideoRejected: "Dein Video wurde abgelehnt, da es gegen unsere Richtlinien verstößt.",
+  videoApprovedCta: "Video ansehen",
   studioPublishFailed: "Veröffentlichung fehlgeschlagen",
   studioStepOf: "Schritt {step} von {total}",
   studioChooseVideo: "Wähle dein Video",
@@ -4771,6 +4807,13 @@ const ko: Dict = {
   studioMaxFileSize: "파일 최대 크기는 200MB예요.",
   studioMaxHashtags: "해시태그는 최대 5개까지 추가할 수 있어요.",
   studioVideoPublished: "동영상이 게시되었어요 🎉",
+  studioFirstVideoPendingNotice:
+    "계정이 새로 생성되어 이번이 첫 동영상이에요. AI가 먼저 분석하고 이후 운영팀이 직접 검토합니다. 이 과정은 드물게 최대 24시간이 걸릴 수 있어요.",
+  notifVideoPendingReview:
+    "첫 동영상이 검토 대기 중이에요 🎬 AI 분석 후 운영팀이 직접 확인합니다 (최대 24시간 소요될 수 있어요).",
+  notifVideoApproved: "동영상이 승인되어 게시되었어요 🎉",
+  notifVideoRejected: "동영상이 커뮤니티 가이드라인을 준수하지 않아 거부되었어요.",
+  videoApprovedCta: "동영상 보기",
   studioPublishFailed: "게시에 실패했어요",
   studioStepOf: "{total}단계 중 {step}단계",
   studioChooseVideo: "동영상을 선택하세요",
