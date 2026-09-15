@@ -1184,10 +1184,15 @@ function Conversation() {
       {info && header.data ? (
         <ConversationInfoSheet
           conversationId={id}
-          otherId={header.data.otherId}
+          // otherId is really "the other participant in a 1:1 DM" - the
+          // header query sets it to the first other member regardless of
+          // group/DM (needed elsewhere for e.g. presence), so it must be
+          // normalized to null for a group here, or every group's info
+          // sheet would render as if it were a DM with that first member.
+          otherId={header.data.isGroup ? null : header.data.otherId}
           title={header.data.realUsername ?? header.data.title ?? "?"}
           avatarUrl={
-            header.data.otherId
+            !header.data.isGroup && header.data.otherId
               ? (header.data.people[header.data.otherId]?.avatar_url ?? null)
               : null
           }
