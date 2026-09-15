@@ -98,6 +98,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "400" },
+      { property: "og:image:alt", content: "BloxSpark - the social network for Roblox players" },
       { property: "og:locale", content: "en_US" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "BloxSpark - the social network for Roblox players" },
@@ -106,6 +109,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Discover players, share videos, match with Sparks and chat safely on BloxSpark.",
       },
       { name: "twitter:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
+      {
+        name: "twitter:image:alt",
+        content: "BloxSpark - the social network for Roblox players",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

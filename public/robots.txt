@@ -25,5 +25,16 @@ Disallow: /shop
 Disallow: /support
 Disallow: /admin
 Disallow: /users/
+Disallow: /events
+Disallow: /news
+Disallow: /recent
+Disallow: /rewards
+Disallow: /saved
+Disallow: /store
+Disallow: /wiki
+Disallow: /api/
+# Stripe checkout return URLs - same page as /shop/billing, no reason for a
+# search engine to index every session_id variant as a separate result.
+Disallow: /*?session_id=
 
 Sitemap: https://bloxspark.app/sitemap.xml

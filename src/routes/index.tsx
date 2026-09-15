@@ -24,6 +24,9 @@ export const Route = createFileRoute("/")({
         content: "Profiles, vertical videos, Sparks, stories and real conversations.",
       },
       { property: "og:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "400" },
+      { property: "og:image:alt", content: "BloxSpark - The social world for Roblox players" },
       { property: "og:url", content: "https://bloxspark.app/" },
       { name: "twitter:title", content: "BloxSpark - The social world for Roblox players" },
       {
@@ -32,6 +35,10 @@ export const Route = createFileRoute("/")({
       },
       { name: "twitter:image", content: "https://bloxspark.app/bloxspark-hero-banner.png" },
       {
+        name: "twitter:image:alt",
+        content: "BloxSpark - The social world for Roblox players",
+      },
+      {
         "script:ld+json": {
           "@context": "https://schema.org",
           "@type": "WebSite",
@@ -39,6 +46,11 @@ export const Route = createFileRoute("/")({
           url: "https://bloxspark.app/",
           description:
             "BloxSpark connects Roblox players worldwide: discover profiles, share videos, match with Sparks and chat safely.",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: "https://bloxspark.app/discover?q={search_term_string}",
+            "query-input": "required name=search_term_string",
+          },
         },
       },
       {
@@ -48,6 +60,21 @@ export const Route = createFileRoute("/")({
           name: "BloxSpark",
           url: "https://bloxspark.app/",
           logo: "https://bloxspark.app/bloxspark-logo.png",
+        },
+      },
+      {
+        "script:ld+json": {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "BloxSpark",
+          url: "https://bloxspark.app/",
+          applicationCategory: "SocialNetworkingApplication",
+          operatingSystem: "Web",
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+          },
         },
       },
     ],
@@ -149,7 +176,7 @@ function Landing() {
                   className="bx-star-cta group relative inline-flex min-h-14 items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-violet-700 via-fuchsia-500 to-violet-700 px-8 font-black text-white shadow-[0_0_45px_rgba(217,70,239,.58)] transition duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:shadow-[0_0_70px_rgba(217,70,239,.85)]"
                 >
                   <span className="bx-cta-shine absolute inset-y-0 w-24 -skew-x-12 bg-white/60 blur-md" />
-                <span className="relative z-10 flex items-center gap-2">
+                  <span className="relative z-10 flex items-center gap-2">
                     {t("landingJoin")}{" "}
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </span>
