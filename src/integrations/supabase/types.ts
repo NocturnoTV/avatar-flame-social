@@ -1696,6 +1696,24 @@ export type Database = {
           },
         ];
       };
+      device_code_attempts: {
+        Row: {
+          attempts: number;
+          ip: string;
+          window_started_at: string;
+        };
+        Insert: {
+          attempts?: number;
+          ip: string;
+          window_started_at?: string;
+        };
+        Update: {
+          attempts?: number;
+          ip?: string;
+          window_started_at?: string;
+        };
+        Relationships: [];
+      };
       device_login_codes: {
         Row: {
           attempts: number;

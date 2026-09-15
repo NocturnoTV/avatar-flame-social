@@ -1,30 +1,36 @@
-import { randomBytes } from "node:crypto";
+import { randomInt } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-/** Unambiguous alphabet (no 0/O/1/I/L) so a code is easy to read off one
- * screen and type on another. 8 characters over 31 symbols is ~2^39 of
- * keyspace - combined with the 10-minute expiry below, brute-forcing a
- * single live code by guessing is not practical. */
-const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-
+/** 7 digits, grouped as 3-4 for readability (e.g. "482-9137") - easy to read
+ * off one screen and type on another. Combined with the per-IP throttle in
+ * redeemDeviceLoginCode below (3 attempts per rolling 3-second window),
+ * brute-forcing the 10^7 keyspace within a code's 5-minute lifetime isn't
+ * practical. */
 function generateCode(): string {
-  const bytes = randomBytes(8);
-  let out = "";
-  for (let i = 0; i < 8; i++) {
-    out += CODE_ALPHABET[bytes[i]! % CODE_ALPHABET.length];
-    if (i === 3) out += "-";
-  }
-  return out;
+  const digits = String(randomInt(0, 10_000_000)).padStart(7, "0");
+  return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+}
+
+function requestIp(): string {
+  const req = getRequest();
+  return (
+    req.headers.get("cf-connecting-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown"
+  );
 }
 
 /**
- * "Connecter un autre appareil" in Settings: the already-signed-in device
- * mints a short code the user can type into the app (or another browser)
- * to sign in as the same account instantly, instead of repeating the full
- * Roblox OAuth flow there. Requires being signed in - see
- * redeemDeviceLoginCode for the other half, called from a signed-out state.
+ * "Connecter un autre appareil" in Settings, and the post-signup screen on
+ * the website: the already-signed-in side mints a short code the user can
+ * type into the app (or another browser) to sign in as the same account
+ * instantly, instead of repeating Google/Roblox sign-in there - which
+ * Google in particular actively blocks inside an embedded app WebView.
+ * See redeemDeviceLoginCode for the other half, called from a signed-out
+ * state.
  */
 export const createDeviceLoginCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -38,7 +44,7 @@ export const createDeviceLoginCode = createServerFn({ method: "POST" })
         code,
         user_id: context.userId,
       });
-      if (!error) return { code, expiresInSeconds: 600 };
+      if (!error) return { code, expiresInSeconds: 300 };
       if (error.code !== "23505") throw error; // not a unique-violation, give up
     }
     throw new Error("could_not_generate_code");
@@ -54,11 +60,38 @@ const redeemSchema = z.object({ code: z.string().min(1).max(20) });
  * code used atomically (an update guarded by "used_at is null" - if two
  * requests race on the same code, only one can win the update) so it can't
  * be replayed even if someone captured it in transit.
+ *
+ * Throttled per source IP: at most 3 attempts per rolling 3-second window
+ * (device_code_attempts), regardless of whether the code guessed exists -
+ * a 7-digit code has a much smaller keyspace than the app's earlier
+ * alphanumeric one, so this matters here in a way it wouldn't otherwise.
  */
 export const redeemDeviceLoginCode = createServerFn({ method: "POST" })
   .validator(redeemSchema)
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const ip = requestIp();
+
+    const { data: bucket } = await supabaseAdmin
+      .from("device_code_attempts")
+      .select("attempts,window_started_at")
+      .eq("ip", ip)
+      .maybeSingle();
+    const windowAge = bucket ? Date.now() - new Date(bucket.window_started_at).getTime() : Infinity;
+    if (bucket && windowAge < 3000 && bucket.attempts >= 3) {
+      throw new Error("rate_limited");
+    }
+    if (!bucket || windowAge >= 3000) {
+      await supabaseAdmin
+        .from("device_code_attempts")
+        .upsert({ ip, attempts: 1, window_started_at: new Date().toISOString() });
+    } else {
+      await supabaseAdmin
+        .from("device_code_attempts")
+        .update({ attempts: bucket.attempts + 1 })
+        .eq("ip", ip);
+    }
+
     const code = data.code.trim().toUpperCase();
 
     const { data: row } = await supabaseAdmin
@@ -91,6 +124,10 @@ export const redeemDeviceLoginCode = createServerFn({ method: "POST" })
     if (linkError || !link.properties?.hashed_token) {
       throw linkError ?? new Error("could_not_create_session_link");
     }
+
+    // Successful redemption - clear this IP's throttle bucket so a shared
+    // network (school wifi, NAT) isn't left cooling down after a real login.
+    await supabaseAdmin.from("device_code_attempts").delete().eq("ip", ip);
 
     return { tokenHash: link.properties.hashed_token };
   });

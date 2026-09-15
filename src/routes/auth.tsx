@@ -12,15 +12,27 @@ import { useSession } from "@/lib/session";
 import { signInWithIdentifier } from "@/lib/login-identifier.functions";
 import { beginRobloxSignIn } from "@/lib/roblox-oauth.functions";
 import { redeemDeviceLoginCode } from "@/lib/device-login.functions";
+import { isNativeApp, openExternal } from "@/lib/native";
 import { errorMessage } from "@/lib/utils";
 
-type Search = { mode?: "signup" | "signin" | undefined; addAccount?: boolean };
+type Search = {
+  mode?: "signup" | "signin" | undefined;
+  addAccount?: boolean;
+  /** Set when this /auth load was opened by the native app's "Continue with
+   * Google/Roblox" button via the system browser (see google()/roblox()
+   * below) - auto-starts that provider's flow instead of waiting for
+   * another click, since the person already expressed that intent once. */
+  provider?: "google" | "roblox";
+};
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>): Search => ({
     ...(search["mode"] === "signup" ? { mode: "signup" as const } : {}),
     ...(search["addAccount"] === true || search["addAccount"] === "true"
       ? { addAccount: true }
+      : {}),
+    ...(search["provider"] === "google" || search["provider"] === "roblox"
+      ? { provider: search["provider"] }
       : {}),
   }),
 
@@ -46,7 +58,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { t, setLang } = useI18n();
   const { theme, setTheme } = useTheme();
-  const { mode, addAccount } = Route.useSearch();
+  const { mode, addAccount, provider } = Route.useSearch();
   const navigate = useNavigate();
   const { session } = useSession();
   const [isSignup, setIsSignup] = useState(mode === "signup");
@@ -59,6 +71,8 @@ function AuthPage() {
   const [codeMode, setCodeMode] = useState(false);
   const [deviceCodeInput, setDeviceCodeInput] = useState("");
   const [redeemingCode, setRedeemingCode] = useState(false);
+  const [codeCooldownUntil, setCodeCooldownUntil] = useState(0);
+  const [codeCooldownLeft, setCodeCooldownLeft] = useState(0);
 
   async function continueAfterAuthentication() {
     const { data } = await supabase.auth.getUser();
@@ -123,7 +137,24 @@ function AuthPage() {
     }
   }
 
+  // Google actively refuses to render its sign-in page inside an embedded
+  // app WebView ("disallowed_useragent") - Roblox has shown the same
+  // behaviour in testing. Both providers work fine in a real browser, so on
+  // native we send the person to the website (system browser, not this
+  // WebView) to finish signing in there, then drop straight into the
+  // "enter a code" screen after a few seconds so they have something to do
+  // with the code the website shows them, instead of staring at a dead end
+  // in the app.
+  function continueOnWebsite(withProvider: "google" | "roblox") {
+    void openExternal(`https://bloxspark.app/auth?provider=${withProvider}`);
+    setTimeout(() => setCodeMode(true), 5000);
+  }
+
   async function google() {
+    if (isNativeApp()) {
+      continueOnWebsite("google");
+      return;
+    }
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
@@ -149,6 +180,10 @@ function AuthPage() {
   }
 
   async function roblox() {
+    if (isNativeApp()) {
+      continueOnWebsite("roblox");
+      return;
+    }
     setRobloxBusy(true);
     try {
       const result = await beginRobloxSignIn();
@@ -160,14 +195,34 @@ function AuthPage() {
     }
   }
 
+  // Auto-start when this load came from the native app's "continue on
+  // website" redirect above (?provider=...) - the person already chose a
+  // provider once in the app, no need to make them click again here too.
+  useEffect(() => {
+    if (provider === "google") void google();
+    else if (provider === "roblox") void roblox();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider]);
+
   // "Se connecter avec un code": redeems a short code generated from
   // Settings on an already-signed-in device/browser - see
   // src/lib/device-login.functions.ts. verifyOtp applies the resulting
   // token locally, no redirect needed, so this is the fastest way into the
   // account on a fresh device (typically a just-installed native app).
+  // Local mirror of the server's per-IP throttle (3 attempts / rolling 3s
+  // window, see redeemDeviceLoginCode) so the button visibly cools down
+  // instead of just silently failing again on the very next click.
+  useEffect(() => {
+    if (!codeCooldownUntil) return;
+    const tick = () => setCodeCooldownLeft(Math.max(0, codeCooldownUntil - Date.now()));
+    tick();
+    const interval = setInterval(tick, 200);
+    return () => clearInterval(interval);
+  }, [codeCooldownUntil]);
+
   async function redeemCode() {
     const code = deviceCodeInput.trim();
-    if (!code) return;
+    if (!code || codeCooldownLeft > 0) return;
     setRedeemingCode(true);
     try {
       const result = await redeemDeviceLoginCode({ data: { code } });
@@ -177,8 +232,14 @@ function AuthPage() {
       });
       if (error) throw error;
       await continueAfterAuthentication();
-    } catch {
-      toast.error(t("deviceCodeInvalid"));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("rate_limited")) {
+        setCodeCooldownUntil(Date.now() + 3000);
+        toast.error(t("deviceCodeRateLimited"));
+      } else {
+        toast.error(t("deviceCodeInvalid"));
+      }
     } finally {
       setRedeemingCode(false);
     }
@@ -213,8 +274,8 @@ function AuthPage() {
               <Input
                 value={deviceCodeInput}
                 onChange={(e) => setDeviceCodeInput(e.target.value.toUpperCase())}
-                placeholder="XXXX-XXXX"
-                maxLength={9}
+                placeholder="123-4567"
+                maxLength={8}
                 autoFocus
                 className="text-center font-mono text-lg tracking-widest"
               />
@@ -222,10 +283,14 @@ function AuthPage() {
             <Button
               className="w-full"
               size="lg"
-              disabled={redeemingCode || !deviceCodeInput.trim()}
+              disabled={redeemingCode || !deviceCodeInput.trim() || codeCooldownLeft > 0}
               onClick={() => void redeemCode()}
             >
-              {redeemingCode ? "…" : t("deviceCodeSubmit")}
+              {redeemingCode
+                ? "…"
+                : codeCooldownLeft > 0
+                  ? t("deviceCodeCooldown", { seconds: Math.ceil(codeCooldownLeft / 1000) })
+                  : t("deviceCodeSubmit")}
             </Button>
             <button
               className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
