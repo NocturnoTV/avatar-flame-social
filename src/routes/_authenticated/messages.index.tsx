@@ -32,6 +32,7 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { getRobloxFriendSuggestions } from "@/lib/roblox-friends.functions";
 import { Verified } from "@/components/Verified";
+import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
 import {
   isActivityNotificationKind,
   localizeActivityNotification,
@@ -174,6 +175,9 @@ function MessagesPage() {
   >("all");
   const storyInput = useRef<HTMLInputElement>(null);
   const cameraInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [groupInfoRow, setGroupInfoRow] = useState<Row | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressRowClick = useRef(false);
 
   const myPresence = useQuery({
     queryKey: ["my-presence", user?.id],
@@ -685,6 +689,32 @@ function MessagesPage() {
   const filtered = visible.filter((c) =>
     (c.is_group ? c.name : c.others[0]?.username)?.toLowerCase().includes(search.toLowerCase()),
   );
+
+  // Long-press (or right-click) a conversation row to jump straight to the
+  // person's profile, or the group's info sheet - without disturbing the
+  // normal tap-to-open-chat behaviour on the same row.
+  function openRowProfile(row: Row) {
+    if (navigator.vibrate) navigator.vibrate(10);
+    if (row.is_group) {
+      setGroupInfoRow(row);
+    } else {
+      const otherId = row.others[0]?.id;
+      if (otherId) void navigate({ to: "/users/$id", params: { id: otherId } });
+    }
+  }
+  function startLongPress(row: Row) {
+    longPressTimer.current = setTimeout(() => {
+      longPressTimer.current = null;
+      suppressRowClick.current = true;
+      openRowProfile(row);
+    }, 500);
+  }
+  function cancelLongPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
   // Team Spark is reserved for official messages only (the welcome message,
   // future announcements) - kind "system". Video activity (likes, favorites,
   // reposts, comments, replies) gets its own "Activités" thread below, and
@@ -1044,6 +1074,20 @@ function MessagesPage() {
                 <Link
                   to="/messages/$id"
                   params={{ id: c.id }}
+                  onClick={(e) => {
+                    if (suppressRowClick.current) {
+                      e.preventDefault();
+                      suppressRowClick.current = false;
+                    }
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    openRowProfile(c);
+                  }}
+                  onTouchStart={() => startLongPress(c)}
+                  onTouchEnd={cancelLongPress}
+                  onTouchMove={cancelLongPress}
+                  onTouchCancel={cancelLongPress}
                   className="flex min-w-0 flex-1 items-center gap-3 active:scale-[.99]"
                 >
                   <div className="relative shrink-0">
@@ -1543,6 +1587,19 @@ function MessagesPage() {
 
       {activeStory ? (
         <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />
+      ) : null}
+
+      {groupInfoRow ? (
+        <ConversationInfoSheet
+          conversationId={groupInfoRow.id}
+          otherId={null}
+          title={groupInfoRow.name ?? "Discussion"}
+          avatarUrl={null}
+          pinned={groupInfoRow.pinned}
+          muted={groupInfoRow.muted}
+          onClose={() => setGroupInfoRow(null)}
+          onChanged={() => void conversations.refetch()}
+        />
       ) : null}
     </div>
   );
