@@ -259,9 +259,20 @@ export const adminManageMember = createServerFn({ method: "POST" })
           moderation_note: value,
         })
         .eq("id", data.userId);
-      await db
-        .from("notifications")
-        .insert({ user_id: data.userId, kind: "system", body: `Moderation warning: ${value}` });
+      await db.from("moderation_sanctions").insert({
+        user_id: data.userId,
+        action: "warn",
+        reason: value,
+        moderator_id: context.userId,
+      });
+      // Rendered client-side via a detailed, translated template (see
+      // notifModerationWarning in i18n.tsx) rather than baking English text
+      // in here - same marker pattern as every other Team Spark message.
+      await db.from("notifications").insert({
+        user_id: data.userId,
+        kind: "system",
+        body: `moderation_warning:${encodeURIComponent(value)}`,
+      });
     }
 
     if (data.action === "notify") {
@@ -283,6 +294,12 @@ export const adminManageMember = createServerFn({ method: "POST" })
           moderation_note: value || "Permanent ban",
         })
         .eq("id", data.userId);
+      await db.from("moderation_sanctions").insert({
+        user_id: data.userId,
+        action: "ban",
+        reason: value || "Permanent ban",
+        moderator_id: context.userId,
+      });
       details = value || "permanent";
     }
 
@@ -295,6 +312,12 @@ export const adminManageMember = createServerFn({ method: "POST" })
         .from("profiles")
         .update({ moderation_status: "active", banned_until: null })
         .eq("id", data.userId);
+      await db.from("moderation_sanctions").insert({
+        user_id: data.userId,
+        action: "unban",
+        reason: value || null,
+        moderator_id: context.userId,
+      });
     }
 
     if (data.action === "update_email") {
@@ -416,4 +439,64 @@ export const adminManageMember = createServerFn({ method: "POST" })
     });
     if (auditError) throw auditError;
     return { success: true };
+  });
+
+const disputeReviewSchema = z.object({
+  disputeId: z.string().uuid(),
+  decision: z.enum(["accepted", "rejected"]),
+  moderatorNote: z.string().max(1000).optional(),
+});
+
+/** Staff decides a contestation filed from Support. Accepting also clears
+ * the sanction it was filed against (back to "active") so the member isn't
+ * left flagged after a warning/ban has been overturned. Either way the
+ * member gets a Team Spark reply, translated live like every other one. */
+export const adminReviewDispute = createServerFn({ method: "POST" })
+  .validator(disputeReviewSchema)
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await requireStaff(context.userId);
+    const { data: dispute, error } = await supabaseAdmin
+      .from("moderation_disputes")
+      .update({
+        status: data.decision,
+        moderator_id: context.userId,
+        moderator_note: data.moderatorNote?.trim() || null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", data.disputeId)
+      .select("id,user_id,sanction_id")
+      .single();
+    if (error) throw error;
+
+    if (data.decision === "accepted" && dispute.sanction_id) {
+      const { data: sanction } = await supabaseAdmin
+        .from("moderation_sanctions")
+        .select("action")
+        .eq("id", dispute.sanction_id)
+        .maybeSingle();
+      if (sanction?.action === "ban") {
+        await supabaseAdmin.auth.admin.updateUserById(dispute.user_id, { ban_duration: "none" });
+      }
+      await supabaseAdmin
+        .from("profiles")
+        .update({ moderation_status: "active", banned_until: null })
+        .eq("id", dispute.user_id);
+    }
+
+    await supabaseAdmin.from("notifications").insert({
+      user_id: dispute.user_id,
+      kind: "system",
+      body: `dispute_${data.decision}`,
+    });
+
+    await supabaseAdmin.from("admin_audit_log").insert({
+      admin_id: context.userId,
+      action: `dispute_${data.decision}`,
+      target_user_id: dispute.user_id,
+      target_id: dispute.id,
+      details: data.moderatorNote ?? null,
+    });
+
+    return { ok: true };
   });

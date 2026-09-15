@@ -127,6 +127,31 @@ function giftPreviewText(
   }
 }
 
+/** Team Spark's body is almost always a marker, not pre-rendered text - see
+ * localizeTeamSparkBody in messages.$id.tsx for the full-thread rendering;
+ * this is the same set of cases, for the one-line conversation preview. */
+function systemNotifPreview(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  body: string | null,
+): string {
+  if (body === "safety_alert") return t("safetyAlertNotif");
+  if (body === "video_pending_review") return t("notifVideoPendingReview");
+  if (body === "video_approved") return t("notifVideoApproved");
+  if (body === "video_rejected") return t("notifVideoRejected");
+  if (body === "dispute_accepted") return t("notifDisputeAccepted");
+  if (body === "dispute_rejected") return t("notifDisputeRejected");
+  if (body?.startsWith("purchase_thanks:")) return t("purchaseThanksCta");
+  if (body?.startsWith("giveaway_won:")) {
+    return t("notifGiveawayWon", { title: body.slice("giveaway_won:".length) });
+  }
+  if (body?.startsWith("moderation_warning:")) {
+    return t("notifModerationWarning", {
+      reason: decodeURIComponent(body.slice("moderation_warning:".length)),
+    });
+  }
+  return body ?? "";
+}
+
 function MessagesPage() {
   const { t, lang } = useI18n();
   const { user } = useSession();
@@ -999,23 +1024,7 @@ function MessagesPage() {
                 <Pin className="h-3.5 w-3.5 text-[#929292]" />
               </p>
               <p className="truncate text-sm text-[#929292]">
-                {systemNotif
-                  ? systemNotif.body === "safety_alert"
-                    ? t("safetyAlertNotif")
-                    : systemNotif.body === "video_pending_review"
-                      ? t("notifVideoPendingReview")
-                      : systemNotif.body === "video_approved"
-                        ? t("notifVideoApproved")
-                        : systemNotif.body === "video_rejected"
-                          ? t("notifVideoRejected")
-                          : systemNotif.body?.startsWith("purchase_thanks:")
-                            ? t("purchaseThanksCta")
-                            : systemNotif.body?.startsWith("giveaway_won:")
-                              ? t("notifGiveawayWon", {
-                                  title: systemNotif.body.slice("giveaway_won:".length),
-                                })
-                              : systemNotif.body
-                  : t("notificationEmptyHint")}
+                {systemNotif ? systemNotifPreview(t, systemNotif.body) : t("notificationEmptyHint")}
               </p>
             </div>
           </Link>

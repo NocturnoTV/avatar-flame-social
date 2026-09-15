@@ -1625,6 +1625,77 @@ export type Database = {
           },
         ];
       };
+      moderation_sanctions: {
+        Row: {
+          action: string;
+          created_at: string;
+          id: string;
+          moderator_id: string | null;
+          reason: string | null;
+          user_id: string;
+        };
+        Insert: {
+          action: string;
+          created_at?: string;
+          id?: string;
+          moderator_id?: string | null;
+          reason?: string | null;
+          user_id: string;
+        };
+        Update: {
+          action?: string;
+          created_at?: string;
+          id?: string;
+          moderator_id?: string | null;
+          reason?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      moderation_disputes: {
+        Row: {
+          created_at: string;
+          id: string;
+          message: string;
+          moderator_id: string | null;
+          moderator_note: string | null;
+          reviewed_at: string | null;
+          sanction_id: string | null;
+          status: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          message: string;
+          moderator_id?: string | null;
+          moderator_note?: string | null;
+          reviewed_at?: string | null;
+          sanction_id?: string | null;
+          status?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          message?: string;
+          moderator_id?: string | null;
+          moderator_note?: string | null;
+          reviewed_at?: string | null;
+          sanction_id?: string | null;
+          status?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moderation_disputes_sanction_id_fkey";
+            columns: ["sanction_id"];
+            isOneToOne: false;
+            referencedRelation: "moderation_sanctions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       news: {
         Row: {
           author_id: string | null;

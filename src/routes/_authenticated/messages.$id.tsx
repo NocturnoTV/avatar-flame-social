@@ -1224,6 +1224,37 @@ type TeamSparkNotification = {
   video_id: string | null;
 };
 
+/** Team Spark bodies are almost all small markers (not pre-rendered text) so
+ * they can be translated live in the viewer's *current* language - same
+ * principle as the Activités notifications. Kept as one function since the
+ * list keeps growing (purchases, video review, giveaways, moderation...). */
+function localizeTeamSparkBody(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  body: string | null,
+): string {
+  if (body === "safety_alert") return t("safetyAlertNotif");
+  if (body === "video_pending_review") return t("notifVideoPendingReview");
+  if (body === "video_approved") return t("notifVideoApproved");
+  if (body === "video_rejected") return t("notifVideoRejected");
+  if (body === "dispute_accepted") return t("notifDisputeAccepted");
+  if (body === "dispute_rejected") return t("notifDisputeRejected");
+  if (body?.startsWith("purchase_thanks:")) {
+    const [, kind, amount] = body.split(":");
+    return kind === "blox"
+      ? t("purchaseThanksBloxBody", { amount: Number(amount) || 0 })
+      : t("purchaseThanksSparkPlusBody");
+  }
+  if (body?.startsWith("giveaway_won:")) {
+    return t("notifGiveawayWon", { title: body.slice("giveaway_won:".length) });
+  }
+  if (body?.startsWith("moderation_warning:")) {
+    return t("notifModerationWarning", {
+      reason: decodeURIComponent(body.slice("moderation_warning:".length)),
+    });
+  }
+  return body ?? "";
+}
+
 function TeamSparkConversation() {
   const { user } = useSession();
   const { t, lang } = useI18n();
@@ -1347,28 +1378,7 @@ function TeamSparkConversation() {
                   <div className="max-w-[82%]">
                     <div className="rounded-[24px] rounded-bl-md bg-gradient-to-br from-violet-600 to-violet-800 px-4 py-3 text-white shadow-sm">
                       <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                        {announcement.body === "safety_alert"
-                          ? t("safetyAlertNotif")
-                          : announcement.body === "video_pending_review"
-                            ? t("notifVideoPendingReview")
-                            : announcement.body === "video_approved"
-                              ? t("notifVideoApproved")
-                              : announcement.body === "video_rejected"
-                                ? t("notifVideoRejected")
-                                : announcement.body?.startsWith("purchase_thanks:")
-                                  ? (() => {
-                                      const [, kind, amount] = announcement.body!.split(":");
-                                      return kind === "blox"
-                                        ? t("purchaseThanksBloxBody", {
-                                            amount: Number(amount) || 0,
-                                          })
-                                        : t("purchaseThanksSparkPlusBody");
-                                    })()
-                                  : announcement.body?.startsWith("giveaway_won:")
-                                    ? t("notifGiveawayWon", {
-                                        title: announcement.body.slice("giveaway_won:".length),
-                                      })
-                                    : announcement.body}
+                        {localizeTeamSparkBody(t, announcement.body)}
                       </p>
                       {announcement.body?.startsWith("purchase_thanks:") ? (
                         <Link

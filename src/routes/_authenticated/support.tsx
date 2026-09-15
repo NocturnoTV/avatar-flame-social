@@ -21,6 +21,7 @@ import {
   Send,
   Server,
   Shield,
+  ShieldAlert,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -681,12 +682,68 @@ function SupportPage() {
   const { user } = useSession();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
-  const [view, setView] = useState<"home" | "status" | "newTicket" | "myTickets">("home");
+  const [view, setView] = useState<"home" | "status" | "newTicket" | "myTickets" | "sanctions">(
+    "home",
+  );
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const robloxCopy = ROBLOX_COPY[lang as keyof typeof ROBLOX_COPY] ?? ROBLOX_COPY.en;
   const [reportService, setReportService] = useState<(typeof REPORT_SERVICES)[number]>("game_join");
   const [reportDetails, setReportDetails] = useState("");
   const [sendingReport, setSendingReport] = useState(false);
+  const [disputingId, setDisputingId] = useState<string | null>(null);
+  const [disputeMessage, setDisputeMessage] = useState("");
+  const [sendingDispute, setSendingDispute] = useState(false);
+
+  const sanctions = useQuery({
+    queryKey: ["support-sanctions", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("moderation_sanctions")
+        .select("id,action,reason,created_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const disputes = useQuery({
+    queryKey: ["support-disputes", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("moderation_disputes")
+        .select("id,sanction_id,status,message,moderator_note,created_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  function disputeFor(sanctionId: string) {
+    return disputes.data?.find((d) => d.sanction_id === sanctionId);
+  }
+
+  async function submitDispute(sanctionId: string) {
+    if (!user || !disputeMessage.trim() || sendingDispute) return;
+    setSendingDispute(true);
+    const { error } = await supabase.from("moderation_disputes").insert({
+      user_id: user.id,
+      sanction_id: sanctionId,
+      message: disputeMessage.trim(),
+    });
+    setSendingDispute(false);
+    if (error) {
+      toast.error(errorMessage(error, t("errorGeneric")));
+      return;
+    }
+    setDisputeMessage("");
+    setDisputingId(null);
+    toast.success(t("supportDisputeSent"));
+    void disputes.refetch();
+  }
 
   const CATEGORIES = TICKET_CATEGORIES[lang].map(([id, emoji, label, description]) => ({
     id,
@@ -1108,6 +1165,13 @@ function SupportPage() {
               title={t("supportCommunityCardTitle")}
               description={t("supportCommunityCardDesc")}
               onClick={() => toast(t("supportDiscordSoon"))}
+            />
+            <FeatureCard
+              icon={ShieldAlert}
+              title={t("supportSanctionsTitle")}
+              description={t("supportSanctionsHint")}
+              badge={sanctions.data?.length ? String(sanctions.data.length) : undefined}
+              onClick={() => setView("sanctions")}
             />
           </div>
 
@@ -1626,6 +1690,129 @@ function SupportPage() {
               {t("supportCreateNewTicket")}
             </Button>
           </div>
+        </section>
+      ) : null}
+
+      {view === "sanctions" ? (
+        <section className="mt-4">
+          <h2 className="flex items-center gap-2 text-lg font-black">
+            <ShieldAlert className="h-5 w-5 text-primary" /> {t("supportSanctionsTitle")}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("supportSanctionsHint")}</p>
+
+          {sanctions.isLoading ? (
+            <div className="mt-4 flex justify-center py-10">
+              <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          ) : !sanctions.data?.length ? (
+            <div className="mt-4 rounded-3xl border border-dashed border-border py-10 text-center">
+              <ShieldAlert className="mx-auto h-8 w-8 text-muted-foreground/50" />
+              <p className="mt-3 text-sm font-semibold text-muted-foreground">
+                {t("supportNoSanctions")}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {sanctions.data.map((s) => {
+                const dispute = disputeFor(s.id);
+                return (
+                  <div key={s.id} className="rounded-2xl border border-border bg-card p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={cn(
+                          "rounded-full px-2.5 py-1 text-[10px] font-black uppercase",
+                          s.action === "ban"
+                            ? "bg-destructive/15 text-destructive"
+                            : s.action === "warn"
+                              ? "bg-amber-500/15 text-amber-500"
+                              : "bg-[#22C55E]/10 text-[#22C55E]",
+                        )}
+                      >
+                        {s.action === "ban"
+                          ? t("supportSanctionBan")
+                          : s.action === "unban"
+                            ? t("supportSanctionUnban")
+                            : t("supportSanctionWarn")}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {new Date(s.created_at).toLocaleDateString(lang, {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    {s.reason ? (
+                      <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+                        {s.reason}
+                      </p>
+                    ) : null}
+
+                    {s.action === "unban" ? null : dispute ? (
+                      <div className="mt-3 rounded-xl bg-surface px-3 py-2 text-xs">
+                        <span
+                          className={cn(
+                            "font-bold",
+                            dispute.status === "accepted"
+                              ? "text-[#22C55E]"
+                              : dispute.status === "rejected"
+                                ? "text-destructive"
+                                : "text-amber-500",
+                          )}
+                        >
+                          {dispute.status === "accepted"
+                            ? t("supportDisputeStatusAccepted")
+                            : dispute.status === "rejected"
+                              ? t("supportDisputeStatusRejected")
+                              : t("supportDisputeStatusPending")}
+                        </span>
+                        {dispute.moderator_note ? (
+                          <p className="mt-1 text-muted-foreground">{dispute.moderator_note}</p>
+                        ) : null}
+                      </div>
+                    ) : disputingId === s.id ? (
+                      <div className="mt-3 space-y-2">
+                        <Textarea
+                          rows={3}
+                          value={disputeMessage}
+                          onChange={(e) => setDisputeMessage(e.target.value)}
+                          placeholder={t("supportDisputePlaceholder")}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            disabled={sendingDispute || !disputeMessage.trim()}
+                            onClick={() => void submitDispute(s.id)}
+                          >
+                            {t("supportDisputeSend")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setDisputingId(null);
+                              setDisputeMessage("");
+                            }}
+                          >
+                            {t("cancel")}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-3"
+                        onClick={() => setDisputingId(s.id)}
+                      >
+                        {t("supportDispute")}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       ) : null}
     </div>

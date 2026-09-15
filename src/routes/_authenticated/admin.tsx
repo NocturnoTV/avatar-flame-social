@@ -53,6 +53,7 @@ import {
   adminImpersonate,
   adminListMembers,
   adminManageMember,
+  adminReviewDispute,
 } from "@/lib/admin.functions";
 import { adminListCommunities, adminManageCommunity } from "@/lib/admin-communities.functions";
 import {
@@ -2036,9 +2037,9 @@ type ReportProfile = {
 };
 
 function Moderation({ log }: { log: LogFn }) {
-  const [subTab, setSubTab] = useState<"reports" | "banned_words" | "suspicious" | "logs">(
-    "reports",
-  );
+  const [subTab, setSubTab] = useState<
+    "reports" | "banned_words" | "suspicious" | "disputes" | "logs"
+  >("reports");
   const [fileUserId, setFileUserId] = useState<string | null>(null);
 
   const reports = useQuery({
@@ -2116,6 +2117,7 @@ function Moderation({ log }: { log: LogFn }) {
             ["reports", "Reports"],
             ["banned_words", "Banned Words"],
             ["suspicious", "Suspicious Activity"],
+            ["disputes", "Contestations"],
             ["logs", "Logs"],
           ] as const
         ).map(([id, label]) => (
@@ -2138,6 +2140,8 @@ function Moderation({ log }: { log: LogFn }) {
         <BannedWords log={log} />
       ) : subTab === "suspicious" ? (
         <SuspiciousActivity log={log} />
+      ) : subTab === "disputes" ? (
+        <DisputesReview />
       ) : subTab === "logs" ? (
         <Audit />
       ) : (reports.data ?? []).length === 0 ? (
@@ -2276,6 +2280,198 @@ function Moderation({ log }: { log: LogFn }) {
           </div>
         ) : null}
       </Sheet>
+    </div>
+  );
+}
+
+type AdminDisputeRow = {
+  id: string;
+  sanction_id: string | null;
+  status: string;
+  message: string;
+  created_at: string;
+  user_id: string;
+  sanction_action: string | null;
+  sanction_reason: string | null;
+  username: string | null;
+};
+
+/** Contestations filed from Support against a warning/ban. Accepting also
+ *  lifts the underlying sanction (see adminReviewDispute) so a member isn't
+ *  left flagged after staff overturns it - either decision sends the member
+ *  a Team Spark reply. */
+function DisputesReview() {
+  const [reviewing, setReviewing] = useState<{
+    id: string;
+    decision: "accepted" | "rejected";
+  } | null>(null);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [showResolved, setShowResolved] = useState(false);
+
+  const disputes = useQuery({
+    queryKey: ["admin-disputes"],
+    queryFn: async (): Promise<AdminDisputeRow[]> => {
+      const { data: rows, error } = await supabase
+        .from("moderation_disputes")
+        .select("id,sanction_id,status,message,created_at,user_id")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const sanctionIds = [
+        ...new Set((rows ?? []).map((r) => r.sanction_id).filter(Boolean)),
+      ] as string[];
+      const userIds = [...new Set((rows ?? []).map((r) => r.user_id))];
+      const [{ data: sanctions }, { data: profiles }] = await Promise.all([
+        sanctionIds.length
+          ? supabase.from("moderation_sanctions").select("id,action,reason").in("id", sanctionIds)
+          : Promise.resolve({
+              data: [] as { id: string; action: string; reason: string | null }[],
+            }),
+        userIds.length
+          ? supabase.from("profiles").select("id,username").in("id", userIds)
+          : Promise.resolve({ data: [] as { id: string; username: string | null }[] }),
+      ]);
+      const sanctionById = new Map((sanctions ?? []).map((s) => [s.id, s]));
+      const userById = new Map((profiles ?? []).map((p) => [p.id, p.username]));
+      return (rows ?? []).map((r) => ({
+        ...r,
+        sanction_action: r.sanction_id ? (sanctionById.get(r.sanction_id)?.action ?? null) : null,
+        sanction_reason: r.sanction_id ? (sanctionById.get(r.sanction_id)?.reason ?? null) : null,
+        username: userById.get(r.user_id) ?? null,
+      }));
+    },
+  });
+
+  const visible = (disputes.data ?? []).filter((d) =>
+    showResolved ? d.status !== "pending" : d.status === "pending",
+  );
+
+  async function review(id: string, decision: "accepted" | "rejected") {
+    setBusy(true);
+    try {
+      await adminReviewDispute({
+        data: { disputeId: id, decision, moderatorNote: note || undefined },
+      });
+      toast.success(decision === "accepted" ? "Contestation acceptée" : "Contestation refusée");
+      setReviewing(null);
+      setNote("");
+      await disputes.refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <button
+          onClick={() => setShowResolved(false)}
+          className={cn(
+            "rounded-full px-3.5 py-1.5 text-sm font-semibold transition",
+            !showResolved
+              ? "bg-primary text-primary-foreground"
+              : "border border-border text-muted-foreground",
+          )}
+        >
+          En attente
+        </button>
+        <button
+          onClick={() => setShowResolved(true)}
+          className={cn(
+            "rounded-full px-3.5 py-1.5 text-sm font-semibold transition",
+            showResolved
+              ? "bg-primary text-primary-foreground"
+              : "border border-border text-muted-foreground",
+          )}
+        >
+          Traitées
+        </button>
+      </div>
+
+      {disputes.isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : !visible.length ? (
+        <p className="text-sm text-muted-foreground">Aucune contestation.</p>
+      ) : (
+        <div className="space-y-3">
+          {visible.map((d) => (
+            <div key={d.id} className="rounded-3xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-sm font-black">
+                  <ScrollText className="h-4 w-4 text-primary" /> @
+                  {d.username ?? d.user_id.slice(0, 8)}
+                </p>
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase",
+                    d.status === "pending"
+                      ? "bg-amber-500/15 text-amber-500"
+                      : d.status === "accepted"
+                        ? "bg-[#22C55E]/10 text-[#22C55E]"
+                        : "bg-destructive/15 text-destructive",
+                  )}
+                >
+                  {d.status}
+                </span>
+              </div>
+              {d.sanction_action ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Sanction : {d.sanction_action}
+                  {d.sanction_reason ? ` — ${d.sanction_reason}` : ""}
+                </p>
+              ) : null}
+              <p className="mt-2 rounded-2xl bg-surface p-3 text-sm">{d.message}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {new Date(d.created_at).toLocaleString("fr-FR")}
+              </p>
+
+              {d.status === "pending" ? (
+                reviewing?.id === d.id ? (
+                  <div className="mt-3 space-y-2">
+                    <Textarea
+                      rows={2}
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="Note de l'équipe (facultatif)"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => void review(d.id, reviewing.decision)}
+                      >
+                        Confirmer {reviewing.decision === "accepted" ? "l'acceptation" : "le refus"}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setReviewing(null)}>
+                        Annuler
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setReviewing({ id: d.id, decision: "accepted" })}
+                    >
+                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Accepter
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive"
+                      onClick={() => setReviewing({ id: d.id, decision: "rejected" })}
+                    >
+                      <Ban className="mr-1 h-3.5 w-3.5" /> Refuser
+                    </Button>
+                  </div>
+                )
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
