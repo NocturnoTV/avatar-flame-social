@@ -10,12 +10,14 @@ import {
   Crown,
   Flag,
   Gift,
+  Images,
   LoaderCircle,
   LogOut,
   MessageSquare,
   Paintbrush,
   Pencil,
   Pin,
+  Play,
   Search,
   UserPlus,
   UserRound,
@@ -24,7 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { StoredImage } from "@/components/Media";
+import { StoredImage, useSignedUrl } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { GiftSheet } from "@/components/GiftSheet";
 import { uploadFile } from "@/lib/media";
@@ -40,6 +42,32 @@ import {
   setBubbleTheme,
   setWallpaper,
 } from "@/lib/chatTheme";
+
+type MediaItem = {
+  id: string;
+  type: "image" | "video";
+  thumbPath: string;
+  playPath: string;
+  created_at: string;
+};
+
+/** Matches the marker a shared Discover video is stored as in a "text"
+ * message's content - either the raw `video:<uuid>` marker, or a
+ * /discover?v=<uuid> link. Duplicated from messages.$id.tsx's own
+ * (unexported) helper of the same name/behaviour. */
+function sharedVideoId(content: string | null) {
+  if (!content) return null;
+  const marker = content.match(/^video:([0-9a-f-]{36})$/i);
+  if (marker?.[1]) return marker[1];
+  try {
+    const url = content.match(/https?:\/\/[^\s]+/i)?.[0];
+    if (!url) return null;
+    const parsed = new URL(url);
+    return parsed.pathname === "/discover" ? parsed.searchParams.get("v") : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * The conversation "..." menu: quick actions (view profile / search / create
@@ -81,6 +109,7 @@ export function ConversationInfoSheet({
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState("");
   const [gifting, setGifting] = useState(false);
+  const [mediaLightbox, setMediaLightbox] = useState<MediaItem | null>(null);
   const isGroup = !otherId;
   const [editingGroupName, setEditingGroupName] = useState(false);
   const [groupNameDraft, setGroupNameDraft] = useState("");
@@ -124,6 +153,65 @@ export function ConversationInfoSheet({
         username: string | null;
         avatar_url: string | null;
       }[];
+    },
+  });
+
+  // Sent photos + videos shared from Discover, newest first - photos are
+  // their own "image" messages, shared videos are "text" messages whose
+  // content is the sharedVideoId() marker, so the actual thumbnail/playback
+  // path lives on the referenced videos row instead of the message itself.
+  const media = useQuery({
+    queryKey: ["conversation-media", conversationId],
+    queryFn: async (): Promise<MediaItem[]> => {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id,kind,content,media_url,created_at")
+        .eq("conversation_id", conversationId)
+        .in("kind", ["image", "text"])
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      const rows = data ?? [];
+      const images: MediaItem[] = rows
+        .filter((m) => m.kind === "image" && m.media_url)
+        .map((m) => ({
+          id: m.id,
+          type: "image",
+          thumbPath: m.media_url as string,
+          playPath: m.media_url as string,
+          created_at: m.created_at,
+        }));
+      const videoRefs = rows
+        .map((m) =>
+          m.kind === "text"
+            ? { id: m.id, videoId: sharedVideoId(m.content), created_at: m.created_at }
+            : null,
+        )
+        .filter((r): r is { id: string; videoId: string; created_at: string } => !!r?.videoId);
+      let videoItems: MediaItem[] = [];
+      if (videoRefs.length) {
+        const { data: videos } = await supabase
+          .from("videos")
+          .select("id,storage_path,thumbnail_path")
+          .in("id", [...new Set(videoRefs.map((r) => r.videoId))]);
+        const byId = new Map((videos ?? []).map((v) => [v.id, v]));
+        videoItems = videoRefs
+          .map((ref): MediaItem | null => {
+            const v = byId.get(ref.videoId);
+            if (!v) return null;
+            return {
+              id: ref.id,
+              type: "video",
+              thumbPath: v.thumbnail_path ?? v.storage_path,
+              playPath: v.storage_path,
+              created_at: ref.created_at,
+            };
+          })
+          .filter((x): x is MediaItem => x !== null);
+      }
+      return [...images, ...videoItems]
+        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+        .slice(0, 30);
     },
   });
 
@@ -686,15 +774,65 @@ export function ConversationInfoSheet({
             ))}
           </div>
         ) : null}
+
+        <div className="mt-5 border-t border-[#eee] pt-4 dark:border-white/10">
+          <p className="mb-2.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-[#929292]">
+            <Images className="h-3.5 w-3.5" /> {t("sharedMediaTitle")}
+          </p>
+          {media.isLoading ? (
+            <div className="grid grid-cols-3 gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="aspect-square animate-pulse rounded-xl bg-surface" />
+              ))}
+            </div>
+          ) : media.data?.length ? (
+            <div className="grid grid-cols-3 gap-1.5">
+              {media.data.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setMediaLightbox(item)}
+                  className="relative aspect-square overflow-hidden rounded-xl bg-surface"
+                >
+                  <StoredImage
+                    path={item.thumbPath}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    fallback="🎬"
+                  />
+                  {item.type === "video" ? (
+                    <span className="absolute inset-0 grid place-items-center bg-black/20">
+                      <Play className="h-6 w-6 fill-white text-white drop-shadow" />
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="py-2 text-center text-xs text-[#929292]">{t("noSharedMedia")}</p>
+          )}
+        </div>
       </div>
 
+      {mediaLightbox ? (
+        <div onClick={(e) => e.stopPropagation()}>
+          <MediaLightbox item={mediaLightbox} onClose={() => setMediaLightbox(null)} />
+        </div>
+      ) : null}
+
       {gifting && otherId ? (
-        <GiftSheet
-          targetUserId={otherId}
-          targetUsername={contact.data?.nickname || title}
-          conversationId={conversationId}
-          onClose={() => setGifting(false)}
-        />
+        // GiftSheet renders its own fixed-position Sheet as a sibling of the
+        // menu's content div above, outside its stopPropagation wrapper - a
+        // click inside it (the note field, an amount pill, a tab) would
+        // otherwise bubble all the way up to this component's own backdrop
+        // onClick={onClose} and close the whole "..." menu underneath it.
+        <div onClick={(e) => e.stopPropagation()}>
+          <GiftSheet
+            targetUserId={otherId}
+            targetUsername={contact.data?.nickname || title}
+            conversationId={conversationId}
+            onClose={() => setGifting(false)}
+          />
+        </div>
       ) : null}
     </div>
   );
@@ -771,5 +909,44 @@ function Toggle({
         )}
       />
     </button>
+  );
+}
+
+/** Full-screen viewer for one item from the "Médias & vidéos" grid above -
+ * a photo, or a video shared from Discover (played back from its original
+ * storage path, not re-uploaded into the conversation). */
+function MediaLightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
+  const url = useSignedUrl(item.playPath);
+  return (
+    <div className="fixed inset-0 z-[95] grid place-items-center bg-black/95 p-4" onClick={onClose}>
+      <button
+        onClick={onClose}
+        aria-label="close"
+        className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      {url ? (
+        item.type === "video" ? (
+          <video
+            src={url}
+            controls
+            autoPlay
+            playsInline
+            className="max-h-full max-w-full rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <img
+            src={url}
+            alt=""
+            className="max-h-full max-w-full rounded-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        )
+      ) : (
+        <LoaderCircle className="h-8 w-8 animate-spin text-white/60" />
+      )}
+    </div>
   );
 }
