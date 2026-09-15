@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { openExternal } from "@/lib/native";
 import { Button } from "@/components/ui-kit";
 import { BloxIcon } from "@/components/Blox";
 import { StoredImage, useSignedUrl } from "@/components/Media";
@@ -1173,7 +1174,7 @@ function Conversation() {
               </Button>
               <Button
                 onClick={() => {
-                  window.open(externalUrl, "_blank", "noopener,noreferrer");
+                  if (externalUrl) void openExternal(externalUrl);
                   setExternalUrl(null);
                 }}
               >

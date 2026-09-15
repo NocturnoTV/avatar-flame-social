@@ -46,6 +46,7 @@ import { Verified } from "@/components/Verified";
 import { useSession } from "@/lib/session";
 import { useRoles, type AppRole } from "@/lib/roles";
 import { cn, errorMessage } from "@/lib/utils";
+import { openExternal } from "@/lib/native";
 import { StoredImage } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import {
@@ -473,7 +474,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
     try {
       const result = await adminImpersonate({ data: { userId } });
       toast.success("Sign-in link generated - opening it in a new tab.");
-      window.open(result.url, "_blank", "noopener,noreferrer");
+      void openExternal(result.url);
     } catch (err) {
       toast.error(errorMessage(err, "Could not generate a sign-in link"));
     } finally {

@@ -24,6 +24,7 @@ import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { useRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
+import { openExternal } from "@/lib/native";
 import { RobloxConnection } from "@/components/RobloxConnection";
 import { getStripeEnvironmentSafe } from "@/lib/stripe";
 import { createPortalSession } from "@/utils/payments.functions";
@@ -210,7 +211,7 @@ function SettingsPage() {
         data: { returnUrl: window.location.href, environment: stripeEnv! },
       });
       if ("error" in result) throw new Error(result.error);
-      window.open(result.url, "_blank");
+      void openExternal(result.url);
     } catch {
       toast.error(t("sparkPlusCheckoutUnavailable"));
     }

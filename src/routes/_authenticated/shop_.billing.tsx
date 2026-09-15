@@ -33,6 +33,7 @@ import { createPortalSession, listInvoices } from "@/utils/payments.functions";
 import { SparkPlusCheckout } from "@/components/SparkPlusCheckout";
 import { BloxIcon, BloxBalanceChip } from "@/components/Blox";
 import { cn } from "@/lib/utils";
+import { openExternal } from "@/lib/native";
 
 const BLOX_KIND_LABELS: Record<string, string> = {
   purchase: "Achat de pack Blox",
@@ -399,7 +400,7 @@ function BillingPage() {
         data: { returnUrl: window.location.href, environment: stripeEnv! },
       });
       if ("error" in result) throw new Error(result.error);
-      window.open(result.url, "_blank");
+      void openExternal(result.url);
     } catch {
       toast.error(t("sparkPlusCheckoutUnavailable"));
     }

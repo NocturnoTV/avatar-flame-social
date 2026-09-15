@@ -1,6 +1,8 @@
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createBloxPackCheckout } from "@/utils/payments.functions";
+import { useNativeCheckoutGate } from "@/lib/native";
+import { NativePurchaseNotice } from "@/components/NativePurchaseNotice";
 
 /** Embedded Stripe Checkout for a single Blox pack, one-time payment.
  * `allow_promotion_codes` is set server-side, so Stripe's own hosted UI
@@ -22,6 +24,7 @@ export function BloxPackCheckout({
   note?: string;
   onClose?: () => void;
 }) {
+  const native = useNativeCheckoutGate("/shop");
   const fetchClientSecret = async (): Promise<string> => {
     const result = await createBloxPackCheckout({
       data: {
@@ -37,6 +40,22 @@ export function BloxPackCheckout({
     if (!result.clientSecret) throw new Error("Stripe did not return a client secret");
     return result.clientSecret;
   };
+
+  if (native) {
+    return (
+      <div className="mt-4">
+        {onClose ? (
+          <button
+            onClick={onClose}
+            className="mb-1 text-xs font-bold text-muted-foreground hover:text-foreground"
+          >
+            ← Retour
+          </button>
+        ) : null}
+        <NativePurchaseNotice />
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4 overflow-hidden rounded-3xl bg-white p-2">

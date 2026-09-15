@@ -1,16 +1,28 @@
 {
-  "name": "BloxSpark Connect",
+  "id": "/home",
+  "name": "BloxSpark - the social network for Roblox players",
   "short_name": "BloxSpark",
+  "description": "Discover Roblox players, share videos, match with Sparks and chat safely on BloxSpark.",
+  "lang": "en",
   "start_url": "/home",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#07070a",
+  "orientation": "portrait",
+  "background_color": "#08090d",
   "theme_color": "#7c3aed",
+  "categories": ["social", "entertainment"],
   "icons": [
     {
       "src": "/bloxspark-logo.png",
       "sizes": "any",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/bloxspark-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

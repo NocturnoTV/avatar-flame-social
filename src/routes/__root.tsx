@@ -16,6 +16,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider } from "@/lib/i18n";
 import { SessionProvider } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
+import { NativeAppBridge } from "@/components/NativeAppBridge";
 
 function NotFoundComponent() {
   return (
@@ -169,6 +170,7 @@ function RootComponent() {
         <I18nProvider>
           <SessionProvider>
             <AuthSync />
+            <NativeAppBridge />
             <Outlet />
             <Toaster position="top-center" richColors />
           </SessionProvider>

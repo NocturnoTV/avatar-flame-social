@@ -12,6 +12,8 @@ import { BloxPackCheckout } from "@/components/BloxPackCheckout";
 import { BLOX_PACKS } from "@/lib/bloxPacks";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createSparkPlusGiftCheckout } from "@/utils/payments.functions";
+import { useNativeCheckoutGate } from "@/lib/native";
+import { NativePurchaseNotice } from "@/components/NativePurchaseNotice";
 
 const QUICK_AMOUNTS = [100, 500, 1000, 2500];
 
@@ -26,6 +28,7 @@ function SparkPlusGiftCheckout({
   note?: string;
   onClose: () => void;
 }) {
+  const native = useNativeCheckoutGate("/shop/billing");
   const fetchClientSecret = async (): Promise<string> => {
     const result = await createSparkPlusGiftCheckout({
       data: {
@@ -40,6 +43,20 @@ function SparkPlusGiftCheckout({
     if (!result.clientSecret) throw new Error("Stripe did not return a client secret");
     return result.clientSecret;
   };
+
+  if (native) {
+    return (
+      <div>
+        <button
+          onClick={onClose}
+          className="mb-1 text-xs font-bold text-muted-foreground hover:text-foreground"
+        >
+          ← Retour
+        </button>
+        <NativePurchaseNotice />
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-hidden rounded-3xl bg-white p-2">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
+import { openExternal } from "@/lib/native";
 
 /** A profile's external link - always gated behind a leaving-BloxSpark warning. */
 export function ExternalLinkButton({ url }: { url: string }) {
@@ -48,7 +49,7 @@ export function ExternalLinkButton({ url }: { url: string }) {
               <Button
                 className="flex-1"
                 onClick={() => {
-                  window.open(url, "_blank", "noopener,noreferrer");
+                  void openExternal(url);
                   setConfirming(false);
                 }}
               >

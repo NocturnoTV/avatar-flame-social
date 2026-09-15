@@ -33,6 +33,7 @@ import { createPortalSession } from "@/utils/payments.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { Button, Sheet } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
+import { openExternal } from "@/lib/native";
 
 export const Route = createFileRoute("/_authenticated/shop")({
   validateSearch: (
@@ -160,7 +161,7 @@ function ShopPage() {
         data: { returnUrl: window.location.href, environment: getStripeEnvironment() },
       });
       if ("error" in result) throw new Error(result.error);
-      window.open(result.url, "_blank");
+      void openExternal(result.url);
     } catch {
       toast.error(t("sparkPlusCheckoutUnavailable"));
     }
@@ -197,7 +198,7 @@ function ShopPage() {
   const expiration = membership.data?.spark_plus_expires_at;
   const isActive = Boolean(
     membership.data?.spark_plus_active &&
-      (!expiration || new Date(expiration).getTime() > Date.now()),
+    (!expiration || new Date(expiration).getTime() > Date.now()),
   );
 
   return (
@@ -288,9 +289,7 @@ function ShopPage() {
               <p className="flex items-center gap-2 text-lg font-semibold tracking-tight">
                 <Sparkles className="h-4.5 w-4.5 text-primary" /> Spark Plus
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                L'expérience Bloxspark complète.
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">L'expérience Bloxspark complète.</p>
             </div>
             <div className="shrink-0 text-right">
               <p className="text-2xl font-bold tracking-tight">4,99 €</p>
@@ -577,9 +576,7 @@ function PackRow({
       <span
         className={cn(
           "shrink-0 rounded-lg px-3.5 py-2 text-sm font-semibold",
-          popular
-            ? "bg-primary text-primary-foreground"
-            : "border border-border text-foreground",
+          popular ? "bg-primary text-primary-foreground" : "border border-border text-foreground",
         )}
       >
         {pack.priceEur.toLocaleString(lang, { minimumFractionDigits: 2 })} €
