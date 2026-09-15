@@ -306,7 +306,7 @@ function ProfilePage() {
 
   // Aperçu = données enregistrées + brouillon non encore enregistré
   const p = profile.data ? ({ ...profile.data, ...draft } as typeof profile.data) : profile.data;
-  const age = ageFrom(p?.birth_date ?? null);
+  const age = p?.age ?? null;
   const gameList = games.data ?? [];
   const sparkPlusActive = Boolean(
     p?.spark_plus_active &&

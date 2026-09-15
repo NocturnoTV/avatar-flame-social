@@ -1451,7 +1451,7 @@ type ReportProfile = {
   avatar_url: string | null;
   roblox_username: string | null;
   roblox_display_name: string | null;
-  birth_date: string | null;
+  age: number | null;
 };
 
 function Moderation({ log }: { log: LogFn }) {
@@ -1502,7 +1502,7 @@ function Moderation({ log }: { log: LogFn }) {
       if (!ids.length) return {};
       const { data } = await supabase
         .from("profiles")
-        .select("id,username,avatar_url,roblox_username,roblox_display_name,birth_date")
+        .select("id,username,avatar_url,roblox_username,roblox_display_name,age")
         .in("id", ids);
       const map: Record<string, ReportProfile> = {};
       for (const p of data ?? []) map[p.id] = p;
@@ -1657,9 +1657,7 @@ function Moderation({ log }: { log: LogFn }) {
                   className="mt-1 max-w-full text-xs"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {fileProfile?.birth_date
-                    ? `${ageFrom(fileProfile.birth_date)} ans (${new Date(fileProfile.birth_date).toLocaleDateString("fr-FR")})`
-                    : "Date de naissance inconnue"}
+                  {fileProfile?.age != null ? `${fileProfile.age} ans` : "Âge inconnu"}
                 </p>
               </div>
             </div>

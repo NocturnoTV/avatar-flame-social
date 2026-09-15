@@ -193,14 +193,19 @@ function Onboarding() {
       id: user.id,
       username: username.trim(),
       language: lang,
-      birth_date: birth,
       bio: bio.trim(),
       theme,
-      parental_consent: minor ? parentOk : true,
-      parent_name: minor ? parentName.trim() : null,
-      parent_email: minor ? parentEmail.trim() : null,
       onboarding_completed: true,
     });
+    if (!error) {
+      await supabase.from("profiles_private").upsert({
+        user_id: user.id,
+        birth_date: birth,
+        parental_consent: minor ? parentOk : true,
+        parent_name: minor ? parentName.trim() : null,
+        parent_email: minor ? parentEmail.trim() : null,
+      });
+    }
     setBusy(false);
     if (error) {
       toast.error(error.message.includes("duplicate") ? t("usernameTaken") : error.message);
