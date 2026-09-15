@@ -4,26 +4,34 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Bell,
+  Crown,
   Database,
   Download,
   Eye,
   Lock,
   Palette,
+  Receipt,
   ShieldCheck,
   Trash2,
   UserCog,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button, Input, Label, Select } from "@/components/ui-kit";
+import { Button, Input, Label, Select, Sheet } from "@/components/ui-kit";
 import { LANGUAGES, robloxOAuthErrorKey, useI18n, type LangCode } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { useRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { RobloxConnection } from "@/components/RobloxConnection";
+import { getStripeEnvironmentSafe } from "@/lib/stripe";
+import { createPortalSession } from "@/utils/payments.functions";
+import { SparkPlusCheckout } from "@/components/SparkPlusCheckout";
 
 export const Route = createFileRoute("/_authenticated/settings")({
+  validateSearch: (search: Record<string, unknown>): { session_id?: string } =>
+    typeof search["session_id"] === "string" ? { session_id: search["session_id"] } : {},
   head: () => ({
     meta: [
       { title: "Settings - Bloxspark" },
@@ -140,10 +148,73 @@ function SettingsPage() {
   const { user } = useSession();
   const { isStaff } = useRoles();
   const navigate = useNavigate();
+  const { session_id: newSubscriptionSessionId } = Route.useSearch();
   const [username, setUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+
+  // getStripeEnvironmentSafe() returns null instead of throwing when Stripe
+  // isn't configured for this build - see src/lib/stripe.ts.
+  const stripeEnv = getStripeEnvironmentSafe();
+  const paymentsConfigured = stripeEnv !== null;
+
+  const membership = useQuery({
+    queryKey: ["settings-spark-plus-membership", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("spark_plus_active,spark_plus_expires_at")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const subscription = useQuery({
+    queryKey: ["settings-billing-subscription", user?.id, stripeEnv],
+    enabled: !!user && paymentsConfigured,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("status,cancel_at_period_end")
+        .eq("user_id", user!.id)
+        .eq("environment", stripeEnv!)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const planExpiration = membership.data?.spark_plus_expires_at;
+  const planActive = Boolean(
+    membership.data?.spark_plus_active &&
+    (!planExpiration || new Date(planExpiration).getTime() > Date.now()),
+  );
+
+  // Landed back here after subscribing to Spark Plus from this page.
+  useEffect(() => {
+    if (!newSubscriptionSessionId) return;
+    toast.success(t("purchaseThankYouSparkPlusBody"));
+    void navigate({ to: "/settings", search: {}, replace: true });
+    void membership.refetch();
+  }, [newSubscriptionSessionId, navigate, t, membership]);
+
+  async function manageSubscription() {
+    if (!paymentsConfigured) return;
+    try {
+      const result = await createPortalSession({
+        data: { returnUrl: window.location.href, environment: stripeEnv! },
+      });
+      if ("error" in result) throw new Error(result.error);
+      window.open(result.url, "_blank");
+    } catch {
+      toast.error(t("sparkPlusCheckoutUnavailable"));
+    }
+  }
 
   const profile = useQuery({
     queryKey: ["settings-profile"],
@@ -449,6 +520,54 @@ function SettingsPage() {
         </div>
       </Section>
 
+      <Section
+        icon={Crown}
+        title={t("purchasesAndBilling")}
+        description={t("settingsSubscriptionDesc")}
+      >
+        <div className="flex items-center gap-3 rounded-2xl border border-border p-3.5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+            <Crown className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold">{planActive ? "Spark Plus" : t("billingNoSubscription")}</p>
+            {planActive ? (
+              <p className="text-xs text-muted-foreground">
+                {subscription.data?.cancel_at_period_end
+                  ? t("endsAtPeriod")
+                  : planExpiration
+                    ? t("renewsOn", { date: new Date(planExpiration).toLocaleDateString(lang) })
+                    : t("sparkPlusActive")}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        {planActive ? (
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={!paymentsConfigured}
+            onClick={() => void manageSubscription()}
+          >
+            {t("manageSubscription")}
+          </Button>
+        ) : (
+          <Button
+            className="w-full"
+            disabled={!paymentsConfigured}
+            onClick={() => setSubscribing(true)}
+          >
+            <Crown className="h-4 w-4" /> {t("subscribeSparkPlus")}
+          </Button>
+        )}
+        <Link
+          to="/shop/billing"
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-border text-sm font-bold hover:border-primary/40"
+        >
+          <Receipt className="h-4 w-4" /> {t("purchasesAndBilling")}
+        </Link>
+      </Section>
+
       <Section icon={Palette} title={t("appearanceTitle")} description={t("appearanceDesc")}>
         <div>
           <Label>{t("theme")}</Label>
@@ -631,6 +750,21 @@ function SettingsPage() {
       </Button>
 
       <p className="mt-8 text-center text-xs text-muted-foreground">{t("notAffiliated")}</p>
+
+      {subscribing ? (
+        <Sheet open onClose={() => setSubscribing(false)} title={t("subscribeSparkPlus")}>
+          <button
+            onClick={() => setSubscribing(false)}
+            aria-label={t("cancel")}
+            className="mb-2 flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" /> {t("cancel")}
+          </button>
+          <SparkPlusCheckout
+            returnUrl={`${window.location.origin}/settings?session_id={CHECKOUT_SESSION_ID}`}
+          />
+        </Sheet>
+      ) : null}
     </div>
   );
 }

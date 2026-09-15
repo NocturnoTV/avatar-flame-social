@@ -390,6 +390,8 @@ const en: Dict = {
   purchasesAndBilling: "Purchases & Billing",
   billingCurrentPlan: "Current plan",
   billingNoSubscription: "You don't have an active subscription.",
+  endsAtPeriod: "Ends at the end of the current period",
+  settingsSubscriptionDesc: "Manage your Spark Plus membership and payment method.",
   billingCancelHint:
     "You can cancel anytime - you'll keep Spark Plus until the end of the period you already paid for.",
   billingInvoices: "Invoices",
@@ -1225,6 +1227,8 @@ const fr: Dict = {
   purchasesAndBilling: "Achats & Facturation",
   billingCurrentPlan: "Abonnement actuel",
   billingNoSubscription: "Tu n'as pas d'abonnement actif.",
+  endsAtPeriod: "Se termine à la fin de la période en cours",
+  settingsSubscriptionDesc: "Gère ton abonnement Spark Plus et ton moyen de paiement.",
   billingCancelHint:
     "Tu peux annuler à tout moment - tu gardes Spark Plus jusqu'à la fin de la période déjà payée.",
   billingInvoices: "Factures",
@@ -2060,6 +2064,8 @@ const es: Dict = {
   purchasesAndBilling: "Compras y Facturación",
   billingCurrentPlan: "Plan actual",
   billingNoSubscription: "No tienes una suscripción activa.",
+  endsAtPeriod: "Termina al final del periodo actual",
+  settingsSubscriptionDesc: "Gestiona tu membresía Spark Plus y tu método de pago.",
   billingCancelHint:
     "Puedes cancelar cuando quieras - conservas Spark Plus hasta el final del período ya pagado.",
   billingInvoices: "Facturas",
@@ -2896,6 +2902,8 @@ const pt: Dict = {
   purchasesAndBilling: "Compras e Faturamento",
   billingCurrentPlan: "Plano atual",
   billingNoSubscription: "Você não tem uma assinatura ativa.",
+  endsAtPeriod: "Termina no fim do período atual",
+  settingsSubscriptionDesc: "Gerencie sua assinatura Spark Plus e forma de pagamento.",
   billingCancelHint:
     "Você pode cancelar quando quiser - mantém o Spark Plus até o fim do período já pago.",
   billingInvoices: "Faturas",
@@ -3733,6 +3741,8 @@ const de: Dict = {
   purchasesAndBilling: "Käufe & Abrechnung",
   billingCurrentPlan: "Aktuelles Abo",
   billingNoSubscription: "Du hast kein aktives Abo.",
+  endsAtPeriod: "Endet am Ende der aktuellen Periode",
+  settingsSubscriptionDesc: "Verwalte deine Spark Plus-Mitgliedschaft und Zahlungsmethode.",
   billingCancelHint:
     "Du kannst jederzeit kündigen - du behältst Spark Plus bis zum Ende des bereits bezahlten Zeitraums.",
   billingInvoices: "Rechnungen",
@@ -4567,6 +4577,8 @@ const ko: Dict = {
   purchasesAndBilling: "구매 및 결제",
   billingCurrentPlan: "현재 플랜",
   billingNoSubscription: "활성화된 구독이 없습니다.",
+  endsAtPeriod: "현재 결제 주기 종료 시 만료됩니다",
+  settingsSubscriptionDesc: "Spark Plus 멤버십과 결제 수단을 관리하세요.",
   billingCancelHint:
     "언제든지 해지할 수 있습니다 - 이미 결제한 기간이 끝날 때까지 Spark Plus를 유지합니다.",
   billingInvoices: "영수증",

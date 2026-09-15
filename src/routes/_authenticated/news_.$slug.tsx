@@ -21,7 +21,7 @@ import { newsCategoryBadgeClass, newsCategoryLabel } from "@/lib/newsCategories"
 import { useSession } from "@/lib/session";
 import { errorMessage } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/news/$slug")({
+export const Route = createFileRoute("/_authenticated/news_/$slug")({
   head: () => ({ meta: [{ title: "Actualité - Bloxspark" }] }),
   component: ArticlePage,
 });
@@ -35,7 +35,11 @@ function ArticlePage() {
   const article = useQuery({
     queryKey: ["news-article", slug],
     queryFn: async () => {
-      const { data, error } = await supabase.from("news_articles").select("*").eq("slug", slug).maybeSingle();
+      const { data, error } = await supabase
+        .from("news_articles")
+        .select("*")
+        .eq("slug", slug)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -119,7 +123,11 @@ function ArticlePage() {
   async function toggleLike() {
     if (!user || !articleId) return;
     if (myLike.data) {
-      await supabase.from("news_article_likes").delete().eq("article_id", articleId).eq("user_id", user.id);
+      await supabase
+        .from("news_article_likes")
+        .delete()
+        .eq("article_id", articleId)
+        .eq("user_id", user.id);
     } else {
       await supabase.from("news_article_likes").insert({ article_id: articleId, user_id: user.id });
     }
@@ -130,7 +138,11 @@ function ArticlePage() {
   async function toggleSave() {
     if (!user || !articleId) return;
     if (mySave.data) {
-      await supabase.from("news_article_saves").delete().eq("article_id", articleId).eq("user_id", user.id);
+      await supabase
+        .from("news_article_saves")
+        .delete()
+        .eq("article_id", articleId)
+        .eq("user_id", user.id);
       toast.message("Retiré des enregistrés.");
     } else {
       await supabase.from("news_article_saves").insert({ article_id: articleId, user_id: user.id });
@@ -168,7 +180,10 @@ function ArticlePage() {
   async function shareViaSystem() {
     if (navigator.share) {
       try {
-        await navigator.share({ title: article.data?.title ?? "BloxSpark", url: window.location.href });
+        await navigator.share({
+          title: article.data?.title ?? "BloxSpark",
+          url: window.location.href,
+        });
       } catch {
         // Cancelled - nothing to do.
       }
@@ -194,7 +209,11 @@ function ArticlePage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-5 pb-28 pt-4">
       <header className="flex items-center justify-between">
-        <Link to="/news" aria-label="Retour" className="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-2">
+        <Link
+          to="/news"
+          aria-label="Retour"
+          className="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-2"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <p className="text-sm font-bold text-muted-foreground">Actualité</p>
@@ -217,11 +236,18 @@ function ArticlePage() {
       </header>
 
       <div className="mt-4 aspect-video w-full overflow-hidden rounded-3xl bg-surface-2">
-        <StoredImage path={a.image_url} alt="" className="h-full w-full object-cover" fallback="📰" />
+        <StoredImage
+          path={a.image_url}
+          alt=""
+          className="h-full w-full object-cover"
+          fallback="📰"
+        />
       </div>
 
       <div className="mt-4 flex items-center justify-between">
-        <span className={`rounded-full px-3 py-1 text-xs font-bold ${newsCategoryBadgeClass(a.category)}`}>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-bold ${newsCategoryBadgeClass(a.category)}`}
+        >
           ✦ {newsCategoryLabel(a.category)}
         </span>
         <span className="text-xs text-muted-foreground">
@@ -234,7 +260,9 @@ function ArticlePage() {
       </div>
 
       <h1 className="mt-3 text-3xl font-black leading-tight text-white">{a.title}</h1>
-      {a.excerpt ? <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{a.excerpt}</p> : null}
+      {a.excerpt ? (
+        <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{a.excerpt}</p>
+      ) : null}
 
       <div className="mt-4 flex items-center gap-2.5">
         <StoredImage
@@ -249,8 +277,8 @@ function ArticlePage() {
             <Verified className="h-3.5 w-3.5" />
           </p>
           <p className="text-xs text-muted-foreground">
-            {new Date(a.published_at ?? a.created_at).toLocaleDateString("fr-FR")} · {a.reading_time_minutes} min de
-            lecture
+            {new Date(a.published_at ?? a.created_at).toLocaleDateString("fr-FR")} ·{" "}
+            {a.reading_time_minutes} min de lecture
           </p>
         </div>
       </div>
@@ -259,7 +287,12 @@ function ArticlePage() {
         <div className="mt-3 rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted-foreground">
           Source externe : <span className="font-semibold text-white">{a.source}</span>
           {a.source_url ? (
-            <a href={a.source_url} target="_blank" rel="noreferrer noopener" className="ml-1 font-semibold text-primary">
+            <a
+              href={a.source_url}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="ml-1 font-semibold text-primary"
+            >
               Lire la source originale →
             </a>
           ) : null}
@@ -333,8 +366,15 @@ function ArticlePage() {
                 params={{ slug: r.slug }}
                 className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2"
               >
-                <StoredImage path={r.image_url} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" fallback="📰" />
-                <p className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{r.title}</p>
+                <StoredImage
+                  path={r.image_url}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                  fallback="📰"
+                />
+                <p className="min-w-0 flex-1 truncate text-sm font-semibold text-white">
+                  {r.title}
+                </p>
               </Link>
             ))}
           </div>

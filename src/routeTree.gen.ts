@@ -46,10 +46,10 @@ import { Route as AuthenticatedDiscoverIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedDiscoverStudioRouteImport } from './routes/_authenticated/discover.studio'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
-import { Route as AuthenticatedNewsSlugRouteImport } from './routes/_authenticated/news.$slug'
-import { Route as AuthenticatedNewsAllRouteImport } from './routes/_authenticated/news.all'
-import { Route as AuthenticatedNewsSavedRouteImport } from './routes/_authenticated/news.saved'
-import { Route as AuthenticatedShopBillingRouteImport } from './routes/_authenticated/shop.billing'
+import { Route as AuthenticatedNewsSlugRouteImport } from './routes/_authenticated/news_.$slug'
+import { Route as AuthenticatedNewsAllRouteImport } from './routes/_authenticated/news_.all'
+import { Route as AuthenticatedNewsSavedRouteImport } from './routes/_authenticated/news_.saved'
+import { Route as AuthenticatedShopBillingRouteImport } from './routes/_authenticated/shop_.billing'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users.$id'
 import { Route as AuthRobloxCallbackRouteImport } from './routes/auth.roblox.callback'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -247,25 +247,25 @@ const AuthenticatedMessagesIdRoute = AuthenticatedMessagesIdRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNewsSlugRoute = AuthenticatedNewsSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => AuthenticatedNewsRoute,
+  id: '/news_/$slug',
+  path: '/news/$slug',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNewsAllRoute = AuthenticatedNewsAllRouteImport.update({
-  id: '/all',
-  path: '/all',
-  getParentRoute: () => AuthenticatedNewsRoute,
+  id: '/news_/all',
+  path: '/news/all',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNewsSavedRoute = AuthenticatedNewsSavedRouteImport.update({
-  id: '/saved',
-  path: '/saved',
-  getParentRoute: () => AuthenticatedNewsRoute,
+  id: '/news_/saved',
+  path: '/news/saved',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedShopBillingRoute =
   AuthenticatedShopBillingRouteImport.update({
-    id: '/billing',
-    path: '/billing',
-    getParentRoute: () => AuthenticatedShopRoute,
+    id: '/shop_/billing',
+    path: '/shop/billing',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
   id: '/users/$id',
@@ -311,13 +311,13 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/home': typeof AuthenticatedHomeRoute
-  '/news': typeof AuthenticatedNewsRouteWithChildren
+  '/news': typeof AuthenticatedNewsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recent': typeof AuthenticatedRecentRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/shop': typeof AuthenticatedShopRouteWithChildren
+  '/shop': typeof AuthenticatedShopRoute
   '/sparks': typeof AuthenticatedSparksRoute
   '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
@@ -358,13 +358,13 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/home': typeof AuthenticatedHomeRoute
-  '/news': typeof AuthenticatedNewsRouteWithChildren
+  '/news': typeof AuthenticatedNewsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recent': typeof AuthenticatedRecentRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/shop': typeof AuthenticatedShopRouteWithChildren
+  '/shop': typeof AuthenticatedShopRoute
   '/sparks': typeof AuthenticatedSparksRoute
   '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
@@ -407,13 +407,13 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
-  '/_authenticated/news': typeof AuthenticatedNewsRouteWithChildren
+  '/_authenticated/news': typeof AuthenticatedNewsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recent': typeof AuthenticatedRecentRoute
   '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
   '/_authenticated/saved': typeof AuthenticatedSavedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/_authenticated/shop': typeof AuthenticatedShopRouteWithChildren
+  '/_authenticated/shop': typeof AuthenticatedShopRoute
   '/_authenticated/sparks': typeof AuthenticatedSparksRoute
   '/_authenticated/store': typeof AuthenticatedStoreRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
@@ -424,10 +424,10 @@ export interface FileRoutesById {
   '/_authenticated/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/_authenticated/discover/studio': typeof AuthenticatedDiscoverStudioRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
-  '/_authenticated/news/$slug': typeof AuthenticatedNewsSlugRoute
-  '/_authenticated/news/all': typeof AuthenticatedNewsAllRoute
-  '/_authenticated/news/saved': typeof AuthenticatedNewsSavedRoute
-  '/_authenticated/shop/billing': typeof AuthenticatedShopBillingRoute
+  '/_authenticated/news_/$slug': typeof AuthenticatedNewsSlugRoute
+  '/_authenticated/news_/all': typeof AuthenticatedNewsAllRoute
+  '/_authenticated/news_/saved': typeof AuthenticatedNewsSavedRoute
+  '/_authenticated/shop_/billing': typeof AuthenticatedShopBillingRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/_authenticated/communities/': typeof AuthenticatedCommunitiesIndexRoute
@@ -568,10 +568,10 @@ export interface FileRouteTypes {
     | '/_authenticated/communities/create'
     | '/_authenticated/discover/studio'
     | '/_authenticated/messages/$id'
-    | '/_authenticated/news/$slug'
-    | '/_authenticated/news/all'
-    | '/_authenticated/news/saved'
-    | '/_authenticated/shop/billing'
+    | '/_authenticated/news_/$slug'
+    | '/_authenticated/news_/all'
+    | '/_authenticated/news_/saved'
+    | '/_authenticated/shop_/billing'
     | '/_authenticated/users/$id'
     | '/auth/roblox/callback'
     | '/_authenticated/communities/'
@@ -866,33 +866,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessagesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/news/$slug': {
-      id: '/_authenticated/news/$slug'
-      path: '/$slug'
+    '/_authenticated/news_/$slug': {
+      id: '/_authenticated/news_/$slug'
+      path: '/news/$slug'
       fullPath: '/news/$slug'
       preLoaderRoute: typeof AuthenticatedNewsSlugRouteImport
-      parentRoute: typeof AuthenticatedNewsRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/news/all': {
-      id: '/_authenticated/news/all'
-      path: '/all'
+    '/_authenticated/news_/all': {
+      id: '/_authenticated/news_/all'
+      path: '/news/all'
       fullPath: '/news/all'
       preLoaderRoute: typeof AuthenticatedNewsAllRouteImport
-      parentRoute: typeof AuthenticatedNewsRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/news/saved': {
-      id: '/_authenticated/news/saved'
-      path: '/saved'
+    '/_authenticated/news_/saved': {
+      id: '/_authenticated/news_/saved'
+      path: '/news/saved'
       fullPath: '/news/saved'
       preLoaderRoute: typeof AuthenticatedNewsSavedRouteImport
-      parentRoute: typeof AuthenticatedNewsRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/shop/billing': {
-      id: '/_authenticated/shop/billing'
-      path: '/billing'
+    '/_authenticated/shop_/billing': {
+      id: '/_authenticated/shop_/billing'
+      path: '/shop/billing'
       fullPath: '/shop/billing'
       preLoaderRoute: typeof AuthenticatedShopBillingRouteImport
-      parentRoute: typeof AuthenticatedShopRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/users/$id': {
       id: '/_authenticated/users/$id'
@@ -932,42 +932,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedNewsRouteChildren {
-  AuthenticatedNewsSlugRoute: typeof AuthenticatedNewsSlugRoute
-  AuthenticatedNewsAllRoute: typeof AuthenticatedNewsAllRoute
-  AuthenticatedNewsSavedRoute: typeof AuthenticatedNewsSavedRoute
-}
-
-const AuthenticatedNewsRouteChildren: AuthenticatedNewsRouteChildren = {
-  AuthenticatedNewsSlugRoute: AuthenticatedNewsSlugRoute,
-  AuthenticatedNewsAllRoute: AuthenticatedNewsAllRoute,
-  AuthenticatedNewsSavedRoute: AuthenticatedNewsSavedRoute,
-}
-
-const AuthenticatedNewsRouteWithChildren =
-  AuthenticatedNewsRoute._addFileChildren(AuthenticatedNewsRouteChildren)
-
-interface AuthenticatedShopRouteChildren {
-  AuthenticatedShopBillingRoute: typeof AuthenticatedShopBillingRoute
-}
-
-const AuthenticatedShopRouteChildren: AuthenticatedShopRouteChildren = {
-  AuthenticatedShopBillingRoute: AuthenticatedShopBillingRoute,
-}
-
-const AuthenticatedShopRouteWithChildren =
-  AuthenticatedShopRoute._addFileChildren(AuthenticatedShopRouteChildren)
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
-  AuthenticatedNewsRoute: typeof AuthenticatedNewsRouteWithChildren
+  AuthenticatedNewsRoute: typeof AuthenticatedNewsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRecentRoute: typeof AuthenticatedRecentRoute
   AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
   AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
-  AuthenticatedShopRoute: typeof AuthenticatedShopRouteWithChildren
+  AuthenticatedShopRoute: typeof AuthenticatedShopRoute
   AuthenticatedSparksRoute: typeof AuthenticatedSparksRoute
   AuthenticatedStoreRoute: typeof AuthenticatedStoreRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
@@ -976,6 +950,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCommunitiesCreateRoute: typeof AuthenticatedCommunitiesCreateRoute
   AuthenticatedDiscoverStudioRoute: typeof AuthenticatedDiscoverStudioRoute
   AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
+  AuthenticatedNewsSlugRoute: typeof AuthenticatedNewsSlugRoute
+  AuthenticatedNewsAllRoute: typeof AuthenticatedNewsAllRoute
+  AuthenticatedNewsSavedRoute: typeof AuthenticatedNewsSavedRoute
+  AuthenticatedShopBillingRoute: typeof AuthenticatedShopBillingRoute
   AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRoute
   AuthenticatedCommunitiesIndexRoute: typeof AuthenticatedCommunitiesIndexRoute
   AuthenticatedDiscoverIndexRoute: typeof AuthenticatedDiscoverIndexRoute
@@ -985,13 +963,13 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
-  AuthenticatedNewsRoute: AuthenticatedNewsRouteWithChildren,
+  AuthenticatedNewsRoute: AuthenticatedNewsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRecentRoute: AuthenticatedRecentRoute,
   AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
   AuthenticatedSavedRoute: AuthenticatedSavedRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
-  AuthenticatedShopRoute: AuthenticatedShopRouteWithChildren,
+  AuthenticatedShopRoute: AuthenticatedShopRoute,
   AuthenticatedSparksRoute: AuthenticatedSparksRoute,
   AuthenticatedStoreRoute: AuthenticatedStoreRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
@@ -1000,6 +978,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCommunitiesCreateRoute: AuthenticatedCommunitiesCreateRoute,
   AuthenticatedDiscoverStudioRoute: AuthenticatedDiscoverStudioRoute,
   AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
+  AuthenticatedNewsSlugRoute: AuthenticatedNewsSlugRoute,
+  AuthenticatedNewsAllRoute: AuthenticatedNewsAllRoute,
+  AuthenticatedNewsSavedRoute: AuthenticatedNewsSavedRoute,
+  AuthenticatedShopBillingRoute: AuthenticatedShopBillingRoute,
   AuthenticatedUsersIdRoute: AuthenticatedUsersIdRoute,
   AuthenticatedCommunitiesIndexRoute: AuthenticatedCommunitiesIndexRoute,
   AuthenticatedDiscoverIndexRoute: AuthenticatedDiscoverIndexRoute,

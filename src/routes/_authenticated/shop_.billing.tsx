@@ -230,7 +230,7 @@ const COPY = {
   },
 } as const;
 
-export const Route = createFileRoute("/_authenticated/shop/billing")({
+export const Route = createFileRoute("/_authenticated/shop_/billing")({
   validateSearch: (search: Record<string, unknown>): { session_id?: string } =>
     typeof search["session_id"] === "string" ? { session_id: search["session_id"] } : {},
   head: () => ({

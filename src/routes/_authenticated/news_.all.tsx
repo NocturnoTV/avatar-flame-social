@@ -7,7 +7,7 @@ import { StoredImage } from "@/components/Media";
 import { NEWS_CATEGORIES, newsCategoryBadgeClass, newsCategoryLabel } from "@/lib/newsCategories";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/news/all")({
+export const Route = createFileRoute("/_authenticated/news_/all")({
   head: () => ({ meta: [{ title: "Toutes les actualités - Bloxspark" }] }),
   component: AllNewsPage,
 });
@@ -24,11 +24,14 @@ function AllNewsPage() {
     queryFn: async () => {
       let query = supabase
         .from("news_articles")
-        .select("id,title,excerpt,slug,image_url,category,published_at,created_at", { count: "exact" })
+        .select("id,title,excerpt,slug,image_url,category,published_at,created_at", {
+          count: "exact",
+        })
         .order("published_at", { ascending: false, nullsFirst: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (category !== "all") query = query.eq("category", category);
-      if (search.trim()) query = query.or(`title.ilike.%${search.trim()}%,excerpt.ilike.%${search.trim()}%`);
+      if (search.trim())
+        query = query.or(`title.ilike.%${search.trim()}%,excerpt.ilike.%${search.trim()}%`);
       const { data, count, error } = await query;
       if (error) throw error;
       return { rows: data ?? [], total: count ?? 0 };
@@ -40,7 +43,11 @@ function AllNewsPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-5 pb-28 pt-4">
       <header className="flex items-center gap-3">
-        <Link to="/news" aria-label="Retour" className="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-2">
+        <Link
+          to="/news"
+          aria-label="Retour"
+          className="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-2"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-xl font-black text-white">Toutes les actualités</h1>
@@ -67,7 +74,9 @@ function AllNewsPage() {
           }}
           className={cn(
             "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold",
-            category === "all" ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground",
+            category === "all"
+              ? "bg-primary text-primary-foreground"
+              : "border border-border text-muted-foreground",
           )}
         >
           Tous
@@ -81,7 +90,9 @@ function AllNewsPage() {
             }}
             className={cn(
               "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold",
-              category === c.id ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground",
+              category === c.id
+                ? "bg-primary text-primary-foreground"
+                : "border border-border text-muted-foreground",
             )}
           >
             {c.label}
@@ -104,10 +115,20 @@ function AllNewsPage() {
             params={{ slug: a.slug }}
             className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2 transition hover:border-primary/30"
           >
-            <StoredImage path={a.image_url} alt="" className="h-20 w-20 shrink-0 rounded-xl object-cover" fallback="📰" />
+            <StoredImage
+              path={a.image_url}
+              alt=""
+              className="h-20 w-20 shrink-0 rounded-xl object-cover"
+              fallback="📰"
+            />
             <div className="min-w-0 flex-1 py-1">
               <div className="flex items-center gap-2">
-                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", newsCategoryBadgeClass(a.category))}>
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                    newsCategoryBadgeClass(a.category),
+                  )}
+                >
                   {newsCategoryLabel(a.category)}
                 </span>
                 <span className="text-[11px] text-muted-foreground">
@@ -115,7 +136,9 @@ function AllNewsPage() {
                 </span>
               </div>
               <p className="mt-1 truncate text-sm font-bold text-white">{a.title}</p>
-              {a.excerpt ? <p className="line-clamp-1 text-xs text-muted-foreground">{a.excerpt}</p> : null}
+              {a.excerpt ? (
+                <p className="line-clamp-1 text-xs text-muted-foreground">{a.excerpt}</p>
+              ) : null}
             </div>
           </Link>
         ))}

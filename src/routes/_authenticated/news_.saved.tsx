@@ -7,7 +7,7 @@ import { newsCategoryBadgeClass, newsCategoryLabel } from "@/lib/newsCategories"
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/news/saved")({
+export const Route = createFileRoute("/_authenticated/news_/saved")({
   head: () => ({ meta: [{ title: "Enregistrés - Bloxspark" }] }),
   component: SavedNewsPage,
 });
@@ -31,14 +31,20 @@ function SavedNewsPage() {
         .select("id,title,excerpt,slug,image_url,category,published_at,created_at")
         .in("id", ids);
       const byId = new Map((data ?? []).map((a) => [a.id, a]));
-      return ids.map((id) => byId.get(id)).filter((a): a is NonNullable<typeof a> => a !== undefined);
+      return ids
+        .map((id) => byId.get(id))
+        .filter((a): a is NonNullable<typeof a> => a !== undefined);
     },
   });
 
   return (
     <div className="mx-auto w-full max-w-2xl px-5 pb-28 pt-4">
       <header className="flex items-center gap-3">
-        <Link to="/news" aria-label="Retour" className="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-2">
+        <Link
+          to="/news"
+          aria-label="Retour"
+          className="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-2"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-xl font-black text-white">Enregistrés</h1>
@@ -62,13 +68,25 @@ function SavedNewsPage() {
             params={{ slug: a.slug }}
             className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2"
           >
-            <StoredImage path={a.image_url} alt="" className="h-20 w-20 shrink-0 rounded-xl object-cover" fallback="📰" />
+            <StoredImage
+              path={a.image_url}
+              alt=""
+              className="h-20 w-20 shrink-0 rounded-xl object-cover"
+              fallback="📰"
+            />
             <div className="min-w-0 flex-1 py-1">
-              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", newsCategoryBadgeClass(a.category))}>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                  newsCategoryBadgeClass(a.category),
+                )}
+              >
                 {newsCategoryLabel(a.category)}
               </span>
               <p className="mt-1 truncate text-sm font-bold text-white">{a.title}</p>
-              {a.excerpt ? <p className="line-clamp-1 text-xs text-muted-foreground">{a.excerpt}</p> : null}
+              {a.excerpt ? (
+                <p className="line-clamp-1 text-xs text-muted-foreground">{a.excerpt}</p>
+              ) : null}
             </div>
           </Link>
         ))}
