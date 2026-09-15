@@ -455,9 +455,12 @@ function Analytics() {
 
 type LogFn = (action: string, targetUserId?: string, details?: string) => Promise<void>;
 
+type MemberDetailTab = "info" | "moderation" | "billing" | "messages" | "content" | "journal";
+
 function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<MemberDetailTab>("info");
   const [note, setNote] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -625,6 +628,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                   onClick={() => {
                     setSelectedId(String(member.id));
                     setNewEmail(String(member.email ?? ""));
+                    setDetailTab("info");
                   }}
                 >
                   <Eye className="mr-1 h-3.5 w-3.5" /> Ouvrir le dossier
@@ -707,385 +711,543 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
               ))}
             </div>
 
-            <nav className="no-scrollbar sticky top-0 z-10 -mx-1 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-background/95 p-2 backdrop-blur">
+            <div className="no-scrollbar sticky top-0 z-10 -mx-1 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-background/95 p-2 backdrop-blur">
               {(
                 [
-                  ["member-identity", "Identity"],
-                  ["member-moderation", "Moderation"],
-                  ["member-benefits", "Benefits"],
-                  ["member-content", "Videos"],
-                  ["member-activity", "Activity"],
-                  ["member-audit", "Audit log"],
+                  ["info", "Informations", UserRound],
+                  ["moderation", "Modération", AlertTriangle],
+                  ["billing", "Achats & Factures", Coins],
+                  ["messages", "Messages", MessagesSquare],
+                  ["content", "Contenu", Video],
+                  ["journal", "Journal", ScrollText],
                 ] as const
-              ).map(([id, label]) => (
+              ).map(([id, label, Icon]) => (
                 <button
                   key={id}
-                  onClick={() =>
-                    document
-                      .getElementById(id)
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }
-                  className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:border-primary hover:text-primary"
+                  onClick={() => setDetailTab(id)}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                    detailTab === id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-foreground hover:border-primary hover:text-primary",
+                  )}
                 >
-                  {label}
+                  <Icon className="h-3.5 w-3.5" /> {label}
                 </button>
               ))}
-            </nav>
+            </div>
 
-            <section
-              id="member-identity"
-              className="scroll-mt-20 space-y-2 rounded-2xl bg-surface p-3 text-xs"
-            >
-              <p className="flex items-center justify-between">
-                <span className="text-muted-foreground">Signed up</span>
-                <span className="font-semibold">
-                  {new Date(String(selected.created_at)).toLocaleDateString()}
-                </span>
-              </p>
-              <p className="flex items-center justify-between">
-                <span className="text-muted-foreground">Birth date</span>
-                <span className="font-semibold">
-                  {selected.birthDate
-                    ? `${ageFrom(String(selected.birthDate))} y/o (${new Date(String(selected.birthDate)).toLocaleDateString()})`
-                    : "Unknown"}
-                </span>
-              </p>
-              <p className="flex items-center justify-between">
-                <span className="text-muted-foreground">Blox balance</span>
-                <span className="font-semibold">
-                  {Number(selected.bloxBalance ?? 0).toLocaleString()}
-                </span>
-              </p>
-              {selected.birthDate &&
-              ageFrom(String(selected.birthDate)) !== null &&
-              ageFrom(String(selected.birthDate))! < 15 ? (
-                <div className="mt-1 rounded-xl bg-amber-500/10 p-2">
-                  <p className="font-bold text-amber-600">Under 15 - parental consent required</p>
-                  <p className="mt-0.5">
-                    Consent on file: {selected.parentalConsent ? "Yes" : "No"}
-                  </p>
-                  {selected.parentName ? <p>Parent: {String(selected.parentName)}</p> : null}
-                  {selected.parentEmail ? (
-                    <p>Parent email: {String(selected.parentEmail)}</p>
-                  ) : null}
-                </div>
-              ) : null}
-            </section>
-
-            {detail.data?.matches.length ? (
-              <section>
-                <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Matches
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {detail.data.matches.slice(0, 20).map((m) => (
-                    <span key={m.id} className="rounded-full bg-surface px-2.5 py-1 text-[11px]">
-                      @{m.partnerUsername ?? "unknown"}
+            {detailTab === "info" ? (
+              <div className="space-y-4">
+                <section className="space-y-2 rounded-2xl bg-surface p-3 text-xs">
+                  <p className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">ID</span>
+                    <span className="truncate font-mono text-[11px] font-semibold">
+                      {selected.id}
                     </span>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                  </p>
+                  <p className="flex items-center justify-between">
+                    <span className="text-muted-foreground">E-mail</span>
+                    <span className="truncate font-semibold">
+                      {selected.email ?? "Indisponible"}
+                    </span>
+                  </p>
+                  <p className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Langue</span>
+                    <span className="font-semibold uppercase">{String(selected.language)}</span>
+                  </p>
+                  <p className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Inscrit le</span>
+                    <span className="font-semibold">
+                      {new Date(String(selected.created_at)).toLocaleDateString()}
+                    </span>
+                  </p>
+                  <p className="flex items-center justify-between">
+                    <span className="text-muted-foreground">E-mail confirmé</span>
+                    <span className="font-semibold">
+                      {selected.emailConfirmedAt ? "Oui" : "Non"}
+                    </span>
+                  </p>
+                  <p className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Dernière connexion</span>
+                    <span className="font-semibold">
+                      {selected.lastSignInAt
+                        ? new Date(String(selected.lastSignInAt)).toLocaleString("fr-FR")
+                        : "-"}
+                    </span>
+                  </p>
+                  <p className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Date de naissance</span>
+                    <span className="font-semibold">
+                      {selected.birthDate
+                        ? `${ageFrom(String(selected.birthDate))} ans (${new Date(String(selected.birthDate)).toLocaleDateString()})`
+                        : "Inconnue"}
+                    </span>
+                  </p>
+                  <p className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Rôles</span>
+                    <span className="font-semibold">
+                      {(selected.roles as string[]).join(", ") || "membre"}
+                    </span>
+                  </p>
+                  {selected.birthDate &&
+                  ageFrom(String(selected.birthDate)) !== null &&
+                  ageFrom(String(selected.birthDate))! < 15 ? (
+                    <div className="mt-1 rounded-xl bg-amber-500/10 p-2">
+                      <p className="font-bold text-amber-600">
+                        Moins de 15 ans - consentement parental requis
+                      </p>
+                      <p className="mt-0.5">
+                        Consentement enregistré : {selected.parentalConsent ? "Oui" : "Non"}
+                      </p>
+                      {selected.parentName ? (
+                        <p>Parent/tuteur : {String(selected.parentName)}</p>
+                      ) : null}
+                      {selected.parentEmail ? (
+                        <p>E-mail parental : {String(selected.parentEmail)}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </section>
 
-            {isAdmin && !(selected.roles as string[]).includes("admin") ? (
-              <Button
-                variant="outline"
-                className="w-full"
-                disabled={impersonating}
-                onClick={() => void impersonate(String(selected.id))}
-              >
-                <LogIn className="mr-1 h-4 w-4" /> Log in as this user
-              </Button>
-            ) : null}
+                {isAdmin && !(selected.roles as string[]).includes("admin") ? (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={impersonating}
+                    onClick={() => void impersonate(String(selected.id))}
+                  >
+                    <LogIn className="mr-1 h-4 w-4" /> Se connecter à son compte
+                  </Button>
+                ) : null}
 
-            <section id="member-moderation" className="scroll-mt-20 space-y-3">
-              <h3 className="flex items-center gap-2 font-black">
-                <AlertTriangle className="h-4 w-4 text-amber-500" /> Modération
-              </h3>
-              <Textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-                placeholder="Motif de l’avertissement ou contenu de la notification…"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  disabled={busy || !note.trim()}
-                  onClick={() => act("warn", note)}
-                >
-                  <AlertTriangle className="mr-1 h-4 w-4" /> Avertir
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={busy || !note.trim()}
-                  onClick={() => act("notify", note)}
-                >
-                  <Bell className="mr-1 h-4 w-4" /> Notifier
-                </Button>
                 {isAdmin ? (
-                  selected.moderation_status === "banned" ? (
-                    <Button className="col-span-2" disabled={busy} onClick={() => act("unban")}>
-                      <Unlock className="mr-1 h-4 w-4" /> Débannir
-                    </Button>
-                  ) : (
-                    <Button
-                      className="col-span-2"
-                      variant="danger"
-                      disabled={busy}
-                      onClick={() => act("ban", note || "Permanent ban")}
-                    >
-                      <Ban className="mr-1 h-4 w-4" /> Bannir le compte
-                    </Button>
-                  )
+                  <section className="space-y-3 border-t border-border pt-4">
+                    <h3 className="flex items-center gap-2 font-black">
+                      <KeyRound className="h-4 w-4 text-primary" /> Accès au compte
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Le mot de passe actuel reste invisible. Tu peux uniquement en définir un
+                      nouveau.
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                      />
+                      <Button
+                        variant="outline"
+                        disabled={busy || !newEmail}
+                        onClick={() => act("update_email", newEmail)}
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        minLength={8}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Nouveau mot de passe (8 caractères min.)"
+                      />
+                      <Button
+                        variant="outline"
+                        disabled={busy || newPassword.length < 8}
+                        onClick={() => act("update_password", newPassword)}
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </section>
                 ) : null}
               </div>
-              {selected.moderation_note ? (
-                <p className="rounded-2xl bg-amber-500/10 p-3 text-xs text-amber-600">
-                  Dernière note : {String(selected.moderation_note)}
-                </p>
-              ) : null}
-            </section>
+            ) : null}
 
-            {isAdmin ? (
-              <section
-                id="member-benefits"
-                className="scroll-mt-20 space-y-3 border-t border-border pt-4"
-              >
-                <h3 className="flex items-center gap-2 font-black">
-                  <Crown className="h-4 w-4 text-primary" /> Bloxspark Plus
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {selected.sparkPlusActive
-                    ? selected.sparkPlusExpiresAt
-                      ? `Actif jusqu'au ${new Date(String(selected.sparkPlusExpiresAt)).toLocaleDateString("fr-FR")}`
-                      : "Actif à vie"
-                    : "Pas de Spark Plus actif"}
-                </p>
-                <div className="grid grid-cols-4 gap-2">
-                  {(
-                    [
-                      ["1m", "+1 mois"],
-                      ["3m", "+3 mois"],
-                      ["1y", "+1 an"],
-                      ["lifetime", "À vie"],
-                    ] as const
-                  ).map(([value, label]) => (
+            {detailTab === "moderation" ? (
+              <div className="space-y-4">
+                <section className="space-y-3">
+                  <h3 className="flex items-center gap-2 font-black">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" /> Modération
+                  </h3>
+                  <Textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    rows={3}
+                    placeholder="Motif de l’avertissement ou contenu de la notification…"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
-                      key={value}
-                      size="sm"
                       variant="outline"
-                      disabled={busy}
-                      onClick={() => act("grant_spark_plus", value)}
+                      disabled={busy || !note.trim()}
+                      onClick={() => act("warn", note)}
                     >
-                      {label}
+                      <AlertTriangle className="mr-1 h-4 w-4" /> Avertir
                     </Button>
-                  ))}
-                </div>
-                {selected.sparkPlusActive ? (
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => act("revoke_spark_plus")}
-                  >
-                    Retirer Spark Plus
-                  </Button>
-                ) : null}
-              </section>
-            ) : null}
+                    <Button
+                      variant="outline"
+                      disabled={busy || !note.trim()}
+                      onClick={() => act("notify", note)}
+                    >
+                      <Bell className="mr-1 h-4 w-4" /> Notifier
+                    </Button>
+                    {isAdmin ? (
+                      selected.moderation_status === "banned" ? (
+                        <Button className="col-span-2" disabled={busy} onClick={() => act("unban")}>
+                          <Unlock className="mr-1 h-4 w-4" /> Débannir
+                        </Button>
+                      ) : (
+                        <Button
+                          className="col-span-2"
+                          variant="danger"
+                          disabled={busy}
+                          onClick={() => act("ban", note || "Permanent ban")}
+                        >
+                          <Ban className="mr-1 h-4 w-4" /> Bannir le compte
+                        </Button>
+                      )
+                    ) : null}
+                  </div>
+                  {selected.moderation_note ? (
+                    <p className="rounded-2xl bg-amber-500/10 p-3 text-xs text-amber-600">
+                      Dernière note : {String(selected.moderation_note)}
+                    </p>
+                  ) : null}
+                </section>
 
-            {isAdmin ? (
-              <section className="space-y-3 rounded-3xl border border-cyan-500/25 bg-cyan-500/5 p-4">
-                <h3 className="flex items-center gap-2 font-black">
-                  <Coins className="h-4 w-4 text-cyan-500" /> Blox wallet
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Current balance:{" "}
-                  <strong className="text-foreground">
-                    {Number(selected.bloxBalance ?? 0).toLocaleString()} Blox
-                  </strong>
-                  . Every grant is added to the ledger, audit log and user notifications.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={1000000}
-                    value={bloxAmount}
-                    onChange={(event) => setBloxAmount(event.target.value)}
-                  />
-                  <Button
-                    disabled={busy || Number(bloxAmount) < 1}
-                    onClick={() => act("grant_blox", bloxAmount)}
-                  >
-                    <Plus className="mr-1 h-4 w-4" /> Grant Blox
-                  </Button>
-                </div>
-              </section>
-            ) : null}
-
-            {isAdmin ? (
-              <section className="space-y-3 border-t border-border pt-4">
-                <h3 className="flex items-center gap-2 font-black">
-                  <UserRound className="h-4 w-4 text-primary" /> Accès au compte
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Le mot de passe actuel reste invisible. Tu peux uniquement en définir un nouveau.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                  />
-                  <Button
-                    variant="outline"
-                    disabled={busy || !newEmail}
-                    onClick={() => act("update_email", newEmail)}
-                  >
-                    <Mail className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    type="password"
-                    minLength={8}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Nouveau mot de passe (8 caractères min.)"
-                  />
-                  <Button
-                    variant="outline"
-                    disabled={busy || newPassword.length < 8}
-                    onClick={() => act("update_password", newPassword)}
-                  >
-                    <KeyRound className="h-4 w-4" />
-                  </Button>
-                </div>
-              </section>
-            ) : null}
-
-            <section id="member-content" className="scroll-mt-20 border-t border-border pt-4">
-              <h3 className="flex items-center gap-2 font-black">
-                <Video className="h-4 w-4 text-primary" /> Vidéos ({detail.data?.videos.length ?? 0}
-                )
-              </h3>
-              <div className="mt-3 space-y-2">
-                {detail.data?.videos.map((video) => (
-                  <div key={video.id} className="rounded-2xl bg-surface p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">
-                          {video.caption || "Vidéo sans légende"}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {video.views_count} vues · {video.visibility} ·{" "}
-                          {new Date(video.created_at).toLocaleString("fr-FR")}
+                <section className="space-y-2 border-t border-border pt-4">
+                  <h3 className="flex items-center gap-2 font-black">
+                    <ScrollText className="h-4 w-4 text-primary" /> Historique des sanctions (
+                    {detail.data?.sanctions.length ?? 0})
+                  </h3>
+                  <div className="space-y-2">
+                    {detail.data?.sanctions.map((s) => (
+                      <div key={s.id} className="rounded-2xl border border-border p-3 text-xs">
+                        <p className="font-bold uppercase">{s.action}</p>
+                        {s.reason ? <p className="mt-0.5">{s.reason}</p> : null}
+                        <p className="mt-1 text-muted-foreground">
+                          {new Date(s.created_at).toLocaleString("fr-FR")}
+                          {s.moderatorUsername ? ` · par @${s.moderatorUsername}` : ""}
                         </p>
                       </div>
-                      <div className="flex gap-1">
-                        <button
-                          className="rounded-full border border-border p-2"
-                          aria-label={video.visibility === "public" ? "Masquer" : "Restaurer"}
-                          onClick={() =>
-                            act(
-                              video.visibility === "public" ? "hide_video" : "restore_video",
-                              undefined,
-                              video.id,
-                            )
-                          }
+                    ))}
+                    {!detail.data?.sanctions.length ? (
+                      <p className="text-xs text-muted-foreground">Aucune sanction.</p>
+                    ) : null}
+                  </div>
+                </section>
+
+                {detail.data?.disputes.length ? (
+                  <section className="space-y-2 border-t border-border pt-4">
+                    <h3 className="flex items-center gap-2 font-black">
+                      <FileWarning className="h-4 w-4 text-primary" /> Contestations (
+                      {detail.data.disputes.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {detail.data.disputes.map((d) => (
+                        <div key={d.id} className="rounded-2xl border border-border p-3 text-xs">
+                          <p className="font-bold">
+                            {d.status === "pending"
+                              ? "En attente"
+                              : d.status === "accepted"
+                                ? "Acceptée"
+                                : "Rejetée"}
+                          </p>
+                          <p className="mt-0.5">{d.message}</p>
+                          {d.moderator_note ? (
+                            <p className="mt-1 text-muted-foreground">
+                              Réponse : {d.moderator_note}
+                            </p>
+                          ) : null}
+                          <p className="mt-1 text-muted-foreground">
+                            {new Date(d.created_at).toLocaleString("fr-FR")}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                <section className="space-y-2 border-t border-border pt-4">
+                  <h3 className="flex items-center gap-2 font-black">
+                    <AlertTriangle className="h-4 w-4 text-primary" /> Signalements (
+                    {detail.data?.reports.length ?? 0})
+                  </h3>
+                  <div className="space-y-2">
+                    {detail.data?.reports.map((report) => (
+                      <div key={report.id} className="rounded-2xl border border-border p-3 text-xs">
+                        <p className="font-bold">{report.reason}</p>
+                        <p className="text-muted-foreground">
+                          {report.status} · {new Date(report.created_at).toLocaleString("fr-FR")}
+                        </p>
+                        {report.details ? <p className="mt-1">{report.details}</p> : null}
+                      </div>
+                    ))}
+                    {!detail.data?.reports.length ? (
+                      <p className="text-xs text-muted-foreground">Aucun signalement.</p>
+                    ) : null}
+                  </div>
+                </section>
+              </div>
+            ) : null}
+
+            {detailTab === "billing" ? (
+              <div className="space-y-4">
+                {isAdmin ? (
+                  <section className="space-y-3 rounded-3xl border border-primary/25 bg-primary/5 p-4">
+                    <h3 className="flex items-center gap-2 font-black">
+                      <Crown className="h-4 w-4 text-primary" /> Bloxspark Plus
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {selected.sparkPlusActive
+                        ? selected.sparkPlusExpiresAt
+                          ? `Actif jusqu'au ${new Date(String(selected.sparkPlusExpiresAt)).toLocaleDateString("fr-FR")}`
+                          : "Actif à vie"
+                        : "Pas de Spark Plus actif"}
+                    </p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(
+                        [
+                          ["1m", "+1 mois"],
+                          ["3m", "+3 mois"],
+                          ["1y", "+1 an"],
+                          ["lifetime", "À vie"],
+                        ] as const
+                      ).map(([value, label]) => (
+                        <Button
+                          key={value}
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => act("grant_spark_plus", value)}
                         >
-                          {video.visibility === "public" ? (
-                            <Eye className="h-3.5 w-3.5" />
-                          ) : (
-                            <Unlock className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                        <button
-                          className="rounded-full border border-border p-2 text-destructive"
-                          aria-label="Supprimer"
-                          onClick={() => act("delete_video", undefined, video.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                    {selected.sparkPlusActive ? (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => act("revoke_spark_plus")}
+                      >
+                        Retirer Spark Plus
+                      </Button>
+                    ) : null}
+                  </section>
+                ) : null}
+
+                {isAdmin ? (
+                  <section className="space-y-3 rounded-3xl border border-cyan-500/25 bg-cyan-500/5 p-4">
+                    <h3 className="flex items-center gap-2 font-black">
+                      <Coins className="h-4 w-4 text-cyan-500" /> Blox wallet
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Solde actuel :{" "}
+                      <strong className="text-foreground">
+                        {Number(selected.bloxBalance ?? 0).toLocaleString()} Blox
+                      </strong>
+                      . Chaque don est ajouté au grand livre, au journal d'audit et notifié au
+                      membre.
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={1000000}
+                        value={bloxAmount}
+                        onChange={(event) => setBloxAmount(event.target.value)}
+                      />
+                      <Button
+                        disabled={busy || Number(bloxAmount) < 1}
+                        onClick={() => act("grant_blox", bloxAmount)}
+                      >
+                        <Plus className="mr-1 h-4 w-4" /> Donner des Blox
+                      </Button>
+                    </div>
+                  </section>
+                ) : null}
+
+                <section className="space-y-2 border-t border-border pt-4">
+                  <h3 className="flex items-center gap-2 font-black">
+                    <Gift className="h-4 w-4 text-primary" /> Historique des achats & transactions (
+                    {detail.data?.bloxTransactions.length ?? 0})
+                  </h3>
+                  <div className="max-h-72 space-y-2 overflow-y-auto">
+                    {detail.data?.bloxTransactions.map((tx) => (
+                      <div key={tx.id} className="rounded-2xl bg-surface p-3 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-bold uppercase">{tx.kind}</p>
+                          <p
+                            className={cn(
+                              "font-black",
+                              tx.amount >= 0 ? "text-emerald-500" : "text-destructive",
+                            )}
+                          >
+                            {tx.amount >= 0 ? "+" : ""}
+                            {tx.amount.toLocaleString()}
+                          </p>
+                        </div>
+                        {tx.description ? (
+                          <p className="mt-0.5 text-muted-foreground">{tx.description}</p>
+                        ) : null}
+                        <p className="mt-1 text-muted-foreground">
+                          {new Date(tx.created_at).toLocaleString("fr-FR")}
+                        </p>
+                      </div>
+                    ))}
+                    {!detail.data?.bloxTransactions.length ? (
+                      <p className="text-xs text-muted-foreground">Aucune transaction.</p>
+                    ) : null}
+                  </div>
+                </section>
+              </div>
+            ) : null}
+
+            {detailTab === "content" ? (
+              <section className="pt-1">
+                <h3 className="flex items-center gap-2 font-black">
+                  <Video className="h-4 w-4 text-primary" /> Vidéos (
+                  {detail.data?.videos.length ?? 0})
+                </h3>
+                <div className="mt-3 space-y-2">
+                  {detail.data?.videos.map((video) => (
+                    <div key={video.id} className="rounded-2xl bg-surface p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {video.caption || "Vidéo sans légende"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {video.views_count} vues · {video.visibility} ·{" "}
+                            {new Date(video.created_at).toLocaleString("fr-FR")}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            className="rounded-full border border-border p-2"
+                            aria-label={video.visibility === "public" ? "Masquer" : "Restaurer"}
+                            onClick={() =>
+                              act(
+                                video.visibility === "public" ? "hide_video" : "restore_video",
+                                undefined,
+                                video.id,
+                              )
+                            }
+                          >
+                            {video.visibility === "public" ? (
+                              <Eye className="h-3.5 w-3.5" />
+                            ) : (
+                              <Unlock className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                          <button
+                            className="rounded-full border border-border p-2 text-destructive"
+                            aria-label="Supprimer"
+                            onClick={() => act("delete_video", undefined, video.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {detail.isLoading ? (
-                  <p className="text-xs text-muted-foreground">Chargement de l’activité…</p>
+                  ))}
+                  {detail.isLoading ? (
+                    <p className="text-xs text-muted-foreground">Chargement de l’activité…</p>
+                  ) : null}
+                  {!detail.isLoading && !detail.data?.videos.length ? (
+                    <p className="text-xs text-muted-foreground">Aucune vidéo.</p>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+
+            {detailTab === "messages" ? (
+              <div className="space-y-4">
+                {detail.data?.matches.length ? (
+                  <section>
+                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Matches ({detail.data.matches.length})
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {detail.data.matches.slice(0, 20).map((m) => (
+                        <span
+                          key={m.id}
+                          className="rounded-full bg-surface px-2.5 py-1 text-[11px]"
+                        >
+                          @{m.partnerUsername ?? "unknown"}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
                 ) : null}
-              </div>
-            </section>
 
-            <section id="member-activity" className="scroll-mt-20 border-t border-border pt-4">
-              <h3 className="flex items-center gap-2 font-black">
-                <Bell className="h-4 w-4 text-primary" /> Historique des notifications (
-                {detail.data?.notifications.length ?? 0})
-              </h3>
-              <div className="mt-3 max-h-56 space-y-2 overflow-y-auto">
-                {detail.data?.notifications.map((notification) => (
-                  <div key={notification.id} className="rounded-2xl bg-surface p-3">
-                    <p className="text-[10px] text-muted-foreground">
-                      {notification.kind} · {notification.read ? "lue" : "non lue"} ·{" "}
-                      {new Date(notification.created_at).toLocaleString("fr-FR")}
-                    </p>
-                    <p className="mt-1 break-words text-sm">{notification.body || "-"}</p>
+                <section className="border-t border-border pt-4">
+                  <h3 className="flex items-center gap-2 font-black">
+                    <MessagesSquare className="h-4 w-4 text-primary" /> Historique des messages (
+                    {detail.data?.messages.length ?? 0})
+                  </h3>
+                  <div className="mt-3 max-h-96 space-y-2 overflow-y-auto">
+                    {detail.data?.messages.map((message) => (
+                      <div key={message.id} className="rounded-2xl bg-surface p-3">
+                        <p className="text-[10px] text-muted-foreground">
+                          {message.kind} · {new Date(message.created_at).toLocaleString("fr-FR")}
+                        </p>
+                        <p className="mt-1 break-words text-sm">{message.content || "(média)"}</p>
+                      </div>
+                    ))}
+                    {!detail.data?.messages.length ? (
+                      <p className="text-xs text-muted-foreground">Aucun message.</p>
+                    ) : null}
                   </div>
-                ))}
+                </section>
               </div>
-            </section>
+            ) : null}
 
-            <section id="member-audit" className="scroll-mt-20 border-t border-border pt-4">
-              <h3 className="flex items-center gap-2 font-black">
-                <AlertTriangle className="h-4 w-4 text-primary" /> Signalements liés au membre (
-                {detail.data?.reports.length ?? 0})
-              </h3>
-              <div className="mt-3 space-y-2">
-                {detail.data?.reports.map((report) => (
-                  <div key={report.id} className="rounded-2xl border border-border p-3 text-xs">
-                    <p className="font-bold">{report.reason}</p>
-                    <p className="text-muted-foreground">
-                      {report.status} · {new Date(report.created_at).toLocaleString("fr-FR")}
-                    </p>
-                    {report.details ? <p className="mt-1">{report.details}</p> : null}
+            {detailTab === "journal" ? (
+              <div className="space-y-4">
+                <section>
+                  <h3 className="flex items-center gap-2 font-black">
+                    <Bell className="h-4 w-4 text-primary" /> Historique des notifications (
+                    {detail.data?.notifications.length ?? 0})
+                  </h3>
+                  <div className="mt-3 max-h-56 space-y-2 overflow-y-auto">
+                    {detail.data?.notifications.map((notification) => (
+                      <div key={notification.id} className="rounded-2xl bg-surface p-3">
+                        <p className="text-[10px] text-muted-foreground">
+                          {notification.kind} · {notification.read ? "lue" : "non lue"} ·{" "}
+                          {new Date(notification.created_at).toLocaleString("fr-FR")}
+                        </p>
+                        <p className="mt-1 break-words text-sm">{notification.body || "-"}</p>
+                      </div>
+                    ))}
+                    {!detail.data?.notifications.length ? (
+                      <p className="text-xs text-muted-foreground">Aucune notification.</p>
+                    ) : null}
                   </div>
-                ))}
-              </div>
-            </section>
+                </section>
 
-            <section className="border-t border-border pt-4">
-              <h3 className="flex items-center gap-2 font-black">
-                <MessagesSquare className="h-4 w-4 text-primary" /> Historique des messages (
-                {detail.data?.messages.length ?? 0})
-              </h3>
-              <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
-                {detail.data?.messages.map((message) => (
-                  <div key={message.id} className="rounded-2xl bg-surface p-3">
-                    <p className="text-[10px] text-muted-foreground">
-                      {message.kind} · {new Date(message.created_at).toLocaleString("fr-FR")}
-                    </p>
-                    <p className="mt-1 break-words text-sm">{message.content || "(média)"}</p>
+                <section className="border-t border-border pt-4">
+                  <h3 className="font-black">Journal d'administration</h3>
+                  <div className="mt-3 space-y-2">
+                    {detail.data?.audit.map((entry) => (
+                      <div key={entry.id} className="rounded-2xl border border-border p-3 text-xs">
+                        <p className="font-bold">{entry.action}</p>
+                        <p className="text-muted-foreground">
+                          {new Date(entry.created_at).toLocaleString("fr-FR")}
+                          {entry.details ? ` · ${entry.details}` : ""}
+                        </p>
+                      </div>
+                    ))}
+                    {!detail.data?.audit.length ? (
+                      <p className="text-xs text-muted-foreground">Aucune entrée.</p>
+                    ) : null}
                   </div>
-                ))}
+                </section>
               </div>
-            </section>
-
-            <section className="border-t border-border pt-4">
-              <h3 className="font-black">Journal du membre</h3>
-              <div className="mt-3 space-y-2">
-                {detail.data?.audit.map((entry) => (
-                  <div key={entry.id} className="rounded-2xl border border-border p-3 text-xs">
-                    <p className="font-bold">{entry.action}</p>
-                    <p className="text-muted-foreground">
-                      {new Date(entry.created_at).toLocaleString("fr-FR")}
-                      {entry.details ? ` · ${entry.details}` : ""}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
+            ) : null}
           </div>
         ) : null}
       </Sheet>

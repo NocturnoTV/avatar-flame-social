@@ -95,55 +95,91 @@ export const adminGetMemberDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await requireStaff(context.userId);
-    const [videos, messages, notifications, reports, audit, matches] = await Promise.all([
-      supabaseAdmin
-        .from("videos")
-        .select("id,storage_path,caption,visibility,views_count,created_at")
-        .eq("user_id", data.userId)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabaseAdmin
-        .from("messages")
-        .select("id,conversation_id,kind,content,media_url,created_at")
-        .eq("sender_id", data.userId)
-        .order("created_at", { ascending: false })
-        .limit(100),
-      supabaseAdmin
-        .from("notifications")
-        .select("id,kind,body,read,created_at")
-        .eq("user_id", data.userId)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabaseAdmin
-        .from("reports")
-        .select("id,reason,details,status,created_at,reporter_id,target_user_id")
-        .or(`reporter_id.eq.${data.userId},target_user_id.eq.${data.userId}`)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabaseAdmin
-        .from("admin_audit_log")
-        .select("id,action,details,created_at,admin_id")
-        .eq("target_user_id", data.userId)
-        .order("created_at", { ascending: false })
-        .limit(100),
-      supabaseAdmin
-        .from("matches")
-        .select("id,user_a,user_b,created_at")
-        .or(`user_a.eq.${data.userId},user_b.eq.${data.userId}`)
-        .order("created_at", { ascending: false })
-        .limit(100),
-    ]);
-    for (const result of [videos, messages, notifications, reports, audit, matches]) {
+    const [videos, messages, notifications, reports, audit, matches, sanctions, disputes, bloxTx] =
+      await Promise.all([
+        supabaseAdmin
+          .from("videos")
+          .select("id,storage_path,caption,visibility,views_count,created_at")
+          .eq("user_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabaseAdmin
+          .from("messages")
+          .select("id,conversation_id,kind,content,media_url,created_at")
+          .eq("sender_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabaseAdmin
+          .from("notifications")
+          .select("id,kind,body,read,created_at")
+          .eq("user_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabaseAdmin
+          .from("reports")
+          .select("id,reason,details,status,created_at,reporter_id,target_user_id")
+          .or(`reporter_id.eq.${data.userId},target_user_id.eq.${data.userId}`)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabaseAdmin
+          .from("admin_audit_log")
+          .select("id,action,details,created_at,admin_id")
+          .eq("target_user_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabaseAdmin
+          .from("matches")
+          .select("id,user_a,user_b,created_at")
+          .or(`user_a.eq.${data.userId},user_b.eq.${data.userId}`)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabaseAdmin
+          .from("moderation_sanctions")
+          .select("id,action,reason,moderator_id,created_at")
+          .eq("user_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabaseAdmin
+          .from("moderation_disputes")
+          .select("id,sanction_id,message,status,moderator_note,created_at,reviewed_at")
+          .eq("user_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabaseAdmin
+          .from("blox_transactions")
+          .select("id,amount,kind,reference_id,description,created_at")
+          .eq("user_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(100),
+      ]);
+    for (const result of [
+      videos,
+      messages,
+      notifications,
+      reports,
+      audit,
+      matches,
+      sanctions,
+      disputes,
+      bloxTx,
+    ]) {
       if (result.error) throw result.error;
     }
 
     const matchPartnerIds = (matches.data ?? []).map((m) =>
       m.user_a === data.userId ? m.user_b : m.user_a,
     );
-    const { data: matchPartners } = matchPartnerIds.length
-      ? await supabaseAdmin.from("profiles").select("id,username").in("id", matchPartnerIds)
-      : { data: [] as { id: string; username: string | null }[] };
-    const partnerById = new Map((matchPartners ?? []).map((p) => [p.id, p.username]));
+    const moderatorIds = (sanctions.data ?? [])
+      .map((s) => s.moderator_id)
+      .filter((id): id is string => !!id);
+    const { data: people } =
+      matchPartnerIds.length || moderatorIds.length
+        ? await supabaseAdmin
+            .from("profiles")
+            .select("id,username")
+            .in("id", [...new Set([...matchPartnerIds, ...moderatorIds])])
+        : { data: [] as { id: string; username: string | null }[] };
+    const usernameById = new Map((people ?? []).map((p) => [p.id, p.username]));
 
     return {
       videos: videos.data ?? [],
@@ -154,8 +190,14 @@ export const adminGetMemberDetail = createServerFn({ method: "GET" })
       matches: (matches.data ?? []).map((m) => ({
         id: m.id,
         created_at: m.created_at,
-        partnerUsername: partnerById.get(m.user_a === data.userId ? m.user_b : m.user_a) ?? null,
+        partnerUsername: usernameById.get(m.user_a === data.userId ? m.user_b : m.user_a) ?? null,
       })),
+      sanctions: (sanctions.data ?? []).map((s) => ({
+        ...s,
+        moderatorUsername: s.moderator_id ? (usernameById.get(s.moderator_id) ?? null) : null,
+      })),
+      disputes: disputes.data ?? [],
+      bloxTransactions: bloxTx.data ?? [],
     };
   });
 
