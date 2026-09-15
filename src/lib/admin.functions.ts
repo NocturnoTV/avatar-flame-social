@@ -31,7 +31,7 @@ export const adminListMembers = createServerFn({ method: "GET" })
         (supabaseAdmin as any)
           .from("profiles")
           .select(
-            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,moderation_status,warning_count,banned_until,moderation_note,spark_plus_active,spark_plus_expires_at,birth_date,parent_name,parent_email,parental_consent,blox_balance",
+            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,moderation_status,warning_count,banned_until,moderation_note,spark_plus_active,spark_plus_expires_at,age,blox_balance,profiles_private(birth_date,parent_name,parent_email,parental_consent)",
           )
           .order("created_at", { ascending: false }),
         supabaseAdmin.from("user_roles").select("user_id,role"),
@@ -51,6 +51,11 @@ export const adminListMembers = createServerFn({ method: "GET" })
 
     return (profiles ?? []).map((profile) => {
       const auth = authById.get(String(profile["id"]));
+      const rawPriv = profile["profiles_private"];
+      const priv = (Array.isArray(rawPriv) ? rawPriv[0] : rawPriv) as
+        | Record<string, unknown>
+        | null
+        | undefined;
       return {
         id: String(profile["id"]),
         username: (profile["username"] as string | null) ?? null,
@@ -72,14 +77,12 @@ export const adminListMembers = createServerFn({ method: "GET" })
         roles: rolesById.get(String(profile["id"])) ?? [],
         sparkPlusActive: Boolean(profile["spark_plus_active"]),
         sparkPlusExpiresAt: (profile["spark_plus_expires_at"] as string | null) ?? null,
-        birthDate: (profile["birth_date"] as string | null) ?? null,
-        parentName: canManageCredentials
-          ? ((profile["parent_name"] as string | null) ?? null)
-          : null,
+        birthDate: (priv?.["birth_date"] as string | null) ?? null,
+        parentName: canManageCredentials ? ((priv?.["parent_name"] as string | null) ?? null) : null,
         parentEmail: canManageCredentials
-          ? ((profile["parent_email"] as string | null) ?? null)
+          ? ((priv?.["parent_email"] as string | null) ?? null)
           : null,
-        parentalConsent: Boolean(profile["parental_consent"]),
+        parentalConsent: Boolean(priv?.["parental_consent"]),
         bloxBalance: Number(profile["blox_balance"] ?? 0),
       };
     });
