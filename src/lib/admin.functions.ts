@@ -51,6 +51,11 @@ export const adminListMembers = createServerFn({ method: "GET" })
 
     return (profiles ?? []).map((profile) => {
       const auth = authById.get(String(profile["id"]));
+      const rawPriv = profile["profiles_private"];
+      const priv = (Array.isArray(rawPriv) ? rawPriv[0] : rawPriv) as
+        | Record<string, unknown>
+        | null
+        | undefined;
       return {
         id: String(profile["id"]),
         username: (profile["username"] as string | null) ?? null,
@@ -72,14 +77,12 @@ export const adminListMembers = createServerFn({ method: "GET" })
         roles: rolesById.get(String(profile["id"])) ?? [],
         sparkPlusActive: Boolean(profile["spark_plus_active"]),
         sparkPlusExpiresAt: (profile["spark_plus_expires_at"] as string | null) ?? null,
-        birthDate: (profile["birth_date"] as string | null) ?? null,
-        parentName: canManageCredentials
-          ? ((profile["parent_name"] as string | null) ?? null)
-          : null,
+        birthDate: (priv?.["birth_date"] as string | null) ?? null,
+        parentName: canManageCredentials ? ((priv?.["parent_name"] as string | null) ?? null) : null,
         parentEmail: canManageCredentials
-          ? ((profile["parent_email"] as string | null) ?? null)
+          ? ((priv?.["parent_email"] as string | null) ?? null)
           : null,
-        parentalConsent: Boolean(profile["parental_consent"]),
+        parentalConsent: Boolean(priv?.["parental_consent"]),
         bloxBalance: Number(profile["blox_balance"] ?? 0),
       };
     });
