@@ -11,6 +11,7 @@ import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { signInWithIdentifier } from "@/lib/login-identifier.functions";
 import { beginRobloxSignIn } from "@/lib/roblox-oauth.functions";
+import { redeemDeviceLoginCode } from "@/lib/device-login.functions";
 import { errorMessage } from "@/lib/utils";
 
 type Search = { mode?: "signup" | "signin" | undefined; addAccount?: boolean };
@@ -55,6 +56,9 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [robloxBusy, setRobloxBusy] = useState(false);
+  const [codeMode, setCodeMode] = useState(false);
+  const [deviceCodeInput, setDeviceCodeInput] = useState("");
+  const [redeemingCode, setRedeemingCode] = useState(false);
 
   async function continueAfterAuthentication() {
     const { data } = await supabase.auth.getUser();
@@ -156,6 +160,30 @@ function AuthPage() {
     }
   }
 
+  // "Se connecter avec un code": redeems a short code generated from
+  // Settings on an already-signed-in device/browser - see
+  // src/lib/device-login.functions.ts. verifyOtp applies the resulting
+  // token locally, no redirect needed, so this is the fastest way into the
+  // account on a fresh device (typically a just-installed native app).
+  async function redeemCode() {
+    const code = deviceCodeInput.trim();
+    if (!code) return;
+    setRedeemingCode(true);
+    try {
+      const result = await redeemDeviceLoginCode({ data: { code } });
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: result.tokenHash,
+        type: "magiclink",
+      });
+      if (error) throw error;
+      await continueAfterAuthentication();
+    } catch {
+      toast.error(t("deviceCodeInvalid"));
+    } finally {
+      setRedeemingCode(false);
+    }
+  }
+
   function continueAsGuest() {
     window.localStorage.setItem("bloxspark-guest", "true");
     window.localStorage.removeItem("bloxspark-guest-gate-seen");
@@ -171,103 +199,145 @@ function AuthPage() {
       </Link>
 
       <div className="w-full max-w-sm rounded-[2rem] border border-border bg-card p-7 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]">
-        <h1 className="text-2xl font-bold">{isSignup ? t("signUp") : t("signIn")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("tagline")}</p>
+        <h1 className="text-2xl font-bold">
+          {codeMode ? t("deviceCodeTitle") : isSignup ? t("signUp") : t("signIn")}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {codeMode ? t("deviceCodeSubtitle") : t("tagline")}
+        </p>
 
-        <Button className="mt-6 w-full" variant="outline" onClick={google} disabled={busy}>
-          <span className="text-base">🇬</span> {t("continueGoogle")}
-        </Button>
-        <Button
-          className="mt-3 w-full"
-          variant="outline"
-          onClick={roblox}
-          disabled={busy || robloxBusy}
-        >
-          <img
-            src={theme === "dark" ? "/roblox-logo-white.png" : "/roblox-logo-black.png"}
-            alt=""
-            aria-hidden="true"
-            className="h-5 w-5 object-contain"
-          />
-          {robloxBusy ? t("robloxRedirecting") : t("continueRoblox")}
-        </Button>
-
-        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-border" />
-          {t("orEmail")}
-          <span className="h-px flex-1 bg-border" />
-        </div>
-
-        <form onSubmit={submit} className="space-y-4">
-          {isSignup ? (
+        {codeMode ? (
+          <div className="mt-6 space-y-4">
             <div>
-              <Label>{t("email")}</Label>
+              <Label>{t("deviceCodeLabel")}</Label>
               <Input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="toi@exemple.com"
+                value={deviceCodeInput}
+                onChange={(e) => setDeviceCodeInput(e.target.value.toUpperCase())}
+                placeholder="XXXX-XXXX"
+                maxLength={9}
+                autoFocus
+                className="text-center font-mono text-lg tracking-widest"
               />
             </div>
-          ) : (
-            <div>
-              <Label>{t("identifierLabel")}</Label>
-              <Input
-                required
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder={t("identifierPlaceholder")}
-              />
-            </div>
-          )}
-          <div>
-            <Label>{t("password")}</Label>
-            <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="pr-11"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4.5 w-4.5" />
-                ) : (
-                  <Eye className="h-4.5 w-4.5" />
-                )}
-              </button>
-            </div>
+            <Button
+              className="w-full"
+              size="lg"
+              disabled={redeemingCode || !deviceCodeInput.trim()}
+              onClick={() => void redeemCode()}
+            >
+              {redeemingCode ? "…" : t("deviceCodeSubmit")}
+            </Button>
+            <button
+              className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => setCodeMode(false)}
+            >
+              {t("deviceCodeBack")}
+            </button>
           </div>
-          <Button className="w-full" size="lg" type="submit" disabled={busy}>
-            {isSignup ? t("signUp") : t("signIn")}
-          </Button>
-        </form>
+        ) : (
+          <>
+            <Button className="mt-6 w-full" variant="outline" onClick={google} disabled={busy}>
+              <span className="text-base">🇬</span> {t("continueGoogle")}
+            </Button>
+            <Button
+              className="mt-3 w-full"
+              variant="outline"
+              onClick={roblox}
+              disabled={busy || robloxBusy}
+            >
+              <img
+                src={theme === "dark" ? "/roblox-logo-white.png" : "/roblox-logo-black.png"}
+                alt=""
+                aria-hidden="true"
+                className="h-5 w-5 object-contain"
+              />
+              {robloxBusy ? t("robloxRedirecting") : t("continueRoblox")}
+            </Button>
+            <button
+              className="mt-3 w-full text-center text-sm text-primary hover:underline"
+              onClick={() => setCodeMode(true)}
+            >
+              {t("deviceCodeToggle")}
+            </button>
 
-        <button
-          className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground"
-          onClick={() => setIsSignup((v) => !v)}
-        >
-          {isSignup ? t("haveAccount") : t("noAccount")}
-        </button>
+            <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              {t("orEmail")}
+              <span className="h-px flex-1 bg-border" />
+            </div>
 
-        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-border" />
-          {t("or")}
-          <span className="h-px flex-1 bg-border" />
-        </div>
-        <Button className="w-full" variant="ghost" onClick={continueAsGuest}>
-          {t("continueAsGuest")}
-        </Button>
-        <p className="mt-2 text-center text-xs text-muted-foreground">{t("guestAccessHint")}</p>
+            <form onSubmit={submit} className="space-y-4">
+              {isSignup ? (
+                <div>
+                  <Label>{t("email")}</Label>
+                  <Input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="toi@exemple.com"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <Label>{t("identifierLabel")}</Label>
+                  <Input
+                    required
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder={t("identifierPlaceholder")}
+                  />
+                </div>
+              )}
+              <div>
+                <Label>{t("password")}</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4.5 w-4.5" />
+                    ) : (
+                      <Eye className="h-4.5 w-4.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <Button className="w-full" size="lg" type="submit" disabled={busy}>
+                {isSignup ? t("signUp") : t("signIn")}
+              </Button>
+            </form>
+
+            <button
+              className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => setIsSignup((v) => !v)}
+            >
+              {isSignup ? t("haveAccount") : t("noAccount")}
+            </button>
+
+            <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              {t("or")}
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <Button className="w-full" variant="ghost" onClick={continueAsGuest}>
+              {t("continueAsGuest")}
+            </Button>
+            <p className="mt-2 text-center text-xs text-muted-foreground">{t("guestAccessHint")}</p>
+          </>
+        )}
       </div>
 
       <p className="mt-8 max-w-sm text-center text-xs text-muted-foreground">

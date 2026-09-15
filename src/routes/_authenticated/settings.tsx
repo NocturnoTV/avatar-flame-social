@@ -12,12 +12,14 @@ import {
   Palette,
   Receipt,
   ShieldCheck,
+  Smartphone,
   Trash2,
   UserCog,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { createDeviceLoginCode } from "@/lib/device-login.functions";
 import { Button, Input, Label, Select, Sheet } from "@/components/ui-kit";
 import { LANGUAGES, robloxOAuthErrorKey, useI18n, type LangCode } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -163,6 +165,9 @@ function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [exporting, setExporting] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+  const [deviceCode, setDeviceCode] = useState<{ code: string; expiresAt: number } | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [deviceCodeSecondsLeft, setDeviceCodeSecondsLeft] = useState(0);
 
   // getStripeEnvironmentSafe() returns null instead of throwing when Stripe
   // isn't configured for this build - see src/lib/stripe.ts.
@@ -422,6 +427,33 @@ function SettingsPage() {
   async function signOutEverywhere() {
     await supabase.auth.signOut({ scope: "global" });
     navigate({ to: "/", replace: true });
+  }
+
+  // "Connecter un autre appareil": mint a short code here (already signed
+  // in) that the /auth screen on another device/app redeems instantly via
+  // redeemDeviceLoginCode - see src/lib/device-login.functions.ts.
+  useEffect(() => {
+    if (!deviceCode) return;
+    const tick = () => {
+      const left = Math.max(0, Math.round((deviceCode.expiresAt - Date.now()) / 1000));
+      setDeviceCodeSecondsLeft(left);
+      if (left === 0) setDeviceCode(null);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [deviceCode]);
+
+  async function generateDeviceCode() {
+    setGeneratingCode(true);
+    try {
+      const result = await createDeviceLoginCode();
+      setDeviceCode({ code: result.code, expiresAt: Date.now() + result.expiresInSeconds * 1000 });
+    } catch {
+      toast.error(t("errorGeneric"));
+    } finally {
+      setGeneratingCode(false);
+    }
   }
 
   async function deleteNow() {
@@ -708,6 +740,27 @@ function SettingsPage() {
         <Button variant="outline" className="w-full" onClick={signOutEverywhere}>
           {t("signOutAllDevices")}
         </Button>
+      </Section>
+
+      <Section icon={Smartphone} title={t("deviceLoginTitle")} description={t("deviceLoginDesc")}>
+        {deviceCode ? (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center">
+            <p className="font-mono text-2xl font-black tracking-widest">{deviceCode.code}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("deviceLoginExpiresIn", { seconds: deviceCodeSecondsLeft })}
+            </p>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={generatingCode}
+            onClick={() => void generateDeviceCode()}
+          >
+            <Smartphone className="h-4 w-4" />
+            {generatingCode ? "…" : t("deviceLoginGenerate")}
+          </Button>
+        )}
       </Section>
 
       <Section icon={Database} title={t("myDataTitle")} description={t("myDataDesc")}>

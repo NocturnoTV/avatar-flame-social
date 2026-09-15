@@ -1696,6 +1696,41 @@ export type Database = {
           },
         ];
       };
+      device_login_codes: {
+        Row: {
+          attempts: number;
+          code: string;
+          created_at: string;
+          expires_at: string;
+          used_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          attempts?: number;
+          code: string;
+          created_at?: string;
+          expires_at?: string;
+          used_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          attempts?: number;
+          code?: string;
+          created_at?: string;
+          expires_at?: string;
+          used_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "device_login_codes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       news: {
         Row: {
           author_id: string | null;
