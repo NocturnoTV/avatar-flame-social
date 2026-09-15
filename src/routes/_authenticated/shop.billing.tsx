@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -15,14 +15,16 @@ import {
   RefreshCw,
   ShoppingBag,
   WalletCards,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui-kit";
+import { Button, Sheet } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { getStripeEnvironmentSafe } from "@/lib/stripe";
 import { createPortalSession, listInvoices } from "@/utils/payments.functions";
+import { SparkPlusCheckout } from "@/components/SparkPlusCheckout";
 import { BloxIcon, BloxBalanceChip } from "@/components/Blox";
 import { cn } from "@/lib/utils";
 
@@ -229,6 +231,8 @@ const COPY = {
 } as const;
 
 export const Route = createFileRoute("/_authenticated/shop/billing")({
+  validateSearch: (search: Record<string, unknown>): { session_id?: string } =>
+    typeof search["session_id"] === "string" ? { session_id: search["session_id"] } : {},
   head: () => ({
     meta: [
       { title: "Achats & Facturation - Bloxspark" },
@@ -257,8 +261,11 @@ const STATUS_COLORS: Record<string, string> = {
 function BillingPage() {
   const { t, lang } = useI18n();
   const { user } = useSession();
+  const navigate = useNavigate();
+  const { session_id: newSubscriptionSessionId } = Route.useSearch();
   const copy = COPY[lang as keyof typeof COPY] ?? COPY.en;
   const [view, setView] = useState<"overview" | "purchases" | "invoices" | "blox">("overview");
+  const [subscribing, setSubscribing] = useState(false);
 
   // getStripeEnvironment() throws when Stripe isn't configured for this
   // build - computed once, safely, here rather than inline in a queryKey
@@ -318,6 +325,15 @@ function BillingPage() {
     },
   });
 
+  // Landed back here after subscribing to Spark Plus from this very page
+  // (see the "no active plan" card below) - confirm it, then drop the
+  // session id from the URL so refreshing doesn't re-trigger the toast.
+  useEffect(() => {
+    if (!newSubscriptionSessionId) return;
+    toast.success(t("purchaseThankYouSparkPlusBody"));
+    void navigate({ to: "/shop/billing", search: {}, replace: true });
+  }, [newSubscriptionSessionId, navigate, t]);
+
   async function manageSubscription() {
     if (!paymentsConfigured) return;
     try {
@@ -366,9 +382,13 @@ function BillingPage() {
   return (
     <main className="mx-auto w-full max-w-4xl px-4 pb-28 pt-5">
       <header className="flex items-center gap-3">
-        <Link to="/shop" aria-label={t("back")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
+        <button
+          onClick={() => window.history.back()}
+          aria-label={t("back")}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition hover:text-foreground"
+        >
+          <ArrowLeft className="h-4.5 w-4.5" />
+        </button>
         <h1 className="flex-1 text-2xl font-black">{t("purchasesAndBilling")}</h1>
         {user ? <BloxBalanceChip /> : null}
       </header>
@@ -504,9 +524,10 @@ function BillingPage() {
             </div>
           ) : null}
           {!invoices.isLoading && !purchases.length ? (
-            <p className="mt-4 rounded-3xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-              {copy.noPurchases}
-            </p>
+            <div className="mt-4 rounded-3xl border border-dashed border-border py-10 text-center">
+              <ShoppingBag className="mx-auto h-8 w-8 text-muted-foreground/50" />
+              <p className="mt-3 text-sm font-semibold text-muted-foreground">{copy.noPurchases}</p>
+            </div>
           ) : null}
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {purchases.map((purchase) => (
@@ -609,12 +630,13 @@ function BillingPage() {
           ) : (
             <>
               <p className="mt-2 text-sm text-muted-foreground">{t("billingNoSubscription")}</p>
-              <Link
-                to="/shop"
-                className="mt-4 flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
+              <Button
+                className="mt-4 w-full"
+                disabled={!paymentsConfigured}
+                onClick={() => setSubscribing(true)}
               >
                 <Crown className="h-4 w-4" /> {t("subscribeSparkPlus")}
-              </Link>
+              </Button>
             </>
           )}
         </section>
@@ -631,9 +653,12 @@ function BillingPage() {
             </div>
           ) : null}
           {!invoices.isLoading && !invoiceRows.length ? (
-            <p className="mt-4 py-8 text-center text-sm text-muted-foreground">
-              {t("billingNoInvoices")}
-            </p>
+            <div className="mt-4 rounded-3xl border border-dashed border-border py-10 text-center">
+              <Receipt className="mx-auto h-8 w-8 text-muted-foreground/50" />
+              <p className="mt-3 text-sm font-semibold text-muted-foreground">
+                {t("billingNoInvoices")}
+              </p>
+            </div>
           ) : null}
           <div className="mt-3 space-y-2">
             {invoiceRows.map((inv) => (
@@ -731,12 +756,20 @@ function BillingPage() {
         </section>
       ) : null}
 
-      <Link
-        to="/shop"
-        className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3.5 text-sm font-black hover:border-primary/40"
-      >
-        <ShoppingBag className="h-4 w-4" /> {copy.shop}
-      </Link>
+      {subscribing ? (
+        <Sheet open onClose={() => setSubscribing(false)} title={t("subscribeSparkPlus")}>
+          <button
+            onClick={() => setSubscribing(false)}
+            aria-label={t("cancel")}
+            className="mb-2 flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" /> {t("cancel")}
+          </button>
+          <SparkPlusCheckout
+            returnUrl={`${window.location.origin}/shop/billing?session_id={CHECKOUT_SESSION_ID}`}
+          />
+        </Sheet>
+      ) : null}
     </main>
   );
 }

@@ -810,10 +810,12 @@ function MessagesPage() {
         params={{ id: "activities" }}
         className="bx-pop mt-3 flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
       >
-        <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-white shadow-md shadow-blue-500/20">
-          <Mail className="h-6 w-6" />
+        <span className="relative h-14 w-14 shrink-0">
+          <span className="grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-white shadow-md shadow-blue-500/20">
+            <Mail className="h-6 w-6" />
+          </span>
           {unreadVideoActivityCount ? (
-            <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white ring-2 ring-background">
+            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white ring-2 ring-background">
               {unreadVideoActivityCount > 9 ? "9+" : unreadVideoActivityCount}
             </span>
           ) : null}
@@ -980,10 +982,12 @@ function MessagesPage() {
             params={{ id: "team-spark" }}
             className="bx-pop flex w-full items-center gap-3 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[.03] dark:hover:bg-white/[.06]"
           >
-            <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-violet-800 p-2.5 shadow-md shadow-violet-500/20">
-              <img src="/team-spark-avatar.png" alt="" className="h-full w-full object-contain" />
+            <span className="relative h-14 w-14 shrink-0">
+              <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-violet-800 p-2.5 shadow-md shadow-violet-500/20">
+                <img src="/team-spark-avatar.png" alt="" className="h-full w-full object-contain" />
+              </span>
               {unreadSystemCount ? (
-                <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white ring-2 ring-background">
+                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#F32657] px-1 text-[9px] font-bold text-white ring-2 ring-background">
                   {unreadSystemCount > 9 ? "9+" : unreadSystemCount}
                 </span>
               ) : null}
