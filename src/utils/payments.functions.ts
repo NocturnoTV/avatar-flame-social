@@ -110,10 +110,14 @@ export const createBloxPackCheckout = createServerFn({ method: "POST" })
       returnUrl: string;
       environment: StripeEnv;
       recipientId?: string;
+      conversationId?: string;
     }) => {
       if (!/^[a-zA-Z0-9_-]+$/.test(data.lookupKey)) throw new Error("Invalid lookupKey");
       if (data.recipientId && !/^[a-zA-Z0-9_-]+$/.test(data.recipientId)) {
         throw new Error("Invalid recipientId");
+      }
+      if (data.conversationId && !/^[a-zA-Z0-9_-]+$/.test(data.conversationId)) {
+        throw new Error("Invalid conversationId");
       }
       return data;
     },
@@ -142,6 +146,7 @@ export const createBloxPackCheckout = createServerFn({ method: "POST" })
         managed_payments: "true",
         kind: "blox_pack",
         ...(data.recipientId ? { recipientId: data.recipientId } : {}),
+        ...(data.conversationId ? { conversationId: data.conversationId } : {}),
       };
 
       const session = await stripe.checkout.sessions.create({
@@ -164,10 +169,20 @@ export const createBloxPackCheckout = createServerFn({ method: "POST" })
 
 export const createSparkPlusGiftCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { recipientId: string; returnUrl: string; environment: StripeEnv }) => {
-    if (!/^[a-zA-Z0-9_-]+$/.test(data.recipientId)) throw new Error("Invalid recipientId");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      recipientId: string;
+      returnUrl: string;
+      environment: StripeEnv;
+      conversationId?: string;
+    }) => {
+      if (!/^[a-zA-Z0-9_-]+$/.test(data.recipientId)) throw new Error("Invalid recipientId");
+      if (data.conversationId && !/^[a-zA-Z0-9_-]+$/.test(data.conversationId)) {
+        throw new Error("Invalid conversationId");
+      }
+      return data;
+    },
+  )
   .handler(async ({ data, context }): Promise<CheckoutSessionResult> => {
     try {
       const stripe = createStripeClient(data.environment);
@@ -187,11 +202,12 @@ export const createSparkPlusGiftCheckout = createServerFn({ method: "POST" })
       // One-time payment, not a subscription: the recipient gets one month
       // of Spark Plus credited directly by the webhook, with no recurring
       // Stripe subscription object tied to their account.
-      const metadata = {
+      const metadata: Record<string, string> = {
         userId: context.userId,
         recipientId: data.recipientId,
         managed_payments: "true",
         kind: "spark_plus_gift",
+        ...(data.conversationId ? { conversationId: data.conversationId } : {}),
       };
 
       const session = await stripe.checkout.sessions.create({

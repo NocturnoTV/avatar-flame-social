@@ -4,11 +4,16 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
   Bookmark,
   AtSign,
+  ChevronLeft,
+  ChevronsDown,
   Check,
   EyeOff,
   Eye,
+  Flag,
+  Gauge,
   Gift,
   Heart,
+  HeartCrack,
   ImagePlus,
   Link2,
   MessageCircle,
@@ -33,7 +38,7 @@ import { useSession } from "@/lib/session";
 import { useSignedUrl, StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { GiftSheet } from "@/components/GiftSheet";
-import { Button } from "@/components/ui-kit";
+import { Button, Sheet } from "@/components/ui-kit";
 import { cn, errorMessage } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -42,6 +47,20 @@ import {
   logVideoWatch,
   markNotInterested,
 } from "@/lib/recommendation.functions";
+
+const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 2] as const;
+
+const REPORT_SCENARIOS = [
+  "violence",
+  "hate",
+  "suicide",
+  "nudity",
+  "graphic",
+  "fraud",
+  "personal_info",
+  "intellectual_property",
+  "other",
+] as const;
 
 export const Route = createFileRoute("/_authenticated/discover/")({
   validateSearch: (search: Record<string, unknown>): { v?: string } =>
@@ -95,6 +114,19 @@ function DiscoverPage() {
   const [muted, setMuted] = useState(
     () => window.localStorage.getItem("bloxspark-discover-muted") === "true",
   );
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(() => {
+    const saved = Number(window.localStorage.getItem("bloxspark-discover-speed"));
+    return SPEED_OPTIONS.includes(saved as (typeof SPEED_OPTIONS)[number]) ? saved : 1;
+  });
+  const [autoScroll, setAutoScroll] = useState(
+    () => window.localStorage.getItem("bloxspark-discover-autoscroll") === "true",
+  );
+  useEffect(() => {
+    window.localStorage.setItem("bloxspark-discover-speed", String(playbackSpeed));
+  }, [playbackSpeed]);
+  useEffect(() => {
+    window.localStorage.setItem("bloxspark-discover-autoscroll", String(autoScroll));
+  }, [autoScroll]);
   const [comments, setComments] = useState<VideoRow | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -372,6 +404,10 @@ function DiscoverPage() {
                 key={video.id}
                 video={video}
                 muted={muted}
+                speed={playbackSpeed}
+                onSpeedChange={setPlaybackSpeed}
+                autoScroll={autoScroll}
+                onToggleAutoScroll={() => setAutoScroll((v) => !v)}
                 username={
                   highlighted?.username ??
                   feed.data?.profiles[video.user_id]?.username ??
@@ -590,6 +626,10 @@ function SearchVideoThumb({ video }: { video: VideoRow }) {
 function VideoSlide({
   video,
   muted,
+  speed,
+  onSpeedChange,
+  autoScroll,
+  onToggleAutoScroll,
   username,
   avatar,
   verified,
@@ -598,6 +638,10 @@ function VideoSlide({
 }: {
   video: VideoRow;
   muted: boolean;
+  speed: number;
+  onSpeedChange: (speed: number) => void;
+  autoScroll: boolean;
+  onToggleAutoScroll: () => void;
   username: string;
   avatar: string | null;
   verified?: boolean | null;
@@ -613,8 +657,24 @@ function VideoSlide({
   const [visible, setVisible] = useState(false);
   const [viewCount, setViewCount] = useState(video.views_count);
   const [sharing, setSharing] = useState(false);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewed = useRef(false);
   const isMine = user?.id === video.user_id;
+
+  function openContextMenu(e: { preventDefault: () => void }) {
+    e.preventDefault();
+    setContextMenuOpen(true);
+  }
+  function startLongPress() {
+    longPressTimer.current = setTimeout(() => setContextMenuOpen(true), 500);
+  }
+  function cancelLongPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
 
   // --- Watch-time tracking for the recommendation engine (section 2) ---
   const watchStartRef = useRef<number | null>(null);
@@ -749,15 +809,32 @@ function VideoSlide({
   }, [visible, muted, url, user, video.id]);
 
   // Full loop = a completed watch; keep counting subsequent loops as replays.
+  // When auto-scroll is on the video doesn't loop - it advances to the next
+  // slide instead, so that "ended" isn't a replay.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const onEnded = () => {
-      loopedRef.current = true;
+      if (autoScroll) {
+        containerRef.current?.nextElementSibling?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      } else {
+        loopedRef.current = true;
+      }
     };
     el.addEventListener("ended", onEnded);
     return () => el.removeEventListener("ended", onEnded);
-  }, [url]);
+  }, [url, autoScroll]);
+
+  // Playback speed set from the long-press/right-click video menu - applies
+  // immediately, and re-applies whenever the <video> src (re)loads since the
+  // browser resets playbackRate to 1 on a new source.
+  useEffect(() => {
+    const el = ref.current;
+    if (el) el.playbackRate = speed;
+  }, [speed, url]);
 
   // Flush any in-progress watch session when the slide unmounts entirely.
   useEffect(() => {
@@ -822,13 +899,20 @@ function VideoSlide({
       ref={containerRef}
       className="flex h-full w-full snap-start snap-always items-center justify-center bg-background"
     >
-      <div className="relative aspect-[9/16] h-full max-h-full w-full max-w-full overflow-hidden bg-black lg:w-auto lg:rounded-2xl lg:shadow-2xl lg:shadow-black/60 lg:ring-1 lg:ring-white/10">
+      <div
+        className="relative aspect-[9/16] h-full max-h-full w-full max-w-full overflow-hidden bg-black lg:w-auto lg:rounded-2xl lg:shadow-2xl lg:shadow-black/60 lg:ring-1 lg:ring-white/10"
+        onContextMenu={openContextMenu}
+        onTouchStart={startLongPress}
+        onTouchEnd={cancelLongPress}
+        onTouchMove={cancelLongPress}
+        onTouchCancel={cancelLongPress}
+      >
         {url ? (
           <video
             ref={ref}
             src={url}
             autoPlay
-            loop
+            loop={!autoScroll}
             playsInline
             muted={muted}
             onClick={() => {
@@ -950,7 +1034,169 @@ function VideoSlide({
       {sharing ? (
         <ShareSheet video={video} username={username} onClose={() => setSharing(false)} />
       ) : null}
+      <VideoContextMenu
+        open={contextMenuOpen}
+        onClose={() => setContextMenuOpen(false)}
+        videoId={video.id}
+        speed={speed}
+        onSpeedChange={onSpeedChange}
+        autoScroll={autoScroll}
+        onToggleAutoScroll={onToggleAutoScroll}
+        onNotInterested={onNotInterested}
+      />
     </div>
+  );
+}
+
+/** Right-click (desktop) / long-press (mobile) menu on a video: playback
+ * speed, auto-scroll-to-next toggle, "not interested", and reporting the
+ * video with a specific scenario. */
+function VideoContextMenu({
+  open,
+  onClose,
+  videoId,
+  speed,
+  onSpeedChange,
+  autoScroll,
+  onToggleAutoScroll,
+  onNotInterested,
+}: {
+  open: boolean;
+  onClose: () => void;
+  videoId: string;
+  speed: number;
+  onSpeedChange: (speed: number) => void;
+  autoScroll: boolean;
+  onToggleAutoScroll: () => void;
+  onNotInterested: () => void;
+}) {
+  const { t } = useI18n();
+  const { user } = useSession();
+  const [reporting, setReporting] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
+
+  useEffect(() => {
+    if (!open) setReporting(false);
+  }, [open]);
+
+  const SCENARIO_LABELS: Record<(typeof REPORT_SCENARIOS)[number], string> = {
+    violence: t("reportScenarioViolence"),
+    hate: t("reportScenarioHate"),
+    suicide: t("reportScenarioSuicide"),
+    nudity: t("reportScenarioNudity"),
+    graphic: t("reportScenarioGraphic"),
+    fraud: t("reportScenarioFraud"),
+    personal_info: t("reportScenarioPersonalInfo"),
+    intellectual_property: t("reportScenarioIP"),
+    other: t("reportScenarioOther"),
+  };
+
+  async function submitReport(reason: string) {
+    if (!user || sendingReport) return;
+    setSendingReport(true);
+    const { error } = await supabase
+      .from("reports")
+      .insert({ reporter_id: user.id, video_id: videoId, reason });
+    setSendingReport(false);
+    if (error) {
+      toast.error(errorMessage(error, t("errorGeneric")));
+      return;
+    }
+    toast.success(t("reportSubmitted"));
+    onClose();
+  }
+
+  return (
+    <Sheet open={open} onClose={onClose}>
+      {reporting ? (
+        <div>
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              onClick={() => setReporting(false)}
+              aria-label={t("back")}
+              className="grid h-8 w-8 place-items-center rounded-full hover:bg-surface-2"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <h2 className="text-lg font-bold">{t("videoMenuReport")}</h2>
+          </div>
+          <p className="mb-3 text-sm text-muted-foreground">{t("reportSelectScenario")}</p>
+          <div className="space-y-1">
+            {REPORT_SCENARIOS.map((reason) => (
+              <button
+                key={reason}
+                disabled={sendingReport}
+                onClick={() => void submitReport(reason)}
+                className="flex w-full items-center rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-surface-2 disabled:opacity-50"
+              >
+                {SCENARIO_LABELS[reason]}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <div className="rounded-2xl px-3 py-3">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Gauge className="h-4 w-4 text-primary" /> {t("videoMenuSpeed")}
+            </div>
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {SPEED_OPTIONS.map((value) => (
+                <button
+                  key={value}
+                  onClick={() => onSpeedChange(value)}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-xs font-bold transition",
+                    speed === value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-surface-2 text-muted-foreground",
+                  )}
+                >
+                  {value}x
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={onToggleAutoScroll}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+          >
+            <ChevronsDown className="h-4 w-4 shrink-0 text-primary" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">{t("videoMenuAutoScroll")}</span>
+              <span className="block text-xs text-muted-foreground">
+                {t("videoMenuAutoScrollDesc")}
+              </span>
+            </span>
+            <span
+              className={cn(
+                "grid h-6 w-10 shrink-0 items-center rounded-full p-0.5 transition",
+                autoScroll ? "justify-end bg-primary" : "justify-start bg-surface-2",
+              )}
+            >
+              <span className="block h-5 w-5 rounded-full bg-white shadow" />
+            </span>
+          </button>
+          <button
+            onClick={() => {
+              onNotInterested();
+              onClose();
+            }}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+          >
+            <HeartCrack className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">{t("notInterested")}</span>
+          </button>
+          <button
+            onClick={() => setReporting(true)}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+          >
+            <Flag className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">{t("videoMenuReport")}</span>
+          </button>
+        </div>
+      )}
+    </Sheet>
   );
 }
 

@@ -447,6 +447,7 @@ export function ConversationInfoSheet({
         <GiftSheet
           targetUserId={otherId}
           targetUsername={contact.data?.nickname || title}
+          conversationId={conversationId}
           onClose={() => setGifting(false)}
         />
       ) : null}

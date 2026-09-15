@@ -6,9 +6,11 @@ import {
   Camera,
   ChevronRight,
   Copy,
+  Crown,
   ExternalLink,
   Flag,
   Forward,
+  Gift,
   ImagePlus,
   Mail,
   Mic,
@@ -28,6 +30,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
+import { BloxIcon } from "@/components/Blox";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { PresenceDot, presenceStatus } from "@/components/PresenceDot";
 import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
@@ -87,7 +90,7 @@ type Message = {
   id: string;
   sender_id: string;
   content: string | null;
-  kind: "text" | "image" | "voice" | "system";
+  kind: "text" | "image" | "voice" | "system" | "gift";
   media_url: string | null;
   created_at: string;
 };
@@ -835,6 +838,8 @@ function Conversation() {
                       </ReceivedBubble>
                     )
                   ) : null}
+
+                  {m.kind === "gift" ? <GiftBubble content={m.content} /> : null}
 
                   {myReactions.length > 0 ? (
                     <div className={cn("mt-1 flex flex-wrap gap-1", mine && "justify-end")}>
@@ -1642,6 +1647,37 @@ function ImageBubble({ path, mine }: { path: string | null; mine: boolean }) {
       ) : (
         <div className="h-48 w-48 animate-pulse bg-black/5 dark:bg-white/10" />
       )}
+    </div>
+  );
+}
+
+/** Renders a "gift" message (Blox sent, or Spark Plus gifted) as its own
+ * highlighted card rather than a plain text bubble - content is a small
+ * JSON payload: {"type":"blox","amount":500} or {"type":"spark_plus"}. */
+function GiftBubble({ content }: { content: string | null }) {
+  const { t } = useI18n();
+  let gift: { type: string; amount?: number } | null = null;
+  try {
+    gift = content ? JSON.parse(content) : null;
+  } catch {
+    gift = null;
+  }
+  const isSparkPlus = gift?.type === "spark_plus";
+  return (
+    <div className="flex items-center gap-3 rounded-[22px] border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card px-4 py-3 shadow-sm">
+      <span className="spark-gradient grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-[0_0_14px_rgba(168,85,247,.45)]">
+        {isSparkPlus ? <Crown className="h-5 w-5" /> : <Gift className="h-5 w-5" />}
+      </span>
+      <p className="flex min-w-0 items-center gap-1.5 text-sm font-bold">
+        {isSparkPlus ? (
+          t("giftMessageSparkPlus")
+        ) : (
+          <>
+            {t("giftMessageBlox", { amount: (gift?.amount ?? 0).toLocaleString() })}
+            <BloxIcon className="h-4 w-4 shrink-0" />
+          </>
+        )}
+      </p>
     </div>
   );
 }

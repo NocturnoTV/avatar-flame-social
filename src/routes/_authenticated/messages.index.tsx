@@ -110,6 +110,23 @@ function formatNotificationTime(value: string, lang: string) {
   return new Date(value).toLocaleDateString(lang, { day: "numeric", month: "short" });
 }
 
+/** Conversation-list preview text for a "gift" message (Blox sent, or Spark
+ * Plus gifted) - content is a small JSON payload, see GiftBubble in
+ * messages.$id.tsx for the full rendering. */
+function giftPreviewText(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  content: string | null,
+) {
+  try {
+    const gift = content ? JSON.parse(content) : null;
+    return gift?.type === "spark_plus"
+      ? t("giftMessageSparkPlus")
+      : t("giftMessageBlox", { amount: (gift?.amount ?? 0).toLocaleString() });
+  } catch {
+    return t("giftMessageBlox", { amount: 0 });
+  }
+}
+
 function MessagesPage() {
   const { t, lang } = useI18n();
   const { user } = useSession();
@@ -209,7 +226,9 @@ function MessagesPage() {
             ? `🎙️ ${t("voiceMessage")}`
             : last?.kind === "image"
               ? `🖼️ ${t("photo")}`
-              : (last?.content ?? "");
+              : last?.kind === "gift"
+                ? `🎁 ${giftPreviewText(t, last.content)}`
+                : (last?.content ?? "");
         const lastReadAt = mineById.get(c.id)?.last_read_at;
         const unreadCount = (lastMessages ?? []).filter(
           (m) =>

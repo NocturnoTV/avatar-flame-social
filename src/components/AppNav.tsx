@@ -93,7 +93,7 @@ export function SideNav() {
     { to: "/communities", icon: Users, label: t("menuCommunities") },
     { to: "/news", icon: Newspaper, label: t("newsFeedTitle") },
     { to: "/wiki", icon: BookOpen, label: t("wiki") },
-    { to: "/status", icon: Activity, label: "Status" },
+    { to: "/support", search: { view: "status" as const }, icon: Activity, label: "Status" },
     { icon: Gamepad2, label: t("menuGames"), disabled: true },
     {
       to: "/messages",
@@ -129,6 +129,7 @@ export function SideNav() {
       <Link
         key={`${group}-${item.to}-${item.label}`}
         to={item.to}
+        {...("search" in item ? { search: item.search } : {})}
         className={cn(
           "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
           active

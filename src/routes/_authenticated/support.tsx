@@ -2,15 +2,21 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   Bell,
   BookOpen,
+  CheckCircle2,
   ChevronDown,
   CreditCard,
   Database,
+  ExternalLink,
+  Gamepad2,
   Headphones,
   Key,
+  LoaderCircle,
   MessageCircle,
   Paperclip,
+  Radio,
   Search,
   Send,
   Server,
@@ -23,13 +29,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { LogoWordmark } from "@/components/Logo";
 import { StoredImage } from "@/components/Media";
 import { Button, Input, Select, Sheet, Textarea } from "@/components/ui-kit";
+import { getRobloxStatus } from "@/lib/roblox-status.functions";
 import { useI18n, type LangCode } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { errorMessage, cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/support")({
-  validateSearch: (search: Record<string, unknown>): { ticket?: string } =>
-    typeof search["ticket"] === "string" ? { ticket: search["ticket"] } : {},
+  validateSearch: (search: Record<string, unknown>): { ticket?: string; view?: "status" } => ({
+    ...(typeof search["ticket"] === "string" ? { ticket: search["ticket"] } : {}),
+    ...(search["view"] === "status" ? { view: "status" as const } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Support - Bloxspark" },
@@ -38,6 +47,112 @@ export const Route = createFileRoute("/_authenticated/support")({
   }),
   component: SupportPage,
 });
+
+// Bespoke local copy for the Roblox live-status widget merged into the
+// "status" view (kept local rather than in the global i18n dict, same
+// established pattern as shop.billing.tsx's COPY object).
+const ROBLOX_COPY = {
+  en: {
+    official: "Official Roblox status",
+    updated: "Last checked",
+    incidents: "Active Roblox incidents",
+    noIncidents: "No active incident reported by Roblox.",
+    reports: "Community reports",
+    last24: "Reports during the last 24 hours",
+    report: "Report a problem",
+    choose: "Affected service",
+    details: "What is happening? (optional)",
+    send: "Send report",
+    sent: "Thanks. Your report helps the community.",
+    rate: "You can send one report every five minutes.",
+    checking: "Checking Roblox…",
+  },
+  fr: {
+    official: "Statut officiel Roblox",
+    updated: "Dernière vérification",
+    incidents: "Incidents Roblox en cours",
+    noIncidents: "Aucun incident actif signalé par Roblox.",
+    reports: "Signalements de la communauté",
+    last24: "Signalements durant les dernières 24 heures",
+    report: "Signaler un problème",
+    choose: "Service concerné",
+    details: "Que se passe-t-il ? (facultatif)",
+    send: "Envoyer le signalement",
+    sent: "Merci. Ton signalement aide la communauté.",
+    rate: "Tu peux envoyer un signalement toutes les cinq minutes.",
+    checking: "Vérification de Roblox…",
+  },
+  es: {
+    official: "Estado oficial de Roblox",
+    updated: "Última comprobación",
+    incidents: "Incidentes activos de Roblox",
+    noIncidents: "Roblox no informa de incidentes activos.",
+    reports: "Informes de la comunidad",
+    last24: "Informes de las últimas 24 horas",
+    report: "Informar de un problema",
+    choose: "Servicio afectado",
+    details: "¿Qué ocurre? (opcional)",
+    send: "Enviar informe",
+    sent: "Gracias. Tu informe ayuda a la comunidad.",
+    rate: "Puedes enviar un informe cada cinco minutos.",
+    checking: "Comprobando Roblox…",
+  },
+  pt: {
+    official: "Estado oficial do Roblox",
+    updated: "Última verificação",
+    incidents: "Incidentes ativos do Roblox",
+    noIncidents: "Nenhum incidente ativo relatado pelo Roblox.",
+    reports: "Relatos da comunidade",
+    last24: "Relatos nas últimas 24 horas",
+    report: "Relatar um problema",
+    choose: "Serviço afetado",
+    details: "O que está acontecendo? (opcional)",
+    send: "Enviar relato",
+    sent: "Obrigado. Seu relato ajuda a comunidade.",
+    rate: "Você pode enviar um relato a cada cinco minutos.",
+    checking: "Verificando o Roblox…",
+  },
+  de: {
+    official: "Offizieller Roblox-Status",
+    updated: "Zuletzt geprüft",
+    incidents: "Aktive Roblox-Störungen",
+    noIncidents: "Roblox meldet keine aktive Störung.",
+    reports: "Community-Meldungen",
+    last24: "Meldungen der letzten 24 Stunden",
+    report: "Problem melden",
+    choose: "Betroffener Dienst",
+    details: "Was passiert gerade? (optional)",
+    send: "Meldung senden",
+    sent: "Danke. Deine Meldung hilft der Community.",
+    rate: "Du kannst alle fünf Minuten eine Meldung senden.",
+    checking: "Roblox wird geprüft…",
+  },
+  ko: {
+    official: "Roblox 공식 상태",
+    updated: "마지막 확인",
+    incidents: "진행 중인 Roblox 장애",
+    noIncidents: "Roblox에서 보고한 진행 중인 장애가 없습니다.",
+    reports: "커뮤니티 제보",
+    last24: "최근 24시간 제보",
+    report: "문제 신고",
+    choose: "문제가 있는 서비스",
+    details: "어떤 문제가 있나요? (선택)",
+    send: "제보 보내기",
+    sent: "감사합니다. 제보가 커뮤니티에 도움이 됩니다.",
+    rate: "5분마다 한 번 제보할 수 있습니다.",
+    checking: "Roblox 상태 확인 중…",
+  },
+} as const;
+
+const REPORT_SERVICES = [
+  "website",
+  "login",
+  "game_join",
+  "studio",
+  "avatar",
+  "marketplace",
+  "other",
+] as const;
 
 const SERVICE_IDS = ["website", "api", "roblox_auth", "payments", "sparks", "storage"] as const;
 const SERVICE_ICONS: Record<(typeof SERVICE_IDS)[number], typeof Server> = {
@@ -560,13 +675,17 @@ const FAQ_FALLBACK: Record<LangCode, { category: string; question: string; answe
 };
 
 function SupportPage() {
-  const { ticket: linkedTicketId } = Route.useSearch();
+  const { ticket: linkedTicketId, view: initialView } = Route.useSearch();
   const { t, lang } = useI18n();
   const { user } = useSession();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [view, setView] = useState<"home" | "status" | "newTicket" | "myTickets">("home");
   const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const robloxCopy = ROBLOX_COPY[lang as keyof typeof ROBLOX_COPY] ?? ROBLOX_COPY.en;
+  const [reportService, setReportService] = useState<(typeof REPORT_SERVICES)[number]>("game_join");
+  const [reportDetails, setReportDetails] = useState("");
+  const [sendingReport, setSendingReport] = useState(false);
 
   const CATEGORIES = TICKET_CATEGORIES[lang].map(([id, emoji, label, description]) => ({
     id,
@@ -622,6 +741,10 @@ function SupportPage() {
     setView("myTickets");
     setOpenTicketId(linkedTicketId);
   }, [linkedTicketId]);
+
+  useEffect(() => {
+    if (initialView === "status") setView("status");
+  }, [initialView]);
   const [ticketFilter, setTicketFilter] = useState<
     "all" | "pending" | "in_progress" | "resolved" | "wont_fix"
   >("all");
@@ -680,6 +803,21 @@ function SupportPage() {
         .limit(10);
       return data ?? [];
     },
+  });
+
+  const roblox = useQuery({
+    queryKey: ["roblox-live-status"],
+    queryFn: () => getRobloxStatus(),
+    refetchInterval: 60000,
+  });
+
+  const reportSeries = useQuery({
+    queryKey: ["status-report-series"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("status_report_series");
+      return data ?? [];
+    },
+    refetchInterval: 30000,
   });
 
   const tickets = useQuery({
@@ -758,6 +896,32 @@ function SupportPage() {
     status: statuses.data?.find((row) => row.id === s.id)?.status ?? "operational",
   }));
   const allOperational = perService.every((s) => s.status === "operational");
+
+  const totalReports = (reportSeries.data ?? []).reduce(
+    (sum, point) => sum + Number(point.report_count),
+    0,
+  );
+  const maxReports = Math.max(
+    1,
+    ...(reportSeries.data ?? []).map((point) => Number(point.report_count)),
+  );
+  const robloxHealthy = roblox.data?.indicator === "none";
+
+  async function submitReport() {
+    if (!user || sendingReport) return;
+    setSendingReport(true);
+    const { error } = await supabase
+      .from("status_reports")
+      .insert({ user_id: user.id, service: reportService, details: reportDetails.trim() || null });
+    setSendingReport(false);
+    if (error) {
+      toast.error(errorMessage(error, robloxCopy.rate));
+      return;
+    }
+    setReportDetails("");
+    toast.success(robloxCopy.sent);
+    void reportSeries.refetch();
+  }
 
   const filteredFaq = useMemo(() => {
     const localFaq = FAQ_FALLBACK[lang] ?? FAQ_FALLBACK.en;
@@ -1010,7 +1174,143 @@ function SupportPage() {
 
       {view === "status" ? (
         <section className="mt-4">
-          <div className="flex items-center justify-between">
+          <div className="rounded-3xl border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-wide text-primary">
+                  {robloxCopy.official}
+                </p>
+                <h2 className="mt-1 truncate text-lg font-black">
+                  {roblox.data?.description ?? robloxCopy.checking}
+                </h2>
+              </div>
+              {roblox.isLoading ? (
+                <LoaderCircle className="h-5 w-5 shrink-0 animate-spin text-primary" />
+              ) : robloxHealthy ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-[#22C55E]" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 shrink-0 text-[#F59E0B]" />
+              )}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {robloxCopy.updated}:{" "}
+              {roblox.data ? new Date(roblox.data.updatedAt).toLocaleString(lang) : "…"}
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {(roblox.data?.components ?? []).slice(0, 12).map((component) => (
+                <div
+                  key={component.id}
+                  className="flex items-center justify-between rounded-2xl bg-surface px-3 py-2.5"
+                >
+                  <span className="truncate text-sm font-semibold">{component.name}</span>
+                  <span
+                    className={cn(
+                      "ml-2 h-2.5 w-2.5 shrink-0 rounded-full",
+                      component.status === "operational" ? "bg-[#22C55E]" : "bg-[#F59E0B]",
+                    )}
+                  />
+                </div>
+              ))}
+            </div>
+            <a
+              href="https://status.roblox.com/"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary"
+            >
+              status.roblox.com <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+
+          <div className="mt-3">
+            <h3 className="flex items-center gap-2 text-sm font-bold">
+              <Gamepad2 className="h-4 w-4 text-primary" /> {robloxCopy.incidents}
+            </h3>
+            {(roblox.data?.incidents ?? []).length ? (
+              <div className="mt-2 space-y-2">
+                {roblox.data!.incidents.map((incident) => (
+                  <div
+                    key={incident.id}
+                    className="rounded-2xl border border-[#F59E0B]/20 bg-[#F59E0B]/5 p-3 text-sm"
+                  >
+                    <p className="font-bold">{incident.name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {incident.status} · {incident.impact}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 rounded-2xl bg-[#22C55E]/5 p-3 text-sm text-[#22C55E]">
+                {robloxCopy.noIncidents}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-3xl border border-border bg-card p-4">
+            <p className="flex items-center gap-2 text-sm font-bold">
+              <Radio className="h-4 w-4 text-primary" /> {robloxCopy.reports}
+            </p>
+            <p className="mt-1 text-3xl font-black">{totalReports}</p>
+            <p className="text-xs text-muted-foreground">{robloxCopy.last24}</p>
+            <div className="mt-4 flex h-20 items-end gap-1">
+              {(reportSeries.data ?? []).map((point) => (
+                <div
+                  key={point.bucket}
+                  title={`${point.report_count}`}
+                  className="min-w-1 flex-1 rounded-t-md bg-gradient-to-t from-violet-700 to-fuchsia-400"
+                  style={{
+                    height: `${Math.max(6, (Number(point.report_count) / maxReports) * 100)}%`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-3xl border border-border bg-card p-4">
+            <h3 className="text-sm font-bold">{robloxCopy.report}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">{robloxCopy.rate}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="text-xs font-bold text-muted-foreground">
+                {robloxCopy.choose}
+                <Select
+                  value={reportService}
+                  onChange={(event) => setReportService(event.target.value as typeof reportService)}
+                  className="mt-2"
+                >
+                  {REPORT_SERVICES.map((item) => (
+                    <option key={item} value={item}>
+                      {item.replace("_", " ")}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+              <label className="text-xs font-bold text-muted-foreground">
+                {robloxCopy.details}
+                <Textarea
+                  value={reportDetails}
+                  maxLength={500}
+                  onChange={(event) => setReportDetails(event.target.value)}
+                  rows={3}
+                  className="mt-2"
+                />
+              </label>
+            </div>
+            <Button
+              className="mt-3 w-full sm:w-auto"
+              disabled={sendingReport}
+              onClick={() => void submitReport()}
+            >
+              {sendingReport ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {robloxCopy.send}
+            </Button>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-lg font-bold">
               <span
                 className={cn(

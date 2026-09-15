@@ -17,15 +17,18 @@ const QUICK_AMOUNTS = [100, 500, 1000, 2500];
 
 function SparkPlusGiftCheckout({
   recipientId,
+  conversationId,
   onClose,
 }: {
   recipientId: string;
+  conversationId?: string;
   onClose: () => void;
 }) {
   const fetchClientSecret = async (): Promise<string> => {
     const result = await createSparkPlusGiftCheckout({
       data: {
         recipientId,
+        ...(conversationId ? { conversationId } : {}),
         returnUrl: `${window.location.origin}/messages`,
         environment: getStripeEnvironment(),
       },
@@ -60,12 +63,17 @@ export function GiftSheet({
   targetUserId,
   targetUsername,
   videoId,
+  conversationId,
   onGiftSent,
   onClose,
 }: {
   targetUserId: string;
   targetUsername: string;
   videoId?: string;
+  /** When gifting from an existing DM, posts a "gift" message into the
+   * conversation so both sides see it there, not just a silent balance
+   * change. Omitted when gifting from a video comment (no DM to post in). */
+  conversationId?: string;
   onGiftSent?: () => void;
   onClose: () => void;
 }) {
@@ -92,6 +100,14 @@ export function GiftSheet({
             _amount: amount,
           });
       if (error) throw error;
+      if (conversationId && user) {
+        void supabase.from("messages").insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          kind: "gift",
+          content: JSON.stringify({ type: "blox", amount }),
+        });
+      }
       toast.success(t("bloxGiftSent", { amount: amount.toLocaleString() }));
       invalidateBalance();
       onGiftSent?.();
@@ -109,6 +125,7 @@ export function GiftSheet({
         <BloxPackCheckout
           lookupKey={buyingPack}
           recipientId={targetUserId}
+          {...(conversationId ? { conversationId } : {})}
           onClose={() => setBuyingPack(null)}
         />
       </Sheet>
@@ -118,7 +135,11 @@ export function GiftSheet({
   if (giftingPlus) {
     return (
       <Sheet open onClose={onClose} title={t("giftSparkPlus")}>
-        <SparkPlusGiftCheckout recipientId={targetUserId} onClose={() => setGiftingPlus(false)} />
+        <SparkPlusGiftCheckout
+          recipientId={targetUserId}
+          {...(conversationId ? { conversationId } : {})}
+          onClose={() => setGiftingPlus(false)}
+        />
       </Sheet>
     );
   }

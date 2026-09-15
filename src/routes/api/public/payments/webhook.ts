@@ -131,6 +131,19 @@ async function handleBloxPackPurchase(session: Stripe.Checkout.Session) {
         ? `Achat de pack Blox (${price?.lookup_key ?? "inconnu"})`
         : `Pack Blox offert (${price?.lookup_key ?? "inconnu"})`,
   });
+
+  // Gifted from a DM ("buy Blox for this person"): post a "gift" message
+  // into that conversation so both sides see it there, not just a silent
+  // balance change.
+  const conversationId = session.metadata?.["conversationId"];
+  if (conversationId && userId !== payerId) {
+    await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: payerId,
+      kind: "gift",
+      content: JSON.stringify({ type: "blox", amount: bloxAmount }),
+    });
+  }
 }
 
 /** Credits one gifted month of Spark Plus directly to the recipient. This is
@@ -182,6 +195,19 @@ async function handleSparkPlusGift(session: Stripe.Checkout.Session) {
     reference_id: sessionId,
     description: "1 mois de Spark Plus offert",
   });
+
+  // Same as the Blox pack gift above: surface it as a message in the DM
+  // it was sent from, when there is one.
+  const conversationId = session.metadata?.["conversationId"];
+  const payerId = session.metadata?.["userId"];
+  if (conversationId && payerId) {
+    await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: payerId,
+      kind: "gift",
+      content: JSON.stringify({ type: "spark_plus" }),
+    });
+  }
 }
 
 async function handleWebhook(req: Request, env: StripeEnv) {

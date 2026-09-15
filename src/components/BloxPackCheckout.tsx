@@ -8,12 +8,15 @@ import { createBloxPackCheckout } from "@/utils/payments.functions";
 export function BloxPackCheckout({
   lookupKey,
   recipientId,
+  conversationId,
   onClose,
 }: {
   lookupKey: string;
   /** Credit someone else's balance instead of the payer's - "buy Blox for
    * this person" from the Cadeau sheet. */
   recipientId?: string;
+  /** Posts a "gift" message into this DM once the webhook confirms payment. */
+  conversationId?: string;
   onClose?: () => void;
 }) {
   const fetchClientSecret = async (): Promise<string> => {
@@ -21,6 +24,7 @@ export function BloxPackCheckout({
       data: {
         lookupKey,
         ...(recipientId ? { recipientId } : {}),
+        ...(conversationId ? { conversationId } : {}),
         returnUrl: `${window.location.origin}/shop?blox_session_id={CHECKOUT_SESSION_ID}`,
         environment: getStripeEnvironment(),
       },

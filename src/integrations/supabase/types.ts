@@ -2943,7 +2943,7 @@ export type Database = {
     };
     Enums: {
       app_role: "admin" | "moderator" | "user";
-      message_kind: "text" | "image" | "voice" | "system";
+      message_kind: "text" | "image" | "voice" | "system" | "gift";
       notification_kind:
         | "match"
         | "message"
@@ -3078,7 +3078,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
-      message_kind: ["text", "image", "voice", "system"],
+      message_kind: ["text", "image", "voice", "system", "gift"],
       notification_kind: [
         "match",
         "message",

@@ -92,6 +92,7 @@ function Row({
   icon: Icon,
   label,
   to,
+  search,
   badge,
   active,
   onClick,
@@ -101,6 +102,7 @@ function Row({
   icon: typeof Home;
   label: string;
   to?: string;
+  search?: Record<string, unknown>;
   badge?: number;
   active?: boolean;
   onClick?: () => void;
@@ -150,7 +152,7 @@ function Row({
   }
 
   return (
-    <Link to={to} onClick={onClick} className={rowClass}>
+    <Link to={to} {...(search ? { search } : {})} onClick={onClick} className={rowClass}>
       {content}
     </Link>
   );
@@ -326,8 +328,9 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
         <Row
           icon={Activity}
           label="Status"
-          to="/status"
-          active={isActive("/status")}
+          to="/support"
+          search={{ view: "status" }}
+          active={isActive("/support")}
           onClick={onClose}
         />
         <Row icon={Gamepad2} label={t("menuGames")} disabled comingSoon={t("comingSoon")} />
