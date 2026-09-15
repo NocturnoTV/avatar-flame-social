@@ -18,6 +18,20 @@ function isoFromUnix(seconds?: number | null): string | null {
   return seconds ? new Date(seconds * 1000).toISOString() : null;
 }
 
+/** Posts a "thanks for your purchase" message from Team Spark. The body is
+ * just a small marker (`purchase_thanks:<kind>:<amount>`) - like the
+ * existing "safety_alert" marker - so the actual sentence is rendered
+ * client-side in the viewer's current language rather than guessed here. */
+async function sendPurchaseThanks(userId: string, kind: "blox" | "spark_plus", amount?: number) {
+  await getSupabase()
+    .from("notifications")
+    .insert({
+      user_id: userId,
+      kind: "system",
+      body: kind === "blox" ? `purchase_thanks:blox:${amount ?? 0}` : "purchase_thanks:spark_plus",
+    });
+}
+
 async function syncProfile(userId: string, status: string, periodEnd: string | null) {
   const active =
     ["active", "trialing", "past_due"].includes(status) ||
@@ -144,6 +158,10 @@ async function handleBloxPackPurchase(session: Stripe.Checkout.Session) {
       content: JSON.stringify({ type: "blox", amount: bloxAmount }),
     });
   }
+
+  // Team Spark thanks the payer for the purchase, whether it was for
+  // themselves or a gift for someone else.
+  await sendPurchaseThanks(payerId, "blox", bloxAmount);
 }
 
 /** Credits one gifted month of Spark Plus directly to the recipient. This is
@@ -200,6 +218,7 @@ async function handleSparkPlusGift(session: Stripe.Checkout.Session) {
   // it was sent from, when there is one.
   const conversationId = session.metadata?.["conversationId"];
   const payerId = session.metadata?.["userId"];
+  if (payerId) await sendPurchaseThanks(payerId, "spark_plus");
   if (conversationId && payerId) {
     await supabase.from("messages").insert({
       conversation_id: conversationId,
@@ -227,6 +246,12 @@ async function handleWebhook(req: Request, env: StripeEnv) {
         await handleBloxPackPurchase(session);
       } else if (session.mode === "payment" && session.metadata?.["kind"] === "spark_plus_gift") {
         await handleSparkPlusGift(session);
+      } else if (session.mode === "subscription" && session.metadata?.["userId"]) {
+        // Self Spark Plus subscription purchase (not a gift) - the
+        // subscription's own status is synced separately via
+        // customer.subscription.created/updated, this only sends the
+        // Team Spark thank-you.
+        await sendPurchaseThanks(session.metadata["userId"], "spark_plus");
       }
       break;
     }

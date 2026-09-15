@@ -550,7 +550,7 @@ function MessagesPage() {
       _members: selected,
     });
     if (error) {
-      toast.error(error.message);
+      toast.error(error.message === "group_full" ? t("groupFull") : error.message);
       return;
     }
     setNewGroup(false);
@@ -1233,31 +1233,45 @@ function MessagesPage() {
                 value={groupTitle}
                 onChange={(e) => setGroupTitle(e.target.value)}
               />
+              <p className="text-xs font-semibold text-muted-foreground">
+                {t("groupMemberCount", { count: selected.length + 1 })}
+              </p>
               <div className="max-h-64 space-y-2 overflow-y-auto">
-                {(matches.data ?? []).map((m) => (
-                  <label
-                    key={m.id}
-                    className="flex items-center gap-3 rounded-2xl p-2 hover:bg-surface-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(m.id)}
-                      onChange={(e) =>
-                        setSelected((s) =>
-                          e.target.checked ? [...s, m.id] : s.filter((x) => x !== m.id),
-                        )
-                      }
-                    />
-                    <StoredImage
-                      path={m.avatar_url}
-                      alt={m.username ?? ""}
-                      className="h-10 w-10 rounded-full"
-                      fallback={m.username?.[0] ?? "?"}
-                    />
-                    <span className="font-semibold">{m.username}</span>
-                  </label>
-                ))}
+                {(matches.data ?? []).map((m) => {
+                  const checked = selected.includes(m.id);
+                  const atLimit = selected.length >= 24 && !checked;
+                  return (
+                    <label
+                      key={m.id}
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl p-2",
+                        atLimit ? "opacity-40" : "hover:bg-surface-2",
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={atLimit}
+                        onChange={(e) =>
+                          setSelected((s) =>
+                            e.target.checked ? [...s, m.id] : s.filter((x) => x !== m.id),
+                          )
+                        }
+                      />
+                      <StoredImage
+                        path={m.avatar_url}
+                        alt={m.username ?? ""}
+                        className="h-10 w-10 rounded-full"
+                        fallback={m.username?.[0] ?? "?"}
+                      />
+                      <span className="font-semibold">{m.username}</span>
+                    </label>
+                  );
+                })}
               </div>
+              {selected.length >= 24 ? (
+                <p className="text-xs font-semibold text-amber-500">{t("groupFull")}</p>
+              ) : null}
               <Button className="w-full" onClick={() => void createGroup()}>
                 {t("create")}
               </Button>

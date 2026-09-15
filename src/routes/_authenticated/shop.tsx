@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Award,
   Check,
+  CheckCircle2,
   ChevronDown,
   Gift,
   Lock,
@@ -24,12 +25,20 @@ import { BloxPackCheckout } from "@/components/BloxPackCheckout";
 import { GiftBloxSheet } from "@/components/GiftBloxSheet";
 import { BloxIcon, BloxBalanceChip } from "@/components/Blox";
 import { BLOX_PACKS, type BloxPack } from "@/lib/bloxPacks";
-import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { createPortalSession } from "@/utils/payments.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { Button, Sheet } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/shop")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { session_id?: string; blox_session_id?: string } => ({
+    ...(typeof search["session_id"] === "string" ? { session_id: search["session_id"] } : {}),
+    ...(typeof search["blox_session_id"] === "string"
+      ? { blox_session_id: search["blox_session_id"] }
+      : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Shop - Bloxspark" },
@@ -82,10 +91,48 @@ type CheckoutStage = { kind: "pack"; pack: BloxPack } | { kind: "plus" } | null;
 function ShopPage() {
   const { t, lang } = useI18n();
   const { user } = useSession();
+  const navigate = useNavigate();
+  const { session_id: sparkPlusSessionId, blox_session_id: bloxSessionId } = Route.useSearch();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [giftOpen, setGiftOpen] = useState(false);
   const [confirming, setConfirming] = useState<CheckoutStage>(null);
   const [checkingOut, setCheckingOut] = useState<CheckoutStage>(null);
+  const [thankYou, setThankYou] = useState<{ kind: "blox" | "spark_plus"; amount?: number } | null>(
+    null,
+  );
+
+  // Landed back here from Stripe's embedded checkout after a completed
+  // purchase - look up the exact Blox amount the webhook credited (it runs
+  // right around the same time as this redirect, so retry briefly), show a
+  // thank-you popup, then strip the session id from the URL.
+  const boughtBlox = useQuery({
+    queryKey: ["shop-purchase-lookup", bloxSessionId],
+    enabled: !!bloxSessionId,
+    refetchInterval: (query) => (query.state.data ? false : 1500),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("blox_transactions")
+        .select("amount")
+        .eq("reference_id", bloxSessionId!)
+        .eq("kind", "purchase")
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (!bloxSessionId) return;
+    if (boughtBlox.data) {
+      setThankYou({ kind: "blox", amount: boughtBlox.data.amount });
+      void navigate({ to: "/shop", search: {}, replace: true });
+    }
+  }, [bloxSessionId, boughtBlox.data, navigate]);
+
+  useEffect(() => {
+    if (!sparkPlusSessionId) return;
+    setThankYou({ kind: "spark_plus" });
+    void navigate({ to: "/shop", search: {}, replace: true });
+  }, [sparkPlusSessionId, navigate]);
 
   const membership = useQuery({
     queryKey: ["spark-plus-membership", user?.id],
@@ -150,8 +197,6 @@ function ShopPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pb-28 pt-5 text-foreground">
-      <PaymentTestModeBanner />
-
       {/* Header */}
       <header className="flex items-center justify-between">
         <Link
@@ -519,6 +564,33 @@ function ShopPage() {
       {checkingOut ? (
         <CheckoutSheet stage={checkingOut} onClose={() => setCheckingOut(null)} />
       ) : null}
+
+      <Sheet open={!!thankYou} onClose={() => setThankYou(null)}>
+        <div className="flex flex-col items-center text-center">
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-emerald-500/10 text-emerald-500">
+            <CheckCircle2 className="h-9 w-9" />
+          </span>
+          <h2 className="mt-3 text-xl font-black">{t("purchaseThankYouTitle")}</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {thankYou?.kind === "blox"
+              ? t("purchaseThankYouBloxBody", {
+                  amount: (thankYou.amount ?? 0).toLocaleString(),
+                })
+              : t("purchaseThankYouSparkPlusBody")}
+          </p>
+          <div className="mt-5 flex w-full flex-col gap-2">
+            {thankYou?.kind === "blox" ? (
+              <Button className="w-full" onClick={() => setThankYou(null)}>
+                <BloxIcon className="h-4 w-4" /> {t("viewBloxStore")}
+              </Button>
+            ) : (
+              <Button className="w-full" onClick={() => setThankYou(null)}>
+                {t("ok")}
+              </Button>
+            )}
+          </div>
+        </div>
+      </Sheet>
     </main>
   );
 }

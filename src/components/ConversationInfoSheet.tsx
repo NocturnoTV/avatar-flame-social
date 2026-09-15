@@ -1,20 +1,25 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Ban,
   BellOff,
+  Camera,
   ChevronRight,
   Contact,
+  Crown,
   Flag,
   Gift,
+  LoaderCircle,
   LogOut,
   MessageSquare,
   Paintbrush,
+  Pencil,
   Pin,
   Search,
   UserPlus,
   UserRound,
+  Users,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,9 +27,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { GiftSheet } from "@/components/GiftSheet";
+import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 import { isSparkPlusActive } from "@/lib/sparkPlus";
 import {
   BUBBLE_THEMES,
@@ -75,6 +81,110 @@ export function ConversationInfoSheet({
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState("");
   const [gifting, setGifting] = useState(false);
+  const isGroup = !otherId;
+  const [editingGroupName, setEditingGroupName] = useState(false);
+  const [groupNameDraft, setGroupNameDraft] = useState("");
+  const [savingGroupName, setSavingGroupName] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [transferringTo, setTransferringTo] = useState<string | null>(null);
+  const groupAvatarInput = useRef<HTMLInputElement>(null);
+
+  const groupInfo = useQuery({
+    queryKey: ["group-info", conversationId],
+    enabled: isGroup,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("conversations")
+        .select("owner_id,avatar_url,name")
+        .eq("id", conversationId)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const isOwner = isGroup && groupInfo.data?.owner_id === user?.id;
+
+  const members = useQuery({
+    queryKey: ["group-members", conversationId],
+    enabled: isGroup,
+    queryFn: async () => {
+      const { data: parts } = await supabase
+        .from("conversation_participants")
+        .select("user_id,joined_at")
+        .eq("conversation_id", conversationId)
+        .order("joined_at");
+      const ids = (parts ?? []).map((p) => p.user_id);
+      if (!ids.length) return [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url")
+        .in("id", ids);
+      const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+      return ids.map((id) => byId.get(id)).filter(Boolean) as {
+        id: string;
+        username: string | null;
+        avatar_url: string | null;
+      }[];
+    },
+  });
+
+  async function saveGroupName() {
+    const value = groupNameDraft.trim();
+    if (!value || savingGroupName) return;
+    setSavingGroupName(true);
+    const { error } = await supabase.rpc("rename_group", {
+      _conversation: conversationId,
+      _name: value,
+    });
+    setSavingGroupName(false);
+    if (error) {
+      toast.error(errorMessage(error, t("errorGeneric")));
+      return;
+    }
+    setEditingGroupName(false);
+    await groupInfo.refetch();
+    onChanged();
+  }
+
+  async function uploadGroupAvatar(file: File) {
+    if (!user || uploadingAvatar) return;
+    setUploadingAvatar(true);
+    try {
+      const path = await uploadFile(
+        "profile-photos",
+        user.id,
+        file,
+        file.name.split(".").pop() || "jpg",
+      );
+      const { error } = await supabase.rpc("set_group_avatar", {
+        _conversation: conversationId,
+        _avatar_url: path,
+      });
+      if (error) throw error;
+      await groupInfo.refetch();
+      onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err, t("errorGeneric")));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  async function transferOwnership(memberId: string) {
+    if (transferringTo) return;
+    setTransferringTo(memberId);
+    const { error } = await supabase.rpc("set_group_owner", {
+      _conversation: conversationId,
+      _new_owner: memberId,
+    });
+    setTransferringTo(null);
+    if (error) {
+      toast.error(errorMessage(error, t("errorGeneric")));
+      return;
+    }
+    toast.success(t("saved"));
+    await groupInfo.refetch();
+    onChanged();
+  }
 
   const myPlus = useQuery({
     queryKey: ["my-spark-plus", user?.id],
@@ -211,12 +321,94 @@ export function ConversationInfoSheet({
               fallback={title[0]?.toUpperCase() ?? "?"}
             />
           ) : (
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-[#F5F5F5] text-3xl dark:bg-[#1c1c1e]">
-              👥
+            <div className="relative">
+              {groupInfo.data?.avatar_url ? (
+                <StoredImage
+                  path={groupInfo.data.avatar_url}
+                  alt={title}
+                  className="h-20 w-20 rounded-full object-cover"
+                  fallback="👥"
+                />
+              ) : (
+                <div className="grid h-20 w-20 place-items-center rounded-full bg-[#F5F5F5] text-3xl dark:bg-[#1c1c1e]">
+                  👥
+                </div>
+              )}
+              {isOwner ? (
+                <>
+                  <input
+                    ref={groupAvatarInput}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void uploadGroupAvatar(file);
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    onClick={() => groupAvatarInput.current?.click()}
+                    disabled={uploadingAvatar}
+                    aria-label={t("editGroupPhoto")}
+                    className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground shadow-md"
+                  >
+                    {uploadingAvatar ? (
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </>
+              ) : null}
             </div>
           )}
-          <p className="mt-2 text-lg font-bold">{contact.data?.nickname || title}</p>
+
+          {isGroup ? (
+            editingGroupName ? (
+              <div className="mt-2 flex w-full items-center gap-2 px-2">
+                <input
+                  autoFocus
+                  value={groupNameDraft}
+                  onChange={(e) => setGroupNameDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && void saveGroupName()}
+                  maxLength={60}
+                  className="min-w-0 flex-1 rounded-full bg-[#F5F5F5] px-3 py-1.5 text-center text-sm text-[#050505] outline-none dark:bg-[#1c1c1e] dark:text-white"
+                />
+                <button
+                  onClick={() => void saveGroupName()}
+                  disabled={savingGroupName}
+                  className="text-sm font-bold text-primary"
+                >
+                  {t("save")}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 flex items-center gap-1.5">
+                <p className="text-lg font-bold">{groupInfo.data?.name || title}</p>
+                {isOwner ? (
+                  <button
+                    onClick={() => {
+                      setGroupNameDraft(groupInfo.data?.name || title);
+                      setEditingGroupName(true);
+                    }}
+                    aria-label={t("editGroupName")}
+                    className="text-[#929292] hover:text-primary"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
+              </div>
+            )
+          ) : (
+            <p className="mt-2 text-lg font-bold">{contact.data?.nickname || title}</p>
+          )}
           {contact.data?.nickname ? <p className="text-xs text-[#929292]">@{title}</p> : null}
+          {isGroup ? (
+            <p className="mt-0.5 text-xs text-[#929292]">
+              {t("groupMemberCount", { count: members.data?.length ?? 0 })}
+            </p>
+          ) : null}
 
           {otherId ? (
             editingNickname ? (
@@ -273,51 +465,104 @@ export function ConversationInfoSheet({
           ) : null}
         </div>
 
-        <div className={cn("mt-5 grid gap-2 text-center", otherId ? "grid-cols-4" : "grid-cols-2")}>
-          <QuickAction
-            icon={UserPlus}
-            label={t("newGroup")}
-            onClick={() => {
-              onClose();
-              void navigate({ to: "/messages" });
-            }}
-          />
-          {otherId ? (
-            <>
+        {otherId ? (
+          <>
+            <div className="mt-5 grid grid-cols-4 gap-2 text-center">
+              <QuickAction
+                icon={UserPlus}
+                label={t("newGroup")}
+                onClick={() => {
+                  onClose();
+                  void navigate({ to: "/messages" });
+                }}
+              />
               <Link to="/users/$id" params={{ id: otherId }} onClick={onClose}>
                 <QuickAction icon={UserRound} label={t("viewProfile")} onClick={() => {}} />
               </Link>
               <QuickAction icon={Gift} label={t("gift")} onClick={() => setGifting(true)} />
-            </>
-          ) : null}
-          <QuickAction icon={Search} label={t("search")} onClick={() => setSearching((v) => !v)} />
-        </div>
-
-        {searching ? (
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center gap-2 rounded-2xl bg-[#F5F5F5] px-3 py-2 dark:bg-[#1c1c1e]">
-              <Search className="h-4 w-4 text-[#929292]" />
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && void runSearch()}
-                placeholder={t("search")}
-                className="min-w-0 flex-1 bg-transparent text-sm text-[#050505] outline-none dark:text-white"
+              <QuickAction
+                icon={Search}
+                label={t("search")}
+                onClick={() => setSearching((v) => !v)}
               />
             </div>
-            <div className="max-h-40 space-y-1 overflow-y-auto">
-              {results.map((r) => (
-                <p
-                  key={r.id}
-                  className="truncate rounded-xl bg-[#F5F5F5] px-3 py-2 text-sm dark:bg-[#1c1c1e]"
-                >
-                  {r.content}
-                </p>
-              ))}
+
+            {searching ? (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-2 rounded-2xl bg-[#F5F5F5] px-3 py-2 dark:bg-[#1c1c1e]">
+                  <Search className="h-4 w-4 text-[#929292]" />
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && void runSearch()}
+                    placeholder={t("search")}
+                    className="min-w-0 flex-1 bg-transparent text-sm text-[#050505] outline-none dark:text-white"
+                  />
+                </div>
+                <div className="max-h-40 space-y-1 overflow-y-auto">
+                  {results.map((r) => (
+                    <p
+                      key={r.id}
+                      className="truncate rounded-xl bg-[#F5F5F5] px-3 py-2 text-sm dark:bg-[#1c1c1e]"
+                    >
+                      {r.content}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="mt-5 border-t border-black/5 pt-4 dark:border-white/10">
+            <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-[#929292]">
+              <Users className="h-3.5 w-3.5" /> {t("groupMembers")}
+            </p>
+            <div className="mt-2 max-h-60 space-y-0.5 overflow-y-auto">
+              {(members.data ?? []).map((member) => {
+                const isMemberOwner = member.id === groupInfo.data?.owner_id;
+                const name = member.username ?? t("someone");
+                return (
+                  <div key={member.id} className="flex items-center gap-3 rounded-2xl px-1 py-2">
+                    <Link
+                      to="/users/$id"
+                      params={{ id: member.id }}
+                      onClick={onClose}
+                      className="flex min-w-0 flex-1 items-center gap-3"
+                    >
+                      <StoredImage
+                        path={member.avatar_url}
+                        alt={name}
+                        className="h-10 w-10 shrink-0 rounded-full object-cover"
+                        fallback={name[0]?.toUpperCase() ?? "?"}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-left text-sm font-semibold">
+                        @{name}
+                        {member.id === user?.id ? ` (${t("you")})` : ""}
+                      </span>
+                    </Link>
+                    {isMemberOwner ? (
+                      <span
+                        className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary"
+                        aria-label={t("groupOwner")}
+                      >
+                        <Crown className="h-3 w-3" /> {t("groupOwner")}
+                      </span>
+                    ) : isOwner ? (
+                      <button
+                        onClick={() => void transferOwnership(member.id)}
+                        disabled={transferringTo === member.id}
+                        className="shrink-0 text-[11px] font-bold text-primary hover:underline disabled:opacity-50"
+                      >
+                        {t("makeOwner")}
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </div>
-        ) : null}
+        )}
 
         <div className="mt-5 space-y-1 border-t border-black/5 pt-3 dark:border-white/10">
           <Row

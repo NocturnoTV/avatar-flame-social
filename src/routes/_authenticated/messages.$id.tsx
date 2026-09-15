@@ -1343,8 +1343,23 @@ function TeamSparkConversation() {
                       <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
                         {announcement.body === "safety_alert"
                           ? t("safetyAlertNotif")
-                          : announcement.body}
+                          : announcement.body?.startsWith("purchase_thanks:")
+                            ? (() => {
+                                const [, kind, amount] = announcement.body!.split(":");
+                                return kind === "blox"
+                                  ? t("purchaseThanksBloxBody", { amount: Number(amount) || 0 })
+                                  : t("purchaseThanksSparkPlusBody");
+                              })()
+                            : announcement.body}
                       </p>
+                      {announcement.body?.startsWith("purchase_thanks:") ? (
+                        <Link
+                          to="/shop/billing"
+                          className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/25"
+                        >
+                          {t("purchaseThanksCta")}
+                        </Link>
+                      ) : null}
                     </div>
                     <p className="mt-1 px-1 text-[10px] text-muted-foreground">
                       {formatLastSeen(announcement.created_at, lang)}

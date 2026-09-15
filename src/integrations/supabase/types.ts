@@ -1141,34 +1141,40 @@ export type Database = {
       };
       conversations: {
         Row: {
+          avatar_url: string | null;
           created_at: string;
           created_by: string | null;
           id: string;
           is_group: boolean;
           last_message_at: string;
           name: string | null;
+          owner_id: string | null;
           request_status: string;
           streak_count: number;
           streak_date: string | null;
         };
         Insert: {
+          avatar_url?: string | null;
           created_at?: string;
           created_by?: string | null;
           id?: string;
           is_group?: boolean;
           last_message_at?: string;
           name?: string | null;
+          owner_id?: string | null;
           request_status?: string;
           streak_count?: number;
           streak_date?: string | null;
         };
         Update: {
+          avatar_url?: string | null;
           created_at?: string;
           created_by?: string | null;
           id?: string;
           is_group?: boolean;
           last_message_at?: string;
           name?: string | null;
+          owner_id?: string | null;
           request_status?: string;
           streak_count?: number;
           streak_date?: string | null;
@@ -2842,6 +2848,18 @@ export type Database = {
       create_group: {
         Args: { _members: string[]; _name: string };
         Returns: string;
+      };
+      rename_group: {
+        Args: { _conversation: string; _name: string };
+        Returns: undefined;
+      };
+      set_group_avatar: {
+        Args: { _avatar_url: string; _conversation: string };
+        Returns: undefined;
+      };
+      set_group_owner: {
+        Args: { _conversation: string; _new_owner: string };
+        Returns: undefined;
       };
       flag_message_for_safety: {
         Args: { _content: string; _conversation: string; _sender: string };
