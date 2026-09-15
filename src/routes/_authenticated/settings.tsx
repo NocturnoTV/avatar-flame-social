@@ -55,6 +55,9 @@ type NotifPrefs = {
   messages: boolean;
   followers: boolean;
   comments: boolean;
+  /** Likes, favorites, reposts and mentions on your videos - the rest of
+   * the "Activités" thread that isn't a comment. */
+  activity: boolean;
   announcements: boolean;
   paused: boolean;
 };
@@ -66,12 +69,17 @@ type PrivacyPrefs = {
   messages_from: string;
 };
 
+// NOTE: "followers" has no matching entry yet - there is no "someone
+// followed you" notification kind in the database at all (following a
+// profile is currently silent everywhere), so this toggle is kept for a
+// future follow-notification feature but doesn't gate anything today.
 const NOTIF_LABELS: { key: keyof NotifPrefs; labelKey: string; hintKey: string }[] = [
   { key: "matches", labelKey: "notifPrefMatches", hintKey: "notifPrefMatchesHint" },
   { key: "likes", labelKey: "notifPrefLikes", hintKey: "notifPrefLikesHint" },
   { key: "messages", labelKey: "notifPrefMessages", hintKey: "notifPrefMessagesHint" },
   { key: "followers", labelKey: "notifPrefFollowers", hintKey: "notifPrefFollowersHint" },
   { key: "comments", labelKey: "notifPrefComments", hintKey: "notifPrefCommentsHint" },
+  { key: "activity", labelKey: "notifPrefActivity", hintKey: "notifPrefActivityHint" },
   {
     key: "announcements",
     labelKey: "notifPrefAnnouncements",
