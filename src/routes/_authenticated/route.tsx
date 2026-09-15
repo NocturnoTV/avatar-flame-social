@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BottomNav, SideNav } from "@/components/AppNav";
 import { AppMenu } from "@/components/AppMenu";
 import { CallProvider } from "@/components/CallProvider";
+import { DeviceCodePopup } from "@/components/DeviceCodePopup";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -130,6 +131,7 @@ function AppLayout() {
         </div>
         {!inConversation ? <BottomNav onOpenMenu={() => setMenuOpen(true)} /> : null}
         <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+        <DeviceCodePopup />
       </div>
     </CallProvider>
   );

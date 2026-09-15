@@ -130,6 +130,14 @@ function AuthPage() {
               code: result.code,
               expiresAt: Date.now() + result.expiresInSeconds * 1000,
             });
+            // Showing our own code screen right here already - tell
+            // <DeviceCodePopup/> (mounted once you land in the app) not to
+            // pop up a second one for this same sign-in.
+            try {
+              sessionStorage.setItem("bloxspark-device-code-shown", "1");
+            } catch {
+              // ignore
+            }
           } catch {
             await continueAfterAuthentication();
           }
