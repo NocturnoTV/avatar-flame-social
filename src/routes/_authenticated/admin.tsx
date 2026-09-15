@@ -8,6 +8,7 @@ import {
   BarChart3,
   Bell,
   Building2,
+  Calendar,
   CheckCircle2,
   Coins,
   Crown,
@@ -15,11 +16,14 @@ import {
   FileWarning,
   Film,
   Gauge,
+  Gift,
+  Globe2,
   Heart,
   Headphones,
   KeyRound,
   LogIn,
   Mail,
+  MapPin,
   MessagesSquare,
   Newspaper,
   Plus,
@@ -52,6 +56,12 @@ import {
 } from "@/lib/admin.functions";
 import { adminListCommunities, adminManageCommunity } from "@/lib/admin-communities.functions";
 import {
+  adminCreateEvent,
+  adminDeleteEvent,
+  adminListEvents,
+  adminUpdateEvent,
+} from "@/lib/admin-events.functions";
+import {
   adminAnalytics,
   adminBilling,
   adminSearchContent,
@@ -78,6 +88,7 @@ type Tab =
   | "analytics"
   | "members"
   | "communities"
+  | "events"
   | "tickets"
   | "moderation"
   | "content"
@@ -114,6 +125,7 @@ function AdminPage() {
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "members", label: "Users", icon: Users },
     { id: "communities", label: "Communities", icon: Building2 },
+    { id: "events", label: "Events", icon: Calendar },
     { id: "tickets", label: "Tickets", icon: Headphones },
     { id: "moderation", label: "Moderation", icon: ShieldCheck },
     { id: "content", label: "Content", icon: Film },
@@ -158,6 +170,7 @@ function AdminPage() {
         {tab === "analytics" ? <Analytics /> : null}
         {tab === "members" ? <Members isAdmin={isAdmin} log={log} /> : null}
         {tab === "communities" ? <CommunitiesAdmin /> : null}
+        {tab === "events" ? <EventsAdmin /> : null}
         {tab === "tickets" ? <Tickets /> : null}
         {tab === "moderation" ? <Moderation log={log} /> : null}
         {tab === "content" ? <Content /> : null}
@@ -1231,6 +1244,303 @@ function CommunitiesAdmin() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+type AdminEventRow = {
+  id: string;
+  kind: string;
+  title: string;
+  description: string | null;
+  banner_url: string | null;
+  prize: string | null;
+  organizer_name: string | null;
+  location_type: string;
+  location: string | null;
+  starts_at: string;
+  ends_at: string;
+  created_at: string;
+};
+
+const EMPTY_EVENT_DRAFT = {
+  kind: "event" as "event" | "giveaway",
+  title: "",
+  description: "",
+  bannerUrl: "",
+  prize: "",
+  organizerName: "",
+  locationType: "online" as "online" | "in_person",
+  location: "",
+  startsAt: "",
+  endsAt: "",
+};
+
+function toDatetimeLocal(iso: string) {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function EventsAdmin() {
+  const [editing, setEditing] = useState<AdminEventRow | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState(EMPTY_EVENT_DRAFT);
+  const [saving, setSaving] = useState(false);
+
+  const events = useQuery({
+    queryKey: ["admin-events"],
+    queryFn: () => adminListEvents(),
+  });
+
+  function openCreate() {
+    setDraft(EMPTY_EVENT_DRAFT);
+    setEditing(null);
+    setCreating(true);
+  }
+
+  function openEdit(ev: AdminEventRow) {
+    setDraft({
+      kind: ev.kind as "event" | "giveaway",
+      title: ev.title,
+      description: ev.description ?? "",
+      bannerUrl: ev.banner_url ?? "",
+      prize: ev.prize ?? "",
+      organizerName: ev.organizer_name ?? "",
+      locationType: ev.location_type as "online" | "in_person",
+      location: ev.location ?? "",
+      startsAt: toDatetimeLocal(ev.starts_at),
+      endsAt: toDatetimeLocal(ev.ends_at),
+    });
+    setEditing(ev);
+    setCreating(true);
+  }
+
+  async function save() {
+    if (!draft.title.trim() || !draft.startsAt || !draft.endsAt) {
+      toast.error("Titre et dates requis");
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        kind: draft.kind,
+        title: draft.title,
+        description: draft.description || undefined,
+        bannerUrl: draft.bannerUrl || undefined,
+        prize: draft.prize || undefined,
+        organizerName: draft.organizerName || undefined,
+        locationType: draft.locationType,
+        location: draft.location || undefined,
+        startsAt: new Date(draft.startsAt).toISOString(),
+        endsAt: new Date(draft.endsAt).toISOString(),
+      };
+      if (editing) {
+        await adminUpdateEvent({ data: { ...payload, id: editing.id } });
+      } else {
+        await adminCreateEvent({ data: payload });
+      }
+      toast.success("Enregistré");
+      setCreating(false);
+      await events.refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove(ev: AdminEventRow) {
+    if (!confirm(`Supprimer "${ev.title}" ?`)) return;
+    try {
+      await adminDeleteEvent({ data: { id: ev.id } });
+      toast.success("Supprimé");
+      await events.refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible");
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">
+              Centre de contrôle
+            </p>
+            <h2 className="mt-1 text-2xl font-black">Événements & Giveaways</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Crée et gère les événements et giveaways affichés sur la page publique.
+            </p>
+          </div>
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="mr-1 h-3.5 w-3.5" /> Créer
+          </Button>
+        </div>
+      </div>
+
+      {events.isLoading ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">Chargement…</p>
+      ) : !events.data?.length ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          Aucun événement pour l'instant.
+        </p>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {(events.data as AdminEventRow[]).map((ev) => (
+            <article key={ev.id} className="rounded-3xl border border-border bg-card p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                    {ev.kind === "giveaway" ? (
+                      <>
+                        <Gift className="h-3 w-3" /> Giveaway
+                      </>
+                    ) : (
+                      <>
+                        <Calendar className="h-3 w-3" /> Événement
+                      </>
+                    )}
+                  </p>
+                  <p className="truncate font-black">{ev.title}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {ev.location_type === "online" ? (
+                      <Globe2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <MapPin className="h-3.5 w-3.5" />
+                    )}
+                    {new Date(ev.starts_at).toLocaleString("fr-FR")} →{" "}
+                    {new Date(ev.ends_at).toLocaleString("fr-FR")}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => openEdit(ev)}>
+                  Modifier
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => void remove(ev)}
+                >
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Supprimer
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <Sheet
+        open={creating}
+        onClose={() => setCreating(false)}
+        title={editing ? "Modifier" : "Créer un événement / giveaway"}
+      >
+        <div className="max-h-[75vh] space-y-3 overflow-y-auto pb-2">
+          <div className="flex gap-2">
+            {(["event", "giveaway"] as const).map((k) => (
+              <button
+                key={k}
+                onClick={() => setDraft((d) => ({ ...d, kind: k }))}
+                className={cn(
+                  "flex-1 rounded-xl py-2 text-sm font-bold",
+                  draft.kind === k
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-surface-2 text-muted-foreground",
+                )}
+              >
+                {k === "event" ? "Événement" : "Giveaway"}
+              </button>
+            ))}
+          </div>
+          <div>
+            <Label>Titre</Label>
+            <Input
+              value={draft.title}
+              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label>Description</Label>
+            <Textarea
+              rows={3}
+              value={draft.description}
+              onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+            />
+          </div>
+          {draft.kind === "giveaway" ? (
+            <div>
+              <Label>Récompense (ex: 10 000 Robux)</Label>
+              <Input
+                value={draft.prize}
+                onChange={(e) => setDraft((d) => ({ ...d, prize: e.target.value }))}
+              />
+            </div>
+          ) : null}
+          <div>
+            <Label>Organisateur</Label>
+            <Input
+              value={draft.organizerName}
+              onChange={(e) => setDraft((d) => ({ ...d, organizerName: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label>Image de bannière (URL)</Label>
+            <Input
+              value={draft.bannerUrl}
+              onChange={(e) => setDraft((d) => ({ ...d, bannerUrl: e.target.value }))}
+              placeholder="https://..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Type de lieu</Label>
+              <Select
+                value={draft.locationType}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    locationType: e.target.value as "online" | "in_person",
+                  }))
+                }
+              >
+                <option value="online">En ligne</option>
+                <option value="in_person">En personne</option>
+              </Select>
+            </div>
+            <div>
+              <Label>Lieu (optionnel)</Label>
+              <Input
+                value={draft.location}
+                onChange={(e) => setDraft((d) => ({ ...d, location: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Début</Label>
+              <Input
+                type="datetime-local"
+                value={draft.startsAt}
+                onChange={(e) => setDraft((d) => ({ ...d, startsAt: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>Fin</Label>
+              <Input
+                type="datetime-local"
+                value={draft.endsAt}
+                onChange={(e) => setDraft((d) => ({ ...d, endsAt: e.target.value }))}
+              />
+            </div>
+          </div>
+          <Button className="w-full" disabled={saving} onClick={() => void save()}>
+            {saving ? "Enregistrement…" : editing ? "Enregistrer" : "Créer"}
+          </Button>
+        </div>
+      </Sheet>
     </div>
   );
 }

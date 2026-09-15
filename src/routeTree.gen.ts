@@ -25,6 +25,7 @@ import { Route as ReglesRouteImport } from './routes/regles'
 import { Route as ShopTermsRouteImport } from './routes/shop-terms'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedNewsRouteImport } from './routes/_authenticated/news'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -133,6 +134,11 @@ const TermsRoute = TermsRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEventsRoute = AuthenticatedEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/shop-terms': typeof ShopTermsRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/events': typeof AuthenticatedEventsRoute
   '/home': typeof AuthenticatedHomeRoute
   '/news': typeof AuthenticatedNewsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/shop-terms': typeof ShopTermsRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/events': typeof AuthenticatedEventsRoute
   '/home': typeof AuthenticatedHomeRoute
   '/news': typeof AuthenticatedNewsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -406,6 +414,7 @@ export interface FileRoutesById {
   '/shop-terms': typeof ShopTermsRoute
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/events': typeof AuthenticatedEventsRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/news': typeof AuthenticatedNewsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -455,6 +464,7 @@ export interface FileRouteTypes {
     | '/shop-terms'
     | '/terms'
     | '/admin'
+    | '/events'
     | '/home'
     | '/news'
     | '/profile'
@@ -502,6 +512,7 @@ export interface FileRouteTypes {
     | '/shop-terms'
     | '/terms'
     | '/admin'
+    | '/events'
     | '/home'
     | '/news'
     | '/profile'
@@ -550,6 +561,7 @@ export interface FileRouteTypes {
     | '/shop-terms'
     | '/terms'
     | '/_authenticated/admin'
+    | '/_authenticated/events'
     | '/_authenticated/home'
     | '/_authenticated/news'
     | '/_authenticated/profile'
@@ -717,6 +729,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/events': {
+      id: '/_authenticated/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof AuthenticatedEventsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/home': {
@@ -934,6 +953,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedEventsRoute: typeof AuthenticatedEventsRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedNewsRoute: typeof AuthenticatedNewsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -962,6 +982,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedEventsRoute: AuthenticatedEventsRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedNewsRoute: AuthenticatedNewsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,

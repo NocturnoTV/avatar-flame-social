@@ -1209,6 +1209,83 @@ export type Database = {
         };
         Relationships: [];
       };
+      events: {
+        Row: {
+          banner_url: string | null;
+          created_at: string;
+          created_by: string;
+          description: string | null;
+          ends_at: string;
+          id: string;
+          kind: string;
+          location: string | null;
+          location_type: string;
+          organizer_name: string | null;
+          prize: string | null;
+          starts_at: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          banner_url?: string | null;
+          created_at?: string;
+          created_by: string;
+          description?: string | null;
+          ends_at: string;
+          id?: string;
+          kind: string;
+          location?: string | null;
+          location_type?: string;
+          organizer_name?: string | null;
+          prize?: string | null;
+          starts_at: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          banner_url?: string | null;
+          created_at?: string;
+          created_by?: string;
+          description?: string | null;
+          ends_at?: string;
+          id?: string;
+          kind?: string;
+          location?: string | null;
+          location_type?: string;
+          organizer_name?: string | null;
+          prize?: string | null;
+          starts_at?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      event_participants: {
+        Row: {
+          event_id: string;
+          joined_at: string;
+          user_id: string;
+        };
+        Insert: {
+          event_id: string;
+          joined_at?: string;
+          user_id: string;
+        };
+        Update: {
+          event_id?: string;
+          joined_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       faq_entries: {
         Row: {
           answer: string;

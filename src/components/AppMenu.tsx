@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpen,
   Bookmark,
+  Calendar,
   Clock,
   Compass,
   Crown,
@@ -356,6 +357,13 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           label={t("rewards")}
           to="/rewards"
           active={isActive("/rewards")}
+          onClick={onClose}
+        />
+        <Row
+          icon={Calendar}
+          label={t("eventsTitle")}
+          to="/events"
+          active={isActive("/events")}
           onClick={onClose}
         />
         <Row

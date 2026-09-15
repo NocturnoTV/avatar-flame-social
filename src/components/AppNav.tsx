@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
   Bookmark,
+  Calendar,
   Clock,
   Compass,
   Crown,
@@ -105,6 +106,7 @@ export function SideNav() {
     { to: "/shop", icon: Crown, label: t("shop") },
     { to: "/shop/billing", icon: Receipt, label: t("purchasesAndBilling") },
     { to: "/news/saved", icon: Bookmark, label: t("menuSaved") },
+    { to: "/events", icon: Calendar, label: t("eventsTitle") },
     { icon: Clock, label: t("menuRecent"), disabled: true },
     { to: "/support", icon: HelpCircle, label: t("support") },
     { to: "/settings", icon: Settings, label: t("settings") },
