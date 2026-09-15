@@ -150,12 +150,13 @@ async function handleBloxPackPurchase(session: Stripe.Checkout.Session) {
   // into that conversation so both sides see it there, not just a silent
   // balance change.
   const conversationId = session.metadata?.["conversationId"];
+  const note = session.metadata?.["note"];
   if (conversationId && userId !== payerId) {
     await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: payerId,
       kind: "gift",
-      content: JSON.stringify({ type: "blox", amount: bloxAmount }),
+      content: JSON.stringify({ type: "blox", amount: bloxAmount, ...(note ? { note } : {}) }),
     });
   }
 
@@ -218,13 +219,14 @@ async function handleSparkPlusGift(session: Stripe.Checkout.Session) {
   // it was sent from, when there is one.
   const conversationId = session.metadata?.["conversationId"];
   const payerId = session.metadata?.["userId"];
+  const note = session.metadata?.["note"];
   if (payerId) await sendPurchaseThanks(payerId, "spark_plus");
   if (conversationId && payerId) {
     await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: payerId,
       kind: "gift",
-      content: JSON.stringify({ type: "spark_plus" }),
+      content: JSON.stringify({ type: "spark_plus", ...(note ? { note } : {}) }),
     });
   }
 }

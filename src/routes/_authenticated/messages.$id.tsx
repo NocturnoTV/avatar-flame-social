@@ -6,6 +6,7 @@ import {
   AtSign,
   Bookmark,
   Camera,
+  Check,
   ChevronRight,
   Copy,
   Crown,
@@ -841,7 +842,9 @@ function Conversation() {
                     )
                   ) : null}
 
-                  {m.kind === "gift" ? <GiftBubble content={m.content} /> : null}
+                  {m.kind === "gift" ? (
+                    <GiftBubble id={m.id} content={m.content} mine={mine} />
+                  ) : null}
 
                   {myReactions.length > 0 ? (
                     <div className={cn("mt-1 flex flex-wrap gap-1", mine && "justify-end")}>
@@ -1803,31 +1806,88 @@ function ImageBubble({ path, mine }: { path: string | null; mine: boolean }) {
 
 /** Renders a "gift" message (Blox sent, or Spark Plus gifted) as its own
  * highlighted card rather than a plain text bubble - content is a small
- * JSON payload: {"type":"blox","amount":500} or {"type":"spark_plus"}. */
-function GiftBubble({ content }: { content: string | null }) {
+ * JSON payload: {"type":"blox","amount":500,"note":"..."} or
+ * {"type":"spark_plus","note":"..."}. The Blox/Plus itself is credited
+ * server-side the instant the gift is sent (see GiftSheet and the Stripe
+ * webhook) - "Récupérer le cadeau" below is a purely visual unwrap moment
+ * for the recipient (remembered per-device in localStorage), not a gate on
+ * actually receiving it. */
+function GiftBubble({ id, content, mine }: { id: string; content: string | null; mine: boolean }) {
   const { t } = useI18n();
-  let gift: { type: string; amount?: number } | null = null;
+  let gift: { type: string; amount?: number; note?: string } | null = null;
   try {
     gift = content ? JSON.parse(content) : null;
   } catch {
     gift = null;
   }
   const isSparkPlus = gift?.type === "spark_plus";
+  const storageKey = `bx-gift-opened:${id}`;
+  const [opened, setOpened] = useState(() => {
+    if (mine) return true;
+    try {
+      return localStorage.getItem(storageKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  function claim() {
+    setOpened(true);
+    if (navigator.vibrate) navigator.vibrate([10, 40, 10]);
+    try {
+      localStorage.setItem(storageKey, "1");
+    } catch {
+      // Private browsing / storage disabled - the unwrap just replays next
+      // time, no real consequence since the gift was already credited.
+    }
+  }
+
+  if (!opened) {
+    return (
+      <button
+        onClick={claim}
+        className="bx-pop flex w-full items-center gap-3 rounded-[22px] border border-primary/25 bg-gradient-to-br from-primary/20 via-card to-card px-4 py-3.5 text-left shadow-sm transition active:scale-[0.98]"
+      >
+        <span className="spark-gradient grid h-11 w-11 shrink-0 place-items-center rounded-full text-white shadow-[0_0_16px_rgba(168,85,247,.5)]">
+          {isSparkPlus ? <Crown className="h-5 w-5" /> : <Gift className="h-5 w-5" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-black">{t("giftReceivedTitle")}</span>
+          <span className="mt-0.5 block text-xs font-bold text-primary">
+            {t("giftClaimButton")}
+          </span>
+        </span>
+      </button>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-3 rounded-[22px] border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card px-4 py-3 shadow-sm">
-      <span className="spark-gradient grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-[0_0_14px_rgba(168,85,247,.45)]">
-        {isSparkPlus ? <Crown className="h-5 w-5" /> : <Gift className="h-5 w-5" />}
-      </span>
-      <p className="flex min-w-0 items-center gap-1.5 text-sm font-bold">
-        {isSparkPlus ? (
-          t("giftMessageSparkPlus")
-        ) : (
-          <>
-            {t("giftMessageBlox", { amount: (gift?.amount ?? 0).toLocaleString() })}
-            <BloxIcon className="h-4 w-4 shrink-0" />
-          </>
-        )}
-      </p>
+    <div className="bx-gift-comment flex flex-col gap-2 rounded-[22px] border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-3">
+        <span className="spark-gradient grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-[0_0_14px_rgba(168,85,247,.45)]">
+          {isSparkPlus ? <Crown className="h-5 w-5" /> : <Gift className="h-5 w-5" />}
+        </span>
+        <p className="flex min-w-0 items-center gap-1.5 text-sm font-bold">
+          {isSparkPlus ? (
+            t("giftMessageSparkPlus")
+          ) : (
+            <>
+              {t("giftMessageBlox", { amount: (gift?.amount ?? 0).toLocaleString() })}
+              <BloxIcon className="h-4 w-4 shrink-0" />
+            </>
+          )}
+        </p>
+      </div>
+      {gift?.note ? (
+        <p className="rounded-xl bg-black/5 px-3 py-2 text-sm italic leading-snug text-foreground dark:bg-white/5">
+          "{gift.note}"
+        </p>
+      ) : null}
+      {!mine ? (
+        <p className="flex items-center gap-1 text-[11px] font-bold text-primary">
+          <Check className="h-3 w-3" /> {t("giftClaimedLabel")}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -111,6 +111,10 @@ export const createBloxPackCheckout = createServerFn({ method: "POST" })
       environment: StripeEnv;
       recipientId?: string;
       conversationId?: string;
+      /** Personal note attached to the "gift" message posted once payment
+       * completes - Stripe metadata values cap at 500 bytes, so this is
+       * trimmed hard well below that. */
+      note?: string;
     }) => {
       if (!/^[a-zA-Z0-9_-]+$/.test(data.lookupKey)) throw new Error("Invalid lookupKey");
       if (data.recipientId && !/^[a-zA-Z0-9_-]+$/.test(data.recipientId)) {
@@ -119,6 +123,7 @@ export const createBloxPackCheckout = createServerFn({ method: "POST" })
       if (data.conversationId && !/^[a-zA-Z0-9_-]+$/.test(data.conversationId)) {
         throw new Error("Invalid conversationId");
       }
+      if (data.note) data.note = data.note.slice(0, 140);
       return data;
     },
   )
@@ -147,6 +152,7 @@ export const createBloxPackCheckout = createServerFn({ method: "POST" })
         kind: "blox_pack",
         ...(data.recipientId ? { recipientId: data.recipientId } : {}),
         ...(data.conversationId ? { conversationId: data.conversationId } : {}),
+        ...(data.note ? { note: data.note } : {}),
       };
 
       const session = await stripe.checkout.sessions.create({
@@ -175,11 +181,13 @@ export const createSparkPlusGiftCheckout = createServerFn({ method: "POST" })
       returnUrl: string;
       environment: StripeEnv;
       conversationId?: string;
+      note?: string;
     }) => {
       if (!/^[a-zA-Z0-9_-]+$/.test(data.recipientId)) throw new Error("Invalid recipientId");
       if (data.conversationId && !/^[a-zA-Z0-9_-]+$/.test(data.conversationId)) {
         throw new Error("Invalid conversationId");
       }
+      if (data.note) data.note = data.note.slice(0, 140);
       return data;
     },
   )
@@ -208,6 +216,7 @@ export const createSparkPlusGiftCheckout = createServerFn({ method: "POST" })
         managed_payments: "true",
         kind: "spark_plus_gift",
         ...(data.conversationId ? { conversationId: data.conversationId } : {}),
+        ...(data.note ? { note: data.note } : {}),
       };
 
       const session = await stripe.checkout.sessions.create({

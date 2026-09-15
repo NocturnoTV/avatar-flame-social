@@ -18,10 +18,12 @@ const QUICK_AMOUNTS = [100, 500, 1000, 2500];
 function SparkPlusGiftCheckout({
   recipientId,
   conversationId,
+  note,
   onClose,
 }: {
   recipientId: string;
   conversationId?: string;
+  note?: string;
   onClose: () => void;
 }) {
   const fetchClientSecret = async (): Promise<string> => {
@@ -29,6 +31,7 @@ function SparkPlusGiftCheckout({
       data: {
         recipientId,
         ...(conversationId ? { conversationId } : {}),
+        ...(note ? { note } : {}),
         returnUrl: `${window.location.origin}/messages`,
         environment: getStripeEnvironment(),
       },
@@ -83,11 +86,13 @@ export function GiftSheet({
   const invalidateBalance = useInvalidateBloxBalance();
   const [tab, setTab] = useState<"blox" | "plus">("blox");
   const [amount, setAmount] = useState(100);
+  const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [buyingPack, setBuyingPack] = useState<string | null>(null);
   const [giftingPlus, setGiftingPlus] = useState(false);
 
   const canAfford = (balance.data ?? 0) >= amount;
+  const trimmedNote = note.trim().slice(0, 140) || undefined;
 
   async function sendOwnedBlox() {
     if (!user || sending) return;
@@ -105,7 +110,11 @@ export function GiftSheet({
           conversation_id: conversationId,
           sender_id: user.id,
           kind: "gift",
-          content: JSON.stringify({ type: "blox", amount }),
+          content: JSON.stringify({
+            type: "blox",
+            amount,
+            ...(trimmedNote ? { note: trimmedNote } : {}),
+          }),
         });
       }
       toast.success(t("bloxGiftSent", { amount: amount.toLocaleString() }));
@@ -126,6 +135,7 @@ export function GiftSheet({
           lookupKey={buyingPack}
           recipientId={targetUserId}
           {...(conversationId ? { conversationId } : {})}
+          {...(trimmedNote ? { note: trimmedNote } : {})}
           onClose={() => setBuyingPack(null)}
         />
       </Sheet>
@@ -138,6 +148,7 @@ export function GiftSheet({
         <SparkPlusGiftCheckout
           recipientId={targetUserId}
           {...(conversationId ? { conversationId } : {})}
+          {...(trimmedNote ? { note: trimmedNote } : {})}
           onClose={() => setGiftingPlus(false)}
         />
       </Sheet>
@@ -166,6 +177,19 @@ export function GiftSheet({
           >
             <Crown className="h-4 w-4" /> Spark Plus
           </button>
+        </div>
+
+        <div>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value.slice(0, 140))}
+            rows={2}
+            placeholder={t("giftNotePlaceholder")}
+            className="w-full resize-none rounded-2xl border border-border bg-surface-2 px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
+          />
+          {note ? (
+            <p className="mt-1 text-right text-[11px] text-muted-foreground">{note.length}/140</p>
+          ) : null}
         </div>
 
         {tab === "blox" ? (

@@ -9,6 +9,7 @@ export function BloxPackCheckout({
   lookupKey,
   recipientId,
   conversationId,
+  note,
   onClose,
 }: {
   lookupKey: string;
@@ -17,6 +18,8 @@ export function BloxPackCheckout({
   recipientId?: string;
   /** Posts a "gift" message into this DM once the webhook confirms payment. */
   conversationId?: string;
+  /** Personal note shown on the gift message once it's claimed. */
+  note?: string;
   onClose?: () => void;
 }) {
   const fetchClientSecret = async (): Promise<string> => {
@@ -25,6 +28,7 @@ export function BloxPackCheckout({
         lookupKey,
         ...(recipientId ? { recipientId } : {}),
         ...(conversationId ? { conversationId } : {}),
+        ...(note ? { note } : {}),
         returnUrl: `${window.location.origin}/shop?blox_session_id={CHECKOUT_SESSION_ID}`,
         environment: getStripeEnvironment(),
       },
