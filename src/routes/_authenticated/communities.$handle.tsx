@@ -875,7 +875,7 @@ function ChannelsTab({
     if (!communityId || !newChannelName.trim()) return;
     const { error } = await supabase.rpc("community_create_channel", {
       _community: communityId,
-      _category: null,
+      _category: null as unknown as string,
       _name: newChannelName.trim(),
     });
     if (error) {
