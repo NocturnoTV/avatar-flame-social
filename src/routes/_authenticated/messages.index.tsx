@@ -1010,7 +1010,11 @@ function MessagesPage() {
                           ? t("notifVideoRejected")
                           : systemNotif.body?.startsWith("purchase_thanks:")
                             ? t("purchaseThanksCta")
-                            : systemNotif.body
+                            : systemNotif.body?.startsWith("giveaway_won:")
+                              ? t("notifGiveawayWon", {
+                                  title: systemNotif.body.slice("giveaway_won:".length),
+                                })
+                              : systemNotif.body
                   : t("notificationEmptyHint")}
               </p>
             </div>

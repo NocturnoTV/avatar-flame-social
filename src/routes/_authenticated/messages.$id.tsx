@@ -1364,7 +1364,11 @@ function TeamSparkConversation() {
                                           })
                                         : t("purchaseThanksSparkPlusBody");
                                     })()
-                                  : announcement.body}
+                                  : announcement.body?.startsWith("giveaway_won:")
+                                    ? t("notifGiveawayWon", {
+                                        title: announcement.body.slice("giveaway_won:".length),
+                                      })
+                                    : announcement.body}
                       </p>
                       {announcement.body?.startsWith("purchase_thanks:") ? (
                         <Link

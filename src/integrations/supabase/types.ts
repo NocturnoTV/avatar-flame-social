@@ -1225,6 +1225,7 @@ export type Database = {
           starts_at: string;
           title: string;
           updated_at: string;
+          winner_id: string | null;
         };
         Insert: {
           banner_url?: string | null;
@@ -1241,6 +1242,7 @@ export type Database = {
           starts_at: string;
           title: string;
           updated_at?: string;
+          winner_id?: string | null;
         };
         Update: {
           banner_url?: string | null;
@@ -1257,6 +1259,7 @@ export type Database = {
           starts_at?: string;
           title?: string;
           updated_at?: string;
+          winner_id?: string | null;
         };
         Relationships: [];
       };

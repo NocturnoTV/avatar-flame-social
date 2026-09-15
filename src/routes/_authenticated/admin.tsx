@@ -58,7 +58,9 @@ import { adminListCommunities, adminManageCommunity } from "@/lib/admin-communit
 import {
   adminCreateEvent,
   adminDeleteEvent,
+  adminListEventParticipants,
   adminListEvents,
+  adminSetEventWinner,
   adminUpdateEvent,
 } from "@/lib/admin-events.functions";
 import {
@@ -1261,6 +1263,8 @@ type AdminEventRow = {
   starts_at: string;
   ends_at: string;
   created_at: string;
+  winner_id: string | null;
+  winner_username: string | null;
 };
 
 const EMPTY_EVENT_DRAFT = {
@@ -1287,11 +1291,36 @@ function EventsAdmin() {
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState(EMPTY_EVENT_DRAFT);
   const [saving, setSaving] = useState(false);
+  const [viewingParticipants, setViewingParticipants] = useState<AdminEventRow | null>(null);
+  const [settingWinner, setSettingWinner] = useState<string | null>(null);
 
   const events = useQuery({
     queryKey: ["admin-events"],
     queryFn: () => adminListEvents(),
   });
+
+  const participants = useQuery({
+    queryKey: ["admin-event-participants", viewingParticipants?.id],
+    enabled: !!viewingParticipants,
+    queryFn: () => adminListEventParticipants({ data: { eventId: viewingParticipants!.id } }),
+  });
+
+  async function setWinner(userId: string | null) {
+    if (!viewingParticipants) return;
+    setSettingWinner(userId ?? "__clear__");
+    try {
+      await adminSetEventWinner({ data: { eventId: viewingParticipants.id, userId } });
+      toast.success(userId ? "Gagnant désigné" : "Gagnant retiré");
+      await events.refetch();
+      setViewingParticipants((cur) =>
+        cur ? { ...cur, winner_id: userId, winner_username: null } : cur,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible");
+    } finally {
+      setSettingWinner(null);
+    }
+  }
 
   function openCreate() {
     setDraft(EMPTY_EVENT_DRAFT);
@@ -1413,9 +1442,19 @@ function EventsAdmin() {
                     {new Date(ev.starts_at).toLocaleString("fr-FR")} →{" "}
                     {new Date(ev.ends_at).toLocaleString("fr-FR")}
                   </p>
+                  {ev.kind === "giveaway" && ev.winner_username ? (
+                    <p className="mt-1.5 flex items-center gap-1 text-xs font-bold text-amber-500">
+                      <Crown className="h-3.5 w-3.5" /> Gagnant : @{ev.winner_username}
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
+                {ev.kind === "giveaway" ? (
+                  <Button size="sm" variant="outline" onClick={() => setViewingParticipants(ev)}>
+                    <Users className="mr-1 h-3.5 w-3.5" /> Participants
+                  </Button>
+                ) : null}
                 <Button size="sm" variant="outline" onClick={() => openEdit(ev)}>
                   Modifier
                 </Button>
@@ -1432,6 +1471,75 @@ function EventsAdmin() {
           ))}
         </div>
       )}
+
+      <Sheet
+        open={!!viewingParticipants}
+        onClose={() => setViewingParticipants(null)}
+        title={viewingParticipants ? `Participants - ${viewingParticipants.title}` : "Participants"}
+      >
+        <div className="max-h-[70vh] space-y-2 overflow-y-auto">
+          {participants.isLoading ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Chargement…</p>
+          ) : !participants.data?.length ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Aucun participant pour l'instant.
+            </p>
+          ) : (
+            participants.data.map((p) => {
+              const isWinner = viewingParticipants?.winner_id === p.user_id;
+              return (
+                <div
+                  key={p.user_id}
+                  className={cn(
+                    "flex items-center gap-3 rounded-2xl border p-3",
+                    isWinner ? "border-amber-500/40 bg-amber-500/5" : "border-border bg-card",
+                  )}
+                >
+                  <StoredImage
+                    path={p.profile?.avatar_url}
+                    alt=""
+                    className="h-10 w-10 shrink-0 rounded-full object-cover"
+                    fallback="🎮"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">
+                      @{p.profile?.username ?? "inconnu"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Rejoint le {new Date(p.joined_at).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                  {isWinner ? (
+                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-black text-amber-500">
+                      <Crown className="h-3 w-3" /> Gagnant
+                    </span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={settingWinner === p.user_id}
+                      onClick={() => void setWinner(p.user_id)}
+                    >
+                      Désigner gagnant
+                    </Button>
+                  )}
+                </div>
+              );
+            })
+          )}
+          {viewingParticipants?.winner_id ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-destructive"
+              disabled={settingWinner === "__clear__"}
+              onClick={() => void setWinner(null)}
+            >
+              Retirer le gagnant
+            </Button>
+          ) : null}
+        </div>
+      </Sheet>
 
       <Sheet
         open={creating}
@@ -2606,117 +2714,176 @@ function PendingVideosReview() {
     }
   }
 
-  if (!pending.data?.length) return null;
-
   return (
     <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-4">
       <p className="flex items-center gap-2 font-black text-amber-600 dark:text-amber-400">
         <AlertTriangle className="h-4 w-4" /> Premières vidéos en attente de modération (
-        {pending.data.length})
+        {pending.data?.length ?? 0})
       </p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        {pending.data.map((v) => (
-          <div key={v.id} className="rounded-2xl border border-border bg-card p-3">
-            <div className="flex gap-3">
-              <StoredImage
-                path={v.thumbnail_path}
-                alt=""
-                className="h-16 w-11 shrink-0 rounded-lg object-cover"
-                fallback="🎬"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold">{v.caption || "Sans titre"}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  @{v.creator?.username ?? "inconnu"}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {new Date(v.created_at).toLocaleString("fr-FR")}
-                </p>
+      {pending.isLoading ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Chargement…</p>
+      ) : !pending.data?.length ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          Aucune vidéo en attente de vérification pour l'instant.
+        </p>
+      ) : (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {pending.data.map((v) => (
+            <div key={v.id} className="rounded-2xl border border-border bg-card p-3">
+              <div className="flex gap-3">
+                <StoredImage
+                  path={v.thumbnail_path}
+                  alt=""
+                  className="h-16 w-11 shrink-0 rounded-lg object-cover"
+                  fallback="🎬"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">{v.caption || "Sans titre"}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    @{v.creator?.username ?? "inconnu"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(v.created_at).toLocaleString("fr-FR")}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={busyId === v.id}
+                  onClick={() => void decide(v, true)}
+                  className="flex-1"
+                >
+                  <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Approuver
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busyId === v.id}
+                  className="flex-1 text-destructive"
+                  onClick={() => void decide(v, false)}
+                >
+                  <Ban className="mr-1 h-3.5 w-3.5" /> Refuser
+                </Button>
               </div>
             </div>
-            <div className="mt-2 flex gap-2">
-              <Button
-                size="sm"
-                disabled={busyId === v.id}
-                onClick={() => void decide(v, true)}
-                className="flex-1"
-              >
-                <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Approuver
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busyId === v.id}
-                className="flex-1 text-destructive"
-                onClick={() => void decide(v, false)}
-              >
-                <Ban className="mr-1 h-3.5 w-3.5" /> Refuser
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 function Content() {
+  const [contentTab, setContentTab] = useState<"search" | "pending">("search");
   const [query, setQuery] = useState("");
   const [openVideo, setOpenVideo] = useState<string | null>(null);
 
   const results = useQuery({
     queryKey: ["admin-content-search", query.trim()],
+    enabled: contentTab === "search",
     queryFn: () => adminSearchContent({ data: { query: query.trim() } }),
+  });
+
+  const pendingCount = useQuery({
+    queryKey: ["admin-pending-videos-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("videos")
+        .select("id", { count: "exact", head: true })
+        .eq("moderation_status", "pending");
+      return count ?? 0;
+    },
   });
 
   const video = (results.data ?? []).find((v) => v.id === openVideo);
 
   return (
     <div className="space-y-4">
-      <PendingVideosReview />
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by creator, caption, #hashtag, or comment text…"
-          className="pl-10"
-        />
+      <div className="flex gap-2 rounded-2xl border border-border bg-card p-1.5">
+        <button
+          onClick={() => setContentTab("search")}
+          className={cn(
+            "flex-1 rounded-xl py-2 text-sm font-bold transition",
+            contentTab === "search"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground",
+          )}
+        >
+          Recherche
+        </button>
+        <button
+          onClick={() => setContentTab("pending")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold transition",
+            contentTab === "pending"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground",
+          )}
+        >
+          En attente de vérification
+          {pendingCount.data ? (
+            <span
+              className={cn(
+                "grid h-5 min-w-5 place-items-center rounded-full px-1 text-[10px]",
+                contentTab === "pending" ? "bg-white/20" : "bg-amber-500 text-white",
+              )}
+            >
+              {pendingCount.data}
+            </span>
+          ) : null}
+        </button>
       </div>
 
-      {results.isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
-      {!results.isLoading && !(results.data ?? []).length ? (
-        <p className="text-sm text-muted-foreground">No videos found.</p>
-      ) : null}
+      {contentTab === "pending" ? (
+        <PendingVideosReview />
+      ) : (
+        <>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by creator, caption, #hashtag, or comment text…"
+              className="pl-10"
+            />
+          </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {(results.data ?? []).map((v) => (
-          <button
-            key={v.id}
-            onClick={() => setOpenVideo(v.id)}
-            className="rounded-3xl border border-border bg-card p-4 text-left transition hover:border-primary/40"
-          >
-            <p className="truncate text-sm font-bold">{v.caption || "Untitled video"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              @{v.creatorUsername ?? "unknown"} · {v.creatorRobloxUsername ?? "no Roblox"}
-            </p>
-            <p className="truncate text-[11px] text-muted-foreground">
-              {v.creatorEmail ?? "no email"}
-            </p>
-            <p className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-              <span>{v.views_count} views</span>
-              <span>{v.likes_count} likes</span>
-              <span>{v.comments_count} comments</span>
-              <span className="uppercase">{v.visibility}</span>
-            </p>
-            {v.hashtags?.length ? (
-              <p className="mt-1 truncate text-[11px] text-primary">
-                {v.hashtags.map((h) => `#${h}`).join(" ")}
-              </p>
-            ) : null}
-          </button>
-        ))}
-      </div>
+          {results.isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+          {!results.isLoading && !(results.data ?? []).length ? (
+            <p className="text-sm text-muted-foreground">No videos found.</p>
+          ) : null}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(results.data ?? []).map((v) => (
+              <button
+                key={v.id}
+                onClick={() => setOpenVideo(v.id)}
+                className="rounded-3xl border border-border bg-card p-4 text-left transition hover:border-primary/40"
+              >
+                <p className="truncate text-sm font-bold">{v.caption || "Untitled video"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  @{v.creatorUsername ?? "unknown"} · {v.creatorRobloxUsername ?? "no Roblox"}
+                </p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {v.creatorEmail ?? "no email"}
+                </p>
+                <p className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>{v.views_count} views</span>
+                  <span>{v.likes_count} likes</span>
+                  <span>{v.comments_count} comments</span>
+                  <span className="uppercase">{v.visibility}</span>
+                </p>
+                {v.hashtags?.length ? (
+                  <p className="mt-1 truncate text-[11px] text-primary">
+                    {v.hashtags.map((h) => `#${h}`).join(" ")}
+                  </p>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <Sheet open={!!video} onClose={() => setOpenVideo(null)} title="Video">
         {video ? (
