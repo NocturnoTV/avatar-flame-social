@@ -1826,13 +1826,13 @@ export type Database = {
       profiles: {
         Row: {
           accent_color: string
+          age: number | null
           avatar_url: string | null
           banned_until: string | null
           banner_style: string
           banner_url: string | null
           banner_video_url: string | null
           bio: string | null
-          birth_date: string | null
           blox_balance: number
           country: string | null
           created_at: string
@@ -1847,9 +1847,6 @@ export type Database = {
           moderation_status: string
           notification_prefs: Json
           onboarding_completed: boolean
-          parent_email: string | null
-          parent_name: string | null
-          parental_consent: boolean
           privacy_prefs: Json
           profile_font: string
           profile_glow: string
@@ -1878,13 +1875,13 @@ export type Database = {
         }
         Insert: {
           accent_color?: string
+          age?: number | null
           avatar_url?: string | null
           banned_until?: string | null
           banner_style?: string
           banner_url?: string | null
           banner_video_url?: string | null
           bio?: string | null
-          birth_date?: string | null
           blox_balance?: number
           country?: string | null
           created_at?: string
@@ -1899,9 +1896,6 @@ export type Database = {
           moderation_status?: string
           notification_prefs?: Json
           onboarding_completed?: boolean
-          parent_email?: string | null
-          parent_name?: string | null
-          parental_consent?: boolean
           privacy_prefs?: Json
           profile_font?: string
           profile_glow?: string
@@ -1930,13 +1924,13 @@ export type Database = {
         }
         Update: {
           accent_color?: string
+          age?: number | null
           avatar_url?: string | null
           banned_until?: string | null
           banner_style?: string
           banner_url?: string | null
           banner_video_url?: string | null
           bio?: string | null
-          birth_date?: string | null
           blox_balance?: number
           country?: string | null
           created_at?: string
@@ -1951,9 +1945,6 @@ export type Database = {
           moderation_status?: string
           notification_prefs?: Json
           onboarding_completed?: boolean
-          parent_email?: string | null
-          parent_name?: string | null
-          parental_consent?: boolean
           privacy_prefs?: Json
           profile_font?: string
           profile_glow?: string
@@ -1979,6 +1970,36 @@ export type Database = {
           warning_count?: number
           watch_history_enabled?: boolean
           welcomed_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles_private: {
+        Row: {
+          birth_date: string | null
+          created_at: string
+          parent_email: string | null
+          parent_name: string | null
+          parental_consent: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_date?: string | null
+          created_at?: string
+          parent_email?: string | null
+          parent_name?: string | null
+          parental_consent?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_date?: string | null
+          created_at?: string
+          parent_email?: string | null
+          parent_name?: string | null
+          parental_consent?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -3039,6 +3060,8 @@ export type Database = {
         Args: { _entity_id: string; _metric_key: string; _user: string }
         Returns: undefined
       }
+      can_read_community_object: { Args: { _name: string }; Returns: boolean }
+      can_read_voice_object: { Args: { _name: string }; Returns: boolean }
       community_add_affiliate: {
         Args: { _affiliate: string; _community: string }
         Returns: undefined
@@ -3240,13 +3263,13 @@ export type Database = {
         }
         Returns: {
           accent_color: string
+          age: number | null
           avatar_url: string | null
           banned_until: string | null
           banner_style: string
           banner_url: string | null
           banner_video_url: string | null
           bio: string | null
-          birth_date: string | null
           blox_balance: number
           country: string | null
           created_at: string
@@ -3261,9 +3284,6 @@ export type Database = {
           moderation_status: string
           notification_prefs: Json
           onboarding_completed: boolean
-          parent_email: string | null
-          parent_name: string | null
-          parental_consent: boolean
           privacy_prefs: Json
           profile_font: string
           profile_glow: string
