@@ -128,8 +128,8 @@ function ProfileSettings({ communityId }: { communityId: string }) {
     const { error } = await supabase.rpc("community_add_game", {
       _community: communityId,
       _name: gameName.trim(),
-      _universe_id: null,
-      _thumbnail: null,
+      _universe_id: null as unknown as string,
+      _thumbnail: null as unknown as string,
     });
     if (error) {
       toast.error(errorMessage(error, "Une erreur est survenue."));
@@ -302,7 +302,7 @@ function ChannelsSettings({ communityId }: { communityId: string }) {
     if (!newChannel.trim()) return;
     const { error } = await supabase.rpc("community_create_channel", {
       _community: communityId,
-      _category: targetCategory || null,
+      _category: (targetCategory || null) as unknown as string,
       _name: newChannel.trim(),
     });
     if (error) {
@@ -595,7 +595,7 @@ function MembersSettings({
     const { error } = await supabase.rpc("community_ban_member", {
       _community: communityId,
       _target: targetId,
-      _reason: banReason.trim() || null,
+      _reason: (banReason.trim() || null) as unknown as string,
     });
     if (error) toast.error(errorMessage(error, "Une erreur est survenue."));
     else toast.success("Membre banni.");
