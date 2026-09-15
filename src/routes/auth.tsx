@@ -11,7 +11,7 @@ import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { signInWithIdentifier } from "@/lib/login-identifier.functions";
 import { beginRobloxSignIn } from "@/lib/roblox-oauth.functions";
-import { redeemDeviceLoginCode } from "@/lib/device-login.functions";
+import { createDeviceLoginCode, redeemDeviceLoginCode } from "@/lib/device-login.functions";
 import { isNativeApp, openExternal } from "@/lib/native";
 import { errorMessage } from "@/lib/utils";
 
@@ -73,6 +73,8 @@ function AuthPage() {
   const [redeemingCode, setRedeemingCode] = useState(false);
   const [codeCooldownUntil, setCodeCooldownUntil] = useState(0);
   const [codeCooldownLeft, setCodeCooldownLeft] = useState(0);
+  const [signupCode, setSignupCode] = useState<{ code: string; expiresAt: number } | null>(null);
+  const [signupCodeSecondsLeft, setSignupCodeSecondsLeft] = useState(0);
 
   async function continueAfterAuthentication() {
     const { data } = await supabase.auth.getUser();
@@ -113,7 +115,24 @@ function AuthPage() {
         });
         if (error) throw error;
         if (data.session?.user.id) {
-          await continueAfterAuthentication();
+          // On the website (not the app itself), offer a code to jump
+          // straight into the app instead of continuing here - most useful
+          // right when an account is brand new. Skipped entirely on
+          // native: signing up there means the account already lives in
+          // the app, there is nothing to bridge.
+          if (isNativeApp()) {
+            await continueAfterAuthentication();
+            return;
+          }
+          try {
+            const result = await createDeviceLoginCode();
+            setSignupCode({
+              code: result.code,
+              expiresAt: Date.now() + result.expiresInSeconds * 1000,
+            });
+          } catch {
+            await continueAfterAuthentication();
+          }
           return;
         }
         toast.success(t("checkEmail"));
@@ -209,6 +228,18 @@ function AuthPage() {
   // src/lib/device-login.functions.ts. verifyOtp applies the resulting
   // token locally, no redirect needed, so this is the fastest way into the
   // account on a fresh device (typically a just-installed native app).
+  useEffect(() => {
+    if (!signupCode) return;
+    const tick = () => {
+      const left = Math.max(0, Math.round((signupCode.expiresAt - Date.now()) / 1000));
+      setSignupCodeSecondsLeft(left);
+      if (left === 0) setSignupCode(null);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [signupCode]);
+
   // Local mirror of the server's per-IP throttle (3 attempts / rolling 3s
   // window, see redeemDeviceLoginCode) so the button visibly cools down
   // instead of just silently failing again on the very next click.
@@ -261,13 +292,44 @@ function AuthPage() {
 
       <div className="w-full max-w-sm rounded-[2rem] border border-border bg-card p-7 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]">
         <h1 className="text-2xl font-bold">
-          {codeMode ? t("deviceCodeTitle") : isSignup ? t("signUp") : t("signIn")}
+          {signupCode
+            ? t("signupCodeTitle")
+            : codeMode
+              ? t("deviceCodeTitle")
+              : isSignup
+                ? t("signUp")
+                : t("signIn")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {codeMode ? t("deviceCodeSubtitle") : t("tagline")}
+          {signupCode ? t("signupCodeSubtitle") : codeMode ? t("deviceCodeSubtitle") : t("tagline")}
         </p>
 
-        {codeMode ? (
+        {signupCode ? (
+          <div className="mt-6 space-y-4">
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center">
+              <p className="font-mono text-2xl font-black tracking-widest">{signupCode.code}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("signupCodeExpiresIn", { seconds: signupCodeSecondsLeft })}
+              </p>
+            </div>
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => void openExternal("bloxspark://open")}
+            >
+              {t("signupCodeOpenApp")}
+            </Button>
+            <button
+              className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setSignupCode(null);
+                void continueAfterAuthentication();
+              }}
+            >
+              {t("signupCodeContinueWeb")}
+            </button>
+          </div>
+        ) : codeMode ? (
           <div className="mt-6 space-y-4">
             <div>
               <Label>{t("deviceCodeLabel")}</Label>

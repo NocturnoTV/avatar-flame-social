@@ -76,5 +76,22 @@
 	<string>BloxSpark needs microphone access to record videos and voice messages.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>BloxSpark needs photo library access so you can share photos and videos.</string>
+	<!-- Custom-scheme fallback for the website's "Ouvrir l'app" button after
+	     signup/device-code screens (openExternal("bloxspark://open") in
+	     src/routes/auth.tsx and settings.tsx) - needs no Apple Developer
+	     Team ID or domain verification (unlike Universal Links), works as
+	     soon as the app is installed. Only brings the app to the
+	     foreground; there is no path to route to from a bare
+	     "bloxspark://open", the person still types the code once they see
+	     the app. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>bloxspark</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

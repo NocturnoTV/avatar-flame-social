@@ -35,6 +35,21 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="bloxspark.app" />
             </intent-filter>
+
+            <!-- Custom-scheme fallback for the website's "Ouvrir l'app" button
+                 after signup/device-code screens (see openExternal("bloxspark://open")
+                 in src/routes/auth.tsx and settings.tsx) - unlike the App Link
+                 above, this needs no domain verification and works the moment
+                 the app is installed, but only ever brings the app to the
+                 foreground (there is no path to route to from a bare
+                 "bloxspark://open", the person still types the code once
+                 they're looking at the app). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bloxspark" />
+            </intent-filter>
         </activity>
 
         <provider
