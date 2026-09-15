@@ -19,22 +19,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Android App Links: bloxspark.app URLs opened anywhere on the
-                 device (a link tapped in another app, an SMS, or - crucially -
-                 the system browser tab the Roblox sign-in flow runs in, see
-                 src/lib/native.ts's openExternal()) open straight into this
-                 app instead of a browser tab, once Android verifies
-                 public/.well-known/assetlinks.json against this app's
-                 signing certificate. autoVerify requires the app to actually
-                 be installed from a source Android trusts for verification
-                 (Play Store) to run the handshake - it silently falls back
-                 to "open in browser" until then, never crashes. -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="bloxspark.app" />
-            </intent-filter>
+            <!-- REMOVED 2026-09-15: an Android App Link on the whole
+                 bloxspark.app host actively broke sign-in - the moment
+                 Google/Roblox redirected the system-browser tab back to
+                 bloxspark.app, Android closed that tab and reopened the app
+                 before the page could even render the device-code screen
+                 (let alone give the person time to read/copy the code). It
+                 also would not have helped anyway: the system browser and
+                 the app's own WebView have completely separate storage, so
+                 the session established in the browser tab is invisible to
+                 the app regardless of how fast it reopens. The device-code
+                 bridge (src/lib/device-login.functions.ts) is the real way
+                 back into the app - don't re-add a broad App Link here. -->
 
             <!-- Custom-scheme fallback for the website's "Ouvrir l'app" button
                  after signup/device-code screens (see openExternal("bloxspark://open")
