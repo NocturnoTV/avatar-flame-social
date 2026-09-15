@@ -619,11 +619,20 @@ function SearchVideoThumb({ video }: { video: VideoRow }) {
         video.thumbnail_path ? (
           <img src={url} alt="" className="h-full w-full object-cover" />
         ) : (
+          // No captured thumbnail for this video - fall back to showing the
+          // video's own first frame. A plain preload="metadata" video stays
+          // blank in Android's WebView (inside the app) until something
+          // actually seeks it, unlike desktop/mobile browsers which paint
+          // frame 0 on their own - nudge it explicitly instead of relying
+          // on that.
           <video
             src={url}
             muted
             playsInline
             preload="metadata"
+            onLoadedMetadata={(e) => {
+              e.currentTarget.currentTime = 0.1;
+            }}
             className="h-full w-full object-cover"
           />
         )

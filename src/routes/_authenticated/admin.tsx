@@ -50,6 +50,7 @@ import { openExternal } from "@/lib/native";
 import { StoredImage } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import {
+  adminBroadcastNotification,
   adminGetMemberDetail,
   adminImpersonate,
   adminListMembers,
@@ -99,7 +100,8 @@ type Tab =
   | "conversations"
   | "news"
   | "news_portal"
-  | "billing";
+  | "billing"
+  | "broadcast";
 
 function AdminPage() {
   const { user } = useSession();
@@ -137,6 +139,7 @@ function AdminPage() {
     { id: "news", label: "Home Banner", icon: Newspaper },
     { id: "news_portal", label: "Roblox News", icon: Newspaper },
     { id: "billing", label: "Billing", icon: Coins },
+    { id: "broadcast", label: "Annonces", icon: Bell },
   ];
 
   return (
@@ -182,6 +185,7 @@ function AdminPage() {
         {tab === "news" ? <NewsAdmin log={log} /> : null}
         {tab === "news_portal" ? <NewsPortalAdmin log={log} /> : null}
         {tab === "billing" ? <Billing /> : null}
+        {tab === "broadcast" ? <Broadcast isAdmin={isAdmin} /> : null}
       </div>
     </div>
   );
@@ -3966,6 +3970,86 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
         {articles.data?.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             Aucun article pour l'instant.
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** "Annonces": sends one Team Spark message to every member at once - a
+ * broadcast, as opposed to Members > Modération's "Notifier" which targets
+ * a single account. Admin-only (adminBroadcastNotification enforces this
+ * server-side too), given the blast radius. */
+function Broadcast({ isAdmin }: { isAdmin: boolean }) {
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [lastResult, setLastResult] = useState<number | null>(null);
+
+  async function send() {
+    if (!message.trim()) return;
+    if (
+      !confirm(
+        "Envoyer ce message à TOUS les membres de Bloxspark, en tant que message Team Spark ? Cette action est irréversible.",
+      )
+    ) {
+      return;
+    }
+    setSending(true);
+    try {
+      const result = await adminBroadcastNotification({ data: { message: message.trim() } });
+      setLastResult(result.sentTo);
+      setMessage("");
+      toast.success(`Message envoyé à ${result.sentTo} membres.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Envoi impossible");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (!isAdmin) {
+    return (
+      <p className="py-10 text-center text-sm text-muted-foreground">
+        Réservé aux administrateurs.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">
+          Centre de contrôle
+        </p>
+        <h2 className="mt-1 text-2xl font-black">Annonces</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Envoie un message Team Spark à tous les membres de Bloxspark en une fois - nouvelle
+          fonctionnalité, maintenance, événement... Chaque membre le reçoit comme n'importe quel
+          autre message Team Spark, et ceux qui ont désactivé les "Annonces Bloxspark" dans leurs
+          notifications ne le reçoivent pas.
+        </p>
+      </div>
+
+      <div className="space-y-3 rounded-3xl border border-border bg-card p-4">
+        <Textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value.slice(0, 500))}
+          rows={5}
+          placeholder="Écris le message qui apparaîtra dans Team Spark pour tout le monde…"
+        />
+        <p className="text-right text-xs text-muted-foreground">{message.length}/500</p>
+        <Button
+          className="w-full"
+          disabled={sending || !message.trim()}
+          onClick={() => void send()}
+        >
+          <Send className="mr-1 h-4 w-4" />
+          {sending ? "Envoi en cours…" : "Envoyer à tous les membres"}
+        </Button>
+        {lastResult !== null ? (
+          <p className="text-center text-xs text-muted-foreground">
+            Dernier envoi : {lastResult} membres notifiés.
           </p>
         ) : null}
       </div>

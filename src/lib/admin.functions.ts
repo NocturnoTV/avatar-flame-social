@@ -542,3 +542,47 @@ export const adminReviewDispute = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+const broadcastSchema = z.object({ message: z.string().trim().min(1).max(500) });
+
+/**
+ * Sends one "system" (Team Spark) notification to every member at once -
+ * admin-only, since it reaches the whole user base in one call. Reuses the
+ * exact same notifications row shape as every individual Team Spark message
+ * this session (localizeTeamSparkBody in messages.$id.tsx renders a raw,
+ * non-marker body as-is when it doesn't match a known marker prefix), and
+ * still goes through enforce_notification_preferences per recipient - a
+ * member who opted out of "Bloxspark announcements" simply never gets a row
+ * inserted for them, same as any other notification kind.
+ */
+export const adminBroadcastNotification = createServerFn({ method: "POST" })
+  .validator(broadcastSchema)
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await requireStaff(context.userId, true);
+
+    const { data: profiles, error } = await supabaseAdmin.from("profiles").select("id");
+    if (error) throw error;
+
+    const rows = (profiles ?? []).map((p) => ({
+      user_id: p.id,
+      kind: "system" as const,
+      body: data.message,
+    }));
+
+    const CHUNK = 500;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const { error: insertError } = await supabaseAdmin
+        .from("notifications")
+        .insert(rows.slice(i, i + CHUNK));
+      if (insertError) throw insertError;
+    }
+
+    await supabaseAdmin.from("admin_audit_log").insert({
+      admin_id: context.userId,
+      action: "broadcast_notification",
+      details: `Sent to ${rows.length} members: ${data.message.slice(0, 200)}`,
+    });
+
+    return { sentTo: rows.length };
+  });
