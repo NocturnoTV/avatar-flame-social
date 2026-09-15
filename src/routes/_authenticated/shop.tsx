@@ -4,16 +4,20 @@ import { useState } from "react";
 import {
   ArrowLeft,
   Award,
+  BadgeCheck,
   Check,
   ChevronDown,
+  ChevronRight,
+  CreditCard,
   Gift,
+  Headphones,
   Lock,
   Megaphone,
   Palette,
-  Plus,
   Rocket,
   Shield,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,34 +36,37 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/shop")({
   head: () => ({
     meta: [
-      { title: "Shop - Bloxspark" },
+      { title: "Boutique Blox & Spark Plus - Bloxspark" },
       {
         name: "description",
-        content: "Achète des Blox, débloque Spark Plus et personnalise ton profil sur Bloxspark.",
+        content:
+          "Achète des Blox, active Spark Plus et personnalise ton profil Bloxspark. Paiement sécurisé, crédit instantané.",
       },
+      { property: "og:title", content: "Boutique Blox & Spark Plus - Bloxspark" },
+      {
+        property: "og:description",
+        content: "Packs de Blox, abonnement Spark Plus et badges exclusifs sur Bloxspark.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ShopPage,
 });
 
 const USES = [
-  { emoji: "🚀", icon: Rocket, title: "Booster tes vidéos", text: "Plus de visibilité" },
-  { emoji: "🏅", icon: Award, title: "Acheter des badges", text: "Affiche ton style" },
-  { emoji: "🎨", icon: Palette, title: "Personnaliser ton profil", text: "Thèmes et effets" },
-  { emoji: "🎁", icon: Gift, title: "Cadeaux virtuels", text: "Soutiens tes créateurs" },
-  {
-    emoji: "📣",
-    icon: Megaphone,
-    title: "Mettre en avant ton profil",
-    text: "Sois vu par plus de monde",
-  },
+  { icon: Rocket, title: "Booster tes vidéos", text: "Plus de visibilité dans le feed" },
+  { icon: Award, title: "Badges", text: "Affiche ton style sur ton profil" },
+  { icon: Palette, title: "Personnalisation", text: "Thèmes, halos et effets" },
+  { icon: Gift, title: "Cadeaux", text: "Soutiens tes créateurs préférés" },
+  { icon: Megaphone, title: "Mise en avant", text: "Sois vu par plus de monde" },
 ];
 
 const QUEST_EXAMPLES = [
-  { emoji: "❤️", title: "Social Spark", text: "Aime 10 publications", reward: 30 },
-  { emoji: "💬", title: "Conversation", text: "Commente 3 publications", reward: 40 },
-  { emoji: "🎥", title: "Creator", text: "Publie une vidéo", reward: 50 },
-  { emoji: "👥", title: "Explorer", text: "Visite 10 profils", reward: 25 },
+  { title: "Social Spark", text: "Aime 10 publications", reward: 30 },
+  { title: "Conversation", text: "Commente 3 publications", reward: 40 },
+  { title: "Creator", text: "Publie une vidéo", reward: 50 },
+  { title: "Explorer", text: "Visite 10 profils", reward: 25 },
 ];
 
 const PLUS_FEATURES = [
@@ -71,10 +78,10 @@ const PLUS_FEATURES = [
 ];
 
 const TRUST_ITEMS = [
-  { emoji: "⚡", title: "Blox instantanés", text: "Reçois tes Blox dès l'achat" },
-  { emoji: "🔒", title: "Paiement sécurisé", text: "Transactions protégées" },
-  { emoji: "💳", title: "Plusieurs moyens de paiement", text: "Carte, Apple Pay, Google Pay..." },
-  { emoji: "🎧", title: "Besoin d'aide ?", text: "Notre équipe est là pour toi" },
+  { icon: Zap, title: "Crédit instantané", text: "Tes Blox arrivent dès le paiement" },
+  { icon: Lock, title: "Paiement sécurisé", text: "Traité par Stripe" },
+  { icon: CreditCard, title: "Moyens de paiement", text: "Carte, Apple Pay, Google Pay" },
+  { icon: Headphones, title: "Assistance", text: "Notre équipe répond" },
 ];
 
 type CheckoutStage = { kind: "pack"; pack: BloxPack } | { kind: "plus" } | null;
@@ -143,87 +150,136 @@ function ShopPage() {
   const expiration = membership.data?.spark_plus_expires_at;
   const isActive = Boolean(
     membership.data?.spark_plus_active &&
-    (!expiration || new Date(expiration).getTime() > Date.now()),
+      (!expiration || new Date(expiration).getTime() > Date.now()),
   );
-
-  const [row1, row2] = [BLOX_PACKS.slice(0, 3), BLOX_PACKS.slice(3)];
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pb-28 pt-5 text-foreground">
       <PaymentTestModeBanner />
 
-      {/* Header */}
       <header className="flex items-center justify-between">
         <Link
           to="/home"
           aria-label={t("back")}
-          className="grid h-10 w-10 place-items-center rounded-2xl bg-surface-2 text-foreground"
+          className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition hover:text-foreground"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
-        <p className="text-lg font-black text-foreground">
-          Blox
-          <span className="bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent">
-            Spark
-          </span>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Boutique
         </p>
         {user ? (
           <a
             href="#packs"
-            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-black"
+            className="flex h-10 items-center rounded-xl border border-border bg-card px-3 text-sm font-semibold"
           >
             <BloxBalanceChip className="border-0 bg-transparent px-0 py-0" />
-            <Plus className="h-3.5 w-3.5 text-[#22D3EE]" />
           </a>
         ) : (
           <span className="w-10" />
         )}
       </header>
 
-      {/* Spark Plus - leads the page */}
-      <section className="mt-6">
-        <div className="relative overflow-hidden rounded-[2rem] border border-[#a855f7]/30 bg-[linear-gradient(160deg,#2e0a5c_0%,#5b1a8c_55%,#7c2d9e_100%)] p-6 shadow-[0_0_60px_-15px_rgba(168,85,247,.55)]">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur">
-            🔥 Le plus populaire
+      {/* Hero */}
+      <section className="mt-7">
+        <h1 className="text-3xl font-bold leading-tight tracking-tight">
+          Recharge ton compte en Blox
+        </h1>
+        <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
+          Les Blox alimentent tout Bloxspark : boosts de vidéos, badges, personnalisation et
+          cadeaux. Crédit immédiat, paiement sécurisé, aucun abonnement requis.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5" /> Crédit instantané
           </span>
-          <h2 className="mt-3 flex items-center gap-2 text-3xl font-black text-white">
-            <Sparkles className="h-6 w-6 text-[#f0abfc]" /> Spark Plus
-          </h2>
-          <p className="mt-1 text-sm text-white/80">Encore plus de possibilités.</p>
-          <div className="mt-4 flex items-end gap-1.5">
-            <span className="text-3xl font-black text-white">4,99 €</span>
-            <span className="pb-1 text-sm text-white/70">/{t("month")}</span>
+          <span className="flex items-center gap-1.5">
+            <Lock className="h-3.5 w-3.5" /> Paiement sécurisé Stripe
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Shield className="h-3.5 w-3.5" /> Sans engagement
+          </span>
+        </div>
+      </section>
+
+      {/* Packs */}
+      <section id="packs" className="mt-8 scroll-mt-6">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-base font-semibold tracking-tight">Packs de Blox</h2>
+          <span className="text-xs text-muted-foreground">Achat unique</span>
+        </div>
+
+        <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card">
+          {BLOX_PACKS.map((pack, i) => (
+            <PackRow
+              key={pack.lookupKey}
+              pack={pack}
+              lang={lang}
+              first={i === 0}
+              onBuy={() => setConfirming({ kind: "pack", pack })}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={() => setGiftOpen(true)}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+        >
+          <Gift className="h-4 w-4" /> {t("giftBlox")}
+        </button>
+      </section>
+
+      {/* Spark Plus */}
+      <section className="mt-10">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-base font-semibold tracking-tight">Abonnement</h2>
+          <span className="text-xs text-muted-foreground">Mensuel</span>
+        </div>
+
+        <div className="mt-3 rounded-2xl border border-border bg-card p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                <Sparkles className="h-4.5 w-4.5 text-primary" /> Spark Plus
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                L'expérience Bloxspark complète.
+              </p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="text-2xl font-bold tracking-tight">4,99 €</p>
+              <p className="text-xs text-muted-foreground">/{t("month")}</p>
+            </div>
           </div>
 
-          <div className="mt-4 space-y-1.5">
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
             {PLUS_FEATURES.map((f) => (
-              <p key={f} className="flex items-center gap-2 text-sm text-white/90">
-                <Check className="h-4 w-4 shrink-0 text-emerald-300" /> {f}
+              <p key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Check className="h-4 w-4 shrink-0 text-primary" /> {f}
               </p>
             ))}
           </div>
 
           {isActive ? (
-            <div className="mt-5 rounded-2xl bg-white/15 p-4 backdrop-blur">
-              <p className="flex items-center gap-2 font-black text-white">
-                <Check className="h-5 w-5" /> {t("sparkPlusActive")}
+            <div className="mt-6 border-t border-border pt-5">
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <BadgeCheck className="h-4.5 w-4.5 text-primary" /> {t("sparkPlusActive")}
               </p>
               {expiration ? (
-                <p className="mt-1 text-xs text-white/75">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {t("renewsOn", { date: new Date(expiration).toLocaleDateString(lang) })}
                 </p>
               ) : null}
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <button
                   onClick={() => void manageSubscription()}
-                  className="flex-1 rounded-full bg-white py-2.5 text-sm font-black text-[#7c3aed]"
+                  className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
                 >
                   {t("manageSubscription")}
                 </button>
                 <Link
                   to="/shop/billing"
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-white/40 py-2.5 text-sm font-bold text-white"
+                  className="flex flex-1 items-center justify-center rounded-xl border border-border py-2.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
                 >
                   {t("purchasesAndBilling")}
                 </Link>
@@ -233,230 +289,111 @@ function ShopPage() {
             <>
               <button
                 onClick={() => setConfirming({ kind: "plus" })}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 text-sm font-black text-[#7c3aed] shadow-lg"
+                className="mt-6 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
               >
-                Devenir Spark+ →
+                Activer Spark Plus
               </button>
-              <p className="mt-2 text-center text-[11px] text-white/70">
-                Annule à tout moment. Sans engagement.
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Annulable à tout moment, sans engagement.
               </p>
             </>
           )}
         </div>
       </section>
 
-      {/* Title */}
-      <h1 className="mt-9 text-4xl font-black leading-tight text-foreground">
-        Acheter des{" "}
-        <span className="bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] bg-clip-text text-transparent">
-          Blox
-        </span>
-      </h1>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        Choisis le pack qui te convient et obtiens des Blox instantanément. Utilise-les pour
-        personnaliser ton profil, booster tes vidéos et bien plus encore !
-      </p>
-
-      {/* Secure payment indicator */}
-      <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#22D3EE]/15 text-[#22D3EE]">
-          <Lock className="h-4 w-4" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-foreground">Paiement sécurisé</p>
-          <p className="text-xs text-muted-foreground">100% sécurisé, via Stripe</p>
-        </div>
-      </div>
-
-      {/* Promo banner */}
-      <div className="relative mt-5 overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(135deg,#0d1230_0%,#1c1440_55%,#2a1240_100%)] p-5">
-        <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-[#8B5CF6]/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-10 -left-6 h-28 w-28 rounded-full bg-[#EC4899]/20 blur-3xl" />
-        <div className="relative flex items-center gap-4">
-          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-white/10 text-3xl">
-            🎮
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-lg font-black leading-snug text-white">
-              Plus de possibilités avec les Blox !
-            </p>
-            <p className="mt-1 text-xs text-[#AEB5D0]">
-              Personnalise, crée, partage et fais grandir ta communauté sur Bloxspark.
-            </p>
-            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#8B5CF6]">
-              Create · Share · Belong
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Packs */}
-      <section id="packs" className="mt-8 scroll-mt-6">
-        <h2 className="text-xl font-black text-foreground">Acheter des Blox</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choisis le pack qui te convient et obtiens tes Blox instantanément.
-        </p>
-
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {row1.map((pack) => (
-            <PackCard
-              key={pack.lookupKey}
-              pack={pack}
-              lang={lang}
-              onBuy={() => setConfirming({ kind: "pack", pack })}
-            />
-          ))}
-        </div>
-        <div className="mt-2 grid grid-cols-2 items-stretch gap-2">
-          {row2.map((pack) => (
-            <PackCard
-              key={pack.lookupKey}
-              pack={pack}
-              lang={lang}
-              large
-              onBuy={() => setConfirming({ kind: "pack", pack })}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() => setGiftOpen(true)}
-          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-border bg-card py-3 text-sm font-bold text-muted-foreground"
-        >
-          <Gift className="h-4 w-4" /> {t("giftBlox")}
-        </button>
-      </section>
-
-      {/* What Blox are for */}
+      {/* Uses */}
       <section className="mt-10">
-        <h2 className="text-xl font-black text-foreground">À quoi servent les Blox ?</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Utilise tes Blox pour personnaliser ton expérience et soutenir la communauté.
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-2.5">
+        <h2 className="text-base font-semibold tracking-tight">À quoi servent les Blox</h2>
+        <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
           {USES.map((use) => (
-            <div
-              key={use.title}
-              className="rounded-2xl border border-border bg-card/80 p-3.5 backdrop-blur"
-            >
-              <span className="text-xl">{use.emoji}</span>
-              <p className="mt-2 text-sm font-black leading-snug text-foreground">{use.title}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">{use.text}</p>
+            <div key={use.title} className="flex items-center gap-3 px-4 py-3.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                <use.icon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{use.title}</p>
+                <p className="text-xs text-muted-foreground">{use.text}</p>
+              </div>
             </div>
           ))}
         </div>
-        <p className="mt-3 text-center text-[11px] text-muted-foreground">
-          🚀 Le boost de vidéo se lance depuis le Creator Studio, sur chacune de tes vidéos. Il
-          augmente ta visibilité dans le feed - il ne génère jamais de faux likes, vues ou abonnés.
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Le boost de vidéo se lance depuis le Creator Studio. Il augmente ta visibilité dans le
+          feed et ne génère jamais de faux likes, vues ou abonnés.
         </p>
       </section>
 
-      {/* Earn Blox free */}
-      <Link
-        to="/rewards"
-        className="mt-8 flex items-center gap-4 overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(135deg,#5b21b6_0%,#a21caf_60%,#db2777_100%)] p-5 shadow-lg shadow-[#a21caf]/20"
-      >
-        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/15 text-2xl">
-          🎁
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-lg font-black leading-snug text-white">
-            Gagne des Blox gratuitement !
-          </p>
-          <p className="mt-1 text-xs text-white/80">
-            Complète des défis, participe à des événements et sois actif sur Bloxspark.
-          </p>
-        </div>
-        <span className="shrink-0 text-sm font-black text-white">Voir →</span>
-      </Link>
-
-      {/* Quest examples */}
-      <div className="mt-4 grid grid-cols-2 gap-2.5">
-        {QUEST_EXAMPLES.map((q) => (
-          <div key={q.title} className="rounded-2xl border border-border bg-card/80 p-3.5">
-            <span className="text-xl">{q.emoji}</span>
-            <p className="mt-1.5 text-sm font-black text-foreground">{q.title}</p>
-            <p className="text-[11px] text-muted-foreground">{q.text}</p>
-            <p className="mt-1 flex items-center gap-1 text-xs font-black text-[#22D3EE]">
-              +{q.reward} <BloxIcon className="h-3.5 w-3.5" />
+      {/* Free Blox */}
+      <section className="mt-10">
+        <Link
+          to="/rewards"
+          className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition hover:border-primary/40"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+            <Gift className="h-4.5 w-4.5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Gagne des Blox gratuitement</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Défis quotidiens, événements et activité sur Bloxspark.
             </p>
           </div>
-        ))}
-      </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </Link>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {QUEST_EXAMPLES.map((q) => (
+            <div
+              key={q.title}
+              className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{q.title}</p>
+                <p className="text-xs text-muted-foreground">{q.text}</p>
+              </div>
+              <p className="flex shrink-0 items-center gap-1 text-xs font-semibold">
+                +{q.reward} <BloxIcon className="h-3.5 w-3.5" />
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Badges */}
       <section className="mt-10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-black text-foreground">Badges</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Montre qui tu es et collectionne les badges Bloxspark.
-            </p>
-          </div>
-        </div>
-        <div className="no-scrollbar mt-4 flex gap-2.5 overflow-x-auto pb-1">
-          {[
-            "🏅 Early Member",
-            "🎮 Gamer",
-            "🎬 Creator",
-            "🏆 Veteran",
-            "💎 Supporter",
-            "👑 Elite",
-          ].map((b) => (
+        <h2 className="text-base font-semibold tracking-tight">Badges</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Certains badges s'achètent avec des Blox, d'autres se gagnent.
+        </p>
+        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+          {["Early Member", "Gamer", "Creator", "Veteran", "Supporter", "Elite"].map((b) => (
             <span
               key={b}
-              className="shrink-0 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-bold text-foreground"
+              className="shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground"
             >
               {b}
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Certains badges s'achètent avec des Blox, d'autres se gagnent grâce aux défis ou à des
-          événements.
-        </p>
         <Link
           to="/store"
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3 text-sm font-black text-foreground"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm font-medium transition hover:border-primary/40"
         >
-          Voir le Blox Store
+          Voir le Blox Store <ChevronRight className="h-4 w-4" />
         </Link>
-      </section>
-
-      {/* Personalization + gifts */}
-      <section className="mt-8 grid grid-cols-2 gap-2.5">
-        <div className="rounded-2xl border border-border bg-card/80 p-4">
-          <Palette className="h-5 w-5 text-[#3B82F6]" />
-          <p className="mt-2 text-sm font-black text-foreground">Personnalise ton profil</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            Polices, halos et bannières animées avec Spark Plus.
-          </p>
-        </div>
-        <div className="rounded-2xl border border-border bg-card/80 p-4">
-          <Gift className="h-5 w-5 text-[#EC4899]" />
-          <p className="mt-2 text-sm font-black text-foreground">Soutiens les créateurs</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            Envoie des Blox à tes créateurs préférés, dans un commentaire ou en message privé.
-          </p>
-        </div>
       </section>
 
       {/* FAQ */}
       <section className="mt-10">
-        <h2 className="text-xl font-black text-foreground">FAQ</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Tu as des questions ? On a les réponses !
-        </p>
-        <div className="mt-4 divide-y divide-border rounded-2xl border border-border bg-card">
+        <h2 className="text-base font-semibold tracking-tight">Questions fréquentes</h2>
+        <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
           {faq.map((item, i) => (
             <div key={item.q}>
               <button
                 onClick={() => setOpenFaq((cur) => (cur === i ? null : i))}
                 className="flex w-full items-center gap-3 p-4 text-left"
               >
-                <span className="min-w-0 flex-1 text-sm font-semibold text-foreground">
-                  {item.q}
-                </span>
+                <span className="min-w-0 flex-1 text-sm font-medium">{item.q}</span>
                 <ChevronDown
                   className={cn(
                     "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
@@ -476,31 +413,32 @@ function ShopPage() {
           href="/shop-terms"
           target="_blank"
           rel="noreferrer noopener"
-          className="mt-3 block text-center text-xs text-primary underline"
+          className="mt-3 block text-center text-xs text-muted-foreground underline"
         >
           {t("shopTermsLink")}
         </a>
       </section>
 
-      {/* Trust row */}
-      <section className="mt-10 grid grid-cols-2 gap-2.5">
+      {/* Trust */}
+      <section className="mt-10 grid gap-2 sm:grid-cols-2">
         {TRUST_ITEMS.map((item) => (
-          <div key={item.title} className="rounded-2xl border border-border bg-card/80 p-3.5">
-            <span className="text-lg">{item.emoji}</span>
-            <p className="mt-1.5 text-xs font-black text-foreground">{item.title}</p>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">{item.text}</p>
+          <div
+            key={item.title}
+            className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
+          >
+            <item.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium">{item.title}</p>
+              <p className="text-xs text-muted-foreground">{item.text}</p>
+            </div>
           </div>
         ))}
       </section>
 
-      {/* Support message */}
-      <div className="mt-8 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(236,72,153,.12),rgba(139,92,246,.12))] p-4 text-center">
-        <p className="text-sm font-black text-foreground">💗 Soutiens Bloxspark</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Ton soutien nous aide à améliorer la plateforme et à créer de nouvelles fonctionnalités.
-        </p>
-        <p className="mt-2 text-xs text-muted-foreground">Merci ! ♡</p>
-      </div>
+      <p className="mt-8 text-center text-xs leading-relaxed text-muted-foreground">
+        Les Blox sont une monnaie virtuelle utilisable uniquement sur Bloxspark. Bloxspark n'est pas
+        affilié à Roblox Corporation.
+      </p>
 
       {user ? <GiftBloxSheet open={giftOpen} onClose={() => setGiftOpen(false)} /> : null}
 
@@ -523,74 +461,52 @@ function ShopPage() {
   );
 }
 
-function PackCard({
+function PackRow({
   pack,
   lang,
-  large,
+  first,
   onBuy,
 }: {
   pack: BloxPack;
   lang: string;
-  large?: boolean;
+  first?: boolean;
   onBuy: () => void;
 }) {
-  const isPro = pack.id === "pro";
+  const popular = pack.id === "pro";
   return (
     <button
       onClick={onBuy}
       className={cn(
-        "relative flex h-full w-full min-w-0 flex-col items-center rounded-2xl border p-3 text-center transition active:scale-[0.97]",
-        isPro
-          ? "border-primary/50 bg-primary/10 shadow-[0_0_30px_-8px_rgba(168,85,247,.45)]"
-          : "border-border bg-card",
-        large && "p-4",
+        "flex w-full items-center gap-4 px-4 py-4 text-left transition hover:bg-muted/40",
+        !first && "border-t border-border",
+        popular && "bg-muted/30",
       )}
     >
-      {isPro ? (
-        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] px-2.5 py-0.5 text-[9px] font-black text-white">
-          🔥 Le plus populaire
-        </span>
-      ) : null}
-      <span
-        className={cn("shrink-0 text-2xl", large && "text-3xl")}
-        style={{ filter: `drop-shadow(0 0 10px ${pack.accent}66)` }}
-      >
-        {pack.emoji}
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-muted">
+        <BloxIcon className="h-4.5 w-4.5" />
       </span>
-      <p
-        className={cn(
-          "mt-1.5 w-full truncate text-[11px] font-black text-foreground",
-          large && "text-sm",
-        )}
-      >
-        {pack.name}
-      </p>
-      {large ? (
-        <p className="mt-0.5 line-clamp-2 w-full text-[10px] leading-snug text-muted-foreground">
+
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+          {pack.blox.toLocaleString(lang)} Blox
+          {popular ? (
+            <span className="rounded-md border border-primary/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+              Populaire
+            </span>
+          ) : null}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {pack.bonusPercent > 0 ? `+${pack.bonusPercent}% de Blox offerts · ` : ""}
           {pack.tagline}
         </p>
-      ) : null}
-      <p
-        className={cn(
-          "mt-1.5 flex w-full items-center justify-center gap-1 text-sm font-black text-foreground",
-          large && "text-lg",
-        )}
-      >
-        {pack.blox.toLocaleString()}
-        <BloxIcon className={cn("h-3.5 w-3.5 shrink-0", large && "h-4 w-4")} />
-      </p>
-      <div className="mt-0.5 h-3.5 w-full shrink-0">
-        {pack.bonusPercent > 0 ? (
-          <p className={cn("text-[10px] font-black text-emerald-500", large && "text-xs")}>
-            +{pack.bonusPercent}% bonus
-          </p>
-        ) : null}
       </div>
+
       <span
         className={cn(
-          "mt-auto flex w-full items-center justify-center rounded-full bg-gradient-to-r py-2 text-xs font-black text-white",
-          pack.gradient,
-          large && "py-2.5 text-sm",
+          "shrink-0 rounded-lg px-3.5 py-2 text-sm font-semibold",
+          popular
+            ? "bg-primary text-primary-foreground"
+            : "border border-border text-foreground",
         )}
       >
         {pack.priceEur.toLocaleString(lang, { minimumFractionDigits: 2 })} €
@@ -611,10 +527,9 @@ function PurchaseConfirmSheet({
   onConfirm: () => void;
 }) {
   const isPack = stage.kind === "pack";
-  const emoji = isPack ? stage.pack.emoji : "👑";
-  const title = isPack ? `${stage.pack.blox.toLocaleString()} Blox` : "Spark Plus";
+  const title = isPack ? `${stage.pack.blox.toLocaleString(lang)} Blox` : "Spark Plus";
   const priceEur = isPack ? stage.pack.priceEur : 4.99;
-  const priceLabel = `${priceEur.toLocaleString(lang, { minimumFractionDigits: 2 })} €${isPack ? "" : "/mois"}`;
+  const priceLabel = `${priceEur.toLocaleString(lang, { minimumFractionDigits: 2 })} €${isPack ? "" : ` /mois`}`;
 
   return (
     <div
@@ -622,45 +537,47 @@ function PurchaseConfirmSheet({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-t-3xl border border-border bg-card p-6 text-foreground sm:rounded-3xl"
+        className="w-full max-w-sm rounded-t-2xl border border-border bg-card p-6 text-foreground sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-center text-lg font-black">
-          {isPack ? "Acheter des Blox" : "Souscrire à Spark Plus"}
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {isPack ? "Confirmer l'achat" : "Confirmer l'abonnement"}
         </p>
-        <div className="mt-4 flex flex-col items-center text-center">
-          <span className="text-4xl">{emoji}</span>
-          <p className="mt-2 flex items-center gap-1.5 text-2xl font-black">
-            {title} {isPack ? <BloxIcon className="h-5 w-5" /> : null}
-          </p>
-          {isPack && stage.pack.bonusPercent > 0 ? (
-            <p className="mt-1 text-sm font-bold text-emerald-500">
-              +{stage.pack.bonusPercent}% bonus
-            </p>
-          ) : null}
-          <p className="mt-2 text-3xl font-black">{priceLabel}</p>
+
+        <div className="mt-4 flex items-baseline justify-between border-b border-border pb-4">
+          <p className="text-lg font-semibold">{title}</p>
+          <p className="text-lg font-semibold">{priceLabel}</p>
         </div>
-        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
+
+        {isPack && stage.pack.bonusPercent > 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Inclut +{stage.pack.bonusPercent}% de Blox offerts.
+          </p>
+        ) : null}
+
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
           {isPack
-            ? "Les Blox seront ajoutés immédiatement à ton solde après confirmation du paiement."
-            : "Débloque tous les avantages Spark Plus dès la confirmation du paiement. Annule à tout moment."}
+            ? "Les Blox sont ajoutés à ton solde dès la confirmation du paiement."
+            : "Tous les avantages Spark Plus sont débloqués dès la confirmation du paiement. Annulable à tout moment."}
         </p>
+
         <div className="mt-5 flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 rounded-full border border-border py-3 text-sm font-bold text-muted-foreground"
+            className="flex-1 rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground"
           >
             Annuler
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] py-3 text-sm font-black text-white"
+            className="flex-1 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
           >
             Continuer
           </button>
         </div>
-        <p className="mt-4 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
-          <Shield className="h-3 w-3" /> Paiement sécurisé par Stripe
+
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+          <Lock className="h-3 w-3" /> Paiement sécurisé par Stripe
         </p>
       </div>
     </div>
@@ -689,7 +606,7 @@ function CheckoutSheet({
           <div>
             <button
               onClick={onClose}
-              className="mb-1 ml-1 text-xs font-bold text-white/70 hover:text-white"
+              className="mb-1 ml-1 text-xs font-medium text-white/70 hover:text-white"
             >
               ← Retour
             </button>
