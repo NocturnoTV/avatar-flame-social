@@ -17,10 +17,28 @@ const config: CapacitorConfig = {
   server: {
     url: "https://bloxspark.app",
     cleartext: false,
-    // Let the WebView follow real navigations to bloxspark.app; anything
-    // else (Roblox OAuth, Stripe) is opened via @capacitor/browser instead
-    // of allowed to navigate here, see src/lib/native.ts.
-    allowNavigation: ["bloxspark.app", "*.bloxspark.app"],
+    // Roblox and Google sign-in both navigate the WebView itself to the
+    // provider's own login/consent page and back (auth.tsx's roblox()/
+    // google() use window.location, not a separate browser tab) - without
+    // explicitly allowing those origins here, Capacitor blocks the
+    // cross-origin hop and the sign-in button just spins/loops forever.
+    // Stripe checkout and admin "sign in as" links are the ones that use
+    // @capacitor/browser instead (src/lib/native.ts's openExternal), since
+    // those are meant to leave the app rather than come back into it.
+    allowNavigation: [
+      "bloxspark.app",
+      "*.bloxspark.app",
+      "accounts.google.com",
+      "*.google.com",
+      "roblox.com",
+      "*.roblox.com",
+      // Google sign-in goes through Lovable's own OAuth broker
+      // (@lovable.dev/cloud-auth-js's /~oauth/initiate) before reaching
+      // Google - these are its hardcoded supported origins.
+      "oauth.lovable.app",
+      "lovable.dev",
+      "*.lovable.dev",
+    ],
   },
   ios: {
     contentInset: "always",
