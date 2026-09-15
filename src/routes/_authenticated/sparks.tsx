@@ -44,7 +44,7 @@ type DeckProfile = {
   roblox_username: string | null;
   bio: string | null;
   language: string;
-  birth_date: string | null;
+  age: number | null;
   banner_style: string;
   avatar_url: string | null;
   verified: boolean | null;
@@ -63,7 +63,7 @@ function isOnline(lastActiveAt: string | null | undefined) {
 }
 
 function computeCompatibility(
-  me: { language: string; country: string | null; birthDate: string | null; gameNames: Set<string> },
+  me: { language: string; country: string | null; age: number | null; gameNames: Set<string> },
   profile: DeckProfile,
   profileGames: string[],
 ) {
@@ -72,8 +72,8 @@ function computeCompatibility(
   score += Math.min(shared, 3) * 12;
   if (me.country && profile.country && me.country === profile.country) score += 15;
   if (me.language && profile.language && me.language === profile.language) score += 10;
-  const myAge = ageFrom(me.birthDate);
-  const theirAge = ageFrom(profile.birth_date);
+  const myAge = me.age;
+  const theirAge = profile.age;
   if (myAge && theirAge) {
     const diff = Math.abs(myAge - theirAge);
     score += diff <= 2 ? 8 : diff <= 5 ? 4 : 0;
@@ -148,7 +148,7 @@ function SparksPage() {
       const [{ data: profile }, { data: games }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("language,country,birth_date,spark_badges")
+          .select("language,country,age,spark_badges")
           .eq("id", user!.id)
           .maybeSingle(),
         supabase.from("favorite_games").select("name").eq("user_id", user!.id),
@@ -156,7 +156,7 @@ function SparksPage() {
       return {
         language: profile?.language ?? lang,
         country: profile?.country ?? null,
-        birthDate: profile?.birth_date ?? null,
+        age: profile?.age ?? null,
         badges: profile?.spark_badges ?? [],
         gameNames: new Set((games ?? []).map((g) => g.name.toLowerCase())),
       };
@@ -767,7 +767,7 @@ function SparkCard({
   className?: string;
 }) {
   const { t, lang } = useI18n();
-  const age = ageFrom(profile.birth_date);
+  const age = profile.age;
   const [photoIndex, setPhotoIndex] = useState(0);
   const online = isOnline(profile.last_active_at);
   const badges = (profile.spark_badges ?? []).map(sparkBadge).filter(Boolean);
