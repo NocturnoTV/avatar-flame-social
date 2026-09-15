@@ -2,11 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Flame, Gift } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Check, Gift, LoaderCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 import { BloxIcon, BloxBalanceChip, useInvalidateBloxBalance } from "@/components/Blox";
 import { useConfetti } from "@/components/Confetti";
 import { questDef } from "@/lib/dailyQuests";
@@ -32,7 +32,8 @@ function RewardsPage() {
   const invalidateBalance = useInvalidateBloxBalance();
   const burst = useConfetti();
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0 });
-  const completedKeysRef = useRef<Set<string> | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const claimedKeysRef = useRef<Set<string> | null>(null);
 
   const profile = useQuery({
     queryKey: ["rewards-profile", user?.id],
@@ -65,7 +66,7 @@ function RewardsPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("user_daily_quests")
-        .select("id,quest_key,target,reward_blox,progress,completed")
+        .select("id,quest_key,target,reward_blox,progress,completed,claimed")
         .eq("user_id", user!.id)
         .eq("quest_date", today)
         .order("created_at");
@@ -87,14 +88,15 @@ function RewardsPage() {
     },
   });
 
-  // Celebrate the moment a quest flips to completed, without re-firing on
-  // every 15s poll once it's already been celebrated.
+  // Celebrate the moment a quest is actually claimed (not just completed -
+  // the Blox reward and streak only move once the player taps Claim),
+  // without re-firing on every 15s poll once it's already been celebrated.
   useEffect(() => {
     if (!quests.data) return;
-    const nowCompleted = new Set(quests.data.filter((q) => q.completed).map((q) => q.quest_key));
-    const prev = completedKeysRef.current;
+    const nowClaimed = new Set(quests.data.filter((q) => q.claimed).map((q) => q.quest_key));
+    const prev = claimedKeysRef.current;
     if (prev) {
-      for (const key of nowCompleted) {
+      for (const key of nowClaimed) {
         if (!prev.has(key)) {
           const def = questDef(key);
           const row = quests.data.find((q) => q.quest_key === key);
@@ -107,9 +109,21 @@ function RewardsPage() {
         }
       }
     }
-    completedKeysRef.current = nowCompleted;
+    claimedKeysRef.current = nowClaimed;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quests.data]);
+
+  async function claimQuest(questId: string) {
+    if (claimingId) return;
+    setClaimingId(questId);
+    const { error } = await supabase.rpc("claim_daily_quest", { _quest_id: questId });
+    setClaimingId(null);
+    if (error) {
+      toast.error(errorMessage(error, t("errorGeneric")));
+      return;
+    }
+    void quests.refetch();
+  }
 
   useEffect(() => {
     function tick() {
@@ -134,7 +148,7 @@ function RewardsPage() {
 
       <section className="mt-5 flex items-center gap-4 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent p-5">
         <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary/15 text-2xl">
-          <Flame className="h-7 w-7 text-primary" fill="currentColor" />
+          <CalendarCheck className="h-7 w-7 text-primary" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-2xl font-black">
@@ -173,14 +187,11 @@ function RewardsPage() {
                     {t(def.descriptionKey, { count: String(def.target) })}
                   </p>
                 </div>
-                <span className="flex shrink-0 items-center gap-1 text-sm font-black text-primary">
-                  {row.completed ? (
-                    <Check className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <BloxIcon className="h-4 w-4" />
-                  )}
-                  +{row.reward_blox}
-                </span>
+                {!row.completed ? (
+                  <span className="flex shrink-0 items-center gap-1 text-sm font-black text-primary">
+                    <BloxIcon className="h-4 w-4" />+{row.reward_blox}
+                  </span>
+                ) : null}
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-2">
                 <div
@@ -191,9 +202,34 @@ function RewardsPage() {
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="mt-1.5 text-right text-[11px] font-bold text-muted-foreground">
-                {Math.min(row.progress, row.target)}/{row.target}
-              </p>
+              {row.completed ? (
+                row.claimed ? (
+                  <div className="mt-3 flex items-center justify-center gap-1.5 rounded-2xl bg-emerald-500/10 py-2.5 text-sm font-black text-emerald-500">
+                    <Check className="h-4 w-4" /> {t("rewardClaimed")}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => void claimQuest(row.id)}
+                    disabled={claimingId === row.id}
+                    className="spark-gradient mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl py-2.5 text-sm font-black text-white transition active:scale-[0.98] disabled:opacity-60"
+                  >
+                    {claimingId === row.id ? (
+                      <>
+                        <LoaderCircle className="h-4 w-4 animate-spin" /> {t("claiming")}
+                      </>
+                    ) : (
+                      <>
+                        <Gift className="h-4 w-4" /> {t("claimReward")} · +{row.reward_blox}{" "}
+                        <BloxIcon className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                )
+              ) : (
+                <p className="mt-1.5 text-right text-[11px] font-bold text-muted-foreground">
+                  {Math.min(row.progress, row.target)}/{row.target}
+                </p>
+              )}
             </div>
           );
         })}
