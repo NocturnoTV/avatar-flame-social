@@ -3,19 +3,26 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import {
+  BarChart3,
+  Bookmark,
   Camera,
   Clapperboard,
   Crown,
+  Eye,
   Gamepad2,
+  Heart,
   ImagePlus,
   LoaderCircle,
+  MessageCircle,
   Pencil,
   Plus,
+  Repeat2,
   Save,
   Search,
   Settings,
   ShieldCheck,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -171,6 +178,46 @@ function ProfilePage() {
         .in("id", ids);
       const byId = new Map((vids ?? []).map((v) => [v.id, v]));
       return ids.map((id) => byId.get(id)).filter((v): v is TabVideo => Boolean(v));
+    },
+  });
+
+  // "Statistiques avancées" (Spark Plus perk) - real aggregates from the
+  // videos this account owns, not placeholder numbers. Fetched regardless
+  // of plan status (cheap) - display is what's gated.
+  const advancedStats = useQuery({
+    queryKey: ["my-advanced-stats", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [{ data: vids }, { count: followerCount }] = await Promise.all([
+        supabase
+          .from("videos")
+          .select("views_count,likes_count,comments_count,favorites_count,reposts_count")
+          .eq("user_id", user!.id),
+        supabase
+          .from("follows")
+          .select("follower_id", { count: "exact", head: true })
+          .eq("following_id", user!.id),
+      ]);
+      const totals = (vids ?? []).reduce(
+        (acc, v) => ({
+          views: acc.views + (v.views_count ?? 0),
+          likes: acc.likes + (v.likes_count ?? 0),
+          comments: acc.comments + (v.comments_count ?? 0),
+          favorites: acc.favorites + (v.favorites_count ?? 0),
+          reposts: acc.reposts + (v.reposts_count ?? 0),
+        }),
+        { views: 0, likes: 0, comments: 0, favorites: 0, reposts: 0 },
+      );
+      const engagementRate = totals.views
+        ? ((totals.likes + totals.comments + totals.favorites + totals.reposts) / totals.views) *
+          100
+        : 0;
+      return {
+        ...totals,
+        followers: followerCount ?? 0,
+        videoCount: vids?.length ?? 0,
+        engagementRate,
+      };
     },
   });
 
@@ -467,6 +514,59 @@ function ProfilePage() {
           </div>
         </div>
       ) : null}
+
+      <div className="mt-5 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="flex items-center gap-2 font-black">
+            <BarChart3 className="h-5 w-5 text-primary" /> {t("advancedStats")}
+          </p>
+          {!sparkPlusActive ? (
+            <Link
+              to="/shop"
+              className="rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white"
+            >
+              {t("discoverSparkPlus")}
+            </Link>
+          ) : null}
+        </div>
+        <div
+          className={cn(
+            "relative mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6",
+            !sparkPlusActive && "pointer-events-none select-none blur-sm",
+          )}
+        >
+          {[
+            { icon: Eye, label: t("statViews"), value: advancedStats.data?.views ?? 0 },
+            { icon: Heart, label: t("statLikes"), value: advancedStats.data?.likes ?? 0 },
+            {
+              icon: MessageCircle,
+              label: t("statComments"),
+              value: advancedStats.data?.comments ?? 0,
+            },
+            {
+              icon: Bookmark,
+              label: t("statFavorites"),
+              value: advancedStats.data?.favorites ?? 0,
+            },
+            { icon: Repeat2, label: t("statReposts"), value: advancedStats.data?.reposts ?? 0 },
+            { icon: Users, label: t("statFollowers"), value: advancedStats.data?.followers ?? 0 },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="flex flex-col items-center gap-1 rounded-2xl bg-surface p-2.5 text-center"
+            >
+              <stat.icon className="h-4 w-4 text-primary" />
+              <p className="text-sm font-black">{stat.value.toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+        {sparkPlusActive && advancedStats.data ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {t("statEngagementRate", { rate: advancedStats.data.engagementRate.toFixed(1) })}
+          </p>
+        ) : null}
+      </div>
 
       <Sheet open={editOpen} onClose={() => setEditOpen(false)} title={t("editProfile")}>
         <div className="max-h-[75vh] space-y-5 overflow-y-auto pb-2">

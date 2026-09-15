@@ -32,6 +32,7 @@ import { Button, Input, Select, Sheet, Textarea } from "@/components/ui-kit";
 import { getRobloxStatus } from "@/lib/roblox-status.functions";
 import { useI18n, type LangCode } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
+import { isSparkPlusActive } from "@/lib/sparkPlus";
 import { errorMessage, cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/support")({
@@ -755,12 +756,13 @@ function SupportPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("username,avatar_url")
+        .select("username,avatar_url,spark_plus_active,spark_plus_expires_at")
         .eq("id", user!.id)
         .maybeSingle();
       return data;
     },
   });
+  const hasPriority = isSparkPlusActive(myProfile.data);
 
   const unread = useQuery({
     queryKey: ["support-unread-notifications", user?.id],
@@ -877,6 +879,8 @@ function SupportPage() {
       description: description.trim(),
       category: ticketCategory,
       page_url: window.location.href,
+      // Spark Plus perk: priority support - jumps the queue for staff.
+      severity: hasPriority ? "high" : "medium",
     });
     setSending(false);
     if (error) {
@@ -1387,6 +1391,11 @@ function SupportPage() {
       {view === "newTicket" ? (
         <section className="mt-4 space-y-4 rounded-3xl border border-border bg-card p-5">
           <h2 className="text-lg font-black">{t("supportNewTicket")}</h2>
+          {hasPriority ? (
+            <p className="flex items-center gap-1.5 rounded-2xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary">
+              ⚡ {t("supportPriorityHint")}
+            </p>
+          ) : null}
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("supportSubject")}
@@ -1494,6 +1503,11 @@ function SupportPage() {
                     >
                       {ticketStatusLabel(ticket.status)}
                     </span>
+                    {ticket.severity === "high" || ticket.severity === "critical" ? (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        ⚡ {t("supportPriority")}
+                      </span>
+                    ) : null}
                     <span className="text-xs text-muted-foreground">
                       {CATEGORIES.find((c) => c.id === ticket.category)?.label ?? ticket.category}
                     </span>
