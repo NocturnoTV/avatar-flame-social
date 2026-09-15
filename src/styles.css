@@ -117,6 +117,13 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    /* Stops a scroll gesture inside the app's own containers from also
+       triggering the browser's own pull-to-refresh / back-swipe chrome,
+       which otherwise flashes the page background at the edges. */
+    overscroll-behavior-y: none;
   }
 
   h1,
@@ -126,6 +133,86 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--spark) 55%, transparent);
+    color: var(--color-foreground);
+  }
+
+  /* Branded focus ring instead of the browser default, but only for
+     keyboard/AT focus - :focus-visible already skips mouse/touch clicks. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /* A form field under 16px makes iOS Safari zoom the whole page in on
+     focus, which feels broken on every text input, search bar and message
+     composer in the app - force a comfortable minimum on small screens
+     without changing the desktop sizing designers picked. */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: max(16px, 1em);
+    }
+  }
+
+  /* Thin, theme-aware scrollbar for desktop/large screens - mobile keeps
+     its native overlay scrollbar untouched. */
+  @media (min-width: 1024px) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in oklab, var(--spark) 45%, transparent) transparent;
+    }
+    *::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    *::-webkit-scrollbar-thumb {
+      background-color: color-mix(in oklab, var(--spark) 45%, transparent);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    *::-webkit-scrollbar-thumb:hover {
+      background-color: color-mix(in oklab, var(--spark) 65%, transparent);
+      background-clip: padding-box;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bx-pop,
+  .bx-rise,
+  .bx-float,
+  .bx-glow,
+  .bx-shimmer,
+  .bx-spin,
+  .bx-hero-zoom,
+  .bx-page-enter {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes bx-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility bx-page-enter {
+  animation: bx-page-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @utility spark-gradient {

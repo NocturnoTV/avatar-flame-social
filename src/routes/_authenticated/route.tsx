@@ -124,7 +124,9 @@ function AppLayout() {
       <div className="app-background min-h-screen">
         <SideNav />
         <div className={cn("lg:ml-64 lg:pb-0", inConversation ? "pb-0" : "pb-24")}>
-          <Outlet />
+          <div key={pathname} className="bx-page-enter">
+            <Outlet />
+          </div>
         </div>
         {!inConversation ? <BottomNav onOpenMenu={() => setMenuOpen(true)} /> : null}
         <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
