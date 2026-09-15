@@ -1731,7 +1731,7 @@ function ReportPersonCard({
             className="max-w-full text-[11px] text-muted-foreground"
           />
           <p className="text-[10px] text-muted-foreground">
-            {profile?.birth_date ? `${ageFrom(profile.birth_date)} ans` : "Âge inconnu"}
+            {profile?.age != null ? `${profile.age} ans` : "Âge inconnu"}
           </p>
         </div>
       </div>

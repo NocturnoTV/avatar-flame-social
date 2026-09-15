@@ -63,7 +63,7 @@ function isOnline(lastActiveAt: string | null | undefined) {
 }
 
 function computeCompatibility(
-  me: { language: string; country: string | null; birthDate: string | null; gameNames: Set<string> },
+  me: { language: string; country: string | null; age: number | null; gameNames: Set<string> },
   profile: DeckProfile,
   profileGames: string[],
 ) {
