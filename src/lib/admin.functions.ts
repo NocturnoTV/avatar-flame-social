@@ -520,10 +520,10 @@ export const adminReviewDispute = createServerFn({ method: "POST" })
       if (sanction?.action === "ban") {
         await supabaseAdmin.auth.admin.updateUserById(dispute.user_id, { ban_duration: "none" });
       }
-      await supabaseAdmin
-        .from("profiles")
+      await (supabaseAdmin as any)
+        .from("profiles_private")
         .update({ moderation_status: "active", banned_until: null })
-        .eq("id", dispute.user_id);
+        .eq("user_id", dispute.user_id);
     }
 
     await supabaseAdmin.from("notifications").insert({
