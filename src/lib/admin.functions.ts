@@ -71,7 +71,7 @@ export const adminListMembers = createServerFn({ method: "GET" })
         email: canManageCredentials ? (auth?.email ?? null) : null,
         emailConfirmedAt: auth?.email_confirmed_at ?? null,
         lastSignInAt: auth?.last_sign_in_at ?? null,
-        bannedUntil: auth?.banned_until ?? (profile["banned_until"] as string | null) ?? null,
+        bannedUntil: auth?.banned_until ?? (priv?.["banned_until"] as string | null) ?? null,
         roles: rolesById.get(String(profile["id"])) ?? [],
         sparkPlusActive: Boolean(profile["spark_plus_active"]),
         sparkPlusExpiresAt: (profile["spark_plus_expires_at"] as string | null) ?? null,
