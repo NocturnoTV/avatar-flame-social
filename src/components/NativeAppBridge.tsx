@@ -1,6 +1,8 @@
 import { useEffect } from "react";
-import { isNativeApp } from "@/lib/native";
+import { isNativeApp, nativePlatform } from "@/lib/native";
 import { useTheme } from "@/lib/theme";
+import { useSession } from "@/lib/session";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Everything the iOS/Android shell needs that a normal browser tab doesn't:
@@ -12,6 +14,56 @@ import { useTheme } from "@/lib/theme";
  */
 export function NativeAppBridge() {
   const { theme } = useTheme();
+  const { user } = useSession();
+
+  // Registers this device for real OS-level push notifications (Firebase
+  // Cloud Messaging under the hood) once someone is signed in - the token
+  // Firebase hands back is meaningless without knowing which account it
+  // belongs to, so there's nothing useful to register while logged out.
+  // Re-runs (and re-upserts) on every sign-in, since Android can rotate the
+  // token and a fresh install always gets a new one.
+  useEffect(() => {
+    if (!isNativeApp() || !user) return;
+    let removeRegistration: (() => void) | undefined;
+    let removeError: (() => void) | undefined;
+    void (async () => {
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+      const permission = await PushNotifications.checkPermissions();
+      let granted = permission.receive === "granted";
+      if (permission.receive === "prompt") {
+        const requested = await PushNotifications.requestPermissions();
+        granted = requested.receive === "granted";
+      }
+      if (!granted) return;
+
+      const registrationHandle = await PushNotifications.addListener(
+        "registration",
+        (token) => {
+          void supabase.from("push_device_tokens").upsert(
+            {
+              token: token.value,
+              user_id: user.id,
+              platform: nativePlatform(),
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "token" },
+          );
+        },
+      );
+      removeRegistration = () => void registrationHandle.remove();
+
+      const errorHandle = await PushNotifications.addListener("registrationError", (err) => {
+        console.error("Push registration failed", err);
+      });
+      removeError = () => void errorHandle.remove();
+
+      await PushNotifications.register();
+    })();
+    return () => {
+      removeRegistration?.();
+      removeError?.();
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!isNativeApp()) return;

@@ -48,6 +48,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Push notifications: default small-icon/color used when a
+             notification doesn't specify its own (see PushNotifications
+             plugin docs) - the launcher icon is a fine default here. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -70,6 +77,10 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Required on Android 13+ to actually show a notification (Capacitor's
+         PushNotifications.requestPermissions() prompts for this at runtime,
+         but the permission still has to be declared here). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 </manifest>

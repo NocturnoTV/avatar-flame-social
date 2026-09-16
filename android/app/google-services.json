@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "370058696131",
+    "project_id": "bloxspark-a0e16",
+    "storage_bucket": "bloxspark-a0e16.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:370058696131:android:6d445cf509f33093465976",
+        "android_client_info": {
+          "package_name": "app.bloxspark.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANFilA9MelSa9rBJYYGkbqy63HNBuXbMA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

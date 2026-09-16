@@ -599,5 +599,11 @@ export const adminBroadcastNotification = createServerFn({ method: "POST" })
       details: `Sent to ${rows.length} members (${data.audience}): ${data.message.slice(0, 200)}`,
     });
 
+    const { sendPushToUsers } = await import("@/lib/push.server");
+    void sendPushToUsers(
+      rows.map((r) => r.user_id),
+      { title: "BloxSpark", body: data.message },
+    );
+
     return { sentTo: rows.length };
   });
