@@ -39,6 +39,7 @@ import {
   UserRound,
   Video,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -4026,25 +4027,58 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
  * broadcast, as opposed to Members > Modération's "Notifier" which targets
  * a single account. Admin-only (adminBroadcastNotification enforces this
  * server-side too), given the blast radius. */
+type BroadcastAudience = "all" | "spark_plus" | "specific";
+
 function Broadcast({ isAdmin }: { isAdmin: boolean }) {
   const [message, setMessage] = useState("");
+  const [audience, setAudience] = useState<BroadcastAudience>("all");
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<Map<string, string>>(new Map());
   const [sending, setSending] = useState(false);
   const [lastResult, setLastResult] = useState<number | null>(null);
 
+  const members = useQuery({
+    queryKey: ["admin-members-v2"],
+    queryFn: () => adminListMembers(),
+    enabled: isAdmin && audience === "specific",
+  });
+
+  const matches = (members.data ?? [])
+    .filter((m) => !selected.has(m.id))
+    .filter((m) => {
+      const q = query.trim().toLowerCase();
+      if (!q) return false;
+      return (m.username ?? "").toLowerCase().includes(q);
+    })
+    .slice(0, 8);
+
+  const audienceLabel: Record<BroadcastAudience, string> = {
+    all: "TOUS les membres de Bloxspark",
+    spark_plus: "tous les membres Spark Plus",
+    specific: `${selected.size} membre${selected.size > 1 ? "s" : ""} sélectionné${selected.size > 1 ? "s" : ""}`,
+  };
+
   async function send() {
     if (!message.trim()) return;
-    if (
-      !confirm(
-        "Envoyer ce message à TOUS les membres de Bloxspark, en tant que message Team Spark ? Cette action est irréversible.",
-      )
-    ) {
+    if (audience === "specific" && selected.size === 0) {
+      toast.error("Sélectionne au moins un membre.");
+      return;
+    }
+    if (!confirm(`Envoyer ce message à ${audienceLabel[audience]}, en tant que message Team Spark ? Cette action est irréversible.`)) {
       return;
     }
     setSending(true);
     try {
-      const result = await adminBroadcastNotification({ data: { message: message.trim() } });
+      const result = await adminBroadcastNotification({
+        data: {
+          message: message.trim(),
+          audience,
+          ...(audience === "specific" ? { userIds: [...selected.keys()] } : {}),
+        },
+      });
       setLastResult(result.sentTo);
       setMessage("");
+      setSelected(new Map());
       toast.success(`Message envoyé à ${result.sentTo} membres.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Envoi impossible");
@@ -4069,28 +4103,125 @@ function Broadcast({ isAdmin }: { isAdmin: boolean }) {
         </p>
         <h2 className="mt-1 text-2xl font-black">Annonces</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Envoie un message Team Spark à tous les membres de Bloxspark en une fois - nouvelle
-          fonctionnalité, maintenance, événement... Chaque membre le reçoit comme n'importe quel
-          autre message Team Spark, et ceux qui ont désactivé les "Annonces Bloxspark" dans leurs
-          notifications ne le reçoivent pas.
+          Envoie un message Team Spark à qui tu veux - tout le monde, seulement les Spark Plus, ou
+          des membres précis. Chaque membre le reçoit comme n'importe quel autre message Team
+          Spark, et ceux qui ont désactivé les "Annonces Bloxspark" dans leurs notifications ne le
+          reçoivent pas.
         </p>
       </div>
 
       <div className="space-y-3 rounded-3xl border border-border bg-card p-4">
+        <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+          Destinataires
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => setAudience("all")}
+            className={cn(
+              "rounded-xl border px-3 py-2 text-xs font-bold",
+              audience === "all"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            Tout le monde
+          </button>
+          <button
+            onClick={() => setAudience("spark_plus")}
+            className={cn(
+              "rounded-xl border px-3 py-2 text-xs font-bold",
+              audience === "spark_plus"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            Spark Plus
+          </button>
+          <button
+            onClick={() => setAudience("specific")}
+            className={cn(
+              "rounded-xl border px-3 py-2 text-xs font-bold",
+              audience === "specific"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            Membres précis
+          </button>
+        </div>
+
+        {audience === "specific" ? (
+          <div className="space-y-2">
+            {selected.size > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {[...selected.entries()].map(([id, username]) => (
+                  <button
+                    key={id}
+                    onClick={() =>
+                      setSelected((current) => {
+                        const next = new Map(current);
+                        next.delete(id);
+                        return next;
+                      })
+                    }
+                    className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary"
+                  >
+                    @{username} <X className="h-3 w-3" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <div className="relative">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Chercher un membre par pseudo…"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+              />
+              {members.isLoading ? (
+                <p className="mt-1 text-xs text-muted-foreground">Chargement des membres…</p>
+              ) : null}
+              {query.trim() && matches.length > 0 ? (
+                <div className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-card">
+                  {matches.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        setSelected((current) => {
+                          const next = new Map(current);
+                          next.set(m.id, m.username ?? m.id);
+                          return next;
+                        });
+                        setQuery("");
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-surface-2"
+                    >
+                      @{m.username ?? "inconnu"}
+                      {m.sparkPlusActive ? (
+                        <span className="text-[10px] font-bold text-primary">Spark+</span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <Textarea
           value={message}
           onChange={(e) => setMessage(e.target.value.slice(0, 500))}
           rows={5}
-          placeholder="Écris le message qui apparaîtra dans Team Spark pour tout le monde…"
+          placeholder="Écris le message qui apparaîtra dans Team Spark…"
         />
         <p className="text-right text-xs text-muted-foreground">{message.length}/500</p>
         <Button
           className="w-full"
-          disabled={sending || !message.trim()}
+          disabled={sending || !message.trim() || (audience === "specific" && selected.size === 0)}
           onClick={() => void send()}
         >
           <Send className="mr-1 h-4 w-4" />
-          {sending ? "Envoi en cours…" : "Envoyer à tous les membres"}
+          {sending ? "Envoi en cours…" : `Envoyer à ${audienceLabel[audience]}`}
         </Button>
         {lastResult !== null ? (
           <p className="text-center text-xs text-muted-foreground">

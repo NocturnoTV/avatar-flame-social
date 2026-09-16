@@ -547,15 +547,19 @@ export const adminReviewDispute = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const broadcastSchema = z.object({ message: z.string().trim().min(1).max(500) });
+const broadcastSchema = z.object({
+  message: z.string().trim().min(1).max(500),
+  audience: z.enum(["all", "spark_plus", "specific"]).default("all"),
+  userIds: z.array(z.string().uuid()).max(500).optional(),
+});
 
 /**
- * Sends one "system" (Team Spark) notification to every member at once -
- * admin-only, since it reaches the whole user base in one call. Reuses the
- * exact same notifications row shape as every individual Team Spark message
- * this session (localizeTeamSparkBody in messages.$id.tsx renders a raw,
- * non-marker body as-is when it doesn't match a known marker prefix), and
- * still goes through enforce_notification_preferences per recipient - a
+ * Sends one "system" (Team Spark) notification to a chosen audience at once
+ * - admin-only, since "all" reaches the whole user base in one call. Reuses
+ * the exact same notifications row shape as every individual Team Spark
+ * message this session (localizeTeamSparkBody in messages.$id.tsx renders a
+ * raw, non-marker body as-is when it doesn't match a known marker prefix),
+ * and still goes through enforce_notification_preferences per recipient - a
  * member who opted out of "Bloxspark announcements" simply never gets a row
  * inserted for them, same as any other notification kind.
  */
@@ -565,7 +569,14 @@ export const adminBroadcastNotification = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await requireStaff(context.userId, true);
 
-    const { data: profiles, error } = await supabaseAdmin.from("profiles").select("id");
+    let query = supabaseAdmin.from("profiles").select("id");
+    if (data.audience === "spark_plus") {
+      query = query.eq("spark_plus_active", true);
+    } else if (data.audience === "specific") {
+      if (!data.userIds?.length) throw new Error("no_recipients_selected");
+      query = query.in("id", data.userIds);
+    }
+    const { data: profiles, error } = await query;
     if (error) throw error;
 
     const rows = (profiles ?? []).map((p) => ({
@@ -585,7 +596,7 @@ export const adminBroadcastNotification = createServerFn({ method: "POST" })
     await supabaseAdmin.from("admin_audit_log").insert({
       admin_id: context.userId,
       action: "broadcast_notification",
-      details: `Sent to ${rows.length} members: ${data.message.slice(0, 200)}`,
+      details: `Sent to ${rows.length} members (${data.audience}): ${data.message.slice(0, 200)}`,
     });
 
     return { sentTo: rows.length };
