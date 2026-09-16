@@ -378,6 +378,12 @@ function Analytics() {
               value={data.monetization.packPurchaseCount}
               icon={Coins}
             />
+            <StatCard
+              label="Rewarded ads watched"
+              value={data.monetization.adRewardClaimCount}
+              icon={PlayCircle}
+              hint="All-time, 10 Blox each"
+            />
           </div>
           <div className="rounded-3xl border border-border bg-card p-4">
             <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">

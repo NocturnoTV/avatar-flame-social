@@ -125,6 +125,7 @@ export const adminAnalytics = createServerFn({ method: "GET" })
       bloxByKind[row.kind] = (bloxByKind[row.kind] ?? 0) + row.amount;
     }
     const packPurchaseCount = bloxRows.filter((r) => r.kind === "purchase" && r.amount > 0).length;
+    const adRewardClaimCount = bloxRows.filter((r) => r.kind === "ad_reward").length;
 
     const activeSubs = (subs.data ?? []).filter((s) => ["active", "trialing"].includes(s.status));
     const estimatedMrr = Math.round(activeSubs.length * 4.99 * 100) / 100;
@@ -155,6 +156,7 @@ export const adminAnalytics = createServerFn({ method: "GET" })
         ),
         bloxByKind,
         packPurchaseCount,
+        adRewardClaimCount,
       },
       retention: {
         day1Retention,
