@@ -355,9 +355,9 @@ export const adminManageMember = createServerFn({ method: "POST" })
       });
       if (error) throw error;
       await db
-        .from("profiles")
+        .from("profiles_private")
         .update({ moderation_status: "active", banned_until: null })
-        .eq("id", data.userId);
+        .eq("user_id", data.userId);
       await db.from("moderation_sanctions").insert({
         user_id: data.userId,
         action: "unban",
