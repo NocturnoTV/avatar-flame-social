@@ -279,8 +279,8 @@ function SettingsPage() {
     enabled: !!user,
   });
 
-  const notif = (profile.data?.notification_prefs ?? {}) as Partial<NotifPrefs>;
-  const privacy = (profile.data?.privacy_prefs ?? {}) as Partial<PrivacyPrefs>;
+  const notif = (prefsQuery.data?.notification_prefs ?? {}) as Partial<NotifPrefs>;
+  const privacy = (prefsQuery.data?.privacy_prefs ?? {}) as Partial<PrivacyPrefs>;
 
   const changedAt = profile.data?.username_changed_at
     ? new Date(profile.data.username_changed_at).getTime()
