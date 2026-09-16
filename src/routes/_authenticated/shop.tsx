@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   Award,
@@ -601,7 +602,10 @@ function PurchaseConfirmSheet({
   const priceEur = isPack ? stage.pack.priceEur : 4.99;
   const priceLabel = `${priceEur.toLocaleString(lang, { minimumFractionDigits: 2 })} €${isPack ? "" : ` /mois`}`;
 
-  return (
+  // Portaled straight to <body> - some Android WebViews mis-render "fixed"
+  // nested deep in a tall/scrollable ancestor, showing it mid-page or at
+  // the very bottom instead of pinned to the screen.
+  return createPortal(
     <div
       className="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onCancel}
@@ -650,7 +654,8 @@ function PurchaseConfirmSheet({
           <Lock className="h-3 w-3" /> Paiement sécurisé par Stripe
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -661,7 +666,8 @@ function CheckoutSheet({
   stage: NonNullable<CheckoutStage>;
   onClose: () => void;
 }) {
-  return (
+  // Portaled straight to <body> - see PurchaseConfirmSheet above.
+  return createPortal(
     <div
       className="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
@@ -686,6 +692,7 @@ function CheckoutSheet({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 export function Button({
@@ -100,7 +101,11 @@ export function Sheet({
   center?: boolean;
 }) {
   if (!open) return null;
-  return (
+  // Portaled straight to <body> - rendered inline, this would sit wherever
+  // its caller happens to be in the page (some Android WebViews mis-render
+  // "fixed" inside a tall/scrollable ancestor), showing up mid-page or at
+  // the very bottom instead of pinned to the screen.
+  return createPortal(
     <div
       className={cn(
         "fixed inset-0 z-50 flex justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4",
@@ -112,6 +117,7 @@ export function Sheet({
         {title ? <h2 className="mb-4 text-lg font-bold">{title}</h2> : null}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

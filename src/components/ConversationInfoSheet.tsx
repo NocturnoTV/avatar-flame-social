@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -385,7 +386,10 @@ export function ConversationInfoSheet({
     setReporting(false);
   }
 
-  return (
+  // Portaled straight to <body> - some Android WebViews mis-render a
+  // "fixed" element nested deep in a tall/scrollable ancestor, showing it
+  // mid-page or at the very bottom instead of pinned to the screen.
+  return createPortal(
     <div
       className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 sm:items-center"
       onClick={onClose}
@@ -834,7 +838,8 @@ export function ConversationInfoSheet({
           />
         </div>
       ) : null}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -917,7 +922,7 @@ function Toggle({
  * storage path, not re-uploaded into the conversation). */
 function MediaLightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
   const url = useSignedUrl(item.playPath);
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[95] grid place-items-center bg-black/95 p-4" onClick={onClose}>
       <button
         onClick={onClose}
@@ -947,6 +952,7 @@ function MediaLightbox({ item, onClose }: { item: MediaItem; onClose: () => void
       ) : (
         <LoaderCircle className="h-8 w-8 animate-spin text-white/60" />
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
