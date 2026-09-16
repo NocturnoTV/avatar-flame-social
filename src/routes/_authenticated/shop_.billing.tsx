@@ -887,7 +887,7 @@ function BillingPage() {
       ) : null}
 
       {subscribing ? (
-        <Sheet open onClose={() => setSubscribing(false)} title={t("subscribeSparkPlus")}>
+        <Sheet open center onClose={() => setSubscribing(false)} title={t("subscribeSparkPlus")}>
           <button
             onClick={() => setSubscribing(false)}
             aria-label={t("cancel")}

@@ -603,11 +603,11 @@ function PurchaseConfirmSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-t-2xl border border-border bg-card p-6 text-foreground sm:rounded-2xl"
+        className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-foreground"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -663,7 +663,7 @@ function CheckoutSheet({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div

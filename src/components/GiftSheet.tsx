@@ -147,7 +147,7 @@ export function GiftSheet({
 
   if (buyingPack) {
     return (
-      <Sheet open onClose={onClose} title={t("giftBlox")}>
+      <Sheet open center onClose={onClose} title={t("giftBlox")}>
         <BloxPackCheckout
           lookupKey={buyingPack}
           recipientId={targetUserId}
@@ -161,7 +161,7 @@ export function GiftSheet({
 
   if (giftingPlus) {
     return (
-      <Sheet open onClose={onClose} title={t("giftSparkPlus")}>
+      <Sheet open center onClose={onClose} title={t("giftSparkPlus")}>
         <SparkPlusGiftCheckout
           recipientId={targetUserId}
           {...(conversationId ? { conversationId } : {})}

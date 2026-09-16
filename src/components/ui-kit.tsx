@@ -88,15 +88,25 @@ export function Sheet({
   onClose,
   title,
   children,
+  center,
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /** Always centered on screen instead of anchored to the bottom on mobile -
+   * use for content someone needs to act on right away (e.g. payment forms),
+   * where scrolling down to find it would be confusing. */
+  center?: boolean;
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4",
+        center ? "items-center p-4" : "items-end",
+      )}
+    >
       <button aria-label="close" className="absolute inset-0 cursor-default" onClick={onClose} />
       <div className="relative z-10 max-h-[85vh] w-full overflow-y-auto rounded-t-3xl border border-border bg-card p-5 sm:max-w-md sm:rounded-3xl">
         {title ? <h2 className="mb-4 text-lg font-bold">{title}</h2> : null}
