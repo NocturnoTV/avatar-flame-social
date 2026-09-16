@@ -697,6 +697,18 @@ const WIZARD_TOTAL_STEPS = 5;
 function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
   const { t } = useI18n();
   const { user } = useSession();
+  const pendingVideo = useQuery({
+    queryKey: ["has-pending-video", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("videos")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user!.id)
+        .eq("moderation_status", "pending");
+      return (count ?? 0) > 0;
+    },
+  });
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [file, setFile] = useState<File | null>(null);
   const [editedBlob, setEditedBlob] = useState<Blob | null>(null);
@@ -783,11 +795,30 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
       }
       onDone();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("studioPublishFailed"));
+      if (error instanceof Error && error.message.includes("pending_video_exists")) {
+        toast.error(t("studioPendingVideoBlocked"));
+      } else {
+        toast.error(error instanceof Error ? error.message : t("studioPublishFailed"));
+      }
     } finally {
       setBusy(false);
     }
   }
+
+  if (pendingVideo.data) {
+    return (
+      <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/65 backdrop-blur-sm sm:items-center sm:p-5">
+        <div className="bx-pop w-full max-w-md rounded-t-[32px] border border-border bg-background p-6 text-center sm:rounded-[32px]">
+          <p className="text-lg font-black">{t("studioPendingVideoBlockedTitle")}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("studioPendingVideoBlocked")}</p>
+          <Button className="mt-5 w-full" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/65 backdrop-blur-sm sm:items-center sm:p-5">
       <div className="bx-pop flex max-h-[94dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[32px] border border-border bg-background sm:rounded-[32px]">

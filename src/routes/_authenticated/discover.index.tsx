@@ -169,6 +169,7 @@ function DiscoverPage() {
           )
           .eq("user_id", user!.id)
           .eq("visibility", "public")
+          .eq("moderation_status", "approved")
           .order("created_at", { ascending: false })
           .limit(12);
         if (ownVideosError) throw ownVideosError;
@@ -185,6 +186,7 @@ function DiscoverPage() {
             "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
           )
           .eq("visibility", "public")
+          .eq("moderation_status", "approved")
           .in("user_id", ids)
           .order("created_at", { ascending: false })
           .limit(30);
@@ -201,6 +203,7 @@ function DiscoverPage() {
             "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
           )
           .eq("id", pinnedVideoId)
+          .eq("moderation_status", "approved")
           .maybeSingle();
         if (pinned) videos = [pinned as VideoRow, ...videos];
       } else if (pinnedVideoId) {
@@ -278,6 +281,7 @@ function DiscoverPage() {
             "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
           )
           .eq("visibility", "public")
+          .eq("moderation_status", "approved")
           .ilike("caption", `%${query}%`)
           .order("views_count", { ascending: false })
           .limit(12),

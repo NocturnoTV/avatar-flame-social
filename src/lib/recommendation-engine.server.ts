@@ -266,6 +266,7 @@ export async function getCandidateVideos(userId: string): Promise<Candidate[]> {
         .select(VIDEO_COLUMNS)
         .in("user_id", followingIds)
         .in("visibility", ["public", "sparks"])
+        .eq("moderation_status", "approved")
         .order("created_at", { ascending: false })
         .limit(60)
         .then((r) => ({ rows: r.data ?? [], source: "following" as const })),
@@ -294,6 +295,7 @@ export async function getCandidateVideos(userId: string): Promise<Candidate[]> {
       .from("videos")
       .select(VIDEO_COLUMNS)
       .eq("visibility", "public")
+      .eq("moderation_status", "approved")
       .gte("created_at", sevenDaysAgo)
       .order("views_count", { ascending: false })
       .limit(60)
@@ -306,6 +308,7 @@ export async function getCandidateVideos(userId: string): Promise<Candidate[]> {
       .from("videos")
       .select(VIDEO_COLUMNS)
       .eq("visibility", "public")
+      .eq("moderation_status", "approved")
       .gte("created_at", twoDaysAgo)
       .order("created_at", { ascending: false })
       .limit(40)
@@ -318,6 +321,7 @@ export async function getCandidateVideos(userId: string): Promise<Candidate[]> {
       .from("videos")
       .select(VIDEO_COLUMNS)
       .eq("visibility", "public")
+      .eq("moderation_status", "approved")
       .order("created_at", { ascending: false })
       .limit(200)
       .then((r) => ({ rows: r.data ?? [], source: "exploration" as const })),

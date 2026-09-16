@@ -330,6 +330,9 @@ const en: Dict = {
   studioVideoPublished: "Video published 🎉",
   studioFirstVideoPendingNotice:
     "Your account is new and this is your first video: it will be analyzed by AI and then manually reviewed by moderation. This process can take up to 24h in rare cases.",
+  studioPendingVideoBlockedTitle: "Video pending review",
+  studioPendingVideoBlocked:
+    "One of your videos is still pending review. You can't publish a new video until it's approved or rejected.",
   notifVideoPendingReview:
     "Your first video is pending review 🎬 First by AI, then manually by our team (can take up to 24h).",
   notifVideoApproved: "Your video was approved and is now live 🎉",
@@ -1276,6 +1279,9 @@ const fr: Dict = {
   studioVideoPublished: "Vidéo publiée 🎉",
   studioFirstVideoPendingNotice:
     "Ton compte est récent et c'est ta première vidéo : elle va être analysée par une IA puis vérifiée manuellement par la modération. Ce processus peut prendre jusqu'à 24h dans de rares cas.",
+  studioPendingVideoBlockedTitle: "Vidéo en attente de vérification",
+  studioPendingVideoBlocked:
+    "Une de tes vidéos est encore en attente de vérification. Tu ne peux pas publier de nouvelle vidéo tant qu'elle n'a pas été approuvée ou refusée.",
   notifVideoPendingReview:
     "Ta première vidéo est en attente de validation 🎬 Elle va être analysée par une IA puis manuellement par notre équipe (jusqu'à 24h dans de rares cas).",
   notifVideoApproved: "Ta vidéo a été validée et est maintenant en ligne 🎉",
@@ -2229,6 +2235,9 @@ const es: Dict = {
   studioVideoPublished: "¡Vídeo publicado! 🎉",
   studioFirstVideoPendingNotice:
     "Tu cuenta es reciente y este es tu primer vídeo: será analizado por una IA y luego revisado manualmente por moderación. Este proceso puede tardar hasta 24h en casos excepcionales.",
+  studioPendingVideoBlockedTitle: "Vídeo en revisión",
+  studioPendingVideoBlocked:
+    "Uno de tus vídeos todavía está en revisión. No puedes publicar un vídeo nuevo hasta que sea aprobado o rechazado.",
   notifVideoPendingReview:
     "Tu primer vídeo está en revisión 🎬 Primero por IA, luego manualmente por nuestro equipo (puede tardar hasta 24h).",
   notifVideoApproved: "Tu vídeo fue aprobado y ya está publicado 🎉",
@@ -3179,6 +3188,9 @@ const pt: Dict = {
   studioVideoPublished: "Vídeo publicado 🎉",
   studioFirstVideoPendingNotice:
     "Sua conta é recente e este é seu primeiro vídeo: ele será analisado por uma IA e depois verificado manualmente pela moderação. Esse processo pode levar até 24h em casos raros.",
+  studioPendingVideoBlockedTitle: "Vídeo em análise",
+  studioPendingVideoBlocked:
+    "Um dos seus vídeos ainda está em análise. Você não pode publicar um novo vídeo até que ele seja aprovado ou recusado.",
   notifVideoPendingReview:
     "Seu primeiro vídeo está em análise 🎬 Primeiro por IA, depois manualmente pela nossa equipe (pode levar até 24h).",
   notifVideoApproved: "Seu vídeo foi aprovado e já está no ar 🎉",
@@ -4128,6 +4140,9 @@ const de: Dict = {
   studioVideoPublished: "Video veröffentlicht 🎉",
   studioFirstVideoPendingNotice:
     "Dein Konto ist neu und das ist dein erstes Video: Es wird zuerst von einer KI und danach manuell von der Moderation geprüft. Das kann in seltenen Fällen bis zu 24 Stunden dauern.",
+  studioPendingVideoBlockedTitle: "Video wird noch geprüft",
+  studioPendingVideoBlocked:
+    "Eines deiner Videos wird noch geprüft. Du kannst kein neues Video hochladen, bis es angenommen oder abgelehnt wurde.",
   notifVideoPendingReview:
     "Dein erstes Video wird geprüft 🎬 Erst durch eine KI, dann manuell von unserem Team (kann bis zu 24h dauern).",
   notifVideoApproved: "Dein Video wurde freigegeben und ist jetzt live 🎉",
@@ -5082,6 +5097,9 @@ const ko: Dict = {
   studioVideoPublished: "동영상이 게시되었어요 🎉",
   studioFirstVideoPendingNotice:
     "계정이 새로 생성되어 이번이 첫 동영상이에요. AI가 먼저 분석하고 이후 운영팀이 직접 검토합니다. 이 과정은 드물게 최대 24시간이 걸릴 수 있어요.",
+  studioPendingVideoBlockedTitle: "동영상 검토 대기 중",
+  studioPendingVideoBlocked:
+    "동영상 하나가 아직 검토 대기 중이에요. 승인되거나 거부될 때까지 새 동영상을 올릴 수 없어요.",
   notifVideoPendingReview:
     "첫 동영상이 검토 대기 중이에요 🎬 AI 분석 후 운영팀이 직접 확인합니다 (최대 24시간 소요될 수 있어요).",
   notifVideoApproved: "동영상이 승인되어 게시되었어요 🎉",

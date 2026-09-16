@@ -308,6 +308,7 @@ function HomePage() {
         .from("videos")
         .select("id,caption,storage_path,views_count,likes_count")
         .eq("visibility", "public")
+        .eq("moderation_status", "approved")
         .order("views_count", { ascending: false })
         .limit(6);
       return data ?? [];
