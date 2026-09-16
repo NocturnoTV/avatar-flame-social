@@ -26,6 +26,7 @@ import {
   MapPin,
   MessagesSquare,
   Newspaper,
+  PlayCircle,
   Plus,
   Repeat,
   ScrollText,
@@ -73,7 +74,7 @@ import {
   adminSuspiciousActivity,
 } from "@/lib/admin-insights.functions";
 import { ageFrom } from "@/lib/decorations";
-import { uploadFile } from "@/lib/media";
+import { uploadFile, signedUrl } from "@/lib/media";
 import { NEWS_CATEGORIES, slugify } from "@/lib/newsCategories";
 import { staffReplyToTicket } from "@/lib/support-tickets.functions";
 
@@ -3033,12 +3034,48 @@ function SuspiciousActivity({ log }: { log: LogFn }) {
   );
 }
 
+/** Signs and plays a stored video so staff can actually watch it, instead
+ *  of judging it from a thumbnail + caption alone. */
+function AdminVideoPlayer({ storagePath }: { storagePath: string | null }) {
+  const url = useQuery({
+    queryKey: ["admin-video-signed-url", storagePath],
+    queryFn: () => signedUrl(storagePath),
+    enabled: !!storagePath,
+  });
+
+  if (url.isLoading) {
+    return (
+      <div className="grid h-48 place-items-center rounded-2xl bg-surface text-xs text-muted-foreground">
+        Chargement de la vidéo…
+      </div>
+    );
+  }
+  if (!url.data) {
+    return (
+      <div className="grid h-48 place-items-center rounded-2xl bg-surface text-xs text-muted-foreground">
+        Impossible de charger la vidéo.
+      </div>
+    );
+  }
+  return (
+    <video
+      src={url.data}
+      controls
+      playsInline
+      className="max-h-[70vh] w-full rounded-2xl bg-black"
+    />
+  );
+}
+
 /** First videos from a brand-new account are held for review (see the
  *  enforce_first_video_moderation DB trigger) - this is where staff clears
  *  the queue. Approving/rejecting fires the second Team Spark message via
  *  the same adminManageMember action used for every other moderation tool. */
 function PendingVideosReview() {
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [watching, setWatching] = useState<{ id: string; storage_path: string; caption: string | null } | null>(
+    null,
+  );
 
   const pending = useQuery({
     queryKey: ["admin-pending-videos"],
@@ -3111,6 +3148,9 @@ function PendingVideosReview() {
                 </div>
               </div>
               <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setWatching(v)}>
+                  <PlayCircle className="mr-1 h-3.5 w-3.5" /> Voir
+                </Button>
                 <Button
                   size="sm"
                   disabled={busyId === v.id}
@@ -3133,6 +3173,10 @@ function PendingVideosReview() {
           ))}
         </div>
       )}
+
+      <Sheet open={!!watching} onClose={() => setWatching(null)} title={watching?.caption || "Vidéo"}>
+        {watching ? <AdminVideoPlayer storagePath={watching.storage_path} /> : null}
+      </Sheet>
     </div>
   );
 }
@@ -3269,6 +3313,7 @@ function Content() {
             <p className="text-xs text-muted-foreground">
               Created {new Date(video.created_at).toLocaleString()}
             </p>
+            <AdminVideoPlayer storagePath={video.storage_path} />
           </div>
         ) : null}
       </Sheet>

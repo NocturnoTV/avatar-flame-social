@@ -120,11 +120,15 @@ function AppLayout() {
   // use the full viewport height instead of the space normally reserved for
   // the floating pill nav.
   const inConversation = pathname.startsWith("/messages/");
+  // Discover manages its own bottom-nav clearance (it needs a precise
+  // viewport-height video, not padding), so give it the same treatment as a
+  // conversation instead of double-reserving space with pb-24 on top of it.
+  const managesOwnNavSpace = inConversation || pathname === "/discover";
   return (
     <CallProvider>
       <div className="app-background min-h-screen">
         <SideNav />
-        <div className={cn("lg:ml-64 lg:pb-0", inConversation ? "pb-0" : "pb-24")}>
+        <div className={cn("lg:ml-64 lg:pb-0", managesOwnNavSpace ? "pb-0" : "pb-24")}>
           <div key={pathname} className="bx-page-enter">
             <Outlet />
           </div>

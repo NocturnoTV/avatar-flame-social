@@ -315,7 +315,7 @@ function DiscoverPage() {
     : videos;
 
   return (
-    <div className="relative h-[calc(100dvh-5.75rem)] w-full overflow-hidden bg-background lg:h-dvh">
+    <div className="relative h-[calc(100dvh-6.5rem-env(safe-area-inset-bottom))] w-full overflow-hidden bg-background lg:h-dvh">
       {/* top bar - style TikTok : onglets centrés, actions à droite */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 via-black/25 to-transparent px-3 pb-8 pt-3">
         <div className="pointer-events-auto flex w-20 items-center gap-1">
@@ -673,6 +673,7 @@ function VideoSlide({
   const { t } = useI18n();
   const qc = useQueryClient();
   const url = useSignedUrl(video.storage_path);
+  const posterUrl = useSignedUrl(video.thumbnail_path);
   const ref = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -932,6 +933,7 @@ function VideoSlide({
           <video
             ref={ref}
             src={url}
+            poster={posterUrl || undefined}
             autoPlay
             loop={!autoScroll}
             playsInline
