@@ -2158,7 +2158,6 @@ export type Database = {
           accent_color: string
           age: number | null
           avatar_url: string | null
-          banned_until: string | null
           banner_style: string
           banner_url: string | null
           banner_video_url: string | null
@@ -2173,11 +2172,7 @@ export type Database = {
           language: string
           last_active_at: string
           link_url: string | null
-          moderation_note: string | null
-          moderation_status: string
-          notification_prefs: Json
           onboarding_completed: boolean
-          privacy_prefs: Json
           profile_font: string
           profile_glow: string
           roblox_avatar_url: string | null
@@ -2199,7 +2194,6 @@ export type Database = {
           username_changed_at: string | null
           verified: boolean
           verified_at: string | null
-          warning_count: number
           watch_history_enabled: boolean
           welcomed_at: string | null
         }
@@ -2207,7 +2201,6 @@ export type Database = {
           accent_color?: string
           age?: number | null
           avatar_url?: string | null
-          banned_until?: string | null
           banner_style?: string
           banner_url?: string | null
           banner_video_url?: string | null
@@ -2222,11 +2215,7 @@ export type Database = {
           language?: string
           last_active_at?: string
           link_url?: string | null
-          moderation_note?: string | null
-          moderation_status?: string
-          notification_prefs?: Json
           onboarding_completed?: boolean
-          privacy_prefs?: Json
           profile_font?: string
           profile_glow?: string
           roblox_avatar_url?: string | null
@@ -2248,7 +2237,6 @@ export type Database = {
           username_changed_at?: string | null
           verified?: boolean
           verified_at?: string | null
-          warning_count?: number
           watch_history_enabled?: boolean
           welcomed_at?: string | null
         }
@@ -2256,7 +2244,6 @@ export type Database = {
           accent_color?: string
           age?: number | null
           avatar_url?: string | null
-          banned_until?: string | null
           banner_style?: string
           banner_url?: string | null
           banner_video_url?: string | null
@@ -2271,11 +2258,7 @@ export type Database = {
           language?: string
           last_active_at?: string
           link_url?: string | null
-          moderation_note?: string | null
-          moderation_status?: string
-          notification_prefs?: Json
           onboarding_completed?: boolean
-          privacy_prefs?: Json
           profile_font?: string
           profile_glow?: string
           roblox_avatar_url?: string | null
@@ -2297,7 +2280,6 @@ export type Database = {
           username_changed_at?: string | null
           verified?: boolean
           verified_at?: string | null
-          warning_count?: number
           watch_history_enabled?: boolean
           welcomed_at?: string | null
         }
@@ -2305,31 +2287,49 @@ export type Database = {
       }
       profiles_private: {
         Row: {
+          banned_until: string | null
           birth_date: string | null
           created_at: string
+          moderation_note: string | null
+          moderation_status: string
+          notification_prefs: Json
           parent_email: string | null
           parent_name: string | null
           parental_consent: boolean
+          privacy_prefs: Json
           updated_at: string
           user_id: string
+          warning_count: number
         }
         Insert: {
+          banned_until?: string | null
           birth_date?: string | null
           created_at?: string
+          moderation_note?: string | null
+          moderation_status?: string
+          notification_prefs?: Json
           parent_email?: string | null
           parent_name?: string | null
           parental_consent?: boolean
+          privacy_prefs?: Json
           updated_at?: string
           user_id: string
+          warning_count?: number
         }
         Update: {
+          banned_until?: string | null
           birth_date?: string | null
           created_at?: string
+          moderation_note?: string | null
+          moderation_status?: string
+          notification_prefs?: Json
           parent_email?: string | null
           parent_name?: string | null
           parental_consent?: boolean
+          privacy_prefs?: Json
           updated_at?: string
           user_id?: string
+          warning_count?: number
         }
         Relationships: [
           {
@@ -3635,7 +3635,6 @@ export type Database = {
           accent_color: string
           age: number | null
           avatar_url: string | null
-          banned_until: string | null
           banner_style: string
           banner_url: string | null
           banner_video_url: string | null
@@ -3650,11 +3649,7 @@ export type Database = {
           language: string
           last_active_at: string
           link_url: string | null
-          moderation_note: string | null
-          moderation_status: string
-          notification_prefs: Json
           onboarding_completed: boolean
-          privacy_prefs: Json
           profile_font: string
           profile_glow: string
           roblox_avatar_url: string | null
@@ -3676,7 +3671,6 @@ export type Database = {
           username_changed_at: string | null
           verified: boolean
           verified_at: string | null
-          warning_count: number
           watch_history_enabled: boolean
           welcomed_at: string | null
         }[]
