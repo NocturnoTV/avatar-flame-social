@@ -289,18 +289,21 @@ export const adminManageMember = createServerFn({ method: "POST" })
     if (data.action === "warn") {
       if (!value) throw new Error("warning_required");
       const { data: profile } = await db
-        .from("profiles")
+        .from("profiles_private")
         .select("warning_count")
-        .eq("id", data.userId)
-        .single();
+        .eq("user_id", data.userId)
+        .maybeSingle();
       await db
-        .from("profiles")
-        .update({
-          moderation_status: "warned",
-          warning_count: Number(profile?.warning_count ?? 0) + 1,
-          moderation_note: value,
-        })
-        .eq("id", data.userId);
+        .from("profiles_private")
+        .upsert(
+          {
+            user_id: data.userId,
+            moderation_status: "warned",
+            warning_count: Number(profile?.warning_count ?? 0) + 1,
+            moderation_note: value,
+          },
+          { onConflict: "user_id" },
+        );
       await db.from("moderation_sanctions").insert({
         user_id: data.userId,
         action: "warn",
