@@ -236,7 +236,7 @@ function SettingsPage() {
       const { data } = await supabase
         .from("profiles")
         .select(
-          "username,roblox_username,roblox_user_id,roblox_display_name,roblox_avatar_url,roblox_connected_at,roblox_synced_at,username_changed_at,language,theme,notification_prefs,privacy_prefs,deletion_requested_at,verified,show_online_status,dnd",
+          "username,roblox_username,roblox_user_id,roblox_display_name,roblox_avatar_url,roblox_connected_at,roblox_synced_at,username_changed_at,language,theme,deletion_requested_at,verified,show_online_status,dnd",
         )
         .eq("id", user?.id ?? "")
         .maybeSingle();
@@ -244,6 +244,19 @@ function SettingsPage() {
       return data;
     },
     enabled: !!user,
+  });
+
+  const prefsQuery = useQuery({
+    queryKey: ["settings-prefs"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles_private")
+        .select("notification_prefs,privacy_prefs")
+        .eq("user_id", user?.id ?? "")
+        .maybeSingle();
+      return data;
+    },
   });
 
   useEffect(() => {
@@ -279,8 +292,8 @@ function SettingsPage() {
     enabled: !!user,
   });
 
-  const notif = (profile.data?.notification_prefs ?? {}) as Partial<NotifPrefs>;
-  const privacy = (profile.data?.privacy_prefs ?? {}) as Partial<PrivacyPrefs>;
+  const notif = (prefsQuery.data?.notification_prefs ?? {}) as Partial<NotifPrefs>;
+  const privacy = (prefsQuery.data?.privacy_prefs ?? {}) as Partial<PrivacyPrefs>;
 
   const changedAt = profile.data?.username_changed_at
     ? new Date(profile.data.username_changed_at).getTime()
@@ -303,11 +316,23 @@ function SettingsPage() {
     void profile.refetch();
   }
 
+  async function patchPrefs(values: Record<string, unknown>) {
+    if (!user) return;
+    const { error } = await supabase
+      .from("profiles_private")
+      .upsert({ user_id: user.id, ...values } as never, { onConflict: "user_id" });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    void prefsQuery.refetch();
+  }
+
   function setNotif(key: keyof NotifPrefs, value: boolean) {
-    void patch({ notification_prefs: { ...notif, [key]: value } });
+    void patchPrefs({ notification_prefs: { ...notif, [key]: value } });
   }
   function setPrivacy(key: keyof PrivacyPrefs, value: boolean | string) {
-    void patch({ privacy_prefs: { ...privacy, [key]: value } });
+    void patchPrefs({ privacy_prefs: { ...privacy, [key]: value } });
   }
 
   async function saveUsername() {

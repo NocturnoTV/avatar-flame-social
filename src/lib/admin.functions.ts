@@ -31,7 +31,7 @@ export const adminListMembers = createServerFn({ method: "GET" })
         (supabaseAdmin as any)
           .from("profiles")
           .select(
-            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,moderation_status,warning_count,banned_until,moderation_note,spark_plus_active,spark_plus_expires_at,age,blox_balance,profiles_private(birth_date,parent_name,parent_email,parental_consent)",
+            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,spark_plus_active,spark_plus_expires_at,age,blox_balance,profiles_private(birth_date,parent_name,parent_email,parental_consent,moderation_status,warning_count,banned_until,moderation_note)",
           )
           .order("created_at", { ascending: false }),
         supabaseAdmin.from("user_roles").select("user_id,role"),
@@ -65,13 +65,13 @@ export const adminListMembers = createServerFn({ method: "GET" })
         onboarding_completed: Boolean(profile["onboarding_completed"]),
         created_at: String(profile["created_at"] ?? ""),
         last_active_at: (profile["last_active_at"] as string | null) ?? null,
-        moderation_status: String(profile["moderation_status"] ?? "active"),
-        warning_count: Number(profile["warning_count"] ?? 0),
-        moderation_note: (profile["moderation_note"] as string | null) ?? null,
+        moderation_status: String(priv?.["moderation_status"] ?? "active"),
+        warning_count: Number(priv?.["warning_count"] ?? 0),
+        moderation_note: (priv?.["moderation_note"] as string | null) ?? null,
         email: canManageCredentials ? (auth?.email ?? null) : null,
         emailConfirmedAt: auth?.email_confirmed_at ?? null,
         lastSignInAt: auth?.last_sign_in_at ?? null,
-        bannedUntil: auth?.banned_until ?? (profile["banned_until"] as string | null) ?? null,
+        bannedUntil: auth?.banned_until ?? (priv?.["banned_until"] as string | null) ?? null,
         roles: rolesById.get(String(profile["id"])) ?? [],
         sparkPlusActive: Boolean(profile["spark_plus_active"]),
         sparkPlusExpiresAt: (profile["spark_plus_expires_at"] as string | null) ?? null,
@@ -289,18 +289,21 @@ export const adminManageMember = createServerFn({ method: "POST" })
     if (data.action === "warn") {
       if (!value) throw new Error("warning_required");
       const { data: profile } = await db
-        .from("profiles")
+        .from("profiles_private")
         .select("warning_count")
-        .eq("id", data.userId)
-        .single();
+        .eq("user_id", data.userId)
+        .maybeSingle();
       await db
-        .from("profiles")
-        .update({
-          moderation_status: "warned",
-          warning_count: Number(profile?.warning_count ?? 0) + 1,
-          moderation_note: value,
-        })
-        .eq("id", data.userId);
+        .from("profiles_private")
+        .upsert(
+          {
+            user_id: data.userId,
+            moderation_status: "warned",
+            warning_count: Number(profile?.warning_count ?? 0) + 1,
+            moderation_note: value,
+          },
+          { onConflict: "user_id" },
+        );
       await db.from("moderation_sanctions").insert({
         user_id: data.userId,
         action: "warn",
@@ -328,14 +331,15 @@ export const adminManageMember = createServerFn({ method: "POST" })
         ban_duration: duration,
       });
       if (error) throw error;
-      await db
-        .from("profiles")
-        .update({
+      await db.from("profiles_private").upsert(
+        {
+          user_id: data.userId,
           moderation_status: "banned",
           banned_until: "9999-12-31T23:59:59Z",
           moderation_note: value || "Permanent ban",
-        })
-        .eq("id", data.userId);
+        },
+        { onConflict: "user_id" },
+      );
       await db.from("moderation_sanctions").insert({
         user_id: data.userId,
         action: "ban",
@@ -351,9 +355,9 @@ export const adminManageMember = createServerFn({ method: "POST" })
       });
       if (error) throw error;
       await db
-        .from("profiles")
+        .from("profiles_private")
         .update({ moderation_status: "active", banned_until: null })
-        .eq("id", data.userId);
+        .eq("user_id", data.userId);
       await db.from("moderation_sanctions").insert({
         user_id: data.userId,
         action: "unban",
@@ -520,10 +524,10 @@ export const adminReviewDispute = createServerFn({ method: "POST" })
       if (sanction?.action === "ban") {
         await supabaseAdmin.auth.admin.updateUserById(dispute.user_id, { ban_duration: "none" });
       }
-      await supabaseAdmin
-        .from("profiles")
+      await (supabaseAdmin as any)
+        .from("profiles_private")
         .update({ moderation_status: "active", banned_until: null })
-        .eq("id", dispute.user_id);
+        .eq("user_id", dispute.user_id);
     }
 
     await supabaseAdmin.from("notifications").insert({
