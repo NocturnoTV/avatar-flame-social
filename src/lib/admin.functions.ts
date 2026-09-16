@@ -331,14 +331,15 @@ export const adminManageMember = createServerFn({ method: "POST" })
         ban_duration: duration,
       });
       if (error) throw error;
-      await db
-        .from("profiles")
-        .update({
+      await db.from("profiles_private").upsert(
+        {
+          user_id: data.userId,
           moderation_status: "banned",
           banned_until: "9999-12-31T23:59:59Z",
           moderation_note: value || "Permanent ban",
-        })
-        .eq("id", data.userId);
+        },
+        { onConflict: "user_id" },
+      );
       await db.from("moderation_sanctions").insert({
         user_id: data.userId,
         action: "ban",
