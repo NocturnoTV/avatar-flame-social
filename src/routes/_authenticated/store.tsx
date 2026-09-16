@@ -2,13 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Lock, PlayCircle, ShoppingBag, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Lock, ShoppingBag, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { errorMessage, cn } from "@/lib/utils";
-import { isNativeApp } from "@/lib/native";
-import { watchRewardedAd } from "@/lib/ads";
 import {
   BloxIcon,
   BloxBalanceChip,
@@ -16,6 +14,7 @@ import {
   useInvalidateBloxBalance,
 } from "@/components/Blox";
 import { BloxPackCheckout } from "@/components/BloxPackCheckout";
+import { WatchAdRewardCard } from "@/components/WatchAdReward";
 import { BLOX_PROMO_PACK } from "@/lib/bloxPacks";
 import { BADGE_RARITY_STYLES, BADGE_RARITY_LABEL_KEYS } from "@/lib/dailyQuests";
 
@@ -49,25 +48,6 @@ function BloxStorePage() {
   const invalidateBalance = useInvalidateBloxBalance();
   const [promoOpen, setPromoOpen] = useState(false);
   const [buying, setBuying] = useState<string | null>(null);
-  const [watchingAd, setWatchingAd] = useState(false);
-
-  async function watchAdForBlox() {
-    if (watchingAd) return;
-    setWatchingAd(true);
-    try {
-      const earned = await watchRewardedAd();
-      if (earned === null) return;
-      const { data, error } = await supabase.rpc("claim_ad_reward");
-      if (error) throw error;
-      invalidateBalance();
-      toast.success(t("adRewardEarned", { balance: String(data) }));
-    } catch (err) {
-      const message = errorMessage(err, t("errorGeneric"));
-      toast.error(message.includes("ad_reward_cooldown") ? t("adRewardCooldown") : message);
-    } finally {
-      setWatchingAd(false);
-    }
-  }
 
   const badges = useQuery({
     queryKey: ["blox-store-badges"],
@@ -166,23 +146,9 @@ function BloxStorePage() {
         </button>
       )}
 
-      {isNativeApp() ? (
-        <button
-          onClick={() => void watchAdForBlox()}
-          disabled={watchingAd}
-          className="mt-3 flex w-full items-center gap-4 rounded-3xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 disabled:opacity-60"
-        >
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
-            <PlayCircle className="h-7 w-7" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-black">{t("adRewardTitle")}</span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              {t("adRewardSubtitle")}
-            </span>
-          </span>
-        </button>
-      ) : null}
+      <div className="mt-3">
+        <WatchAdRewardCard />
+      </div>
 
       <section className="mt-8">
         <h2 className="text-lg font-black">{t("badges")}</h2>

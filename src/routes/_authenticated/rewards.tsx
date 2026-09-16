@@ -11,6 +11,7 @@ import { BloxIcon, BloxBalanceChip, useInvalidateBloxBalance } from "@/component
 import { useConfetti } from "@/components/Confetti";
 import { questDef } from "@/lib/dailyQuests";
 import { formatCountdown, localDateStr, msUntilNextLocalMidnight } from "@/lib/localMidnight";
+import { WatchAdRewardCard } from "@/components/WatchAdReward";
 
 export const Route = createFileRoute("/_authenticated/rewards")({
   head: () => ({
@@ -237,6 +238,10 @@ function RewardsPage() {
           <p className="py-10 text-center text-sm text-muted-foreground">…</p>
         ) : null}
       </section>
+
+      <div className="mt-6">
+        <WatchAdRewardCard />
+      </div>
 
       <Link
         to="/store"
