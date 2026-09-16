@@ -31,7 +31,7 @@ export const adminListMembers = createServerFn({ method: "GET" })
         (supabaseAdmin as any)
           .from("profiles")
           .select(
-            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,moderation_status,warning_count,banned_until,moderation_note,spark_plus_active,spark_plus_expires_at,age,blox_balance,profiles_private(birth_date,parent_name,parent_email,parental_consent)",
+            "id,username,avatar_url,roblox_username,roblox_display_name,language,verified,onboarding_completed,created_at,last_active_at,spark_plus_active,spark_plus_expires_at,age,blox_balance,profiles_private(birth_date,parent_name,parent_email,parental_consent,moderation_status,warning_count,banned_until,moderation_note)",
           )
           .order("created_at", { ascending: false }),
         supabaseAdmin.from("user_roles").select("user_id,role"),
