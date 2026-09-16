@@ -246,6 +246,19 @@ function SettingsPage() {
     enabled: !!user,
   });
 
+  const prefsQuery = useQuery({
+    queryKey: ["settings-prefs"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles_private")
+        .select("notification_prefs,privacy_prefs")
+        .eq("user_id", user?.id ?? "")
+        .maybeSingle();
+      return data;
+    },
+  });
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("roblox") === "connected") toast.success(t("robloxConnected"));
