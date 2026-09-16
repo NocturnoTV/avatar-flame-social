@@ -316,11 +316,23 @@ function SettingsPage() {
     void profile.refetch();
   }
 
+  async function patchPrefs(values: Record<string, unknown>) {
+    if (!user) return;
+    const { error } = await supabase
+      .from("profiles_private")
+      .upsert({ user_id: user.id, ...values } as never, { onConflict: "user_id" });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    void prefsQuery.refetch();
+  }
+
   function setNotif(key: keyof NotifPrefs, value: boolean) {
-    void patch({ notification_prefs: { ...notif, [key]: value } });
+    void patchPrefs({ notification_prefs: { ...notif, [key]: value } });
   }
   function setPrivacy(key: keyof PrivacyPrefs, value: boolean | string) {
-    void patch({ privacy_prefs: { ...privacy, [key]: value } });
+    void patchPrefs({ privacy_prefs: { ...privacy, [key]: value } });
   }
 
   async function saveUsername() {
