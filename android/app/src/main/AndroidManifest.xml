@@ -55,6 +55,12 @@
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@mipmap/ic_launcher" />
 
+        <!-- AdMob app ID, required by the SDK regardless of which ad units
+             are actually shown (see src/lib/ads.ts for the rewarded unit). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-6108003662443877~6769979908" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
