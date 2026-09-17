@@ -1290,38 +1290,6 @@ export type Database = {
           },
         ]
       }
-      push_device_tokens: {
-        Row: {
-          created_at: string
-          platform: string
-          token: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          platform: string
-          token: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          platform?: string
-          token?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "push_device_tokens_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       event_participants: {
         Row: {
           event_id: string
@@ -2247,6 +2215,7 @@ export type Database = {
           id: string
           language?: string
           last_active_at?: string
+          last_ad_reward_at?: string | null
           link_url?: string | null
           onboarding_completed?: boolean
           profile_font?: string
@@ -2290,6 +2259,7 @@ export type Database = {
           id?: string
           language?: string
           last_active_at?: string
+          last_ad_reward_at?: string | null
           link_url?: string | null
           onboarding_completed?: boolean
           profile_font?: string
@@ -2369,6 +2339,38 @@ export type Database = {
             foreignKeyName: "profiles_private_user_id_profiles_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_device_tokens: {
+        Row: {
+          created_at: string
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          platform: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_device_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -3442,7 +3444,7 @@ export type Database = {
       }
       can_read_community_object: { Args: { _name: string }; Returns: boolean }
       can_read_voice_object: { Args: { _name: string }; Returns: boolean }
-      claim_ad_reward: { Args: Record<PropertyKey, never>; Returns: number }
+      claim_ad_reward: { Args: never; Returns: number }
       claim_daily_quest: { Args: { _quest_id: string }; Returns: undefined }
       community_add_affiliate: {
         Args: { _affiliate: string; _community: string }
