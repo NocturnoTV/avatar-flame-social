@@ -108,7 +108,7 @@ export function Sheet({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-50 flex justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4",
+        "fixed inset-0 z-[100] flex justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4",
         center ? "items-center p-4" : "items-end",
       )}
     >
