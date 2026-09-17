@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Crown, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
@@ -18,6 +18,7 @@ import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { RobloxGameIcon } from "@/components/RobloxGameIcon";
 import { profileFontClass, profileGlowClass } from "@/lib/sparkPlus";
 import { cn } from "@/lib/utils";
+import { PremiumIcon } from "@/components/PremiumIcon";
 
 export const Route = createFileRoute("/_authenticated/users/$id")({
   head: () => ({ meta: [{ title: "Profil - Bloxspark" }] }),
@@ -271,7 +272,7 @@ function PublicProfile() {
         >
           {p?.username ?? "Profil"}
           {sparkPlusStyle.data ? (
-            <Crown className="h-5 w-5 text-primary" aria-label="Spark Plus" />
+            <PremiumIcon className="h-6 w-6" />
           ) : null}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
           <EquippedBadges userId={id} />

@@ -247,6 +247,44 @@
   color: transparent;
 }
 
+/* Spark Plus profile halos. Kept as named styles so every profile surface
+   renders the selected color consistently. */
+.profile-glow-blue { --profile-glow: oklch(0.62 0.22 255); }
+.profile-glow-cyan { --profile-glow: oklch(0.78 0.15 205); }
+.profile-glow-royal { --profile-glow: oklch(0.48 0.27 275); }
+.profile-glow-pink { --profile-glow: oklch(0.7 0.24 345); }
+.profile-glow-red { --profile-glow: oklch(0.64 0.25 25); }
+.profile-glow-orange { --profile-glow: oklch(0.72 0.19 55); }
+.profile-glow-gold { --profile-glow: oklch(0.8 0.17 85); }
+.profile-glow-green { --profile-glow: oklch(0.72 0.19 150); }
+.profile-glow-violet { --profile-glow: oklch(0.62 0.25 305); }
+.profile-glow-white { --profile-glow: oklch(0.98 0 0); }
+.profile-glow-blue,
+.profile-glow-cyan,
+.profile-glow-royal,
+.profile-glow-pink,
+.profile-glow-red,
+.profile-glow-orange,
+.profile-glow-gold,
+.profile-glow-green,
+.profile-glow-violet,
+.profile-glow-white {
+  box-shadow: 0 0 10px color-mix(in oklab, var(--profile-glow) 85%, transparent),
+    0 0 34px color-mix(in oklab, var(--profile-glow) 58%, transparent);
+  outline: 2px solid color-mix(in oklab, var(--profile-glow) 75%, transparent);
+  outline-offset: 2px;
+}
+.profile-glow-rainbow {
+  box-shadow: 0 0 12px oklch(0.7 0.24 345 / 0.75),
+    10px 5px 27px oklch(0.78 0.15 205 / 0.6),
+    -10px -5px 27px oklch(0.72 0.19 150 / 0.55);
+  outline: 3px solid transparent;
+  background:
+    linear-gradient(var(--color-background), var(--color-background)) padding-box,
+    conic-gradient(from 45deg, oklch(0.7 0.24 345), oklch(0.8 0.17 85), oklch(0.72 0.19 150), oklch(0.78 0.15 205), oklch(0.62 0.25 305), oklch(0.7 0.24 345)) border-box;
+  border: 3px solid transparent;
+}
+
 @utility no-scrollbar {
   scrollbar-width: none;
 }

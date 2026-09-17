@@ -7,7 +7,6 @@ import {
   CalendarDays,
   CheckCircle2,
   CreditCard,
-  Crown,
   Download,
   ExternalLink,
   Eye,
@@ -34,6 +33,7 @@ import { SparkPlusCheckout } from "@/components/SparkPlusCheckout";
 import { BloxIcon, BloxBalanceChip } from "@/components/Blox";
 import { cn } from "@/lib/utils";
 import { openExternal } from "@/lib/native";
+import { PremiumIcon } from "@/components/PremiumIcon";
 
 const BLOX_KIND_LABELS: Record<string, string> = {
   purchase: "Achat de pack Blox",
@@ -516,7 +516,7 @@ function BillingPage() {
       {view === "overview" ? (
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
           <div className="rounded-3xl border border-border bg-card p-5">
-            <Crown className="h-6 w-6 text-primary" />
+            <PremiumIcon className="h-7 w-7" />
             <p className="mt-3 text-xs font-bold text-muted-foreground">{copy.plan}</p>
             <p className="mt-1 text-lg font-black">{isActive ? "Spark Plus" : copy.free}</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -595,7 +595,7 @@ function BillingPage() {
                 <div className="flex items-start gap-3">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
                     {purchase.mode === "subscription" ? (
-                      <Crown className="h-5 w-5" />
+                      <PremiumIcon className="h-5 w-5" />
                     ) : (
                       <CreditCard className="h-5 w-5" />
                     )}
@@ -670,7 +670,7 @@ function BillingPage() {
           {isActive ? (
             <>
               <div className="mt-2 flex items-center gap-2">
-                <Crown className="h-5 w-5 text-primary" />
+                <PremiumIcon className="h-6 w-6" />
                 <p className="text-lg font-black">Spark Plus - 4,99 €/{t("month")}</p>
               </div>
               {expiration ? (
@@ -695,7 +695,7 @@ function BillingPage() {
                 disabled={!paymentsConfigured}
                 onClick={() => setSubscribing(true)}
               >
-                <Crown className="h-4 w-4" /> {t("subscribeSparkPlus")}
+                <PremiumIcon className="h-5 w-5" /> {t("subscribeSparkPlus")}
               </Button>
             </>
           )}

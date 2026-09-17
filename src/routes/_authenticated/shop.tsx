@@ -35,6 +35,7 @@ import { getStripeEnvironment } from "@/lib/stripe";
 import { Button, Sheet } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
 import { openExternal } from "@/lib/native";
+import { PremiumIcon } from "@/components/PremiumIcon";
 
 export const Route = createFileRoute("/_authenticated/shop")({
   validateSearch: (
@@ -288,7 +289,7 @@ function ShopPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-                <Sparkles className="h-4.5 w-4.5 text-primary" /> Spark Plus
+                <PremiumIcon className="h-6 w-6" /> Spark Plus
               </p>
               <p className="mt-1 text-sm text-muted-foreground">L'expérience Bloxspark complète.</p>
             </div>

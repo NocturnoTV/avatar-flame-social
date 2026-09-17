@@ -7,7 +7,6 @@ import {
   Bookmark,
   Camera,
   Clapperboard,
-  Crown,
   Eye,
   Gamepad2,
   Heart,
@@ -42,7 +41,15 @@ import { ageFrom } from "@/lib/decorations";
 import { cn } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { RobloxGameIcon } from "@/components/RobloxGameIcon";
-import { PROFILE_FONTS, PROFILE_GLOWS, profileFontClass, profileGlowClass } from "@/lib/sparkPlus";
+import { PremiumIcon } from "@/components/PremiumIcon";
+import {
+  PROFILE_FONTS,
+  PROFILE_FONT_LABELS,
+  PROFILE_GLOWS,
+  PROFILE_GLOW_LABELS,
+  profileFontClass,
+  profileGlowClass,
+} from "@/lib/sparkPlus";
 import {
   searchPopularRobloxGames,
   type RobloxGameSearchResult,
@@ -451,7 +458,7 @@ function ProfilePage() {
         >
           {p?.username}
           {sparkPlusActive ? (
-            <Crown className="h-5 w-5 text-blue-500" aria-label="Spark Plus" />
+            <PremiumIcon className="h-6 w-6" />
           ) : null}
           {p?.verified ? <Verified className="h-5 w-5" /> : null}
           <EquippedBadges userId={user?.id} />
@@ -586,39 +593,52 @@ function ProfilePage() {
                 </Link>
               ) : null}
             </div>
-            <div
-              className={cn(
-                "mt-4 grid gap-3 sm:grid-cols-2",
-                !sparkPlusActive && "pointer-events-none opacity-45",
-              )}
-            >
+            <div className={cn("mt-4 space-y-5", !sparkPlusActive && "pointer-events-none opacity-45")}>
               <div>
                 <Label>{t("usernameFont")}</Label>
-                <select
-                  value={p?.profile_font ?? "default"}
-                  onChange={(event) => patch({ profile_font: event.target.value })}
-                  className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                >
-                  {PROFILE_FONTS.map((font) => (
-                    <option key={font} value={font}>
-                      {t(`profileFont${font[0]!.toUpperCase()}${font.slice(1)}`)}
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  {PROFILE_FONTS.map((font) => {
+                    const selected = (p?.profile_font ?? "default") === font;
+                    return (
+                      <Button
+                        key={font}
+                        type="button"
+                        variant="outline"
+                        onClick={() => patch({ profile_font: font })}
+                        className={cn(
+                          "h-12 justify-start rounded-xl px-3 text-base",
+                          profileFontClass(font),
+                          selected && "border-primary bg-primary/10 text-primary ring-1 ring-primary",
+                        )}
+                      >
+                        {PROFILE_FONT_LABELS[font]}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <Label>{t("profileGlow")}</Label>
-                <select
-                  value={p?.profile_glow ?? "none"}
-                  onChange={(event) => patch({ profile_glow: event.target.value })}
-                  className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                >
-                  {PROFILE_GLOWS.map((glow) => (
-                    <option key={glow} value={glow}>
-                      {t(`profileGlow${glow[0]!.toUpperCase()}${glow.slice(1)}`)}
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  {PROFILE_GLOWS.map((glow) => {
+                    const selected = (p?.profile_glow ?? "none") === glow;
+                    return (
+                      <Button
+                        key={glow}
+                        type="button"
+                        variant="outline"
+                        onClick={() => patch({ profile_glow: glow })}
+                        className={cn(
+                          "h-11 justify-start rounded-xl px-3",
+                          selected && "border-primary bg-primary/10 text-primary ring-1 ring-primary",
+                        )}
+                      >
+                        <span className={cn("h-4 w-4 rounded-full bg-card", profileGlowClass(glow))} />
+                        <span className="truncate">{PROFILE_GLOW_LABELS[glow]}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
