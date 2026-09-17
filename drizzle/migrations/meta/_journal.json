@@ -8,6 +8,13 @@
       "when": 1789637598799,
       "tag": "0000_restrict_community_video_story_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789637629091,
+      "tag": "0001_harden_function_execute_and_search_path",
+      "breakpoints": true
     }
   ]
 }
