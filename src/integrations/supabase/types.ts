@@ -3444,6 +3444,7 @@ export type Database = {
       }
       can_read_community_object: { Args: { _name: string }; Returns: boolean }
       can_read_voice_object: { Args: { _name: string }; Returns: boolean }
+      can_view_community: { Args: { _community: string }; Returns: boolean }
       claim_ad_reward: { Args: never; Returns: number }
       claim_daily_quest: { Args: { _quest_id: string }; Returns: undefined }
       community_add_affiliate: {
