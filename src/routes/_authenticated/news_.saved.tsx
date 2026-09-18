@@ -8,7 +8,16 @@ import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/news_/saved")({
-  head: () => ({ meta: [{ title: "Enregistrés - Bloxspark" }] }),
+  head: () => ({
+    meta: [
+      { title: "Actualités enregistrées - BloxSpark" },
+      {
+        name: "description",
+        content: "Tes articles d'actualité Roblox mis de côté pour plus tard sur BloxSpark.",
+      },
+    ],
+  }),
+
   component: SavedNewsPage,
 });
 
