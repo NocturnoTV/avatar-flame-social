@@ -5,18 +5,24 @@ import { useSession } from "@/lib/session";
 import { isNativeApp, openExternal } from "@/lib/native";
 import { createDeviceLoginCode } from "@/lib/device-login.functions";
 
-const SESSION_FLAG = "bloxspark-device-code-shown";
+const STORAGE_FLAG = "bloxspark-device-code-shown";
+// First-login window: account created and signed in within this span counts
+// as the very first connection (signup, Google, or Roblox OAuth).
+const FIRST_LOGIN_WINDOW_MS = 10 * 60 * 1000;
 
 /**
- * Shows a one-time popup with a device-login code right after signing in on
- * the website - by email/password, Google, or Roblox (the Roblox OAuth
- * callback lands directly on an authenticated page, never back on /auth,
- * so hooking this into every individual sign-in path in auth.tsx would
- * miss it; mounting this once at the authenticated layout instead catches
- * all of them the same way). Lets someone jump into the app without ever
- * opening Settings. Native is skipped entirely - there is nothing to
- * bridge to when you're already in the app. Fires at most once per
- * browser tab session (sessionStorage flag), not on every navigation.
+ * Shows a one-time popup with a device-login code only on the account's
+ * first connection to the website - by email/password, Google, or Roblox
+ * (the Roblox OAuth callback lands directly on an authenticated page, never
+ * back on /auth, so hooking this into every individual sign-in path in
+ * auth.tsx would miss it; mounting this once at the authenticated layout
+ * instead catches all of them the same way). Lets someone jump into the app
+ * without ever opening Settings. Native is skipped entirely - there is
+ * nothing to bridge to when you're already in the app.
+ *
+ * "First connection" is detected server-side: last_sign_in_at matches
+ * created_at. A per-user localStorage flag also stops the popup from
+ * reappearing on reload within that window. Later sign-ins never show it.
  */
 export function DeviceCodePopup() {
   const { t } = useI18n();
@@ -26,11 +32,21 @@ export function DeviceCodePopup() {
 
   useEffect(() => {
     if (!user || isNativeApp()) return;
+    const createdAt = user.created_at ? Date.parse(user.created_at) : NaN;
+    const lastSignInAt = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : NaN;
+    if (
+      Number.isNaN(createdAt) ||
+      Number.isNaN(lastSignInAt) ||
+      lastSignInAt - createdAt > FIRST_LOGIN_WINDOW_MS ||
+      Date.now() - createdAt > FIRST_LOGIN_WINDOW_MS
+    ) {
+      return; // not the account's first connection - never show the popup
+    }
     try {
-      if (sessionStorage.getItem(SESSION_FLAG) === "1") return;
-      sessionStorage.setItem(SESSION_FLAG, "1");
+      if (localStorage.getItem(`${STORAGE_FLAG}:${user.id}`) === "1") return;
+      localStorage.setItem(`${STORAGE_FLAG}:${user.id}`, "1");
     } catch {
-      return; // private browsing / storage disabled - just skip, not worth erroring over
+      // private browsing / storage disabled - still show once, don't error over it
     }
     void (async () => {
       try {
