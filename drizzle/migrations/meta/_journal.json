@@ -15,6 +15,13 @@
       "when": 1789637629091,
       "tag": "0001_harden_function_execute_and_search_path",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789709357452,
+      "tag": "0002_scope_permissive_select_policies",
+      "breakpoints": true
     }
   ]
 }
