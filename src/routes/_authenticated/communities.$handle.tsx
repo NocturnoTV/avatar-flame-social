@@ -33,9 +33,38 @@ import { LANGUAGES } from "@/lib/i18n";
 import { errorMessage, cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/communities/$handle")({
-  head: () => ({ meta: [{ title: "Communauté - Bloxspark" }] }),
+  loader: async ({ params }) => {
+    const { data } = await supabase
+      .from("communities")
+      .select("name,description")
+      .eq("handle", params.handle)
+      .maybeSingle();
+    return { community: data };
+  },
+  head: ({ params, loaderData }) => {
+    const name = loaderData?.community?.name ?? `@${params.handle}`;
+    const description =
+      loaderData?.community?.description ??
+      `Rejoins la communauté ${name} sur BloxSpark : salons, événements et classement entre joueurs Roblox.`;
+    const url = `https://bloxspark.app/communities/${params.handle}`;
+    return {
+      meta: [
+        { title: `${name} - Communauté BloxSpark` },
+        { name: "description", content: description },
+        { property: "og:title", content: `${name} - Communauté BloxSpark` },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: `${name} - Communauté BloxSpark` },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: CommunityPage,
 });
+
 
 type CommunityRow = Database["public"]["Tables"]["communities"]["Row"];
 

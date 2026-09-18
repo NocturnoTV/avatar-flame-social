@@ -21,9 +21,42 @@ import { cn } from "@/lib/utils";
 import { PremiumIcon } from "@/components/PremiumIcon";
 
 export const Route = createFileRoute("/_authenticated/users/$id")({
-  head: () => ({ meta: [{ title: "Profil - Bloxspark" }] }),
+  loader: async ({ params }) => {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      params.id,
+    );
+    const { data } = await supabase
+      .from("profiles")
+      .select("username,bio")
+      .eq(isUuid ? "id" : "username", params.id)
+      .maybeSingle();
+    return { profile: data };
+  },
+  head: ({ params, loaderData }) => {
+    const username = loaderData?.profile?.username ?? params.id;
+    const title = `${username} - Profil BloxSpark`;
+    const description =
+      loaderData?.profile?.bio ??
+      `Découvre le profil de ${username} sur BloxSpark : vidéos, communautés et Sparks.`;
+    const url = `https://bloxspark.app/users/${params.id}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "profile" },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: PublicProfile,
 });
+
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

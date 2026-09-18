@@ -7,7 +7,16 @@ import { useSignedUrl } from "@/components/Media";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/saved")({
-  head: () => ({ meta: [{ title: "Enregistrés - Bloxspark" }] }),
+  head: () => ({
+    meta: [
+      { title: "Vidéos enregistrées - BloxSpark" },
+      {
+        name: "description",
+        content: "Retrouve les vidéos Roblox que tu as mises de côté sur BloxSpark.",
+      },
+    ],
+  }),
+
   component: SavedVideosPage,
 });
 
