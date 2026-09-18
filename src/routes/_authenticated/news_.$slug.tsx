@@ -22,9 +22,56 @@ import { useSession } from "@/lib/session";
 import { errorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/news_/$slug")({
-  head: () => ({ meta: [{ title: "Actualité - Bloxspark" }] }),
+  loader: async ({ params }) => {
+    const { data } = await supabase
+      .from("news_articles")
+      .select("title,excerpt,published_at,created_at,source")
+      .eq("slug", params.slug)
+      .maybeSingle();
+    return { article: data };
+  },
+  head: ({ params, loaderData }) => {
+    const article = loaderData?.article;
+    const title = article?.title ?? "Actualité Roblox";
+    const description =
+      article?.excerpt ?? "Toute l'actualité Roblox décryptée par la rédaction BloxSpark.";
+    const url = `https://bloxspark.app/news/${params.slug}`;
+    return {
+      meta: [
+        { title: `${title} - BloxSpark` },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "article" },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: article
+        ? [
+            {
+              type: "application/ld+json",
+              children: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "NewsArticle",
+                headline: article.title,
+                description: article.excerpt ?? undefined,
+                datePublished: article.published_at ?? article.created_at,
+                dateModified: article.published_at ?? article.created_at,
+                mainEntityOfPage: url,
+                author: { "@type": "Organization", name: article.source || "BloxSpark" },
+                publisher: { "@type": "Organization", name: "BloxSpark" },
+              }),
+            },
+          ]
+        : [],
+    };
+  },
   component: ArticlePage,
 });
+
 
 function ArticlePage() {
   const { slug } = Route.useParams();
