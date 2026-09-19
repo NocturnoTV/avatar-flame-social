@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Button, Card, Input, Label } from "@/components/ui-kit";
-import { uploadFile } from "@/lib/media";
+import { captureVideoThumbnail, uploadFile } from "@/lib/media";
 import { useSignedUrl } from "@/components/Media";
 import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEditor";
 import { useI18n } from "@/lib/i18n";
