@@ -154,6 +154,50 @@ async function resumableUpload(bucket: string, path: string, file: Blob) {
   }
 }
 
+/**
+ * Captures a JPEG frame (~0.5s in, fallback first frame) from a video Blob.
+ * Used to auto-generate a thumbnail when the creator didn't pick one:
+ * mobile WebViews won't paint a frame from a bare <video preload="metadata">,
+ * so videos without a real thumbnail render as black tiles in the native app.
+ * Returns null when capture isn't possible (decode failure, tainted canvas).
+ */
+export async function captureVideoThumbnail(source: Blob): Promise<Blob | null> {
+  if (typeof document === "undefined") return null;
+  const url = URL.createObjectURL(source);
+  try {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.src = url;
+    await new Promise<void>((resolve, reject) => {
+      video.onloadeddata = () => resolve();
+      video.onerror = () => reject(new Error("video decode failed"));
+    });
+    if (!video.videoWidth || !video.videoHeight) return null;
+    const target = Math.min(0.5, (video.duration || 1) / 2);
+    await new Promise<void>((resolve) => {
+      video.onseeked = () => resolve();
+      video.currentTime = target;
+      // Some engines never fire seeked for a non-attached element.
+      window.setTimeout(resolve, 1500);
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82),
+    );
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export async function uploadFile(bucket: string, userId: string, file: Blob, ext: string) {
   const safeExt = ext.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
   const path = `${userId}/${crypto.randomUUID()}.${safeExt}`;

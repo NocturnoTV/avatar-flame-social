@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Button, Card, Input, Label } from "@/components/ui-kit";
-import { uploadFile } from "@/lib/media";
+import { captureVideoThumbnail, uploadFile } from "@/lib/media";
 import { useSignedUrl } from "@/components/Media";
 import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEditor";
 import { useI18n } from "@/lib/i18n";
@@ -765,8 +765,13 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
       const uploadSource: Blob = editedBlob ?? file;
       const ext = editedBlob ? "webm" : file.name.split(".").pop() || "mp4";
       const path = await uploadFile("videos", user.id, uploadSource, ext);
-      const thumbnailPath = thumbnailBlob
-        ? await uploadFile("thumbnails", user.id, thumbnailBlob, "jpg")
+      // No hand-picked thumbnail: capture one from the video itself, or the
+      // feed tile stays black in the native app (WebViews don't paint
+      // preload="metadata" frames).
+      const effectiveThumbnail =
+        thumbnailBlob ?? (await captureVideoThumbnail(uploadSource));
+      const thumbnailPath = effectiveThumbnail
+        ? await uploadFile("thumbnails", user.id, effectiveThumbnail, "jpg")
         : null;
       const { data: inserted, error } = await supabase
         .from("videos")
