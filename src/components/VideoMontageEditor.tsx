@@ -84,12 +84,19 @@ export function VideoMontageEditor({
   const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
   const [soundFile, setSoundFile] = useState<File | null>(null);
   const [mixOriginalAudio, setMixOriginalAudio] = useState(true);
+  const [soundDuration, setSoundDuration] = useState(0);
+  const [soundStart, setSoundStart] = useState(0);
+  const [soundWaveform, setSoundWaveform] = useState<number[] | null>(null);
+  const [originalVolume, setOriginalVolume] = useState(1);
+  const [soundVolume, setSoundVolume] = useState(1);
   const [rendering, setRendering] = useState(false);
   const [progress, setProgress] = useState(0);
   const [filmstrip, setFilmstrip] = useState<string[] | null>(null);
   const soundInputRef = useRef<HTMLInputElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const dragHandle = useRef<"start" | "end" | null>(null);
+  const soundTimelineRef = useRef<HTMLDivElement>(null);
+  const draggingSoundStart = useRef(false);
 
   useEffect(() => () => URL.revokeObjectURL(objectUrl.current), []);
   useEffect(() => () => filmstrip?.forEach((f) => URL.revokeObjectURL(f)), [filmstrip]);
@@ -163,6 +170,55 @@ export function VideoMontageEditor({
     setTextLayers((layers) => layers.filter((l) => l.id !== id));
   }
 
+  // Decodes the chosen sound just to draw its waveform and know its
+  // duration - the real mix happens later in renderEditedVideo.
+  useEffect(() => {
+    setSoundWaveform(null);
+    setSoundStart(0);
+    setSoundDuration(0);
+    if (!soundFile) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const AudioCtx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const audioCtx = new AudioCtx();
+        const arrayBuffer = await soundFile.arrayBuffer();
+        const buffer = await audioCtx.decodeAudioData(arrayBuffer);
+        if (cancelled) return;
+        const raw = buffer.getChannelData(0);
+        const BARS = 48;
+        const step = Math.floor(raw.length / BARS) || 1;
+        const peaks: number[] = [];
+        for (let i = 0; i < BARS; i++) {
+          let max = 0;
+          for (let j = i * step; j < Math.min(raw.length, (i + 1) * step); j++) {
+            max = Math.max(max, Math.abs(raw[j]!));
+          }
+          peaks.push(max);
+        }
+        setSoundWaveform(peaks);
+        setSoundDuration(buffer.duration);
+        void audioCtx.close();
+      } catch {
+        // Waveform is a nice-to-have preview - a decode failure still lets
+        // the sound be used, just without the visual.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [soundFile]);
+
+  function onSoundTimelinePointer(clientX: number) {
+    if (!draggingSoundStart.current || !soundTimelineRef.current || !soundDuration) return;
+    const rect = soundTimelineRef.current.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    const usedLength = Math.max(0.1, trimEnd - trimStart);
+    setSoundStart(Math.min(ratio * soundDuration, Math.max(0, soundDuration - usedLength)));
+  }
+
   const hasEdits =
     trimStart > 0.05 ||
     trimEnd < duration - 0.05 ||
@@ -191,6 +247,9 @@ export function VideoMontageEditor({
         textLayers: textLayers.filter((l) => l.text.trim()),
         soundFile,
         mixOriginalAudio: mixOriginalAudio || !soundFile,
+        originalVolume,
+        soundVolume,
+        soundStart,
         onProgress: setProgress,
       });
       onDone(blob);
@@ -454,16 +513,87 @@ export function VideoMontageEditor({
               <Music2 className="h-4 w-4" /> {t("montageUploadSound")}
             </button>
           )}
+          {soundFile && soundWaveform ? (
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold text-muted-foreground">
+                {t("montageSoundStart", { seconds: soundStart.toFixed(1) })}
+              </p>
+              <div
+                ref={soundTimelineRef}
+                className="relative flex h-14 items-end gap-0.5 overflow-hidden rounded-2xl bg-surface-2 px-2 py-2"
+                onMouseDown={() => (draggingSoundStart.current = true)}
+                onMouseMove={(e) => onSoundTimelinePointer(e.clientX)}
+                onMouseUp={() => (draggingSoundStart.current = false)}
+                onMouseLeave={() => (draggingSoundStart.current = false)}
+                onTouchStart={() => (draggingSoundStart.current = true)}
+                onTouchMove={(e) => {
+                  const t0 = e.touches[0];
+                  if (t0) {
+                    e.preventDefault();
+                    onSoundTimelinePointer(t0.clientX);
+                  }
+                }}
+                onTouchEnd={() => (draggingSoundStart.current = false)}
+              >
+                {soundWaveform.map((v, i) => (
+                  <span
+                    key={i}
+                    className="flex-1 rounded-full bg-primary/50"
+                    style={{ height: `${Math.max(8, v * 100)}%` }}
+                  />
+                ))}
+                {soundDuration > 0 ? (
+                  <div
+                    className="pointer-events-none absolute inset-y-0 w-0.5 bg-primary"
+                    style={{ left: `${(soundStart / soundDuration) * 100}%` }}
+                  />
+                ) : null}
+              </div>
+              <p className="text-center text-xs text-muted-foreground">{t("montageSoundDragHint")}</p>
+            </div>
+          ) : null}
           {soundFile ? (
-            <label className="flex items-center justify-between rounded-2xl border border-border bg-card p-3 text-sm font-semibold">
-              {t("montageMixAudio")}
-              <input
-                type="checkbox"
-                checked={mixOriginalAudio}
-                onChange={(e) => setMixOriginalAudio(e.target.checked)}
-                className="accent-primary"
-              />
-            </label>
+            <div className="space-y-3 rounded-2xl border border-border bg-card p-3">
+              <label className="flex items-center justify-between text-sm font-semibold">
+                {t("montageMixAudio")}
+                <input
+                  type="checkbox"
+                  checked={mixOriginalAudio}
+                  onChange={(e) => setMixOriginalAudio(e.target.checked)}
+                  className="accent-primary"
+                />
+              </label>
+              {mixOriginalAudio ? (
+                <div>
+                  <p className="mb-1 text-xs font-bold text-muted-foreground">
+                    {t("montageOriginalVolume", { percent: Math.round(originalVolume * 100) })}
+                  </p>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={originalVolume}
+                    onChange={(e) => setOriginalVolume(Number(e.target.value))}
+                    className="w-full accent-primary"
+                  />
+                </div>
+              ) : null}
+              <div>
+                <p className="mb-1 text-xs font-bold text-muted-foreground">
+                  {t("montageSoundVolume", { percent: Math.round(soundVolume * 100) })}
+                </p>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={soundVolume}
+                  onChange={(e) => setSoundVolume(Number(e.target.value))}
+                  className="w-full accent-primary"
+                />
+              </div>
+            </div>
           ) : (
             <p className="text-center text-xs text-muted-foreground">
               {t("montageKeepOriginalAudio")}
@@ -499,6 +629,9 @@ async function renderEditedVideo({
   textLayers,
   soundFile,
   mixOriginalAudio,
+  originalVolume,
+  soundVolume,
+  soundStart,
   onProgress,
 }: {
   video: HTMLVideoElement;
@@ -507,6 +640,9 @@ async function renderEditedVideo({
   textLayers: TextLayer[];
   soundFile: File | null;
   mixOriginalAudio: boolean;
+  originalVolume: number;
+  soundVolume: number;
+  soundStart: number;
   onProgress: (ratio: number) => void;
 }): Promise<Blob> {
   const mimeType = pickSupportedMimeType();
@@ -529,7 +665,9 @@ async function renderEditedVideo({
     const originalWasMuted = video.muted;
     video.muted = false;
     const videoSource = audioCtx.createMediaElementSource(video);
-    videoSource.connect(dest);
+    const originalGain = audioCtx.createGain();
+    originalGain.gain.value = originalVolume;
+    videoSource.connect(originalGain).connect(dest);
     cleanupFns.push(() => {
       video.muted = originalWasMuted;
     });
@@ -542,7 +680,9 @@ async function renderEditedVideo({
     soundNode = audioCtx.createBufferSource();
     soundNode.buffer = buffer;
     soundNode.loop = true;
-    soundNode.connect(dest);
+    const soundGain = audioCtx.createGain();
+    soundGain.gain.value = soundVolume;
+    soundNode.connect(soundGain).connect(dest);
   }
 
   const canvasStream = canvas.captureStream(30);
@@ -571,7 +711,7 @@ async function renderEditedVideo({
   });
 
   recorder.start();
-  soundNode?.start();
+  soundNode?.start(0, soundStart);
   await video.play();
 
   await new Promise<void>((resolve) => {
