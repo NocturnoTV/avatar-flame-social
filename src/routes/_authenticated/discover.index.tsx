@@ -35,7 +35,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
-import { useSignedUrl, StoredImage } from "@/components/Media";
+import { useSignedUrl, StoredImage, VideoThumb } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { GiftSheet } from "@/components/GiftSheet";
 import { Button, Sheet } from "@/components/ui-kit";
@@ -616,31 +616,13 @@ function DiscoverSearch({
 }
 
 function SearchVideoThumb({ video }: { video: VideoRow }) {
-  const url = useSignedUrl(video.thumbnail_path || video.storage_path);
   return (
     <div className="relative aspect-[9/12] bg-black">
-      {url ? (
-        video.thumbnail_path ? (
-          <img src={url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          // No captured thumbnail for this video - fall back to showing the
-          // video's own first frame. A plain preload="metadata" video stays
-          // blank in Android's WebView (inside the app) until something
-          // actually seeks it, unlike desktop/mobile browsers which paint
-          // frame 0 on their own - nudge it explicitly instead of relying
-          // on that.
-          <video
-            src={url}
-            muted
-            playsInline
-            preload="metadata"
-            onLoadedMetadata={(e) => {
-              e.currentTarget.currentTime = 0.1;
-            }}
-            className="h-full w-full object-cover"
-          />
-        )
-      ) : null}
+      <VideoThumb
+        storagePath={video.storage_path}
+        thumbnailPath={video.thumbnail_path}
+        className="h-full w-full"
+      />
       <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-bold text-white">
         <Eye className="h-3 w-3" /> {formatCount(video.views_count)}
       </span>

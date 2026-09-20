@@ -49,7 +49,7 @@ import { useSession } from "@/lib/session";
 import { useRoles, type AppRole } from "@/lib/roles";
 import { cn, errorMessage } from "@/lib/utils";
 import { openExternal } from "@/lib/native";
-import { StoredImage } from "@/components/Media";
+import { StoredImage, VideoThumb } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import {
   adminBroadcastNotification,
@@ -3138,11 +3138,10 @@ function PendingVideosReview() {
           {pending.data.map((v) => (
             <div key={v.id} className="rounded-2xl border border-border bg-card p-3">
               <div className="flex gap-3">
-                <StoredImage
-                  path={v.thumbnail_path}
-                  alt=""
+                <VideoThumb
+                  storagePath={v.storage_path}
+                  thumbnailPath={v.thumbnail_path}
                   className="h-16 w-11 shrink-0 rounded-lg object-cover"
-                  fallback="🎬"
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold">{v.caption || "Sans titre"}</p>

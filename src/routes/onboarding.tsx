@@ -172,10 +172,6 @@ function Onboarding() {
       toast.error(t("required"));
       return;
     }
-    if (!robloxProfile.data?.roblox_user_id) {
-      toast.error("Connecte ton compte Roblox pour continuer.");
-      return;
-    }
     if (tooYoung) {
       toast.error(t("tooYoung"));
       return;
