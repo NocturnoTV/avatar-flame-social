@@ -30,7 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Button, Card, Input, Label } from "@/components/ui-kit";
 import { captureVideoThumbnail, uploadFile } from "@/lib/media";
-import { useSignedUrl, VideoThumb } from "@/components/Media";
+import { StoredImage, useSignedUrl, VideoThumb } from "@/components/Media";
 import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEditor";
 import { SoundPicker, type PickedSound } from "@/components/SoundPicker";
 import { useI18n } from "@/lib/i18n";
@@ -727,7 +727,7 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
   );
 }
 
-const WIZARD_TOTAL_STEPS = 7;
+const WIZARD_TOTAL_STEPS = 8;
 
 function UploadWizard({
   onDone,
@@ -752,7 +752,7 @@ function UploadWizard({
       return (count ?? 0) > 0;
     },
   });
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8>(1);
   const [file, setFile] = useState<File | null>(null);
   const [editedBlob, setEditedBlob] = useState<Blob | null>(null);
   const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
@@ -768,6 +768,22 @@ function UploadWizard({
   const [allowRemix, setAllowRemix] = useState(true);
   const [sensitiveContent, setSensitiveContent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const myProfile = useQuery({
+    queryKey: ["upload-wizard-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username,avatar_url")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const [hashtagSuggestions, setHashtagSuggestions] = useState<{ tag: string; uses: number }[]>([]);
+  const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; username: string }[]>(
+    [],
+  );
   const input = useRef<HTMLInputElement>(null);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(
@@ -786,10 +802,11 @@ function UploadWizard({
     setEditedBlob(null);
     setThumbnailBlob(null);
   }
-  function addTag() {
-    const value = tag.trim().replace(/^#+/, "").replace(/\s+/g, "");
+  function addTag(explicit?: string) {
+    const value = (explicit ?? tag).trim().replace(/^#+/, "").replace(/\s+/g, "");
     if (!value || hashtags.includes(value)) {
       setTag("");
+      setHashtagSuggestions([]);
       return;
     }
     if (hashtags.length >= 5) {
@@ -798,6 +815,46 @@ function UploadWizard({
     }
     setHashtags((current) => [...current, value]);
     setTag("");
+    setHashtagSuggestions([]);
+  }
+
+  useEffect(() => {
+    const prefix = tag.trim().replace(/^#+/, "");
+    if (!prefix) {
+      setHashtagSuggestions([]);
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      const { data } = await supabase.rpc("search_hashtags", { _prefix: prefix, _limit: 6 });
+      setHashtagSuggestions(data ?? []);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [tag]);
+
+  const mentionQuery = useMemo(() => {
+    const match = /(?:^|\s)@([\w.]*)$/.exec(title);
+    return match ? match[1] : null;
+  }, [title]);
+
+  useEffect(() => {
+    if (mentionQuery === null) {
+      setMentionSuggestions([]);
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,username")
+        .ilike("username", `${mentionQuery}%`)
+        .limit(6);
+      setMentionSuggestions((data ?? []).filter((p): p is { id: string; username: string } => !!p.username));
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [mentionQuery]);
+
+  function pickMention(username: string) {
+    setTitle((current) => current.replace(/(?:^|\s)@[\w.]*$/, (m) => `${m[0] === " " ? " " : ""}@${username} `));
+    setMentionSuggestions([]);
   }
   async function publish() {
     if (!file || !user || !title.trim()) return;
@@ -886,7 +943,7 @@ function UploadWizard({
         <header className="flex items-center border-b border-border px-5 py-4">
           {step > 1 ? (
             <button
-              onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4 | 5 | 6)}
+              onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7)}
               className="grid h-9 w-9 place-items-center"
             >
               <ArrowLeft />
@@ -1008,6 +1065,20 @@ function UploadWizard({
                 className="h-14 text-base"
               />
               <p className="mt-2 text-right text-xs text-muted-foreground">{title.length}/120</p>
+              {mentionSuggestions.length > 0 ? (
+                <div className="mt-2 space-y-1 rounded-2xl border border-border bg-card p-1.5">
+                  {mentionSuggestions.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => pickMention(m.username)}
+                      className="block w-full rounded-xl px-3 py-2 text-left text-sm font-bold hover:bg-surface-2"
+                    >
+                      @{m.username}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <p className="mt-3 text-xs text-muted-foreground">{t("studioMentionHint")}</p>
             </section>
           ) : null}
           {step === 6 ? (
@@ -1035,10 +1106,26 @@ function UploadWizard({
                       className="pl-9"
                     />
                   </div>
-                  <Button variant="outline" onClick={addTag}>
+                  <Button variant="outline" onClick={() => addTag()}>
                     {t("studioAdd")}
                   </Button>
                 </div>
+                {hashtagSuggestions.length > 0 ? (
+                  <div className="mt-2 space-y-0.5 rounded-2xl border border-border bg-card p-1.5">
+                    {hashtagSuggestions.map((s) => (
+                      <button
+                        key={s.tag}
+                        onClick={() => addTag(s.tag)}
+                        className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm hover:bg-surface-2"
+                      >
+                        <span className="font-bold">#{s.tag}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("studioHashtagUses", { count: s.uses })}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {hashtags.map((h) => (
                     <button
@@ -1119,15 +1206,64 @@ function UploadWizard({
               </label>
             </section>
           ) : null}
+          {step === 8 ? (
+            <section>
+              <h2 className="text-2xl font-black">{t("studioPreviewTitle")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("studioPreviewHint")}</p>
+              <div className="relative mx-auto mt-5 aspect-[9/16] max-h-[52dvh] overflow-hidden rounded-3xl bg-black">
+                {(preview || editedBlob) ? (
+                  <video
+                    src={editedBlob ? URL.createObjectURL(editedBlob) : preview!}
+                    muted
+                    playsInline
+                    className="h-full w-full object-contain"
+                  />
+                ) : null}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-4 text-white">
+                  <div className="flex items-center gap-2">
+                    <StoredImage
+                      path={myProfile.data?.avatar_url}
+                      alt=""
+                      className="h-8 w-8 rounded-full"
+                      fallback={myProfile.data?.username?.[0]?.toUpperCase() ?? "?"}
+                    />
+                    <b className="text-sm">@{myProfile.data?.username ?? "moi"}</b>
+                  </div>
+                  {title ? <p className="mt-2 text-sm">{title}</p> : null}
+                  {hashtags.length ? (
+                    <p className="mt-1 text-sm text-white/80">
+                      {hashtags.map((h) => `#${h}`).join(" ")}
+                    </p>
+                  ) : null}
+                  {sound ? (
+                    <p className="mt-1.5 flex items-center gap-1 text-xs text-white/70">
+                      <Music2 className="h-3 w-3" /> {sound.title}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex items-center gap-4 text-sm">
+                    <span className="flex items-center gap-1">
+                      <Heart className="h-4 w-4" /> 0
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageCircle className="h-4 w-4" /> 0
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Upload className="h-4 w-4" /> {t("studioShare")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
         </main>
         {step === 2 ? null : (
           <footer className="border-t border-border p-5">
-            {step < 7 ? (
+            {step < 8 ? (
               <Button
                 className="w-full"
                 size="lg"
                 disabled={(step === 1 && !file) || (step === 5 && !title.trim())}
-                onClick={() => setStep((step + 1) as 2 | 3 | 4 | 5 | 6 | 7)}
+                onClick={() => setStep((step + 1) as 2 | 3 | 4 | 5 | 6 | 7 | 8)}
               >
                 {t("continue")} <ArrowRight className="h-4 w-4" />
               </Button>

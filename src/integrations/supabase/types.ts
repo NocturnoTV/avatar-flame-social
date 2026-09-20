@@ -4027,6 +4027,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      search_hashtags: {
+        Args: { _prefix: string; _limit?: number }
+        Returns: { tag: string; uses: number }[]
+      }
       start_direct_message: { Args: { _target: string }; Returns: string }
       status_report_series: {
         Args: never
