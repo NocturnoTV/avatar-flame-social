@@ -396,7 +396,11 @@ function VideoCard({
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-black">
       {url ? (
-        <video src={url} muted playsInline className="aspect-[9/16] w-full object-cover" />
+        <VideoThumb
+          storagePath={video.storage_path}
+          thumbnailPath={video.thumbnail_path}
+          className="aspect-[9/16] w-full"
+        />
       ) : (
         <div className="aspect-[9/16] animate-pulse bg-surface-2" />
       )}
