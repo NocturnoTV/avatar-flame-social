@@ -2,11 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
+  Ban,
+  Bell,
+  BellOff,
   Camera,
   Check,
   CheckCheck,
   ChevronRight,
   EyeOff,
+  Flag,
   Heart,
   Inbox,
   Mail,
@@ -14,11 +18,14 @@ import {
   Moon,
   Newspaper,
   Pin,
+  PinOff,
   Plus,
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UserPlus,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -176,6 +183,8 @@ function MessagesPage() {
   const storyInput = useRef<HTMLInputElement>(null);
   const cameraInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const [groupInfoRow, setGroupInfoRow] = useState<Row | null>(null);
+  const [actionMenuRow, setActionMenuRow] = useState<Row | null>(null);
+  const [reportingRow, setReportingRow] = useState<Row | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressRowClick = useRef(false);
 
@@ -218,7 +227,8 @@ function MessagesPage() {
       const { data: mine } = await supabase
         .from("conversation_participants")
         .select("conversation_id,pinned,muted,last_read_at")
-        .eq("user_id", user!.id);
+        .eq("user_id", user!.id)
+        .is("hidden_at", null);
       const ids = (mine ?? []).map((p) => p.conversation_id);
       if (!ids.length) return [];
       const [{ data: convos }, { data: members }, { data: lastMessages }] = await Promise.all([
@@ -690,23 +700,18 @@ function MessagesPage() {
     (c.is_group ? c.name : c.others[0]?.username)?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Long-press (or right-click) a conversation row to jump straight to the
-  // person's profile, or the group's info sheet - without disturbing the
-  // normal tap-to-open-chat behaviour on the same row.
-  function openRowProfile(row: Row) {
+  // Long-press (or right-click) a conversation row to open a quick action
+  // menu (view profile/pin/mute/report/delete/block) - without disturbing
+  // the normal tap-to-open-chat behaviour on the same row.
+  function openRowActionMenu(row: Row) {
     if (navigator.vibrate) navigator.vibrate(10);
-    if (row.is_group) {
-      setGroupInfoRow(row);
-    } else {
-      const otherId = row.others[0]?.id;
-      if (otherId) void navigate({ to: "/users/$id", params: { id: otherId } });
-    }
+    setActionMenuRow(row);
   }
   function startLongPress(row: Row) {
     longPressTimer.current = setTimeout(() => {
       longPressTimer.current = null;
       suppressRowClick.current = true;
-      openRowProfile(row);
+      openRowActionMenu(row);
     }, 500);
   }
   function cancelLongPress() {
@@ -714,6 +719,78 @@ function MessagesPage() {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+  }
+
+  function viewRowProfile(row: Row) {
+    if (row.is_group) {
+      setGroupInfoRow(row);
+    } else {
+      const otherId = row.others[0]?.id;
+      if (otherId) void navigate({ to: "/users/$id", params: { id: otherId } });
+    }
+    setActionMenuRow(null);
+  }
+
+  async function toggleRowPin(row: Row) {
+    if (!user) return;
+    await supabase
+      .from("conversation_participants")
+      .update({ pinned: !row.pinned })
+      .eq("conversation_id", row.id)
+      .eq("user_id", user.id);
+    setActionMenuRow(null);
+    void conversations.refetch();
+  }
+
+  async function toggleRowMute(row: Row) {
+    if (!user) return;
+    await supabase
+      .from("conversation_participants")
+      .update({ muted: !row.muted })
+      .eq("conversation_id", row.id)
+      .eq("user_id", user.id);
+    setActionMenuRow(null);
+    void conversations.refetch();
+  }
+
+  async function deleteRowConversation(row: Row) {
+    if (!user) return;
+    if (row.is_group) {
+      await supabase
+        .from("conversation_participants")
+        .delete()
+        .eq("conversation_id", row.id)
+        .eq("user_id", user.id);
+    } else {
+      await supabase
+        .from("conversation_participants")
+        .update({ hidden_at: new Date().toISOString() })
+        .eq("conversation_id", row.id)
+        .eq("user_id", user.id);
+    }
+    setActionMenuRow(null);
+    toast.success(t("conversationDeleted"));
+    void conversations.refetch();
+  }
+
+  async function blockRowUser(row: Row) {
+    if (!user) return;
+    const otherId = row.others[0]?.id;
+    if (!otherId) return;
+    await supabase.from("blocks").insert({ blocker_id: user.id, blocked_id: otherId });
+    setActionMenuRow(null);
+    toast.success(t("blocked"));
+    void conversations.refetch();
+  }
+
+  async function reportRowUser(row: Row, reason: string) {
+    if (!user) return;
+    const otherId = row.others[0]?.id;
+    if (!otherId) return;
+    await supabase.from("reports").insert({ reporter_id: user.id, target_user_id: otherId, reason });
+    toast.success(t("saved"));
+    setReportingRow(null);
+    setActionMenuRow(null);
   }
   // Team Spark is reserved for official messages only (the welcome message,
   // future announcements) - kind "system". Video activity (likes, favorites,
@@ -1082,7 +1159,7 @@ function MessagesPage() {
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    openRowProfile(c);
+                    openRowActionMenu(c);
                   }}
                   onTouchStart={() => startLongPress(c)}
                   onTouchEnd={cancelLongPress}
@@ -1601,6 +1678,96 @@ function MessagesPage() {
           onChanged={() => void conversations.refetch()}
         />
       ) : null}
+
+      <Sheet
+        open={!!actionMenuRow}
+        onClose={() => setActionMenuRow(null)}
+        title={actionMenuRow?.is_group ? (actionMenuRow.name ?? t("group")) : actionMenuRow?.others[0]?.username ?? ""}
+      >
+        {actionMenuRow ? (
+          <div className="space-y-1">
+            <button
+              onClick={() => viewRowProfile(actionMenuRow)}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold hover:bg-surface-2"
+            >
+              <UserRound className="h-4.5 w-4.5 text-muted-foreground" />
+              {actionMenuRow.is_group ? t("groupInfo") : t("viewProfile")}
+            </button>
+            <button
+              onClick={() => void toggleRowPin(actionMenuRow)}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold hover:bg-surface-2"
+            >
+              {actionMenuRow.pinned ? (
+                <PinOff className="h-4.5 w-4.5 text-muted-foreground" />
+              ) : (
+                <Pin className="h-4.5 w-4.5 text-muted-foreground" />
+              )}
+              {actionMenuRow.pinned ? t("unpinConversation") : t("pinConversation")}
+            </button>
+            <button
+              onClick={() => void toggleRowMute(actionMenuRow)}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold hover:bg-surface-2"
+            >
+              {actionMenuRow.muted ? (
+                <Bell className="h-4.5 w-4.5 text-muted-foreground" />
+              ) : (
+                <BellOff className="h-4.5 w-4.5 text-muted-foreground" />
+              )}
+              {actionMenuRow.muted ? t("unmuteConversation") : t("muteConversation")}
+            </button>
+            {!actionMenuRow.is_group ? (
+              <button
+                onClick={() => setReportingRow(actionMenuRow)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold hover:bg-surface-2"
+              >
+                <Flag className="h-4.5 w-4.5 text-muted-foreground" />
+                {t("report")}
+              </button>
+            ) : null}
+            <button
+              onClick={() => void deleteRowConversation(actionMenuRow)}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4.5 w-4.5" />
+              {t("deleteConversation")}
+            </button>
+            {!actionMenuRow.is_group ? (
+              <button
+                onClick={() => void blockRowUser(actionMenuRow)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
+              >
+                <Ban className="h-4.5 w-4.5" />
+                {t("block")}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </Sheet>
+
+      <Sheet
+        open={!!reportingRow}
+        onClose={() => setReportingRow(null)}
+        title={t("reportReason")}
+      >
+        {reportingRow ? (
+          <div className="space-y-2">
+            {[
+              { id: "harassment", label: t("reportHarassment") },
+              { id: "spam", label: t("reportSpam") },
+              { id: "inappropriate_content", label: t("reportInappropriate") },
+              { id: "impersonation", label: t("reportImpersonation") },
+            ].map((reason) => (
+              <button
+                key={reason.id}
+                onClick={() => void reportRowUser(reportingRow, reason.id)}
+                className="block w-full rounded-xl bg-surface px-3 py-2.5 text-left text-sm font-semibold hover:bg-surface-2"
+              >
+                {reason.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </Sheet>
     </div>
   );
 }

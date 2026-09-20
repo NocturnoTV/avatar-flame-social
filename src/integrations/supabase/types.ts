@@ -1119,6 +1119,7 @@ export type Database = {
       conversation_participants: {
         Row: {
           conversation_id: string
+          hidden_at: string | null
           joined_at: string
           last_message_date: string | null
           last_read_at: string
@@ -1128,6 +1129,7 @@ export type Database = {
         }
         Insert: {
           conversation_id: string
+          hidden_at?: string | null
           joined_at?: string
           last_message_date?: string | null
           last_read_at?: string
@@ -1137,6 +1139,7 @@ export type Database = {
         }
         Update: {
           conversation_id?: string
+          hidden_at?: string | null
           joined_at?: string
           last_message_date?: string | null
           last_read_at?: string
