@@ -26,14 +26,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button, Input, Label, Sheet, Textarea } from "@/components/ui-kit";
+import { Button, Input, Label, Select, Sheet, Textarea } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
 import { ProfileBanner, parseYouTubeId } from "@/components/ProfileBanner";
 import { Verified } from "@/components/Verified";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
 import { ProfileContentTabs, type TabVideo } from "@/components/ProfileContentTabs";
 import { uploadFile } from "@/lib/media";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, LANGUAGES } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { EquippedBadges } from "@/components/Blox";
 import { useRoles } from "@/lib/roles";
@@ -839,6 +839,164 @@ function ProfilePage() {
               {gameList.length === 0 ? (
                 <p className="text-xs text-muted-foreground">{t("noFavoriteGames")}</p>
               ) : null}
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
+            <p className="font-black">{t("profileEditIdentityTitle")}</p>
+            <div>
+              <Label>{t("username")}</Label>
+              <Input value={p?.username ? `@${p.username}` : ""} disabled readOnly />
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <Label className="mb-0">{t("profileAgeLabel")}</Label>
+                <span className="text-sm font-bold text-muted-foreground">{p?.age ?? "—"}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => patch({ age_visible: !(p?.age_visible ?? true) })}
+                className={cn(
+                  "mt-2 flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition",
+                  p?.age_visible ?? true
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground",
+                )}
+              >
+                {t("profileAgeShowToggle")}
+                <span
+                  className={cn(
+                    "relative h-5 w-9 shrink-0 rounded-full transition",
+                    p?.age_visible ?? true ? "bg-primary" : "bg-surface-2",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 h-4 w-4 rounded-full bg-white transition",
+                      p?.age_visible ?? true ? "left-4" : "left-0.5",
+                    )}
+                  />
+                </span>
+              </button>
+            </div>
+            <div>
+              <Label>
+                {t("profileSpokenLanguages")} ({(p?.spoken_languages ?? []).length}/3)
+              </Label>
+              <p className="mb-2 text-xs text-muted-foreground">{t("profileSpokenLanguagesHint")}</p>
+              <div className="flex flex-wrap gap-2">
+                {LANGUAGES.map((l) => {
+                  const current = p?.spoken_languages ?? [];
+                  const active = current.includes(l.code);
+                  return (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => {
+                        if (active) {
+                          patch({ spoken_languages: current.filter((c) => c !== l.code) });
+                          return;
+                        }
+                        if (current.length >= 3) {
+                          toast.error(t("profileMaxLanguagesReached"));
+                          return;
+                        }
+                        patch({ spoken_languages: [...current, l.code] });
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition",
+                        active
+                          ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                          : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
+                      )}
+                    >
+                      {l.flag} {l.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+            <p className="font-black">{t("profileLookingForTitle")}</p>
+            <Select
+              value={p?.spark_looking_for ?? ""}
+              onChange={(e) => patch({ spark_looking_for: e.target.value || null })}
+            >
+              <option value="">{t("profileLookingForPlaceholder")}</option>
+              <option value="duo">{t("lookingForDuo")}</option>
+              <option value="friends">{t("lookingForFriends")}</option>
+              <option value="creation_partner">{t("lookingForCreationPartner")}</option>
+            </Select>
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+            <p className="font-black">{t("profileCommunicationTitle")}</p>
+            <p className="text-xs text-muted-foreground">{t("profileCommunicationSubtitle")}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["roblox_voice", t("voicePrefRoblox")],
+                  ["chat_only", t("voicePrefChatOnly")],
+                  ["discord_voice", t("voicePrefDiscord")],
+                  ["no_voice", t("voicePrefNoVoice")],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => patch({ spark_voice_pref: value })}
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition",
+                    (p?.spark_voice_pref ?? null) === value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+            <p className="font-black">{t("profileAvailabilityTitle")}</p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["morning", t("availabilityMorning")],
+                  ["afternoon", t("availabilityAfternoon")],
+                  ["late_afternoon", t("availabilityLateAfternoon")],
+                  ["evening", t("availabilityEvening")],
+                  ["night", t("availabilityNight")],
+                  ["weekend", t("availabilityWeekend")],
+                ] as const
+              ).map(([value, label]) => {
+                const current = p?.spark_availability ?? [];
+                const active = current.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() =>
+                      patch({
+                        spark_availability: active
+                          ? current.filter((c) => c !== value)
+                          : [...current, value],
+                      })
+                    }
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                        : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

@@ -2172,6 +2172,11 @@ export type Database = {
           language: string
           last_active_at: string
           last_ad_reward_at: string | null
+          age_visible: boolean
+          spoken_languages: string[]
+          spark_looking_for: string | null
+          spark_voice_pref: string | null
+          spark_availability: string[]
           link_url: string | null
           onboarding_completed: boolean
           profile_font: string
@@ -3686,6 +3691,11 @@ export type Database = {
           language: string
           last_active_at: string
           last_ad_reward_at: string | null
+          age_visible: boolean
+          spoken_languages: string[]
+          spark_looking_for: string | null
+          spark_voice_pref: string | null
+          spark_availability: string[]
           link_url: string | null
           onboarding_completed: boolean
           profile_font: string
