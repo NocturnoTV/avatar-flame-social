@@ -2349,6 +2349,9 @@ export type Database = {
           parent_email: string | null
           parent_name: string | null
           parental_consent: boolean
+          parental_daily_limit_minutes: number | null
+          parental_purchase_approval: boolean
+          parental_restricted_mode: boolean
           privacy_prefs: Json
           updated_at: string
           user_id: string
@@ -2364,6 +2367,9 @@ export type Database = {
           parent_email?: string | null
           parent_name?: string | null
           parental_consent?: boolean
+          parental_daily_limit_minutes?: number | null
+          parental_purchase_approval?: boolean
+          parental_restricted_mode?: boolean
           privacy_prefs?: Json
           updated_at?: string
           user_id: string
@@ -2379,6 +2385,9 @@ export type Database = {
           parent_email?: string | null
           parent_name?: string | null
           parental_consent?: boolean
+          parental_daily_limit_minutes?: number | null
+          parental_purchase_approval?: boolean
+          parental_restricted_mode?: boolean
           privacy_prefs?: Json
           updated_at?: string
           user_id?: string

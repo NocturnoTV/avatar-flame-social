@@ -14,6 +14,7 @@ import {
   Palette,
   Receipt,
   ShieldCheck,
+  ShieldAlert,
   Smartphone,
   Trash2,
   UserCog,
@@ -91,19 +92,33 @@ const NOTIF_LABELS: { key: keyof NotifPrefs; labelKey: string; hintKey: string }
   },
 ];
 
+const SETTINGS_TABS: { id: string; labelKey: string }[] = [
+  { id: "account", labelKey: "settingsTabAccount" },
+  { id: "appearance", labelKey: "settingsTabAppearance" },
+  { id: "security", labelKey: "settingsTabSecurity" },
+  { id: "notifications", labelKey: "settingsTabNotifications" },
+  { id: "privacy", labelKey: "settingsTabPrivacy" },
+  { id: "billing", labelKey: "settingsTabBilling" },
+  { id: "quick-login", labelKey: "settingsTabQuickLogin" },
+  { id: "data", labelKey: "settingsTabData" },
+  { id: "parental", labelKey: "settingsTabParental" },
+];
+
 function Section({
+  id,
   icon: Icon,
   title,
   description,
   children,
 }: {
+  id?: string;
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-5 rounded-3xl border border-border bg-card p-4">
+    <section id={id} className="mt-5 scroll-mt-20 rounded-3xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center gap-2">
         <Icon className="h-5 w-5 text-primary" />
         <div>
@@ -256,7 +271,9 @@ function SettingsPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles_private")
-        .select("notification_prefs,privacy_prefs")
+        .select(
+          "notification_prefs,privacy_prefs,parental_restricted_mode,parental_purchase_approval,parental_daily_limit_minutes",
+        )
         .eq("user_id", user?.id ?? "")
         .maybeSingle();
       return data;
@@ -337,6 +354,9 @@ function SettingsPage() {
   }
   function setPrivacy(key: keyof PrivacyPrefs, value: boolean | string) {
     void patchPrefs({ privacy_prefs: { ...privacy, [key]: value } });
+  }
+  function setParental(values: Record<string, unknown>) {
+    void patchPrefs(values);
   }
 
   async function saveUsername() {
@@ -533,6 +553,21 @@ function SettingsPage() {
         <h1 className="text-2xl font-bold">{t("settings")}</h1>
       </header>
 
+      <nav className="sticky top-0 z-10 -mx-4 mt-4 flex gap-2 overflow-x-auto app-background px-4 py-2">
+        {SETTINGS_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() =>
+              document.getElementById(tab.id)?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="shrink-0 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+          >
+            {t(tab.labelKey)}
+          </button>
+        ))}
+      </nav>
+
       {pendingDeletion ? (
         <div className="mt-4 rounded-3xl border border-destructive/40 bg-destructive/10 p-4 text-sm">
           <p className="font-semibold text-destructive">{t("deletionScheduled")}</p>
@@ -559,6 +594,7 @@ function SettingsPage() {
       ) : null}
 
       <Section
+        id="account"
         icon={UserCog}
         title={t("settingsAccountTitle")}
         description={t("settingsAccountDesc")}
@@ -609,6 +645,7 @@ function SettingsPage() {
       </Section>
 
       <Section
+        id="billing"
         icon={Crown}
         title={t("purchasesAndBilling")}
         description={t("settingsSubscriptionDesc")}
@@ -656,7 +693,12 @@ function SettingsPage() {
         </Link>
       </Section>
 
-      <Section icon={Palette} title={t("appearanceTitle")} description={t("appearanceDesc")}>
+      <Section
+        id="appearance"
+        icon={Palette}
+        title={t("appearanceTitle")}
+        description={t("appearanceDesc")}
+      >
         <div>
           <Label>{t("theme")}</Label>
           <div className="flex gap-3">
@@ -697,7 +739,12 @@ function SettingsPage() {
         </div>
       </Section>
 
-      <Section icon={Bell} title={t("notifications")} description={t("notificationSettingsDesc")}>
+      <Section
+        id="notifications"
+        icon={Bell}
+        title={t("notifications")}
+        description={t("notificationSettingsDesc")}
+      >
         <Toggle
           label={t("pauseAllNotifications")}
           hint={t("pauseAllHint")}
@@ -717,7 +764,7 @@ function SettingsPage() {
         </div>
       </Section>
 
-      <Section icon={Eye} title={t("privacyTitle")} description={t("privacyDesc")}>
+      <Section id="privacy" icon={Eye} title={t("privacyTitle")} description={t("privacyDesc")}>
         <Toggle
           label={t("appearOnline")}
           hint={t("appearOnlineHint")}
@@ -759,7 +806,7 @@ function SettingsPage() {
         </div>
       </Section>
 
-      <Section icon={Lock} title={t("securityTitle")} description={t("securityDesc")}>
+      <Section id="security" icon={Lock} title={t("securityTitle")} description={t("securityDesc")}>
         <div>
           <Label>{t("blockedUsers")}</Label>
           {(blocked.data ?? []).length === 0 ? (
@@ -789,7 +836,12 @@ function SettingsPage() {
         </Button>
       </Section>
 
-      <Section icon={Smartphone} title={t("deviceLoginTitle")} description={t("deviceLoginDesc")}>
+      <Section
+        id="quick-login"
+        icon={Smartphone}
+        title={t("deviceLoginTitle")}
+        description={t("deviceLoginDesc")}
+      >
         {deviceCode ? (
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center">
             <p className="font-mono text-2xl font-black tracking-widest">{deviceCode.code}</p>
@@ -846,7 +898,7 @@ function SettingsPage() {
         )}
       </Section>
 
-      <Section icon={Database} title={t("myDataTitle")} description={t("myDataDesc")}>
+      <Section id="data" icon={Database} title={t("myDataTitle")} description={t("myDataDesc")}>
         <p className="text-sm text-muted-foreground">{t("dataRightsText")}</p>
         <Button variant="outline" className="w-full" onClick={downloadData} disabled={exporting}>
           <Download className="h-4 w-4" /> {exporting ? t("preparingExport") : t("downloadAllData")}
@@ -870,6 +922,44 @@ function SettingsPage() {
             ))}
           </div>
         ) : null}
+      </Section>
+
+      <Section
+        id="parental"
+        icon={ShieldAlert}
+        title={t("parentalControlsTitle")}
+        description={t("parentalControlsDesc")}
+      >
+        <Toggle
+          label={t("parentalRestrictedMode")}
+          hint={t("parentalRestrictedModeHint")}
+          checked={prefsQuery.data?.parental_restricted_mode === true}
+          onChange={(v) => setParental({ parental_restricted_mode: v })}
+        />
+        <Toggle
+          label={t("parentalPurchaseApproval")}
+          hint={t("parentalPurchaseApprovalHint")}
+          checked={prefsQuery.data?.parental_purchase_approval === true}
+          onChange={(v) => setParental({ parental_purchase_approval: v })}
+        />
+        <div>
+          <Label>{t("parentalDailyLimit")}</Label>
+          <Select
+            value={String(prefsQuery.data?.parental_daily_limit_minutes ?? 0)}
+            onChange={(e) =>
+              setParental({
+                parental_daily_limit_minutes: Number(e.target.value) || null,
+              })
+            }
+          >
+            <option value="0">{t("parentalDailyLimitOff")}</option>
+            {[1, 2, 3, 4, 6].map((hours) => (
+              <option key={hours} value={hours * 60}>
+                {t("parentalDailyLimitHours", { n: hours })}
+              </option>
+            ))}
+          </Select>
+        </div>
       </Section>
 
       <Section icon={ShieldCheck} title={t("aboutTitle")}>
