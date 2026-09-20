@@ -1732,6 +1732,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["message_kind"]
           media_url: string | null
           sender_id: string
+          story_id: string | null
         }
         Insert: {
           content?: string | null
@@ -1742,6 +1743,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["message_kind"]
           media_url?: string | null
           sender_id: string
+          story_id?: string | null
         }
         Update: {
           content?: string | null
@@ -1752,6 +1754,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["message_kind"]
           media_url?: string | null
           sender_id?: string
+          story_id?: string | null
         }
         Relationships: [
           {
@@ -2777,31 +2780,179 @@ export type Database = {
       }
       stories: {
         Row: {
+          archived: boolean
           caption: string | null
           created_at: string
           expires_at: string
           id: string
           media_type: string
           media_url: string
+          sound_id: string | null
+          thumbnail_path: string | null
           user_id: string
+          visibility: string
         }
         Insert: {
+          archived?: boolean
           caption?: string | null
           created_at?: string
           expires_at?: string
           id?: string
           media_type?: string
           media_url: string
+          sound_id?: string | null
+          thumbnail_path?: string | null
           user_id: string
+          visibility?: string
         }
         Update: {
+          archived?: boolean
           caption?: string | null
           created_at?: string
           expires_at?: string
           id?: string
           media_type?: string
           media_url?: string
+          sound_id?: string | null
+          thumbnail_path?: string | null
           user_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stories_sound_id_fkey"
+            columns: ["sound_id"]
+            isOneToOne: false
+            referencedRelation: "sounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          reaction: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reaction: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reaction?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_reactions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_highlights: {
+        Row: {
+          cover_path: string | null
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          cover_path?: string | null
+          created_at?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          cover_path?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_highlight_items: {
+        Row: {
+          highlight_id: string
+          position: number
+          story_id: string
+        }
+        Insert: {
+          highlight_id: string
+          position?: number
+          story_id: string
+        }
+        Update: {
+          highlight_id?: string
+          position?: number
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_highlight_items_highlight_id_fkey"
+            columns: ["highlight_id"]
+            isOneToOne: false
+            referencedRelation: "story_highlights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_highlight_items_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sounds: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          rights_confirmed: boolean
+          storage_path: string
+          title: string
+          usage_count: number
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          rights_confirmed?: boolean
+          storage_path: string
+          title: string
+          usage_count?: number
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          rights_confirmed?: boolean
+          storage_path?: string
+          title?: string
+          usage_count?: number
+          user_id?: string
+          visibility?: string
         }
         Relationships: []
       }
@@ -3459,6 +3610,7 @@ export type Database = {
           recommendation_eligible: boolean
           reposts_count: number
           shares_count: number
+          sound_id: string | null
           sound_name: string | null
           storage_path: string
           thumbnail_path: string | null
@@ -3481,6 +3633,7 @@ export type Database = {
           recommendation_eligible?: boolean
           reposts_count?: number
           shares_count?: number
+          sound_id?: string | null
           sound_name?: string | null
           storage_path: string
           thumbnail_path?: string | null
@@ -3503,6 +3656,7 @@ export type Database = {
           recommendation_eligible?: boolean
           reposts_count?: number
           shares_count?: number
+          sound_id?: string | null
           sound_name?: string | null
           storage_path?: string
           thumbnail_path?: string | null

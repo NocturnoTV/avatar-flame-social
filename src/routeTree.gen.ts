@@ -23,6 +23,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as ReglesRouteImport } from './routes/regles'
 import { Route as ShopTermsRouteImport } from './routes/shop-terms'
+import { Route as SoundRightsRouteImport } from './routes/sound-rights'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
@@ -125,6 +126,11 @@ const ReglesRoute = ReglesRouteImport.update({
 const ShopTermsRoute = ShopTermsRouteImport.update({
   id: '/shop-terms',
   path: '/shop-terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SoundRightsRoute = SoundRightsRouteImport.update({
+  id: '/sound-rights',
+  path: '/sound-rights',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -320,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/profil': typeof ProfilRoute
   '/regles': typeof ReglesRoute
   '/shop-terms': typeof ShopTermsRoute
+  '/sound-rights': typeof SoundRightsRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/events': typeof AuthenticatedEventsRoute
@@ -369,6 +376,7 @@ export interface FileRoutesByTo {
   '/profil': typeof ProfilRoute
   '/regles': typeof ReglesRoute
   '/shop-terms': typeof ShopTermsRoute
+  '/sound-rights': typeof SoundRightsRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/events': typeof AuthenticatedEventsRoute
@@ -420,6 +428,7 @@ export interface FileRoutesById {
   '/profil': typeof ProfilRoute
   '/regles': typeof ReglesRoute
   '/shop-terms': typeof ShopTermsRoute
+  '/sound-rights': typeof SoundRightsRoute
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/events': typeof AuthenticatedEventsRoute
@@ -471,6 +480,7 @@ export interface FileRouteTypes {
     | '/profil'
     | '/regles'
     | '/shop-terms'
+    | '/sound-rights'
     | '/terms'
     | '/admin'
     | '/events'
@@ -520,6 +530,7 @@ export interface FileRouteTypes {
     | '/profil'
     | '/regles'
     | '/shop-terms'
+    | '/sound-rights'
     | '/terms'
     | '/admin'
     | '/events'
@@ -570,6 +581,7 @@ export interface FileRouteTypes {
     | '/profil'
     | '/regles'
     | '/shop-terms'
+    | '/sound-rights'
     | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/events'
@@ -621,6 +633,7 @@ export interface RootRouteChildren {
   ProfilRoute: typeof ProfilRoute
   ReglesRoute: typeof ReglesRoute
   ShopTermsRoute: typeof ShopTermsRoute
+  SoundRightsRoute: typeof SoundRightsRoute
   TermsRoute: typeof TermsRoute
   DecouvrirStudioRoute: typeof DecouvrirStudioRoute
   LinkTokenRoute: typeof LinkTokenRoute
@@ -728,6 +741,13 @@ declare module '@tanstack/react-router' {
       path: '/shop-terms'
       fullPath: '/shop-terms'
       preLoaderRoute: typeof ShopTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sound-rights': {
+      id: '/sound-rights'
+      path: '/sound-rights'
+      fullPath: '/sound-rights'
+      preLoaderRoute: typeof SoundRightsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -1057,6 +1077,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfilRoute: ProfilRoute,
   ReglesRoute: ReglesRoute,
   ShopTermsRoute: ShopTermsRoute,
+  SoundRightsRoute: SoundRightsRoute,
   TermsRoute: TermsRoute,
   DecouvrirStudioRoute: DecouvrirStudioRoute,
   LinkTokenRoute: LinkTokenRoute,

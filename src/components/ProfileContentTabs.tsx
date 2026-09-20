@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
   ImagePlus,
+  Lock,
+  Music2,
+  Pause,
   Play,
   Repeat2,
   Smile,
@@ -23,7 +26,15 @@ export type TabVideo = {
 };
 type TabPhoto = { id: string; url: string };
 export type TabSticker = { id: string; storage_path: string };
-type Tab = "videos" | "reposts" | "photos" | "stickers";
+export type TabSound = {
+  id: string;
+  storage_path: string;
+  title: string;
+  description: string | null;
+  visibility: "public" | "private";
+  usage_count: number;
+};
+type Tab = "videos" | "reposts" | "photos" | "stickers" | "sounds";
 type LightboxTarget = { list: TabPhoto[]; index: number };
 
 /**
@@ -38,8 +49,10 @@ export function ProfileContentTabs({
   reposts,
   photos,
   stickers = [],
+  sounds = [],
   photosEditable = false,
   stickersEditable = false,
+  soundsEditable = false,
   maxPhotos,
   busy,
   onAddPhotoClick,
@@ -47,13 +60,18 @@ export function ProfileContentTabs({
   onMovePhoto,
   onAddStickerClick,
   onDeleteSticker,
+  onAddSoundClick,
+  onDeleteSound,
+  onToggleSoundVisibility,
 }: {
   videos: TabVideo[];
   reposts: TabVideo[];
   photos: TabPhoto[];
   stickers?: TabSticker[];
+  sounds?: TabSound[];
   photosEditable?: boolean;
   stickersEditable?: boolean;
+  soundsEditable?: boolean;
   maxPhotos?: number;
   busy?: boolean;
   onAddPhotoClick?: () => void;
@@ -61,6 +79,9 @@ export function ProfileContentTabs({
   onMovePhoto?: (index: number, delta: number) => void;
   onAddStickerClick?: () => void;
   onDeleteSticker?: (id: string) => void;
+  onAddSoundClick?: () => void;
+  onDeleteSound?: (id: string) => void;
+  onToggleSoundVisibility?: (id: string, visibility: "public" | "private") => void;
 }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("videos");
@@ -71,6 +92,7 @@ export function ProfileContentTabs({
     { id: "reposts", label: t("repostsTab"), icon: Repeat2, count: reposts.length },
     { id: "photos", label: t("photosTab"), icon: ImagePlus, count: photos.length },
     { id: "stickers", label: t("stickersTab"), icon: Smile, count: stickers.length },
+    { id: "sounds", label: t("soundsTab"), icon: Music2, count: sounds.length },
   ];
 
   return (
@@ -202,6 +224,32 @@ export function ProfileContentTabs({
             ) : null}
           </div>
         ) : null}
+
+        {tab === "sounds" ? (
+          <div className="space-y-2">
+            {sounds.map((s) => (
+              <SoundRow
+                key={s.id}
+                sound={s}
+                editable={soundsEditable}
+                onDelete={() => onDeleteSound?.(s.id)}
+                onToggleVisibility={() =>
+                  onToggleSoundVisibility?.(s.id, s.visibility === "public" ? "private" : "public")
+                }
+              />
+            ))}
+            {soundsEditable ? (
+              <button
+                onClick={onAddSoundClick}
+                disabled={busy}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4 text-sm font-bold text-muted-foreground hover:border-primary hover:text-primary"
+              >
+                <Music2 className="h-4 w-4" /> {t("addSound")}
+              </button>
+            ) : null}
+            {!sounds.length && !soundsEditable ? <EmptyState label={t("noSounds")} /> : null}
+          </div>
+        ) : null}
       </div>
 
       {lightbox ? (
@@ -216,6 +264,87 @@ function EmptyState({ label }: { label: string }) {
     <p className="col-span-3 rounded-3xl bg-surface py-10 text-center text-sm text-muted-foreground">
       {label}
     </p>
+  );
+}
+
+function SoundRow({
+  sound,
+  editable,
+  onDelete,
+  onToggleVisibility,
+}: {
+  sound: TabSound;
+  editable: boolean;
+  onDelete: () => void;
+  onToggleVisibility: () => void;
+}) {
+  const { t } = useI18n();
+  const url = useSignedUrl(sound.storage_path);
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  function toggle() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+    } else {
+      void audio.play();
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+      <button
+        onClick={toggle}
+        disabled={!url}
+        aria-label={playing ? t("pause") : t("play")}
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+      >
+        {playing ? <Pause className="h-4.5 w-4.5" /> : <Play className="h-4.5 w-4.5" />}
+      </button>
+      {url ? (
+        <audio
+          ref={audioRef}
+          src={url}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+        />
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold">{sound.title}</p>
+        {sound.description ? (
+          <p className="truncate text-xs text-muted-foreground">{sound.description}</p>
+        ) : null}
+        <p className="text-[11px] text-muted-foreground">
+          {t("soundUsageCount", { count: sound.usage_count })}
+        </p>
+      </div>
+      {editable ? (
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            onClick={onToggleVisibility}
+            className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-bold text-muted-foreground"
+          >
+            {sound.visibility === "private" ? (
+              <span className="flex items-center gap-1">
+                <Lock className="h-3 w-3" /> {t("soundPrivate")}
+              </span>
+            ) : (
+              t("soundPublic")
+            )}
+          </button>
+          <button
+            onClick={onDelete}
+            aria-label={t("delete")}
+            className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
