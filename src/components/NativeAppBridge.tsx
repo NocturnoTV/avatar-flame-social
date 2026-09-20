@@ -4,7 +4,7 @@ import { isNativeApp, nativePlatform } from "@/lib/native";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
-import { redeemDeviceLoginLink } from "@/lib/device-login.functions";
+import { redeemDeviceLoginLink, redeemDeviceLoginCode } from "@/lib/device-login.functions";
 
 /**
  * Everything the iOS/Android shell needs that a normal browser tab doesn't:
@@ -20,26 +20,33 @@ export function NativeAppBridge() {
   const navigate = useNavigate();
 
   // Catches the app being (re)opened via the custom bloxspark:// scheme
-  // with a device-login-link token attached (see /link/$token, which does
-  // the same redemption when opened in a browser instead) - lets someone
-  // sign back into the app itself after reinstalling or logging out,
-  // without needing another already-signed-in device to type a code from.
+  // carrying either a persistent device-login-link token (see /link/$token,
+  // which does the same redemption when opened in a browser - reinstalling
+  // the app, or signing in with no other device around) or a one-time
+  // device code (see DeviceCodePopup.tsx and auth.tsx's
+  // continueAfterAuthentication, fired right after signing in on the
+  // website so the app logs in automatically instead of asking someone to
+  // copy a code over by hand).
   useEffect(() => {
     if (!isNativeApp()) return;
     let remove: (() => void) | undefined;
     void (async () => {
       const { App } = await import("@capacitor/app");
       const handle = await App.addListener("appUrlOpen", ({ url }) => {
-        let token: string | null = null;
+        let params: URLSearchParams;
         try {
-          token = new URL(url).searchParams.get("token");
+          params = new URL(url).searchParams;
         } catch {
           return;
         }
-        if (!token) return;
+        const token = params.get("token");
+        const code = params.get("code");
+        if (!token && !code) return;
         void (async () => {
           try {
-            const { tokenHash } = await redeemDeviceLoginLink({ data: { token } });
+            const { tokenHash } = token
+              ? await redeemDeviceLoginLink({ data: { token } })
+              : await redeemDeviceLoginCode({ data: { code: code! } });
             const { error } = await supabase.auth.verifyOtp({
               token_hash: tokenHash,
               type: "magiclink",
@@ -47,8 +54,9 @@ export function NativeAppBridge() {
             if (error) throw error;
             void navigate({ to: "/home" });
           } catch {
-            // Already signed in, or an invalid/regenerated link - nothing
-            // useful to show for a deep link that fired in the background.
+            // Already signed in, or an invalid/expired/regenerated
+            // token/code - nothing useful to show for a deep link that
+            // fired in the background.
           }
         })();
       });

@@ -140,6 +140,24 @@ function AuthPage() {
     await supabase.auth.updateUser({
       data: { onboarding_completed: completed, onboarding_required: !completed },
     });
+
+    // Every successful web sign-in (Google, Roblox, email/password) also
+    // tries to hand off to the native app if it's installed - a one-time
+    // code embedded straight in the bloxspark:// link so NativeAppBridge's
+    // appUrlOpen listener can log the app in on its own, no code to copy
+    // by hand. Fire-and-forget: if the app isn't installed this silently
+    // does nothing, and the website continues on regardless.
+    if (!isNativeApp()) {
+      void (async () => {
+        try {
+          const result = await createDeviceLoginCode();
+          void openExternal(`bloxspark://link?code=${encodeURIComponent(result.code)}`);
+        } catch {
+          // Non-essential - the website sign-in already succeeded.
+        }
+      })();
+    }
+
     navigate({
       to: completed ? "/home" : "/onboarding",
       replace: true,

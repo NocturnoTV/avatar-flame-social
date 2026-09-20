@@ -154,6 +154,76 @@ async function resumableUpload(bucket: string, path: string, file: Blob) {
   }
 }
 
+/** Resolves when `fire` happens, or after `ms` regardless - some WebViews
+ * (notably Android's, inside the Capacitor app) don't reliably fire
+ * `loadedmetadata`/`seeked` on a `<video>` that was never attached to the
+ * document, unlike desktop/mobile Safari and Chrome which handle a detached
+ * element fine. Attaching the element (below) is the main fix; this timeout
+ * is the backstop so a still-flaky WebView hangs the "Capturer" button for
+ * at most a couple seconds instead of forever. */
+function raceWithTimeout(attach: (resolve: () => void) => void, ms: number) {
+  return new Promise<void>((resolve) => {
+    const timer = window.setTimeout(resolve, ms);
+    attach(() => {
+      window.clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
+/** Captures a JPEG frame from a video Blob/URL at `atSeconds`. Throws on
+ * decode failure or an empty canvas so callers can distinguish "no frame"
+ * from a real (recoverable) error. */
+export async function captureVideoFrame(source: Blob | string, atSeconds: number): Promise<Blob> {
+  const url = typeof source === "string" ? source : URL.createObjectURL(source);
+  // Some WebViews (Android, inside the app) never fire loadedmetadata/seeked
+  // on a video element that isn't part of the document - keeping it in the
+  // DOM (just visually hidden, not display:none, which some engines also
+  // treat as "don't bother decoding") is what actually makes frame capture
+  // reliable there; this worked fine as a detached element on the website.
+  const video = document.createElement("video");
+  video.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;";
+  document.body.appendChild(video);
+  try {
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.src = url;
+    let loadError: Error | null = null;
+    await raceWithTimeout((resolve) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => {
+        loadError = new Error("Could not read video.");
+        resolve();
+      };
+    }, 8000);
+    if (loadError) throw loadError;
+    if (!video.duration || Number.isNaN(video.duration)) throw new Error("Could not read video.");
+    video.currentTime = Math.min(Math.max(atSeconds, 0), Math.max(video.duration - 0.05, 0));
+    await raceWithTimeout((resolve) => {
+      video.onseeked = () => resolve();
+    }, 4000);
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    if (!canvas.width || !canvas.height) throw new Error("Could not capture frame.");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not capture frame.");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Could not capture frame."))),
+        "image/jpeg",
+        0.85,
+      );
+    });
+  } finally {
+    video.remove();
+    if (typeof source !== "string") URL.revokeObjectURL(url);
+  }
+}
+
 /**
  * Captures a JPEG frame (~0.5s in, fallback first frame) from a video Blob.
  * Used to auto-generate a thumbnail when the creator didn't pick one:
@@ -163,38 +233,25 @@ async function resumableUpload(bucket: string, path: string, file: Blob) {
  */
 export async function captureVideoThumbnail(source: Blob): Promise<Blob | null> {
   if (typeof document === "undefined") return null;
-  const url = URL.createObjectURL(source);
   try {
-    const video = document.createElement("video");
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = "auto";
-    video.src = url;
-    await new Promise<void>((resolve, reject) => {
-      video.onloadeddata = () => resolve();
-      video.onerror = () => reject(new Error("video decode failed"));
+    const duration = await new Promise<number>((resolve, reject) => {
+      const probe = document.createElement("video");
+      probe.preload = "metadata";
+      probe.src = URL.createObjectURL(source);
+      probe.onloadedmetadata = () => {
+        const d = probe.duration;
+        URL.revokeObjectURL(probe.src);
+        resolve(d);
+      };
+      probe.onerror = () => {
+        URL.revokeObjectURL(probe.src);
+        reject(new Error("video decode failed"));
+      };
     });
-    if (!video.videoWidth || !video.videoHeight) return null;
-    const target = Math.min(0.5, (video.duration || 1) / 2);
-    await new Promise<void>((resolve) => {
-      video.onseeked = () => resolve();
-      video.currentTime = target;
-      // Some engines never fire seeked for a non-attached element.
-      window.setTimeout(resolve, 1500);
-    });
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    return await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82),
-    );
+    const target = Math.min(0.5, (duration || 1) / 2);
+    return await captureVideoFrame(source, target);
   } catch {
     return null;
-  } finally {
-    URL.revokeObjectURL(url);
   }
 }
 
