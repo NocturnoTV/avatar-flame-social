@@ -1,4 +1,4 @@
-import { randomInt } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
@@ -21,6 +21,52 @@ function requestIp(): string {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "unknown"
   );
+}
+
+type SupabaseAdminClient = Awaited<
+  typeof import("@/integrations/supabase/client.server")
+>["supabaseAdmin"];
+
+/** Shared per-IP sliding-window throttle (3 attempts / 3s) backing both
+ * redeemDeviceLoginCode and redeemDeviceLoginLink below - same table, same
+ * window, since both are "guess a secret to sign in" endpoints. */
+async function throttleByIp(supabaseAdmin: SupabaseAdminClient, ip: string) {
+  const { data: bucket } = await supabaseAdmin
+    .from("device_code_attempts")
+    .select("attempts,window_started_at")
+    .eq("ip", ip)
+    .maybeSingle();
+  const windowAge = bucket ? Date.now() - new Date(bucket.window_started_at).getTime() : Infinity;
+  if (bucket && windowAge < 3000 && bucket.attempts >= 3) {
+    throw new Error("rate_limited");
+  }
+  if (!bucket || windowAge >= 3000) {
+    await supabaseAdmin
+      .from("device_code_attempts")
+      .upsert({ ip, attempts: 1, window_started_at: new Date().toISOString() });
+  } else {
+    await supabaseAdmin
+      .from("device_code_attempts")
+      .update({ attempts: bucket.attempts + 1 })
+      .eq("ip", ip);
+  }
+}
+
+/** Turns a Supabase user id into the same {tokenHash} shape the client
+ * applies with supabase.auth.verifyOtp({ token_hash, type: "magiclink" }) -
+ * shared by every device-login redemption path below. */
+async function mintSessionTokenHash(supabaseAdmin: SupabaseAdminClient, userId: string) {
+  const { data: authUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (userError || !authUser.user.email) throw userError ?? new Error("no_email_on_account");
+
+  const { data: link, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    type: "magiclink",
+    email: authUser.user.email,
+  });
+  if (linkError || !link.properties?.hashed_token) {
+    throw linkError ?? new Error("could_not_create_session_link");
+  }
+  return link.properties.hashed_token;
 }
 
 /**
@@ -71,26 +117,7 @@ export const redeemDeviceLoginCode = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const ip = requestIp();
-
-    const { data: bucket } = await supabaseAdmin
-      .from("device_code_attempts")
-      .select("attempts,window_started_at")
-      .eq("ip", ip)
-      .maybeSingle();
-    const windowAge = bucket ? Date.now() - new Date(bucket.window_started_at).getTime() : Infinity;
-    if (bucket && windowAge < 3000 && bucket.attempts >= 3) {
-      throw new Error("rate_limited");
-    }
-    if (!bucket || windowAge >= 3000) {
-      await supabaseAdmin
-        .from("device_code_attempts")
-        .upsert({ ip, attempts: 1, window_started_at: new Date().toISOString() });
-    } else {
-      await supabaseAdmin
-        .from("device_code_attempts")
-        .update({ attempts: bucket.attempts + 1 })
-        .eq("ip", ip);
-    }
+    await throttleByIp(supabaseAdmin, ip);
 
     const code = data.code.trim().toUpperCase();
 
@@ -112,22 +139,62 @@ export const redeemDeviceLoginCode = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!claimed) throw new Error("invalid_or_expired_code"); // lost the race
 
-    const { data: authUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(
-      claimed.user_id,
-    );
-    if (userError || !authUser.user.email) throw userError ?? new Error("no_email_on_account");
-
-    const { data: link, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
-      email: authUser.user.email,
-    });
-    if (linkError || !link.properties?.hashed_token) {
-      throw linkError ?? new Error("could_not_create_session_link");
-    }
+    const tokenHash = await mintSessionTokenHash(supabaseAdmin, claimed.user_id);
 
     // Successful redemption - clear this IP's throttle bucket so a shared
     // network (school wifi, NAT) isn't left cooling down after a real login.
     await supabaseAdmin.from("device_code_attempts").delete().eq("ip", ip);
 
-    return { tokenHash: link.properties.hashed_token };
+    return { tokenHash };
+  });
+
+/** Persistent, revocable sign-in link - unlike the 7-digit code above
+ * (single-use, 5-minute expiry), this is generated once from Settings and
+ * stays valid until the person regenerates it. Meant for exactly the case
+ * a code can't cover well: reinstalling the app, or signing in on a device
+ * with no other already-signed-in device to type a fresh code from. Only
+ * the SHA-256 hash is ever stored - the raw token is shown once, at
+ * generation time, same as an API key. */
+export const generateDeviceLoginLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const token = randomBytes(24).toString("base64url");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const { error } = await supabaseAdmin.from("device_login_links").upsert({
+      user_id: context.userId,
+      token_hash: tokenHash,
+      created_at: new Date().toISOString(),
+      last_used_at: null,
+    });
+    if (error) throw error;
+    return { token };
+  });
+
+const redeemLinkSchema = z.object({ token: z.string().min(10).max(200) });
+
+export const redeemDeviceLoginLink = createServerFn({ method: "POST" })
+  .validator(redeemLinkSchema)
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const ip = requestIp();
+    await throttleByIp(supabaseAdmin, ip);
+
+    const tokenHash = createHash("sha256").update(data.token).digest("hex");
+    const { data: row } = await supabaseAdmin
+      .from("device_login_links")
+      .select("user_id")
+      .eq("token_hash", tokenHash)
+      .maybeSingle();
+    if (!row) throw new Error("invalid_link");
+
+    const resultTokenHash = await mintSessionTokenHash(supabaseAdmin, row.user_id);
+
+    await supabaseAdmin
+      .from("device_login_links")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("user_id", row.user_id);
+    await supabaseAdmin.from("device_code_attempts").delete().eq("ip", ip);
+
+    return { tokenHash: resultTokenHash };
   });

@@ -40,6 +40,7 @@ import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedWikiRouteImport } from './routes/_authenticated/wiki'
 import { Route as DecouvrirIndexRouteImport } from './routes/decouvrir.index'
 import { Route as DecouvrirStudioRouteImport } from './routes/decouvrir.studio'
+import { Route as LinkTokenRouteImport } from './routes/link.$token'
 import { Route as AuthenticatedCommunitiesIndexRouteImport } from './routes/_authenticated/communities.index'
 import { Route as AuthenticatedCommunitiesHandleRouteImport } from './routes/_authenticated/communities.$handle'
 import { Route as AuthenticatedCommunitiesCreateRouteImport } from './routes/_authenticated/communities.create'
@@ -211,6 +212,11 @@ const DecouvrirStudioRoute = DecouvrirStudioRouteImport.update({
   path: '/decouvrir/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LinkTokenRoute = LinkTokenRouteImport.update({
+  id: '/link/$token',
+  path: '/link/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedCommunitiesIndexRoute =
   AuthenticatedCommunitiesIndexRouteImport.update({
     id: '/communities/',
@@ -330,6 +336,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof AuthenticatedSupportRoute
   '/wiki': typeof AuthenticatedWikiRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
+  '/link/$token': typeof LinkTokenRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
   '/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
   '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
@@ -378,6 +385,7 @@ export interface FileRoutesByTo {
   '/support': typeof AuthenticatedSupportRoute
   '/wiki': typeof AuthenticatedWikiRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
+  '/link/$token': typeof LinkTokenRoute
   '/decouvrir': typeof DecouvrirIndexRoute
   '/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
   '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
@@ -428,6 +436,7 @@ export interface FileRoutesById {
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/wiki': typeof AuthenticatedWikiRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
+  '/link/$token': typeof LinkTokenRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
   '/_authenticated/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
   '/_authenticated/communities/create': typeof AuthenticatedCommunitiesCreateRoute
@@ -478,6 +487,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/wiki'
     | '/decouvrir/studio'
+    | '/link/$token'
     | '/decouvrir/'
     | '/communities/$handle'
     | '/communities/create'
@@ -526,6 +536,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/wiki'
     | '/decouvrir/studio'
+    | '/link/$token'
     | '/decouvrir'
     | '/communities/$handle'
     | '/communities/create'
@@ -575,6 +586,7 @@ export interface FileRouteTypes {
     | '/_authenticated/support'
     | '/_authenticated/wiki'
     | '/decouvrir/studio'
+    | '/link/$token'
     | '/decouvrir/'
     | '/_authenticated/communities/$handle'
     | '/_authenticated/communities/create'
@@ -611,6 +623,7 @@ export interface RootRouteChildren {
   ShopTermsRoute: typeof ShopTermsRoute
   TermsRoute: typeof TermsRoute
   DecouvrirStudioRoute: typeof DecouvrirStudioRoute
+  LinkTokenRoute: typeof LinkTokenRoute
   DecouvrirIndexRoute: typeof DecouvrirIndexRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -836,6 +849,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DecouvrirStudioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/link/$token': {
+      id: '/link/$token'
+      path: '/link/$token'
+      fullPath: '/link/$token'
+      preLoaderRoute: typeof LinkTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/communities/': {
       id: '/_authenticated/communities/'
       path: '/communities'
@@ -1039,6 +1059,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopTermsRoute: ShopTermsRoute,
   TermsRoute: TermsRoute,
   DecouvrirStudioRoute: DecouvrirStudioRoute,
+  LinkTokenRoute: LinkTokenRoute,
   DecouvrirIndexRoute: DecouvrirIndexRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,

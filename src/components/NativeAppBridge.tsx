@@ -1,8 +1,10 @@
 import { useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { isNativeApp, nativePlatform } from "@/lib/native";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
+import { redeemDeviceLoginLink } from "@/lib/device-login.functions";
 
 /**
  * Everything the iOS/Android shell needs that a normal browser tab doesn't:
@@ -15,6 +17,45 @@ import { supabase } from "@/integrations/supabase/client";
 export function NativeAppBridge() {
   const { theme } = useTheme();
   const { user } = useSession();
+  const navigate = useNavigate();
+
+  // Catches the app being (re)opened via the custom bloxspark:// scheme
+  // with a device-login-link token attached (see /link/$token, which does
+  // the same redemption when opened in a browser instead) - lets someone
+  // sign back into the app itself after reinstalling or logging out,
+  // without needing another already-signed-in device to type a code from.
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    let remove: (() => void) | undefined;
+    void (async () => {
+      const { App } = await import("@capacitor/app");
+      const handle = await App.addListener("appUrlOpen", ({ url }) => {
+        let token: string | null = null;
+        try {
+          token = new URL(url).searchParams.get("token");
+        } catch {
+          return;
+        }
+        if (!token) return;
+        void (async () => {
+          try {
+            const { tokenHash } = await redeemDeviceLoginLink({ data: { token } });
+            const { error } = await supabase.auth.verifyOtp({
+              token_hash: tokenHash,
+              type: "magiclink",
+            });
+            if (error) throw error;
+            void navigate({ to: "/home" });
+          } catch {
+            // Already signed in, or an invalid/regenerated link - nothing
+            // useful to show for a deep link that fired in the background.
+          }
+        })();
+      });
+      remove = () => void handle.remove();
+    })();
+    return () => remove?.();
+  }, [navigate]);
 
   // Registers this device for real OS-level push notifications (Firebase
   // Cloud Messaging under the hood) once someone is signed in - the token

@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Bell,
+  Copy,
   Crown,
   Database,
   Download,
   Eye,
+  Link as LinkIcon,
   Lock,
   Palette,
   Receipt,
@@ -19,7 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { createDeviceLoginCode } from "@/lib/device-login.functions";
+import { createDeviceLoginCode, generateDeviceLoginLink } from "@/lib/device-login.functions";
 import { Button, Input, Label, Select, Sheet } from "@/components/ui-kit";
 import { LANGUAGES, robloxOAuthErrorKey, useI18n, type LangCode } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -168,6 +170,8 @@ function SettingsPage() {
   const [deviceCode, setDeviceCode] = useState<{ code: string; expiresAt: number } | null>(null);
   const [generatingCode, setGeneratingCode] = useState(false);
   const [deviceCodeSecondsLeft, setDeviceCodeSecondsLeft] = useState(0);
+  const [loginLink, setLoginLink] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   // getStripeEnvironmentSafe() returns null instead of throwing when Stripe
   // isn't configured for this build - see src/lib/stripe.ts.
@@ -481,6 +485,24 @@ function SettingsPage() {
     }
   }
 
+  async function generateLoginLink() {
+    setGeneratingLink(true);
+    try {
+      const result = await generateDeviceLoginLink();
+      setLoginLink(`${window.location.origin}/link/${result.token}`);
+    } catch {
+      toast.error(t("errorGeneric"));
+    } finally {
+      setGeneratingLink(false);
+    }
+  }
+
+  async function copyLoginLink() {
+    if (!loginLink) return;
+    await navigator.clipboard.writeText(loginLink);
+    toast.success(t("linkCopied"));
+  }
+
   async function deleteNow() {
     if (!user) return;
     if (!confirm(t("deleteAccountConfirm"))) return;
@@ -784,6 +806,42 @@ function SettingsPage() {
           >
             <Smartphone className="h-4 w-4" />
             {generatingCode ? "…" : t("deviceLoginGenerate")}
+          </Button>
+        )}
+      </Section>
+
+      <Section icon={LinkIcon} title={t("loginLinkTitle")} description={t("loginLinkDesc")}>
+        <p className="rounded-2xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">
+          {t("loginLinkWarning")}
+        </p>
+        {loginLink ? (
+          <div className="space-y-2">
+            <div className="truncate rounded-2xl border border-border bg-surface px-3 py-2.5 text-xs">
+              {loginLink}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => void copyLoginLink()}>
+                <Copy className="h-4 w-4" /> {t("copy")}
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex-1"
+                disabled={generatingLink}
+                onClick={() => void generateLoginLink()}
+              >
+                {t("loginLinkRegenerate")}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={generatingLink}
+            onClick={() => void generateLoginLink()}
+          >
+            <LinkIcon className="h-4 w-4" />
+            {generatingLink ? "…" : t("loginLinkGenerate")}
           </Button>
         )}
       </Section>
