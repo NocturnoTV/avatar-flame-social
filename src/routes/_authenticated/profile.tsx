@@ -34,6 +34,7 @@ import { ExternalLinkButton } from "@/components/ExternalLinkButton";
 import { ProfileContentTabs, type TabSound, type TabVideo } from "@/components/ProfileContentTabs";
 import { AddSoundSheet } from "@/components/AddSoundSheet";
 import { StoryHighlightsRow } from "@/components/StoryHighlightsRow";
+import { StoryViewerFull, type StoryRow } from "@/components/StoryViewerFull";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -90,6 +91,21 @@ function ProfilePage() {
   const [gamePickerOpen, setGamePickerOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [addSoundOpen, setAddSoundOpen] = useState(false);
+  const [storyViewerOpen, setStoryViewerOpen] = useState(false);
+
+  const myActiveStories = useQuery({
+    queryKey: ["my-active-stories", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<StoryRow[]> => {
+      const { data } = await supabase
+        .from("stories")
+        .select("id,user_id,media_url,media_type,thumbnail_path,caption,created_at,sound_id,metadata")
+        .eq("user_id", user!.id)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: true });
+      return (data ?? []).map((s) => ({ ...s, metadata: s.metadata as StoryRow["metadata"] }));
+    },
+  });
   const [youtubeInput, setYoutubeInput] = useState("");
   const bannerVideoRef = useRef<HTMLInputElement>(null);
   const stickerRef = useRef<HTMLInputElement>(null);
@@ -539,18 +555,24 @@ function ProfilePage() {
       {/* Avatar */}
       <div className="relative z-10 -mt-12 px-1">
         <div className="relative inline-block">
-          <div
+          <button
+            type="button"
+            onClick={() => myActiveStories.data?.length && setStoryViewerOpen(true)}
             className={cn(
               "inline-block rounded-full bg-background p-1",
+              myActiveStories.data?.length
+                ? "bg-gradient-to-br from-[#A855F7] to-[#20D778]"
+                : undefined,
               profileGlowClass(p?.profile_glow),
             )}
+            aria-label={myActiveStories.data?.length ? t("yourStory") : undefined}
           >
             <StoredImage
               path={p?.avatar_url ?? photos.data?.[0]?.url}
               alt={p?.username ?? ""}
-              className="h-24 w-24 rounded-full object-cover"
+              className="h-24 w-24 rounded-full border-2 border-background object-cover"
             />
-          </div>
+          </button>
           <button
             onClick={() => avatarRef.current?.click()}
             className="spark-gradient absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg"
@@ -1013,6 +1035,21 @@ function ProfilePage() {
           void sounds.refetch();
         }}
       />
+      {storyViewerOpen && user && myActiveStories.data?.length ? (
+        <StoryViewerFull
+          groups={[
+            {
+              userId: user.id,
+              username: p?.username ?? "",
+              avatarUrl: p?.avatar_url ?? null,
+              stories: myActiveStories.data,
+            },
+          ]}
+          startGroupIndex={0}
+          onClose={() => setStoryViewerOpen(false)}
+          onChanged={() => void myActiveStories.refetch()}
+        />
+      ) : null}
       <input
         ref={stickerRef}
         type="file"

@@ -11,6 +11,7 @@ import { EquippedBadges } from "@/components/Blox";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
 import { ProfileContentTabs, type TabSound, type TabVideo } from "@/components/ProfileContentTabs";
 import { StoryHighlightsRow } from "@/components/StoryHighlightsRow";
+import { StoryViewerFull, type StoryRow } from "@/components/StoryViewerFull";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -68,6 +69,7 @@ function PublicProfile() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [messaging, setMessaging] = useState(false);
+  const [storyViewerOpen, setStoryViewerOpen] = useState(false);
 
   // The URL uses the username (e.g. /users/arthur); resolve it to the real
   // id once here so every other query below can stay UUID-based. A raw
@@ -158,6 +160,20 @@ function PublicProfile() {
         stickers: stickers ?? [],
         sounds: sounds ?? [],
       };
+    },
+  });
+
+  const activeStories = useQuery({
+    queryKey: ["public-profile-active-stories", profile.data?.person?.id],
+    enabled: !!profile.data?.person?.id,
+    queryFn: async (): Promise<StoryRow[]> => {
+      const { data } = await supabase
+        .from("stories")
+        .select("id,user_id,media_url,media_type,thumbnail_path,caption,created_at,sound_id,metadata")
+        .eq("user_id", profile.data!.person!.id)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: true });
+      return (data ?? []).map((s) => ({ ...s, metadata: s.metadata as StoryRow["metadata"] }));
     },
   });
 
@@ -303,15 +319,25 @@ function PublicProfile() {
       <div className="relative z-10 px-4">
         {/* Instagram-style row: avatar left, stats to the right */}
         <div className="-mt-12 flex items-end gap-4">
-          <StoredImage
-            path={p?.avatar_url ?? profile.data?.photos[0]?.url}
-            alt={p?.username ?? ""}
+          <button
+            type="button"
+            onClick={() => activeStories.data?.length && setStoryViewerOpen(true)}
+            aria-label={activeStories.data?.length ? t("yourStory") : undefined}
             className={cn(
-              "h-24 w-24 shrink-0 rounded-full border-4 border-background object-cover",
-              profileGlowClass(sparkPlusStyle.data?.profile_glow),
+              "shrink-0 rounded-full",
+              activeStories.data?.length && "bg-gradient-to-br from-[#A855F7] to-[#20D778] p-[3px]",
             )}
-            fallback="🎮"
-          />
+          >
+            <StoredImage
+              path={p?.avatar_url ?? profile.data?.photos[0]?.url}
+              alt={p?.username ?? ""}
+              className={cn(
+                "h-24 w-24 shrink-0 rounded-full border-4 border-background object-cover",
+                profileGlowClass(sparkPlusStyle.data?.profile_glow),
+              )}
+              fallback="🎮"
+            />
+          </button>
           <div className="grid flex-1 grid-cols-3 gap-1 pb-1 text-center">
             {stats.map((s) => (
               <div key={s.label}>
@@ -418,6 +444,21 @@ function PublicProfile() {
           sounds={(profile.data?.sounds ?? []) as TabSound[]}
         />
       </div>
+      {storyViewerOpen && profile.data?.person?.id && activeStories.data?.length ? (
+        <StoryViewerFull
+          groups={[
+            {
+              userId: profile.data.person.id,
+              username: profile.data.person.username ?? "",
+              avatarUrl: profile.data.person.avatar_url ?? null,
+              stories: activeStories.data,
+            },
+          ]}
+          startGroupIndex={0}
+          onClose={() => setStoryViewerOpen(false)}
+          onChanged={() => void activeStories.refetch()}
+        />
+      ) : null}
     </div>
   );
 }
