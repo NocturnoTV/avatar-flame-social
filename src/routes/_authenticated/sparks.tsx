@@ -8,7 +8,9 @@ import {
   ChevronRight,
   Heart,
   MessageCircle,
+  RotateCcw,
   SlidersHorizontal,
+  Sparkles,
   Star,
   X,
 } from "lucide-react";
@@ -344,24 +346,25 @@ function SparksPage() {
   return (
     <div className="mx-auto w-full max-w-md px-4 pt-4">
       <header className="flex items-center justify-between">
-        <LogoWordmark className="h-11" />
-        <Button
-          variant="ghost"
-          size="icon"
+        <div className="flex items-center gap-2.5">
+          <span className="spark-gradient grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-white shadow-[0_0_18px_rgba(168,85,247,.5)]">
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <div>
+            <h1 className="text-xl font-black leading-tight">{t("sparks")}</h1>
+            <p className="text-xs text-muted-foreground">{t("sparksGateTitle")}</p>
+          </div>
+        </div>
+        <button
           onClick={() => setShowFilters(true)}
           aria-label={t("filters")}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
         >
-          <SlidersHorizontal className="h-5 w-5" />
-        </Button>
+          <SlidersHorizontal className="h-4.5 w-4.5" />
+        </button>
       </header>
 
-      <div className="mt-2 flex items-center gap-2">
-        <span className="spark-text text-2xl">✦</span>
-        <h1 className="text-2xl font-black">{t("sparks")}</h1>
-      </div>
-      <p className="mt-0.5 text-sm text-muted-foreground">{t("sparksGateTitle")}</p>
-
-      <div className="mt-3 flex gap-2">
+      <div className="mt-4 flex gap-1 rounded-2xl bg-surface-2 p-1">
         {(
           [
             ["deck", t("sparks")],
@@ -373,10 +376,10 @@ function SparksPage() {
             key={id}
             onClick={() => setTab(id)}
             className={cn(
-              "flex-1 rounded-full px-3 py-2 text-sm font-semibold transition",
+              "flex-1 rounded-xl px-3 py-2.5 text-sm font-bold transition",
               tab === id
-                ? "border border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                : "border border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
+                ? "bg-background text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {label}
@@ -407,13 +410,19 @@ function SparksPage() {
       {tab === "profile" ? <SparkProfileTab /> : null}
 
       <div className={cn(tab === "deck" ? "" : "hidden")}>
-        <div className="relative mt-4 h-[62vh] min-h-100">
+        <div className="relative mt-4 h-[min(68dvh,640px)] min-h-[420px]">
           {!current ? (
-            <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-border text-center text-muted-foreground">
-              <p className="px-8">{t("noMoreProfiles")}</p>
-              <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
-                {t("loading")}
-              </Button>
+            <div className="flex h-full flex-col items-center justify-center rounded-[2rem] border border-dashed border-border bg-surface/40 text-center">
+              <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-2xl">
+                🪐
+              </span>
+              <p className="mt-4 px-8 text-sm text-muted-foreground">{t("noMoreProfiles")}</p>
+              <button
+                onClick={() => refetch()}
+                className="mt-4 flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-bold transition hover:border-primary/40"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> {t("loading")}
+              </button>
             </div>
           ) : (
             <>
@@ -460,30 +469,33 @@ function SparksPage() {
           )}
         </div>
 
-        <div className="mt-5 flex items-center justify-center gap-4">
+        <div className="mt-6 flex items-center justify-center gap-3 sm:gap-4">
           <button
             onClick={() => swipe("pass")}
-            className="flex flex-col items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"
+            disabled={!current}
+            className="flex flex-col items-center gap-1.5 text-[11px] font-bold text-muted-foreground disabled:opacity-30"
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-red-500 shadow-sm active:scale-95">
-              <X className="h-7 w-7" />
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-red-500 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg active:scale-90">
+              <X className="h-6 w-6" strokeWidth={2.5} />
             </span>
             {t("pass")}
           </button>
           <button
             onClick={() => swipe("super")}
-            className="flex flex-col items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"
+            disabled={!current}
+            className="flex flex-col items-center gap-1.5 text-[11px] font-bold text-muted-foreground disabled:opacity-30"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-blue-500 shadow-sm active:scale-95">
-              <Star className="h-6 w-6" />
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-sky-500 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-90">
+              <Star className="h-5 w-5" />
             </span>
             {t("superLike")}
           </button>
           <button
             onClick={() => swipe("like")}
-            className="flex flex-col items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"
+            disabled={!current}
+            className="flex flex-col items-center gap-1.5 text-[11px] font-bold text-muted-foreground disabled:opacity-30"
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-green-500 shadow-sm active:scale-95">
+            <span className="spark-gradient flex h-16 w-16 items-center justify-center rounded-full text-white shadow-[0_10px_30px_-10px_rgba(168,85,247,.8)] transition hover:-translate-y-0.5 active:scale-90">
               <Heart className="h-7 w-7" fill="currentColor" />
             </span>
             {t("like")}
@@ -491,10 +503,10 @@ function SparksPage() {
           <button
             onClick={() => void messageCurrent()}
             disabled={!current || messaging}
-            className="flex flex-col items-center gap-1.5 text-[11px] font-semibold text-muted-foreground disabled:opacity-40"
+            className="flex flex-col items-center gap-1.5 text-[11px] font-bold text-muted-foreground disabled:opacity-30"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-primary shadow-sm active:scale-95">
-              <MessageCircle className="h-6 w-6" />
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-primary shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-90">
+              <MessageCircle className="h-5 w-5" />
             </span>
             {t("message")}
           </button>
@@ -571,6 +583,7 @@ function SparksPage() {
 }
 
 function MatchesTab() {
+  const { t, lang } = useI18n();
   const { user } = useSession();
 
   const matches = useQuery({
@@ -611,42 +624,63 @@ function MatchesTab() {
   const list = matches.data ?? [];
 
   return (
-    <div className="mt-4 space-y-3 pb-4">
-      <div className="rounded-3xl border border-border bg-card p-4">
-        <p className="text-sm text-muted-foreground">J'aime reçus</p>
-        <p className="spark-text text-3xl font-bold">{likes.data ?? 0}</p>
+    <div className="mt-4 space-y-4 pb-4">
+      <div className="flex items-center gap-4 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent p-4">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/15">
+          <Heart className="h-6 w-6 text-primary" fill="currentColor" />
+        </span>
+        <div>
+          <p className="spark-text text-2xl font-black">{likes.data ?? 0}</p>
+          <p className="text-xs font-semibold text-muted-foreground">{t("likesReceived")}</p>
+        </div>
       </div>
+
       {list.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          Pas encore de match. Continue à swiper !
-        </p>
+        <div className="flex flex-col items-center rounded-[2rem] border border-dashed border-border bg-surface/40 py-10 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-2xl">
+            💜
+          </span>
+          <p className="mt-3 px-8 text-sm text-muted-foreground">{t("noSparkMatches")}</p>
+        </div>
       ) : (
-        list.map((m) =>
-          m.conversation_id ? (
-            <Link
-              key={m.id}
-              to="/messages/$id"
-              params={{ id: m.conversation_id }}
-              className="flex items-center gap-3 rounded-3xl border border-border bg-card p-3"
-            >
-              <StoredImage
-                path={m.other?.avatar_url}
-                alt={m.other?.username ?? ""}
-                className="h-14 w-14 shrink-0 rounded-2xl"
-              />
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <span className="truncate">{m.other?.username ?? "Membre"}</span>
-                  {m.other?.verified ? <Verified /> : null}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  Match du {new Date(m.created_at).toLocaleDateString("fr-FR")}
-                </span>
-              </span>
-              <Heart className="h-5 w-5 shrink-0 text-primary" fill="currentColor" />
-            </Link>
-          ) : null,
-        )
+        <div className="grid grid-cols-2 gap-3">
+          {list.map((m) =>
+            m.conversation_id ? (
+              <Link
+                key={m.id}
+                to="/messages/$id"
+                params={{ id: m.conversation_id }}
+                className="group overflow-hidden rounded-3xl border border-border bg-card transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+              >
+                <div className="relative aspect-square w-full bg-surface-2">
+                  <StoredImage
+                    path={m.other?.avatar_url}
+                    alt={m.other?.username ?? ""}
+                    className="h-full w-full object-cover"
+                    fallback="🎮"
+                  />
+                  <span className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/50 text-white backdrop-blur">
+                    <Heart className="h-3.5 w-3.5" fill="currentColor" />
+                  </span>
+                </div>
+                <div className="p-2.5">
+                  <p className="flex items-center gap-1 truncate text-sm font-bold">
+                    <span className="truncate">{m.other?.username ?? "?"}</span>
+                    {m.other?.verified ? <Verified className="h-3.5 w-3.5 shrink-0" /> : null}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {t("matchedOn", {
+                      date: new Date(m.created_at).toLocaleDateString(lang, {
+                        day: "numeric",
+                        month: "short",
+                      }),
+                    })}
+                  </p>
+                </div>
+              </Link>
+            ) : null,
+          )}
+        </div>
       )}
     </div>
   );
@@ -749,6 +783,14 @@ function SparkProfileTab() {
       <Button className="w-full" disabled={saving} onClick={() => void save()}>
         {saving ? t("loading") : t("save")}
       </Button>
+
+      <Link
+        to="/profile"
+        className="flex items-center justify-between rounded-3xl border border-border bg-card p-4 text-sm font-bold transition hover:border-primary/30"
+      >
+        {t("sparkMorePrefsHint")}
+        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+      </Link>
     </div>
   );
 }
