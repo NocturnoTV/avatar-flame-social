@@ -28,6 +28,7 @@ import {
   Send,
   ShieldCheck,
   Smile,
+  Sticker,
   Square,
   Trash2,
   X,
@@ -36,7 +37,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { openExternal } from "@/lib/native";
-import { Button } from "@/components/ui-kit";
+import { Button, Sheet } from "@/components/ui-kit";
 import { BloxIcon } from "@/components/Blox";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { PresenceDot, presenceStatus } from "@/components/PresenceDot";
@@ -94,7 +95,7 @@ type Message = {
   id: string;
   sender_id: string;
   content: string | null;
-  kind: "text" | "image" | "voice" | "system" | "gift";
+  kind: "text" | "image" | "voice" | "system" | "gift" | "sticker";
   media_url: string | null;
   created_at: string;
 };
@@ -145,6 +146,7 @@ function Conversation() {
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [recording, setRecording] = useState(false);
   const [info, setInfo] = useState(false);
@@ -474,7 +476,7 @@ function Conversation() {
     });
   }, [id, user, messages.data, qc]);
 
-  async function send(kind: "text" | "image" | "voice", payload?: string) {
+  async function send(kind: "text" | "image" | "voice" | "sticker", payload?: string) {
     if (!user) return;
     if (kind === "text" && !text.trim()) return;
     const { error } = await supabase.from("messages").insert({
@@ -491,6 +493,24 @@ function Conversation() {
     if (kind === "text") setText("");
     setShowQuickReplies(false);
     void messages.refetch();
+  }
+
+  const myStickers = useQuery({
+    queryKey: ["my-stickers", user?.id],
+    enabled: !!user && stickerPickerOpen,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("stickers")
+        .select("id,storage_path")
+        .eq("user_id", user!.id)
+        .order("position");
+      return data ?? [];
+    },
+  });
+
+  async function sendSticker(path: string) {
+    setStickerPickerOpen(false);
+    await send("sticker", path);
   }
 
   async function pickImage(file: File) {
@@ -853,6 +873,8 @@ function Conversation() {
                     <GiftBubble id={m.id} content={m.content} mine={mine} />
                   ) : null}
 
+                  {m.kind === "sticker" ? <StickerBubble path={m.media_url} /> : null}
+
                   {myReactions.length > 0 ? (
                     <div className={cn("mt-1 flex flex-wrap gap-1", mine && "justify-end")}>
                       {myReactions.map((r) => (
@@ -1022,6 +1044,13 @@ function Conversation() {
               className="shrink-0 text-[#050505] dark:text-white"
             >
               <Smile className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setStickerPickerOpen(true)}
+              aria-label={t("sendSticker")}
+              className="shrink-0 text-[#050505] dark:text-white"
+            >
+              <Sticker className="h-5 w-5" />
             </button>
           </div>
 
@@ -1217,8 +1246,44 @@ function Conversation() {
           }}
         />
       ) : null}
+
+      <Sheet
+        open={stickerPickerOpen}
+        onClose={() => setStickerPickerOpen(false)}
+        title={t("sendSticker")}
+      >
+        {(myStickers.data ?? []).length === 0 ? (
+          <div className="py-6 text-center">
+            <p className="text-sm text-muted-foreground">{t("noStickers")}</p>
+            <Link
+              to="/profile"
+              onClick={() => setStickerPickerOpen(false)}
+              className="mt-3 inline-block text-sm font-bold text-primary"
+            >
+              {t("createSticker")}
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2">
+            {(myStickers.data ?? []).map((s) => (
+              <button
+                key={s.id}
+                onClick={() => void sendSticker(s.storage_path)}
+                className="grid aspect-square place-items-center rounded-2xl bg-surface-2 p-2 transition hover:bg-surface"
+              >
+                <StickerImage path={s.storage_path} />
+              </button>
+            ))}
+          </div>
+        )}
+      </Sheet>
     </div>
   );
+}
+
+function StickerImage({ path }: { path: string }) {
+  const url = useSignedUrl(path);
+  return url ? <img src={url} alt="" className="h-full w-full object-contain" /> : null;
 }
 
 // Team Spark is reserved for official messages only (the welcome message,
@@ -1790,6 +1855,18 @@ function ReceivedBubble({
         children
       )}
     </div>
+  );
+}
+
+// Stickers render like their iMessage/Telegram equivalents - no bubble
+// chrome (no background, no border, no "mine vs theirs" tinting), just the
+// image at a fixed size, since the artwork itself carries all the meaning.
+function StickerBubble({ path }: { path: string | null }) {
+  const url = useSignedUrl(path);
+  return url ? (
+    <img src={url} alt="" className="h-32 w-32 object-contain" />
+  ) : (
+    <div className="h-32 w-32 animate-pulse rounded-2xl bg-black/5 dark:bg-white/10" />
   );
 }
 

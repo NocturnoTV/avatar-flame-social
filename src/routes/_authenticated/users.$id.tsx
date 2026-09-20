@@ -104,7 +104,7 @@ function PublicProfile() {
     queryKey: ["public-profile", id],
     enabled: !!id,
     queryFn: async () => {
-      const [{ data: person }, { data: photos }, { data: games }, { data: videos }] =
+      const [{ data: person }, { data: photos }, { data: games }, { data: videos }, { data: stickers }] =
         await Promise.all([
           supabase
             .from("profiles")
@@ -131,8 +131,19 @@ function PublicProfile() {
             .eq("moderation_status", "approved")
             .order("created_at", { ascending: false })
             .limit(12),
+          supabase
+            .from("stickers")
+            .select("id,storage_path")
+            .eq("user_id", id!)
+            .order("position"),
         ]);
-      return { person, photos: photos ?? [], games: games ?? [], videos: videos ?? [] };
+      return {
+        person,
+        photos: photos ?? [],
+        games: games ?? [],
+        videos: videos ?? [],
+        stickers: stickers ?? [],
+      };
     },
   });
 
@@ -381,6 +392,7 @@ function PublicProfile() {
           videos={profile.data?.videos ?? []}
           reposts={reposts.data ?? []}
           photos={profile.data?.photos ?? []}
+          stickers={profile.data?.stickers ?? []}
         />
       </div>
     </div>

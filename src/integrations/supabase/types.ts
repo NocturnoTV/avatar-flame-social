@@ -2362,6 +2362,41 @@ export type Database = {
           },
         ]
       }
+      stickers: {
+        Row: {
+          created_at: string
+          format: string
+          id: string
+          position: number
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          format: string
+          id?: string
+          position?: number
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          format?: string
+          id?: string
+          position?: number
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stickers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_device_tokens: {
         Row: {
           created_at: string
@@ -3757,7 +3792,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
-      message_kind: "text" | "image" | "voice" | "system" | "gift"
+      message_kind: "text" | "image" | "voice" | "system" | "gift" | "sticker"
       notification_kind:
         | "match"
         | "message"
@@ -3899,7 +3934,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
-      message_kind: ["text", "image", "voice", "system", "gift"],
+      message_kind: ["text", "image", "voice", "system", "gift", "sticker"],
       notification_kind: [
         "match",
         "message",

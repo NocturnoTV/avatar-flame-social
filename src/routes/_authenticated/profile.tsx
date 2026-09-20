@@ -89,6 +89,7 @@ function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [youtubeInput, setYoutubeInput] = useState("");
   const bannerVideoRef = useRef<HTMLInputElement>(null);
+  const stickerRef = useRef<HTMLInputElement>(null);
 
   const profile = useQuery({
     queryKey: ["my-profile"],
@@ -110,6 +111,19 @@ function ProfilePage() {
       const { data } = await supabase
         .from("profile_photos")
         .select("id,url,position")
+        .eq("user_id", user?.id ?? "")
+        .order("position");
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const stickers = useQuery({
+    queryKey: ["my-stickers", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("stickers")
+        .select("id,storage_path")
         .eq("user_id", user?.id ?? "")
         .order("position");
       return data ?? [];
@@ -278,6 +292,36 @@ function ProfilePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function uploadSticker(file: File) {
+    if (!user) return;
+    const format = file.type === "image/gif" ? "gif" : file.type === "image/png" ? "png" : "jpeg";
+    if (!["image/png", "image/jpeg", "image/gif"].includes(file.type)) {
+      toast.error(t("errorGeneric"));
+      return;
+    }
+    setBusy(true);
+    try {
+      const path = await uploadFile("stickers", user.id, file, format);
+      const { error } = await supabase.from("stickers").insert({
+        user_id: user.id,
+        storage_path: path,
+        format,
+        position: stickers.data?.length ?? 0,
+      });
+      if (error) throw error;
+      void stickers.refetch();
+    } catch {
+      toast.error(t("errorGeneric"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteSticker(id: string) {
+    await supabase.from("stickers").delete().eq("id", id);
+    void stickers.refetch();
   }
 
   function setBannerYoutube() {
@@ -870,6 +914,21 @@ function ProfilePage() {
         onAddPhotoClick={() => photoRef.current?.click()}
         onDeletePhoto={(id) => void deletePhoto(id)}
         onMovePhoto={(i, delta) => void movePhoto(i, delta)}
+        stickers={stickers.data ?? []}
+        stickersEditable
+        onAddStickerClick={() => stickerRef.current?.click()}
+        onDeleteSticker={(id) => void deleteSticker(id)}
+      />
+      <input
+        ref={stickerRef}
+        type="file"
+        accept="image/png,image/jpeg,image/gif"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void uploadSticker(file);
+          e.target.value = "";
+        }}
       />
       <input
         ref={photoRef}

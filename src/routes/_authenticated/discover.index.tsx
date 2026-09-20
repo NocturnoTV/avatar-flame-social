@@ -1462,9 +1462,25 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
   const [showExtras, setShowExtras] = useState(false);
   const [gifUrl, setGifUrl] = useState("");
-  const [media, setMedia] = useState<{ url: string; type: "gif" | "sticker" } | null>(null);
+  const [media, setMedia] = useState<{
+    url: string;
+    type: "gif" | "sticker" | "custom_sticker";
+  } | null>(null);
   const [sort, setSort] = useState<"popular" | "recent">("popular");
   const [commentSearch, setCommentSearch] = useState("");
+
+  const myStickers = useQuery({
+    queryKey: ["my-stickers", user?.id],
+    enabled: !!user && showExtras,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("stickers")
+        .select("id,storage_path")
+        .eq("user_id", user!.id)
+        .order("position");
+      return data ?? [];
+    },
+  });
   const [giftingCreator, setGiftingCreator] = useState(false);
 
   const myProfile = useQuery({
@@ -1559,7 +1575,9 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     const { error } = await supabase.from("video_comments").insert({
       video_id: video.id,
       user_id: user.id,
-      content: content || (media?.type === "sticker" ? "Autocollant" : "GIF"),
+      content:
+        content ||
+        (media?.type === "sticker" || media?.type === "custom_sticker" ? "Autocollant" : "GIF"),
       parent_id: replyingTo?.id ?? null,
       media_url: media?.url ?? null,
       media_type: media?.type ?? null,
@@ -1713,6 +1731,19 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 </button>
               ))}
             </div>
+            {(myStickers.data ?? []).length > 0 ? (
+              <div className="mt-3 flex gap-2 overflow-x-auto">
+                {myStickers.data!.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setMedia({ url: s.storage_path, type: "custom_sticker" })}
+                    className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-background p-1 transition active:scale-90"
+                  >
+                    <CommentStickerThumb path={s.storage_path} />
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
         {replyingTo || media ? (
@@ -1722,7 +1753,9 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 ? `Réponse à @${replyingTo.username}`
                 : media?.type === "gif"
                   ? "GIF ajouté"
-                  : `Autocollant ${media?.url}`}
+                  : media?.type === "custom_sticker"
+                    ? "Autocollant ajouté"
+                    : `Autocollant ${media?.url}`}
             </span>
             <button
               onClick={() => {
@@ -1818,6 +1851,15 @@ function commentAge(value: string, lang: string) {
   return formatter.format(-Math.floor(seconds / 86400), "day");
 }
 
+function CommentStickerThumb({ path, className }: { path: string; className?: string }) {
+  const url = useSignedUrl(path);
+  return url ? (
+    <img src={url} alt="" className={cn("object-contain", className)} />
+  ) : (
+    <div className={cn("animate-pulse rounded-xl bg-surface-2", className)} />
+  );
+}
+
 function CommentItem({
   comment,
   replies,
@@ -1881,6 +1923,9 @@ function CommentItem({
           ) : null}
           {comment.media_type === "sticker" && comment.media_url ? (
             <span className="mt-2 block text-5xl">{comment.media_url}</span>
+          ) : null}
+          {comment.media_type === "custom_sticker" && comment.media_url ? (
+            <CommentStickerThumb path={comment.media_url} className="mt-2 h-24 w-24" />
           ) : null}
           <div className="mt-2 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
             <span>{commentAge(comment.created_at, lang)}</span>
@@ -1954,6 +1999,9 @@ function CommentItem({
             ) : null}
             {r.media_type === "sticker" && r.media_url ? (
               <span className="block text-4xl">{r.media_url}</span>
+            ) : null}
+            {r.media_type === "custom_sticker" && r.media_url ? (
+              <CommentStickerThumb path={r.media_url} className="h-16 w-16" />
             ) : null}
             <div className="mt-1.5 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
               <span>{commentAge(r.created_at, lang)}</span>

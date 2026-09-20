@@ -267,7 +267,9 @@ function MessagesPage() {
               ? `🖼️ ${t("photo")}`
               : last?.kind === "gift"
                 ? `🎁 ${giftPreviewText(t, last.content)}`
-                : (last?.content ?? "");
+                : last?.kind === "sticker"
+                  ? `🩹 ${t("stickersTab")}`
+                  : (last?.content ?? "");
         const lastReadAt = mineById.get(c.id)?.last_read_at;
         const unreadCount = (lastMessages ?? []).filter(
           (m) =>

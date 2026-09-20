@@ -6,6 +6,7 @@ import {
   ImagePlus,
   Play,
   Repeat2,
+  Smile,
   Trash2,
   Video,
   X,
@@ -21,7 +22,8 @@ export type TabVideo = {
   views_count: number;
 };
 type TabPhoto = { id: string; url: string };
-type Tab = "videos" | "reposts" | "photos";
+export type TabSticker = { id: string; storage_path: string };
+type Tab = "videos" | "reposts" | "photos" | "stickers";
 type LightboxTarget = { list: TabPhoto[]; index: number };
 
 /**
@@ -35,22 +37,30 @@ export function ProfileContentTabs({
   videos,
   reposts,
   photos,
+  stickers = [],
   photosEditable = false,
+  stickersEditable = false,
   maxPhotos,
   busy,
   onAddPhotoClick,
   onDeletePhoto,
   onMovePhoto,
+  onAddStickerClick,
+  onDeleteSticker,
 }: {
   videos: TabVideo[];
   reposts: TabVideo[];
   photos: TabPhoto[];
+  stickers?: TabSticker[];
   photosEditable?: boolean;
+  stickersEditable?: boolean;
   maxPhotos?: number;
   busy?: boolean;
   onAddPhotoClick?: () => void;
   onDeletePhoto?: (id: string) => void;
   onMovePhoto?: (index: number, delta: number) => void;
+  onAddStickerClick?: () => void;
+  onDeleteSticker?: (id: string) => void;
 }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("videos");
@@ -60,6 +70,7 @@ export function ProfileContentTabs({
     { id: "videos", label: t("videosTab"), icon: Video, count: videos.length },
     { id: "reposts", label: t("repostsTab"), icon: Repeat2, count: reposts.length },
     { id: "photos", label: t("photosTab"), icon: ImagePlus, count: photos.length },
+    { id: "stickers", label: t("stickersTab"), icon: Smile, count: stickers.length },
   ];
 
   return (
@@ -160,6 +171,37 @@ export function ProfileContentTabs({
             {!photos.length && !photosEditable ? <EmptyState label={t("noProfileVideos")} /> : null}
           </div>
         ) : null}
+
+        {tab === "stickers" ? (
+          <div className="flex flex-wrap gap-2">
+            {stickers.map((s) => (
+              <div key={s.id} className="relative">
+                <StickerThumb path={s.storage_path} />
+                {stickersEditable ? (
+                  <button
+                    onClick={() => onDeleteSticker?.(s.id)}
+                    className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white"
+                    aria-label={t("delete")}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
+              </div>
+            ))}
+            {stickersEditable ? (
+              <button
+                onClick={onAddStickerClick}
+                disabled={busy}
+                className="flex h-24 w-24 items-center justify-center rounded-2xl border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
+              >
+                <Smile className="h-6 w-6" />
+              </button>
+            ) : null}
+            {!stickers.length && !stickersEditable ? (
+              <EmptyState label={t("noStickers")} />
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {lightbox ? (
@@ -174,6 +216,15 @@ function EmptyState({ label }: { label: string }) {
     <p className="col-span-3 rounded-3xl bg-surface py-10 text-center text-sm text-muted-foreground">
       {label}
     </p>
+  );
+}
+
+function StickerThumb({ path }: { path: string }) {
+  const url = useSignedUrl(path);
+  return (
+    <div className="grid h-24 w-24 place-items-center rounded-2xl bg-surface-2 p-2">
+      {url ? <img src={url} alt="" className="h-full w-full object-contain" /> : null}
+    </div>
   );
 }
 
