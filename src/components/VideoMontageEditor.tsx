@@ -143,7 +143,7 @@ export function VideoMontageEditor({
       <div className="relative mx-auto aspect-[9/16] max-h-[42dvh] overflow-hidden rounded-3xl bg-black">
         <video
           ref={videoRef}
-          src={mediaUrl}
+          src={objectUrl.current}
           muted
           playsInline
           onLoadedMetadata={onLoadedMetadata}
