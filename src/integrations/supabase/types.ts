@@ -2175,7 +2175,7 @@ export type Database = {
           age_visible: boolean
           spoken_languages: string[]
           spark_looking_for: string | null
-          spark_voice_pref: string | null
+          spark_voice_pref: string[]
           spark_availability: string[]
           link_url: string | null
           onboarding_completed: boolean
@@ -2224,7 +2224,7 @@ export type Database = {
           age_visible?: boolean
           spoken_languages?: string[]
           spark_looking_for?: string | null
-          spark_voice_pref?: string | null
+          spark_voice_pref?: string[]
           spark_availability?: string[]
           link_url?: string | null
           onboarding_completed?: boolean
@@ -2273,7 +2273,7 @@ export type Database = {
           age_visible?: boolean
           spoken_languages?: string[]
           spark_looking_for?: string | null
-          spark_voice_pref?: string | null
+          spark_voice_pref?: string[]
           spark_availability?: string[]
           link_url?: string | null
           onboarding_completed?: boolean
@@ -3704,7 +3704,7 @@ export type Database = {
           age_visible: boolean
           spoken_languages: string[]
           spark_looking_for: string | null
-          spark_voice_pref: string | null
+          spark_voice_pref: string[]
           spark_availability: string[]
           link_url: string | null
           onboarding_completed: boolean

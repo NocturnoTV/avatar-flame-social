@@ -696,7 +696,7 @@ function SparkProfileTab() {
   const [ageVisible, setAgeVisible] = useState(true);
   const [spokenLanguages, setSpokenLanguages] = useState<string[]>([]);
   const [lookingFor, setLookingFor] = useState("");
-  const [voicePref, setVoicePref] = useState<string | null>(null);
+  const [voicePref, setVoicePref] = useState<string[]>([]);
   const [availability, setAvailability] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -722,7 +722,7 @@ function SparkProfileTab() {
       setAgeVisible(profile.data.age_visible ?? true);
       setSpokenLanguages(profile.data.spoken_languages ?? []);
       setLookingFor(profile.data.spark_looking_for ?? "");
-      setVoicePref(profile.data.spark_voice_pref ?? null);
+      setVoicePref(profile.data.spark_voice_pref ?? []);
       setAvailability(profile.data.spark_availability ?? []);
       setLoaded(true);
     }
@@ -744,6 +744,17 @@ function SparkProfileTab() {
         return current;
       }
       return [...current, code];
+    });
+  }
+
+  function toggleVoicePref(value: string) {
+    setVoicePref((current) => {
+      if (current.includes(value)) return current.filter((c) => c !== value);
+      if (current.length >= 3) {
+        toast.error(t("profileMaxVoicePrefReached"));
+        return current;
+      }
+      return [...current, value];
     });
   }
 
@@ -776,7 +787,43 @@ function SparkProfileTab() {
     toast.success(t("saved"));
     void qc.invalidateQueries({ queryKey: ["sparks-my-profile", user.id] });
     void qc.invalidateQueries({ queryKey: ["deck"] });
+    void qc.invalidateQueries({ queryKey: ["spark-preview", user.id] });
   }
+
+  // Live "how others see you" preview, using the exact same card other
+  // members see in their deck - reads straight from the profile row rather
+  // than the local draft state, so it only updates once Save actually
+  // persists (avoids implying unsaved changes are already visible to others).
+  const preview = useQuery({
+    queryKey: ["spark-preview", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [{ data: p }, { data: photoRows }, { data: gameRows }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select(
+            "id,username,roblox_username,bio,language,age,banner_style,avatar_url,verified,country,spark_badges,last_active_at",
+          )
+          .eq("id", user!.id)
+          .maybeSingle(),
+        supabase
+          .from("profile_photos")
+          .select("url,position")
+          .eq("user_id", user!.id)
+          .order("position"),
+        supabase
+          .from("favorite_games")
+          .select("name,thumbnail_url,position")
+          .eq("user_id", user!.id)
+          .order("position"),
+      ]);
+      return {
+        profile: p as DeckProfile | null,
+        photos: (photoRows ?? []).map((r) => r.url),
+        games: (gameRows ?? []) as DeckGame[],
+      };
+    },
+  });
 
   return (
     <div className="mt-4 space-y-5 pb-4">
@@ -890,7 +937,9 @@ function SparkProfileTab() {
 
       <div className="space-y-2 rounded-3xl border border-border bg-card p-4">
         <p className="text-sm font-bold">{t("profileCommunicationTitle")}</p>
-        <p className="text-xs text-muted-foreground">{t("profileCommunicationSubtitle")}</p>
+        <p className="text-xs text-muted-foreground">
+          {t("profileCommunicationSubtitle")} ({voicePref.length}/3)
+        </p>
         <div className="grid grid-cols-2 gap-2">
           {(
             [
@@ -903,10 +952,10 @@ function SparkProfileTab() {
             <button
               key={value}
               type="button"
-              onClick={() => setVoicePref(value)}
+              onClick={() => toggleVoicePref(value)}
               className={cn(
                 "rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition",
-                voicePref === value
+                voicePref.includes(value)
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border text-muted-foreground hover:border-primary/40",
               )}
@@ -953,6 +1002,22 @@ function SparkProfileTab() {
       <Button className="w-full" disabled={saving} onClick={() => void save()}>
         {saving ? t("loading") : t("save")}
       </Button>
+
+      {preview.data?.profile ? (
+        <div>
+          <p className="mb-2 text-sm font-bold">{t("profilePreviewTitle")}</p>
+          <p className="mb-3 text-xs text-muted-foreground">{t("profilePreviewHint")}</p>
+          <div className="relative mx-auto aspect-[3/4.7] w-full max-w-xs overflow-hidden rounded-[2rem] shadow-xl">
+            <SparkCard
+              profile={preview.data.profile}
+              photos={preview.data.photos}
+              games={preview.data.games}
+              compatibility={100}
+              className="pointer-events-none"
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
