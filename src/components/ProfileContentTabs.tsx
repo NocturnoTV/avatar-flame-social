@@ -16,13 +16,14 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { StoredImage, useSignedUrl } from "@/components/Media";
+import { StoredImage, useSignedUrl, VideoThumb as SharedVideoThumb } from "@/components/Media";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export type TabVideo = {
   id: string;
   storage_path: string;
+  thumbnail_path: string | null;
   caption: string | null;
   views_count: number;
 };
@@ -402,10 +403,13 @@ function StickerThumb({ path }: { path: string }) {
 }
 
 function VideoThumb({ video }: { video: TabVideo }) {
-  const url = useSignedUrl(video.storage_path);
   return (
     <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-black">
-      {url ? <video src={url} muted playsInline className="h-full w-full object-cover" /> : null}
+      <SharedVideoThumb
+        storagePath={video.storage_path}
+        thumbnailPath={video.thumbnail_path}
+        className="h-full w-full"
+      />
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white">
         <p className="flex items-center gap-1 text-[11px] font-bold">
           <Play className="h-3 w-3 fill-white" />

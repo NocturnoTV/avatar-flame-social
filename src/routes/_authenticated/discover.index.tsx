@@ -1365,6 +1365,46 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const [sort, setSort] = useState<"popular" | "recent">("popular");
   const [commentSearch, setCommentSearch] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [mentionSuggestions, setMentionSuggestions] = useState<
+    { id: string; username: string; avatar_url: string | null; isFriend: boolean }[]
+  >([]);
+
+  const mentionMatch = /(?:^|\s)@([\w.]*)$/.exec(text);
+  const mentionQuery = mentionMatch ? mentionMatch[1] : null;
+
+  useEffect(() => {
+    if (mentionQuery === null || !user) {
+      setMentionSuggestions([]);
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      const { data: matchRows } = await supabase
+        .from("matches")
+        .select("user_a,user_b")
+        .or(`user_a.eq.${user.id},user_b.eq.${user.id}`);
+      const friendIds = new Set(
+        (matchRows ?? []).map((m) => (m.user_a === user.id ? m.user_b : m.user_a)),
+      );
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url")
+        .ilike("username", `${mentionQuery}%`)
+        .neq("id", user.id)
+        .limit(20);
+      const results = (data ?? [])
+        .filter((p): p is typeof p & { username: string } => !!p.username)
+        .map((p) => ({ ...p, isFriend: friendIds.has(p.id) }))
+        .sort((a, b) => Number(b.isFriend) - Number(a.isFriend))
+        .slice(0, 6);
+      setMentionSuggestions(results);
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [mentionQuery, user]);
+
+  function pickMention(username: string) {
+    setText((current) => current.replace(/(?:^|\s)@[\w.]*$/, (m) => `${m[0] === " " ? " " : ""}@${username} `));
+    setMentionSuggestions([]);
+  }
 
   const myStickers = useQuery({
     queryKey: ["my-stickers", user?.id],
@@ -1674,6 +1714,30 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             </button>
           </div>
         ) : null}
+        {mentionSuggestions.length > 0 ? (
+          <div className="mx-3 mb-1 space-y-0.5 rounded-2xl border border-border bg-card p-1.5 shadow-lg">
+            {mentionSuggestions.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => pickMention(m.username)}
+                className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left hover:bg-surface-2"
+              >
+                <StoredImage
+                  path={m.avatar_url}
+                  alt=""
+                  className="h-7 w-7 rounded-full"
+                  fallback={m.username[0]?.toUpperCase() ?? "?"}
+                />
+                <span className="min-w-0 flex-1 truncate text-sm font-bold">@{m.username}</span>
+                {m.isFriend ? (
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    {t("mentionFriendBadge")}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className="relative flex items-center gap-2 border-t border-primary/15 bg-card/90 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-15px_40px_-25px_rgba(124,58,237,.7)] backdrop-blur-2xl">
           <StoredImage
             path={myProfile.data?.avatar_url}
@@ -1689,7 +1753,12 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
               placeholder={t("addComment")}
               className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none"
             />
-            <button type="button" className="p-1.5" aria-label="Mentionner quelqu’un">
+            <button
+              type="button"
+              onClick={() => setText((v) => (v.endsWith("@") || !v ? v + "@" : `${v} @`))}
+              className="p-1.5"
+              aria-label="Mentionner quelqu’un"
+            >
               <AtSign className="h-5 w-5" />
             </button>
             <button type="button" className="p-1.5" aria-label="Ajouter un emoji">
