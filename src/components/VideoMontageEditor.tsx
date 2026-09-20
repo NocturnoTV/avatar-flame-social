@@ -143,7 +143,7 @@ export function VideoMontageEditor({
       <div className="relative mx-auto aspect-[9/16] max-h-[42dvh] overflow-hidden rounded-3xl bg-black">
         <video
           ref={videoRef}
-          src={objectUrl.current}
+          src={mediaUrl}
           muted
           playsInline
           onLoadedMetadata={onLoadedMetadata}
@@ -617,7 +617,7 @@ export function ThumbnailPicker({
         ) : (
           <video
             ref={videoRef}
-            src={objectUrl.current}
+            src={mediaUrl}
             muted
             playsInline
             onLoadedMetadata={() => setDuration(videoRef.current?.duration ?? 0)}
