@@ -37,7 +37,7 @@ export type StoryRow = {
   caption: string | null;
   created_at: string;
   sound_id?: string | null;
-  metadata: { overlays?: StoryOverlay[] } | null;
+  metadata: { overlays?: StoryOverlay[]; drawing_path?: string | null } | null;
 };
 export type StoryUserGroup = {
   userId: string;
@@ -111,6 +111,7 @@ export function StoryViewerFull({
     },
   });
   const soundUrl = useSignedUrl(storySound.data?.storage_path);
+  const drawingUrl = useSignedUrl(story?.metadata?.drawing_path ?? null);
 
   // Restart the attached sound from the top for every story - otherwise it
   // would keep playing wherever it left off from the previous one.
@@ -347,6 +348,14 @@ export function StoryViewerFull({
             ) : (
               <img src={url} alt="" className="h-full w-full object-contain" />
             )
+          ) : null}
+
+          {drawingUrl ? (
+            <img
+              src={drawingUrl}
+              alt=""
+              className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+            />
           ) : null}
 
           {soundUrl ? (

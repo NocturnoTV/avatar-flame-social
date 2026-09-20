@@ -2,11 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera,
   Check,
+  Eraser,
   Image as ImageIcon,
   Music2,
+  Pencil,
+  Redo2,
   Smile,
   Trash2,
   Type,
+  Undo2,
   Users,
   X,
 } from "lucide-react";
@@ -33,7 +37,10 @@ type Overlay = {
   rotation?: number;
 };
 
+type DrawStroke = { color: string; size: number; erase: boolean; points: { x: number; y: number }[] };
+
 const STORY_EMOJIS = ["🔥", "❤️", "😂", "😎", "🎉", "✨", "😭", "👀", "🎮", "💯"];
+const DRAW_COLORS = ["#ffffff", "#000000", "#ef4444", "#facc15", "#22d3ee", "#a855f7"];
 const TEXT_COLORS = ["#ffffff", "#facc15", "#f472b6", "#22d3ee", "#a855f7", "#000000"];
 const TEXT_FONTS: { id: TextFont; label: string; className: string }[] = [
   { id: "sans", label: "Aa", className: "font-sans" },
@@ -66,6 +73,14 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   const [audienceOpen, setAudienceOpen] = useState(false);
   const [closeFriendsSheetOpen, setCloseFriendsSheetOpen] = useState(false);
   const [guide, setGuide] = useState<{ x: boolean; y: boolean }>({ x: false, y: false });
+  const [drawingMode, setDrawingMode] = useState(false);
+  const [strokes, setStrokes] = useState<DrawStroke[]>([]);
+  const [redoStack, setRedoStack] = useState<DrawStroke[]>([]);
+  const [drawColor, setDrawColor] = useState(DRAW_COLORS[0]!);
+  const [drawSize, setDrawSize] = useState(6);
+  const [erasing, setErasing] = useState(false);
+  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const activeStroke = useRef<DrawStroke | null>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -101,6 +116,9 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
     setAddingText(false);
     setTextDraft("");
     setAudience("followers");
+    setDrawingMode(false);
+    setStrokes([]);
+    setRedoStack([]);
   }
 
   function choose(selected: File | null) {
@@ -112,6 +130,9 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
     setFile(selected);
     setMediaType(selected.type.startsWith("video/") ? "video" : "image");
     setOverlays([]);
+    setStrokes([]);
+    setRedoStack([]);
+    setDrawingMode(false);
   }
 
   function addOverlay(type: "text" | "emoji", content: string) {
@@ -130,6 +151,120 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
 
   function startDrag(id: string) {
     dragId.current = id;
+  }
+
+  function redrawCanvas() {
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const stroke of strokes) {
+      ctx.globalCompositeOperation = stroke.erase ? "destination-out" : "source-over";
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = (stroke.size / 100) * canvas.width;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      stroke.points.forEach((p, i) => {
+        const x = (p.x / 100) * canvas.width;
+        const y = (p.y / 100) * canvas.height;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+  }
+
+  useEffect(() => {
+    redrawCanvas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strokes]);
+
+  // Canvas pixel size has to match the stage's rendered size for strokes to
+  // land where the finger actually is - sized once the stage is on screen
+  // and again whenever the drawing tool opens (covers the file just having
+  // changed the stage's aspect ratio).
+  useEffect(() => {
+    const canvas = drawingCanvasRef.current;
+    const stage = stageRef.current;
+    if (!canvas || !stage) return;
+    canvas.width = stage.clientWidth;
+    canvas.height = stage.clientHeight;
+    redrawCanvas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawingMode, preview]);
+
+  function stagePointToPercent(clientX: number, clientY: number) {
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return {
+      x: Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100)),
+      y: Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100)),
+    };
+  }
+
+  function startDrawStroke(clientX: number, clientY: number) {
+    if (!drawingMode) return;
+    activeStroke.current = {
+      color: drawColor,
+      size: erasing ? drawSize * 2.5 : drawSize,
+      erase: erasing,
+      points: [stagePointToPercent(clientX, clientY)],
+    };
+    setRedoStack([]);
+  }
+
+  function continueDrawStroke(clientX: number, clientY: number) {
+    if (!activeStroke.current) return;
+    activeStroke.current.points.push(stagePointToPercent(clientX, clientY));
+    redrawActiveStroke();
+  }
+
+  function redrawActiveStroke() {
+    redrawCanvas();
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    const stroke = activeStroke.current;
+    if (!canvas || !ctx || !stroke) return;
+    ctx.globalCompositeOperation = stroke.erase ? "destination-out" : "source-over";
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = (stroke.size / 100) * canvas.width;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    stroke.points.forEach((p, i) => {
+      const x = (p.x / 100) * canvas.width;
+      const y = (p.y / 100) * canvas.height;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  function endDrawStroke() {
+    if (!activeStroke.current) return;
+    if (activeStroke.current.points.length > 1) {
+      setStrokes((current) => [...current, activeStroke.current!]);
+    }
+    activeStroke.current = null;
+  }
+
+  function undoStroke() {
+    setStrokes((current) => {
+      if (!current.length) return current;
+      const next = current.slice(0, -1);
+      setRedoStack((r) => [...r, current[current.length - 1]!]);
+      return next;
+    });
+  }
+
+  function redoStroke() {
+    setRedoStack((current) => {
+      if (!current.length) return current;
+      const stroke = current[current.length - 1]!;
+      setStrokes((s) => [...s, stroke]);
+      return current.slice(0, -1);
+    });
   }
 
   function startResize(id: string, clientX: number, clientY: number) {
@@ -188,6 +323,13 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
         const thumb = await captureVideoThumbnail(file);
         if (thumb) thumbnailPath = await uploadFile("thumbnails", user.id, thumb, "jpg");
       }
+      let drawingPath: string | null = null;
+      if (strokes.length > 0 && drawingCanvasRef.current) {
+        const blob = await new Promise<Blob | null>((resolve) =>
+          drawingCanvasRef.current!.toBlob((b) => resolve(b), "image/png"),
+        );
+        if (blob) drawingPath = await uploadFile("stories", user.id, blob, "png");
+      }
       const { error } = await supabase.from("stories").insert({
         user_id: user.id,
         media_url: path,
@@ -195,7 +337,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
         thumbnail_path: thumbnailPath,
         sound_id: sound?.id ?? null,
         visibility: audience,
-        metadata: { overlays },
+        metadata: { overlays, drawing_path: drawingPath },
       });
       if (error) throw error;
       toast.success(t("storyPublished"));
@@ -285,25 +427,37 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
           <div
             ref={stageRef}
             className="relative mx-auto min-h-0 w-full max-w-sm flex-1 overflow-hidden bg-neutral-900"
-            onMouseMove={(e) => onStageMove(e.clientX, e.clientY)}
+            onMouseDown={(e) => drawingMode && startDrawStroke(e.clientX, e.clientY)}
+            onMouseMove={(e) => {
+              if (drawingMode) continueDrawStroke(e.clientX, e.clientY);
+              else onStageMove(e.clientX, e.clientY);
+            }}
             onMouseUp={() => {
+              endDrawStroke();
               dragId.current = null;
               resizeId.current = null;
               setGuide({ x: false, y: false });
             }}
             onMouseLeave={() => {
+              endDrawStroke();
               dragId.current = null;
               resizeId.current = null;
               setGuide({ x: false, y: false });
             }}
+            onTouchStart={(e) => {
+              const t0 = e.touches[0];
+              if (t0 && drawingMode) startDrawStroke(t0.clientX, t0.clientY);
+            }}
             onTouchMove={(e) => {
               const t0 = e.touches[0];
               if (t0) {
-                if (dragId.current || resizeId.current) e.preventDefault();
-                onStageMove(t0.clientX, t0.clientY);
+                if (drawingMode || dragId.current || resizeId.current) e.preventDefault();
+                if (drawingMode) continueDrawStroke(t0.clientX, t0.clientY);
+                else onStageMove(t0.clientX, t0.clientY);
               }
             }}
             onTouchEnd={() => {
+              endDrawStroke();
               dragId.current = null;
               resizeId.current = null;
               setGuide({ x: false, y: false });
@@ -316,6 +470,14 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
                 <img src={preview} alt="" className="h-full w-full object-contain" />
               )
             ) : null}
+
+            <canvas
+              ref={drawingCanvasRef}
+              className={cn(
+                "absolute inset-0 h-full w-full",
+                drawingMode ? "cursor-crosshair" : "pointer-events-none",
+              )}
+            />
 
             {guide.x ? (
               <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-primary/70" />
@@ -444,11 +606,75 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             </div>
           ) : null}
 
+          {drawingMode ? (
+            <div className="shrink-0 space-y-2.5 border-t border-white/10 p-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setErasing(false)}
+                  className={cn(
+                    "grid h-9 w-9 place-items-center rounded-full",
+                    !erasing ? "bg-primary text-primary-foreground" : "bg-white/10",
+                  )}
+                  aria-label={t("montageDrawPen")}
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setErasing(true)}
+                  className={cn(
+                    "grid h-9 w-9 place-items-center rounded-full",
+                    erasing ? "bg-primary text-primary-foreground" : "bg-white/10",
+                  )}
+                  aria-label={t("montageDrawEraser")}
+                >
+                  <Eraser className="h-4 w-4" />
+                </button>
+                {DRAW_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setDrawColor(c)}
+                    style={{ backgroundColor: c }}
+                    className={cn(
+                      "h-7 w-7 shrink-0 rounded-full border-2",
+                      drawColor === c ? "border-primary" : "border-white/30",
+                    )}
+                    aria-label={c}
+                  />
+                ))}
+                <button
+                  onClick={undoStroke}
+                  disabled={!strokes.length}
+                  className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 disabled:opacity-30"
+                  aria-label={t("montageDrawUndo")}
+                >
+                  <Undo2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={redoStroke}
+                  disabled={!redoStack.length}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 disabled:opacity-30"
+                  aria-label={t("montageDrawRedo")}
+                >
+                  <Redo2 className="h-4 w-4" />
+                </button>
+              </div>
+              <input
+                type="range"
+                min={2}
+                max={20}
+                value={drawSize}
+                onChange={(e) => setDrawSize(Number(e.target.value))}
+                className="w-full accent-primary"
+              />
+            </div>
+          ) : null}
+
           <div className="no-scrollbar flex shrink-0 items-center justify-center gap-4 overflow-x-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <button
               onClick={() => {
                 setAddingText(true);
                 setEmojiPickerOpen(false);
+                setDrawingMode(false);
               }}
               className="flex flex-col items-center gap-1 text-xs font-bold"
             >
@@ -461,6 +687,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
               onClick={() => {
                 setEmojiPickerOpen((v) => !v);
                 setAddingText(false);
+                setDrawingMode(false);
               }}
               className="flex flex-col items-center gap-1 text-xs font-bold"
             >
@@ -468,6 +695,24 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
                 <Smile className="h-5 w-5" />
               </span>
               {t("storyStickerTool")}
+            </button>
+            <button
+              onClick={() => {
+                setDrawingMode((v) => !v);
+                setAddingText(false);
+                setEmojiPickerOpen(false);
+              }}
+              className="flex flex-col items-center gap-1 text-xs font-bold"
+            >
+              <span
+                className={cn(
+                  "grid h-11 w-11 place-items-center rounded-full",
+                  drawingMode ? "bg-primary text-primary-foreground" : "bg-white/10",
+                )}
+              >
+                <Pencil className="h-5 w-5" />
+              </span>
+              {t("montageDrawTool")}
             </button>
             <button
               onClick={() => setSoundPickerOpen(true)}
@@ -483,9 +728,13 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
               </span>
               {sound ? sound.title.slice(0, 10) : t("storyMusicTool")}
             </button>
-            {overlays.length > 0 ? (
+            {overlays.length > 0 || strokes.length > 0 ? (
               <button
-                onClick={() => setOverlays([])}
+                onClick={() => {
+                  setOverlays([]);
+                  setStrokes([]);
+                  setRedoStack([]);
+                }}
                 className="flex flex-col items-center gap-1 text-xs font-bold"
               >
                 <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10">
