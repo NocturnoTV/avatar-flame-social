@@ -1,15 +1,17 @@
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 /** Coche bleue de certification Bloxspark. */
 export function Verified({ className }: { className?: string }) {
+  const { t } = useI18n();
   return (
     <svg
       viewBox="0 0 32 32"
       role="img"
-      aria-label="Compte certifié"
+      aria-label={t("verifiedAccount")}
       className={cn("inline-block h-4 w-4 shrink-0", className)}
     >
-      <title>Compte certifié</title>
+      <title>{t("verifiedAccount")}</title>
       <rect
         x="4"
         y="4"

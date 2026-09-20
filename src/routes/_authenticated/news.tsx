@@ -7,6 +7,7 @@ import { StoredImage } from "@/components/Media";
 import { LogoWordmark } from "@/components/Logo";
 import { Sheet } from "@/components/ui-kit";
 import { NEWS_CATEGORIES, newsCategoryBadgeClass, newsCategoryLabel } from "@/lib/newsCategories";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { pgIlikePattern } from "@/lib/pgFilter";
 
@@ -46,11 +47,15 @@ function timeAgo(value: string, lang = "fr") {
 }
 
 function NewsHomePage() {
+  const { lang } = useI18n();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [period, setPeriod] = useState<"all" | "today" | "week" | "month">("all");
-  const [language, setLanguage] = useState<"all" | "fr" | "en">("all");
+  // Defaults to the member's selected app language - articles only exist in
+  // fr/en for now, so anything else falls back to en rather than showing
+  // an empty list. Still overridable via the filter below.
+  const [language, setLanguage] = useState<"all" | "fr" | "en">(lang === "fr" ? "fr" : "en");
 
   const articles = useQuery({
     queryKey: ["news-home", search.trim(), category, period, language],
