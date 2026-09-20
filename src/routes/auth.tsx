@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 import { signInWithIdentifier } from "@/lib/login-identifier.functions";
+import { requestPasswordReset } from "@/lib/password-reset.functions";
 import { beginRobloxSignIn } from "@/lib/roblox-oauth.functions";
 import { createDeviceLoginCode, redeemDeviceLoginCode } from "@/lib/device-login.functions";
 import { isNativeApp, openExternal } from "@/lib/native";
@@ -75,6 +76,57 @@ function AuthPage() {
   const [codeCooldownLeft, setCodeCooldownLeft] = useState(0);
   const [signupCode, setSignupCode] = useState<{ code: string; expiresAt: number } | null>(null);
   const [signupCodeSecondsLeft, setSignupCodeSecondsLeft] = useState(0);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotIdentifier, setForgotIdentifier] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [recoverySaving, setRecoverySaving] = useState(false);
+
+  // Clicking the link in a password-reset email lands back here with a
+  // recovery session already established - Supabase fires this event once
+  // it picks that up, and it's the signal to switch to "set a new
+  // password" instead of the normal sign-in form.
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  async function sendPasswordReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (!forgotIdentifier.trim() || forgotSending) return;
+    setForgotSending(true);
+    try {
+      await requestPasswordReset({ data: { identifier: forgotIdentifier.trim() } });
+      setForgotSent(true);
+    } catch {
+      // Always show the same generic success state - never reveal whether
+      // an account matched the identifier.
+      setForgotSent(true);
+    } finally {
+      setForgotSending(false);
+    }
+  }
+
+  async function saveNewPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPassword.length < 6 || recoverySaving) return;
+    setRecoverySaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success(t("passwordUpdated"));
+      setRecoveryMode(false);
+      await continueAfterAuthentication();
+    } catch (err) {
+      toast.error(errorMessage(err, t("errorGeneric")));
+    } finally {
+      setRecoverySaving(false);
+    }
+  }
 
   async function continueAfterAuthentication() {
     const { data } = await supabase.auth.getUser();
@@ -300,19 +352,81 @@ function AuthPage() {
 
       <div className="w-full max-w-sm rounded-[2rem] border border-border bg-card p-7 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]">
         <h1 className="text-2xl font-bold">
-          {signupCode
-            ? t("signupCodeTitle")
-            : codeMode
-              ? t("deviceCodeTitle")
-              : isSignup
-                ? t("signUp")
-                : t("signIn")}
+          {recoveryMode
+            ? t("resetPasswordTitle")
+            : forgotMode
+              ? t("forgotPasswordTitle")
+              : signupCode
+                ? t("signupCodeTitle")
+                : codeMode
+                  ? t("deviceCodeTitle")
+                  : isSignup
+                    ? t("signUp")
+                    : t("signIn")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {signupCode ? t("signupCodeSubtitle") : codeMode ? t("deviceCodeSubtitle") : t("tagline")}
+          {recoveryMode
+            ? t("resetPasswordSubtitle")
+            : forgotMode
+              ? t("forgotPasswordSubtitle")
+              : signupCode
+                ? t("signupCodeSubtitle")
+                : codeMode
+                  ? t("deviceCodeSubtitle")
+                  : t("tagline")}
         </p>
 
-        {signupCode ? (
+        {recoveryMode ? (
+          <form onSubmit={saveNewPassword} className="mt-6 space-y-4">
+            <div>
+              <Label>{t("newPasswordLabel")}</Label>
+              <Input
+                type="password"
+                required
+                minLength={6}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+            <Button className="w-full" size="lg" type="submit" disabled={recoverySaving}>
+              {recoverySaving ? t("loading") : t("resetPasswordSubmit")}
+            </Button>
+          </form>
+        ) : forgotMode ? (
+          <div className="mt-6 space-y-4">
+            {forgotSent ? (
+              <p className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center text-sm">
+                {t("forgotPasswordSent")}
+              </p>
+            ) : (
+              <form onSubmit={sendPasswordReset} className="space-y-4">
+                <div>
+                  <Label>{t("identifierLabel")}</Label>
+                  <Input
+                    required
+                    value={forgotIdentifier}
+                    onChange={(e) => setForgotIdentifier(e.target.value)}
+                    placeholder={t("identifierPlaceholder")}
+                  />
+                </div>
+                <Button className="w-full" size="lg" type="submit" disabled={forgotSending}>
+                  {forgotSending ? t("loading") : t("forgotPasswordSubmit")}
+                </Button>
+              </form>
+            )}
+            <button
+              className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setForgotMode(false);
+                setForgotSent(false);
+                setForgotIdentifier("");
+              }}
+            >
+              {t("backToSignIn")}
+            </button>
+          </div>
+        ) : signupCode ? (
           <div className="mt-6 space-y-4">
             <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center">
               <p className="font-mono text-2xl font-black tracking-widest">{signupCode.code}</p>
@@ -449,6 +563,15 @@ function AuthPage() {
                     )}
                   </button>
                 </div>
+                {!isSignup ? (
+                  <button
+                    type="button"
+                    onClick={() => setForgotMode(true)}
+                    className="mt-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    {t("forgotPasswordLink")}
+                  </button>
+                ) : null}
               </div>
               <Button className="w-full" size="lg" type="submit" disabled={busy}>
                 {isSignup ? t("signUp") : t("signIn")}
