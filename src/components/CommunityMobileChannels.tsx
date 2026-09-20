@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -372,7 +373,11 @@ export function CommunityMobileChannels({
         : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
     );
 
-  return (
+  // Portaled straight to <body> - some Android WebViews mis-render a
+  // "fixed" element nested deep in the page (this is rendered from inside
+  // the community route's own layout), showing it collapsed to part of
+  // the screen instead of covering the full viewport.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex overflow-hidden bg-background lg:hidden"
       onTouchStart={onTouchStart}
@@ -836,7 +841,8 @@ export function CommunityMobileChannels({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
