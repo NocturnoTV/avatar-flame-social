@@ -3138,11 +3138,10 @@ function PendingVideosReview() {
           {pending.data.map((v) => (
             <div key={v.id} className="rounded-2xl border border-border bg-card p-3">
               <div className="flex gap-3">
-                <StoredImage
-                  path={v.thumbnail_path}
-                  alt=""
+                <VideoThumb
+                  storagePath={v.storage_path}
+                  thumbnailPath={v.thumbnail_path}
                   className="h-16 w-11 shrink-0 rounded-lg object-cover"
-                  fallback="🎬"
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold">{v.caption || "Sans titre"}</p>
