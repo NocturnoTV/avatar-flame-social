@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera,
   Check,
@@ -81,6 +81,18 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   } | null>(null);
 
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+
+  // Locks the page behind this full-screen composer so a drag gesture on
+  // the media (moving/resizing text) can never rubber-band-scroll the page
+  // underneath and reveal space below the screen.
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
   function reset() {
     setFile(null);
@@ -199,7 +211,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[95] flex flex-col overflow-hidden bg-black text-white">
+    <div className="fixed inset-0 z-[95] flex flex-col overflow-hidden overscroll-contain bg-black text-white">
       <input
         ref={cameraRef}
         type="file"
@@ -286,7 +298,10 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             }}
             onTouchMove={(e) => {
               const t0 = e.touches[0];
-              if (t0) onStageMove(t0.clientX, t0.clientY);
+              if (t0) {
+                if (dragId.current || resizeId.current) e.preventDefault();
+                onStageMove(t0.clientX, t0.clientY);
+              }
             }}
             onTouchEnd={() => {
               dragId.current = null;

@@ -151,6 +151,7 @@ function Conversation() {
   const [streakSheetOpen, setStreakSheetOpen] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [pendingVoice, setPendingVoice] = useState<{ blob: Blob; url: string } | null>(null);
   const [info, setInfo] = useState(false);
   const [activeMessage, setActiveMessage] = useState<Message | null>(null);
   const [reportingMessage, setReportingMessage] = useState<Message | null>(null);
@@ -545,13 +546,12 @@ function Conversation() {
       const recorder = new MediaRecorder(stream);
       const chunks: BlobPart[] = [];
       recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(chunks, { type: "audio/webm" });
-        if (!user) return;
-        const file = new File([blob], "voice.webm", { type: "audio/webm" });
-        const path = await uploadFile("voice-messages", user.id, file, "webm");
-        await send("voice", path);
+        // Hold it locally so it can be listened back before sending, instead
+        // of uploading the instant recording stops.
+        setPendingVoice({ blob, url: URL.createObjectURL(blob) });
       };
       recorder.start();
       recorderRef.current = recorder;
@@ -559,6 +559,20 @@ function Conversation() {
     } catch {
       toast.error(t("micDenied"));
     }
+  }
+
+  function discardPendingVoice() {
+    if (pendingVoice) URL.revokeObjectURL(pendingVoice.url);
+    setPendingVoice(null);
+  }
+
+  async function sendPendingVoice() {
+    if (!pendingVoice || !user) return;
+    const { blob } = pendingVoice;
+    discardPendingVoice();
+    const file = new File([blob], "voice.webm", { type: "audio/webm" });
+    const path = await uploadFile("voice-messages", user.id, file, "webm");
+    await send("voice", path);
   }
 
   async function deleteMessage(m: Message) {
@@ -991,6 +1005,28 @@ function Conversation() {
         )}
 
         {/* Barre de composition */}
+        {pendingVoice ? (
+          <div className="flex items-center gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <button
+              onClick={discardPendingVoice}
+              aria-label={t("delete")}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-destructive"
+            >
+              <Trash2 className="h-5 w-5" />
+            </button>
+            <div className="flex min-h-[64px] flex-1 items-center rounded-[32px] bg-[#F5F5F5] px-4 py-2 dark:bg-[#1c1c1e]">
+              <audio src={pendingVoice.url} controls className="h-9 w-full" />
+            </div>
+            <Button
+              size="icon"
+              onClick={() => void sendPendingVoice()}
+              aria-label={t("send")}
+              className="bx-pop shrink-0"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
         <div className="flex items-center gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             onClick={() => cameraRef.current?.click()}
@@ -1080,6 +1116,7 @@ function Conversation() {
             </button>
           )}
         </div>
+        )}
       </div>
 
       {/* Menu contextuel appui long */}

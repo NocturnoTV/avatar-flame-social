@@ -82,6 +82,16 @@ export function StoryViewerFull({
   const holdTimer = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
 
+  // Locks the page behind this full-screen viewer so swiping between
+  // stories can never rubber-band-scroll the page underneath.
+  useEffect(() => {
+    const previousOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = previousOverflow;
+    };
+  }, []);
+
   const group = groups[groupIndex];
   const story = group?.stories[storyIndex];
   const isOwn = story?.user_id === user?.id;
@@ -296,7 +306,7 @@ export function StoryViewerFull({
   if (!group || !story) return null;
 
   return (
-    <div className="fixed inset-0 z-[95] bg-black">
+    <div className="fixed inset-0 z-[95] overflow-hidden overscroll-contain bg-black">
       <div className="relative mx-auto h-full w-full max-w-md">
         <div
           className="absolute inset-0"
