@@ -35,7 +35,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
-import { useSignedUrl, StoredImage } from "@/components/Media";
+import { useSignedUrl, StoredImage, VideoThumb } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { GiftSheet } from "@/components/GiftSheet";
 import { Button, Sheet } from "@/components/ui-kit";

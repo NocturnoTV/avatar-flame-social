@@ -49,7 +49,7 @@ import { useSession } from "@/lib/session";
 import { useRoles, type AppRole } from "@/lib/roles";
 import { cn, errorMessage } from "@/lib/utils";
 import { openExternal } from "@/lib/native";
-import { StoredImage } from "@/components/Media";
+import { StoredImage, VideoThumb } from "@/components/Media";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import {
   adminBroadcastNotification,
