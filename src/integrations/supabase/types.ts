@@ -3616,6 +3616,63 @@ export type Database = {
           },
         ]
       }
+      video_drafts: {
+        Row: {
+          allow_comments: boolean
+          allow_reactions: boolean
+          allow_remix: boolean
+          allow_sharing: boolean
+          contains_ai_content: boolean
+          contains_paid_promotion: boolean
+          created_at: string
+          hashtags: string[]
+          id: string
+          sensitive_content: boolean
+          sound_id: string | null
+          sound_title: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          allow_comments?: boolean
+          allow_reactions?: boolean
+          allow_remix?: boolean
+          allow_sharing?: boolean
+          contains_ai_content?: boolean
+          contains_paid_promotion?: boolean
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          sensitive_content?: boolean
+          sound_id?: string | null
+          sound_title?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          allow_comments?: boolean
+          allow_reactions?: boolean
+          allow_remix?: boolean
+          allow_sharing?: boolean
+          contains_ai_content?: boolean
+          contains_paid_promotion?: boolean
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          sensitive_content?: boolean
+          sound_id?: string | null
+          sound_title?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       videos: {
         Row: {
           allow_comments: boolean

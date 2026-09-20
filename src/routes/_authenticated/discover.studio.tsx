@@ -28,7 +28,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
-import { Button, Card, Input, Label } from "@/components/ui-kit";
+import { Button, Card, Input, Label, Sheet } from "@/components/ui-kit";
 import { captureVideoThumbnail, uploadFile } from "@/lib/media";
 import { StoredImage, useSignedUrl, VideoThumb } from "@/components/Media";
 import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEditor";
@@ -55,6 +55,20 @@ function StudioPage() {
   const { sound: presetSoundId } = Route.useSearch();
   const [tab, setTab] = useState<Tab>("stats");
   const [uploadOpen, setUploadOpen] = useState(!!presetSoundId);
+  const [draftsOpen, setDraftsOpen] = useState(false);
+  const [resumeDraft, setResumeDraft] = useState<VideoDraft | null>(null);
+  const drafts = useQuery({
+    queryKey: ["video-drafts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("video_drafts")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("updated_at", { ascending: false });
+      return data ?? [];
+    },
+  });
   const presetSound = useQuery({
     queryKey: ["preset-sound", presetSoundId],
     enabled: !!presetSoundId,
@@ -155,6 +169,11 @@ function StudioPage() {
           <h1 className="truncate text-2xl font-black">{t("creatorStudio")}</h1>
           <p className="text-sm text-muted-foreground">{t("studioSubtitle")}</p>
         </div>
+        {drafts.data?.length ? (
+          <Button variant="outline" onClick={() => setDraftsOpen(true)}>
+            {t("studioDraftsButton", { count: drafts.data.length })}
+          </Button>
+        ) : null}
         <Button onClick={() => setUploadOpen(true)}>
           <Upload className="h-4 w-4" />
           <span className="hidden sm:inline">{t("publishVideo")}</span>
@@ -277,9 +296,17 @@ function StudioPage() {
       ) : null}
       {uploadOpen ? (
         <UploadWizard
-          onClose={() => setUploadOpen(false)}
-          onDone={refresh}
-          {...(presetSound.data
+          onClose={() => {
+            setUploadOpen(false);
+            setResumeDraft(null);
+            void drafts.refetch();
+          }}
+          onDone={() => {
+            setResumeDraft(null);
+            refresh();
+          }}
+          {...(resumeDraft ? { draft: resumeDraft } : {})}
+          {...(!resumeDraft && presetSound.data
             ? {
                 presetSound: {
                   id: presetSound.data.id,
@@ -290,6 +317,45 @@ function StudioPage() {
             : {})}
         />
       ) : null}
+
+      <Sheet open={draftsOpen} onClose={() => setDraftsOpen(false)} title={t("studioDraftsTitle")}>
+        <div className="space-y-2">
+          {(drafts.data ?? []).map((d) => (
+            <button
+              key={d.id}
+              onClick={() => {
+                setResumeDraft(d);
+                setDraftsOpen(false);
+                setUploadOpen(true);
+              }}
+              className="flex w-full items-center justify-between rounded-2xl border border-border p-3.5 text-left"
+            >
+              <span className="min-w-0 flex-1">
+                <b className="block truncate">{d.title || t("studioUntitled")}</b>
+                <small className="text-muted-foreground">
+                  {new Date(d.updated_at).toLocaleDateString()}
+                </small>
+              </span>
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await supabase.from("video_drafts").delete().eq("id", d.id);
+                  void drafts.refetch();
+                }}
+                aria-label={t("delete")}
+                className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </button>
+          ))}
+          {!drafts.data?.length ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {t("studioNoDrafts")}
+            </p>
+          ) : null}
+        </div>
+      </Sheet>
     </div>
   );
 }
@@ -729,14 +795,32 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
 
 const WIZARD_TOTAL_STEPS = 8;
 
+type VideoDraft = {
+  id: string;
+  title: string;
+  hashtags: string[];
+  visibility: string;
+  sound_id: string | null;
+  sound_title: string | null;
+  allow_comments: boolean;
+  allow_reactions: boolean;
+  allow_sharing: boolean;
+  allow_remix: boolean;
+  sensitive_content: boolean;
+  contains_paid_promotion: boolean;
+  contains_ai_content: boolean;
+};
+
 function UploadWizard({
   onDone,
   onClose,
   presetSound,
+  draft,
 }: {
   onDone: () => void;
   onClose: () => void;
   presetSound?: PickedSound;
+  draft?: VideoDraft;
 }) {
   const { t } = useI18n();
   const { user } = useSession();
@@ -756,20 +840,31 @@ function UploadWizard({
   const [file, setFile] = useState<File | null>(null);
   const [editedBlob, setEditedBlob] = useState<Blob | null>(null);
   const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(draft?.title ?? "");
   const [tag, setTag] = useState("");
-  const [hashtags, setHashtags] = useState<string[]>([]);
-  const [visibility, setVisibility] = useState<"public" | "sparks">("public");
-  const [sound, setSound] = useState<PickedSound | null>(presetSound ?? null);
+  const [hashtags, setHashtags] = useState<string[]>(draft?.hashtags ?? []);
+  const [visibility, setVisibility] = useState<"public" | "sparks">(
+    draft?.visibility === "sparks" ? "sparks" : "public",
+  );
+  const [sound, setSound] = useState<PickedSound | null>(
+    presetSound ??
+      (draft?.sound_id
+        ? { id: draft.sound_id, title: draft.sound_title ?? "", storagePath: "" }
+        : null),
+  );
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
-  const [allowComments, setAllowComments] = useState(true);
-  const [allowReactions, setAllowReactions] = useState(true);
-  const [allowSharing, setAllowSharing] = useState(true);
-  const [allowRemix, setAllowRemix] = useState(true);
-  const [sensitiveContent, setSensitiveContent] = useState(false);
-  const [containsPaidPromotion, setContainsPaidPromotion] = useState(false);
-  const [containsAiContent, setContainsAiContent] = useState(false);
+  const [allowComments, setAllowComments] = useState(draft?.allow_comments ?? true);
+  const [allowReactions, setAllowReactions] = useState(draft?.allow_reactions ?? true);
+  const [allowSharing, setAllowSharing] = useState(draft?.allow_sharing ?? true);
+  const [allowRemix, setAllowRemix] = useState(draft?.allow_remix ?? true);
+  const [sensitiveContent, setSensitiveContent] = useState(draft?.sensitive_content ?? false);
+  const [containsPaidPromotion, setContainsPaidPromotion] = useState(
+    draft?.contains_paid_promotion ?? false,
+  );
+  const [containsAiContent, setContainsAiContent] = useState(draft?.contains_ai_content ?? false);
   const [busy, setBusy] = useState(false);
+  const [draftPromptOpen, setDraftPromptOpen] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const myProfile = useQuery({
     queryKey: ["upload-wizard-profile", user?.id],
     enabled: !!user,
@@ -915,6 +1010,7 @@ function UploadWizard({
       } else {
         toast.success(t("studioVideoPublished"));
       }
+      if (draft) await supabase.from("video_drafts").delete().eq("id", draft.id);
       onDone();
     } catch (error) {
       if (error instanceof Error && error.message.includes("pending_video_exists")) {
@@ -924,6 +1020,51 @@ function UploadWizard({
       }
     } finally {
       setBusy(false);
+    }
+  }
+
+  function requestClose() {
+    if (file && !busy) setDraftPromptOpen(true);
+    else onClose();
+  }
+
+  async function discardDraft() {
+    if (draft) await supabase.from("video_drafts").delete().eq("id", draft.id);
+    setDraftPromptOpen(false);
+    onClose();
+  }
+
+  async function saveDraft() {
+    if (!user) return;
+    setSavingDraft(true);
+    try {
+      const values = {
+        user_id: user.id,
+        title: title.trim(),
+        hashtags,
+        visibility,
+        sound_id: sound?.id ?? null,
+        sound_title: sound?.title ?? null,
+        allow_comments: allowComments,
+        allow_reactions: allowReactions,
+        allow_sharing: allowSharing,
+        allow_remix: allowRemix,
+        sensitive_content: sensitiveContent,
+        contains_paid_promotion: containsPaidPromotion,
+        contains_ai_content: containsAiContent,
+      };
+      if (draft) {
+        await supabase.from("video_drafts").update(values).eq("id", draft.id);
+      } else {
+        await supabase.from("video_drafts").insert(values);
+      }
+      toast.success(t("studioDraftSaved"));
+      setDraftPromptOpen(false);
+      onClose();
+    } catch {
+      toast.error(t("errorGeneric"));
+    } finally {
+      setSavingDraft(false);
     }
   }
 
@@ -961,7 +1102,7 @@ function UploadWizard({
               {t("studioStepOf", { step, total: WIZARD_TOTAL_STEPS })}
             </p>
           </div>
-          <button onClick={onClose} className="grid h-9 w-9 place-items-center">
+          <button onClick={requestClose} className="grid h-9 w-9 place-items-center">
             <X />
           </button>
         </header>
@@ -1297,6 +1438,27 @@ function UploadWizard({
           </footer>
         )}
       </div>
+
+      {draftPromptOpen ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-5">
+          <div className="w-full max-w-sm rounded-3xl bg-background p-5 text-center">
+            <p className="text-lg font-black">{t("studioSaveDraftTitle")}</p>
+            <div className="mt-4 flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={savingDraft}
+                onClick={() => void discardDraft()}
+              >
+                {t("delete")}
+              </Button>
+              <Button className="flex-1" disabled={savingDraft} onClick={() => void saveDraft()}>
+                {savingDraft ? "…" : t("studioSaveDraft")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
