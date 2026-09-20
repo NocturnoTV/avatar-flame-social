@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { NEWS_CATEGORIES, newsCategoryBadgeClass, newsCategoryLabel } from "@/lib/newsCategories";
 import { cn } from "@/lib/utils";
+import { pgIlikePattern } from "@/lib/pgFilter";
 
 export const Route = createFileRoute("/_authenticated/news_/all")({
   head: () => ({ meta: [{ title: "Toutes les actualités - Bloxspark" }] }),
@@ -31,7 +32,9 @@ function AllNewsPage() {
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (category !== "all") query = query.eq("category", category);
       if (search.trim())
-        query = query.or(`title.ilike.%${search.trim()}%,excerpt.ilike.%${search.trim()}%`);
+        query = query.or(
+          `title.ilike.${pgIlikePattern(search.trim())},excerpt.ilike.${pgIlikePattern(search.trim())}`,
+        );
       const { data, count, error } = await query;
       if (error) throw error;
       return { rows: data ?? [], total: count ?? 0 };

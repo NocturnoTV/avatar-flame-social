@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { pgIlikePattern, pgQuote } from "@/lib/pgFilter";
 
 async function requireStaff(userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -208,7 +209,7 @@ export const adminSearchContent = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(60);
     if (q) {
-      const orParts = [`caption.ilike.%${q}%`, `hashtags.cs.{${q}}`];
+      const orParts = [`caption.ilike.${pgIlikePattern(q)}`, `hashtags.cs.{${pgQuote(q)}}`];
       if (videoIds?.length) orParts.push(`id.in.(${videoIds.join(",")})`);
       query = query.or(orParts.join(","));
     }
@@ -221,7 +222,7 @@ export const adminSearchContent = createServerFn({ method: "GET" })
       const { data: byCreator } = await db
         .from("profiles")
         .select("id,username,roblox_username")
-        .or(`username.ilike.%${q}%,roblox_username.ilike.%${q}%`)
+        .or(`username.ilike.${pgIlikePattern(q)},roblox_username.ilike.${pgIlikePattern(q)}`)
         .limit(20);
       creatorRows = byCreator ?? [];
     }
