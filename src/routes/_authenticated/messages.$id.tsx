@@ -1239,6 +1239,9 @@ function Conversation() {
           }
           pinned={header.data.pinned}
           muted={header.data.muted}
+          streakCount={header.data.streakCount}
+          streakDate={header.data.streakDate}
+          streakBrokenAt={header.data.streakBrokenAt}
           onClose={() => setInfo(false)}
           onChanged={() => {
             setWallpaperLocal(getWallpaper(id));

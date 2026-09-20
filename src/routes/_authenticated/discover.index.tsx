@@ -145,6 +145,7 @@ function DiscoverPage() {
   const following = useQuery({
     queryKey: ["following", user?.id],
     enabled: !!user,
+    staleTime: 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("follows")
@@ -157,6 +158,10 @@ function DiscoverPage() {
   const feed = useQuery({
     queryKey: ["feed", user?.id, tab, following.data?.join(","), pinnedVideoId],
     enabled: !!user && following.isFetched,
+    // Cached feed renders instantly when coming back to Discover instead of
+    // showing a spinner every time - it still refreshes quietly in the
+    // background once this goes stale.
+    staleTime: 30_000,
     queryFn: async () => {
       let videos: VideoRow[];
       if (tab === "foryou") {

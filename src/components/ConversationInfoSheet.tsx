@@ -35,6 +35,7 @@ import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { cn, errorMessage } from "@/lib/utils";
 import { isSparkPlusActive } from "@/lib/sparkPlus";
+import { extinguishDeadline, hoursUntil, restoreDeadline, streakStatus } from "@/lib/streaks";
 import {
   BUBBLE_THEMES,
   WALLPAPERS,
@@ -83,6 +84,9 @@ export function ConversationInfoSheet({
   avatarUrl,
   pinned,
   muted,
+  streakCount,
+  streakDate,
+  streakBrokenAt,
   onClose,
   onChanged,
 }: {
@@ -92,6 +96,9 @@ export function ConversationInfoSheet({
   avatarUrl: string | null;
   pinned: boolean;
   muted: boolean;
+  streakCount?: number;
+  streakDate?: string | null;
+  streakBrokenAt?: string | null;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -386,6 +393,18 @@ export function ConversationInfoSheet({
     setReporting(false);
   }
 
+  const streakInfo = { count: streakCount ?? 0, date: streakDate ?? null, brokenAt: streakBrokenAt ?? null };
+  const streakStatusNow = streakStatus(streakInfo);
+  const streakStatusLabel =
+    streakStatusNow === "broken" && streakBrokenAt
+      ? t("streakBrokenRestorable", { hours: hoursUntil(restoreDeadline(streakBrokenAt)) })
+      : streakStatusNow === "none" && streakBrokenAt
+        ? t("streakGoneForGood")
+        : (() => {
+            const deadline = extinguishDeadline(streakInfo);
+            return deadline ? t("streakExtinguishesIn", { hours: hoursUntil(deadline) }) : "";
+          })();
+
   // Portaled straight to <body> - some Android WebViews mis-render a
   // "fixed" element nested deep in a tall/scrollable ancestor, showing it
   // mid-page or at the very bottom instead of pinned to the screen.
@@ -496,6 +515,14 @@ export function ConversationInfoSheet({
             <p className="mt-2 text-lg font-bold">{contact.data?.nickname || title}</p>
           )}
           {contact.data?.nickname ? <p className="text-xs text-[#929292]">@{title}</p> : null}
+          {!isGroup && streakCount ? (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-[#929292]">
+              <span>
+                🔥 {streakCount}
+              </span>
+              {streakStatusLabel}
+            </p>
+          ) : null}
           {isGroup ? (
             <p className="mt-0.5 text-xs text-[#929292]">
               {t("groupMemberCount", { count: members.data?.length ?? 0 })}
