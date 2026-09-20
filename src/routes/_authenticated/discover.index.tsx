@@ -676,11 +676,31 @@ function VideoSlide({
   const { user } = useSession();
   const { t } = useI18n();
   const qc = useQueryClient();
-  const url = useSignedUrl(video.storage_path);
-  const posterUrl = useSignedUrl(video.thumbnail_path);
   const ref = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+  // Every slide in the feed mounts at once (needed for scroll-snap), but
+  // only the ones actually near the screen should fetch anything - without
+  // this, opening Discover fired signed-URL requests and 4 DB lookups
+  // (liked/favorited/reposted/following) for all 30 videos simultaneously,
+  // starving the one video someone's actually looking at. A generous
+  // rootMargin preloads the next couple of slides so swiping still feels
+  // instant, without loading the whole feed's data up front.
+  const [nearViewport, setNearViewport] = useState(false);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || nearViewport) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) setNearViewport(true);
+      },
+      { rootMargin: "150% 0px" },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [nearViewport]);
+  const url = useSignedUrl(nearViewport ? video.storage_path : null);
+  const posterUrl = useSignedUrl(nearViewport ? video.thumbnail_path : null);
   const [viewCount, setViewCount] = useState(video.views_count);
   const [sharing, setSharing] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
@@ -741,7 +761,7 @@ function VideoSlide({
 
   const state = useQuery({
     queryKey: ["video-state", video.id, user?.id],
-    enabled: !!user,
+    enabled: !!user && nearViewport,
     queryFn: async () => {
       const [liked, faved, reposted, follow] = await Promise.all([
         supabase

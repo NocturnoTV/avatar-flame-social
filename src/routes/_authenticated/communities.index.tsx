@@ -21,6 +21,7 @@ import { StoredImage } from "@/components/Media";
 import { LogoWordmark } from "@/components/Logo";
 import { Verified } from "@/components/Verified";
 import { useSession } from "@/lib/session";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/communities/")({
@@ -53,17 +54,20 @@ type CommunityRow = {
   ranking_score: number;
 };
 
-const CATEGORY_FILTERS: { id: string; label: string; icon: typeof Sparkles }[] = [
-  { id: "foryou", label: "Pour toi", icon: Sparkles },
-  { id: "popular", label: "Populaires", icon: Flame },
-  { id: "ranking", label: "Classement", icon: Trophy },
-  { id: "new", label: "Nouvelles", icon: Compass },
-  { id: "games", label: "Jeux", icon: Gamepad2 },
-  { id: "development", label: "Développement", icon: Code2 },
-  { id: "creators", label: "Créateurs", icon: Video },
-  { id: "fr", label: "FR", icon: Globe2 },
-  { id: "international", label: "International", icon: Globe2 },
-];
+function useCategoryFilters(): { id: string; label: string; icon: typeof Sparkles }[] {
+  const { t } = useI18n();
+  return [
+    { id: "foryou", label: t("communityFilterForYou"), icon: Sparkles },
+    { id: "popular", label: t("communityFilterPopular"), icon: Flame },
+    { id: "ranking", label: t("communityFilterRanking"), icon: Trophy },
+    { id: "new", label: t("communityFilterNew"), icon: Compass },
+    { id: "games", label: t("communityFilterGames"), icon: Gamepad2 },
+    { id: "development", label: t("communityFilterDevelopment"), icon: Code2 },
+    { id: "creators", label: t("communityFilterCreators"), icon: Video },
+    { id: "fr", label: t("communityFilterFr"), icon: Globe2 },
+    { id: "international", label: t("communityFilterInternational"), icon: Globe2 },
+  ];
+}
 
 const RANK_STYLES: Record<number, string> = {
   1: "bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-950 shadow-[0_0_14px_-2px_rgba(234,179,8,.65)]",
@@ -72,7 +76,9 @@ const RANK_STYLES: Record<number, string> = {
 };
 
 function CommunitiesPage() {
+  const { t } = useI18n();
   const { user } = useSession();
+  const categoryFilters = useCategoryFilters();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("foryou");
 
@@ -203,14 +209,14 @@ function CommunitiesPage() {
         <LogoWordmark className="h-7 w-auto" />
         <div className="flex items-center gap-1">
           <button
-            aria-label="Rechercher"
+            aria-label={t("communitiesSearchAria")}
             className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
           >
             <Search className="h-5 w-5" />
           </button>
           <Link
             to="/communities/create"
-            aria-label="Créer une communauté"
+            aria-label={t("communitiesCreateAria")}
             className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
           >
             <Plus className="h-5 w-5" />
@@ -228,26 +234,26 @@ function CommunitiesPage() {
               <Users className="h-6 w-6" />
             </span>
             <div>
-              <h1 className="text-2xl font-black">Communautés</h1>
-              <p className="text-sm text-muted-foreground">
-                Rejoins des communautés qui partagent tes jeux et tes intérêts.
-              </p>
+              <h1 className="text-2xl font-black">{t("communitiesPageTitle")}</h1>
+              <p className="text-sm text-muted-foreground">{t("communitiesPageSubtitle")}</p>
             </div>
           </div>
         </div>
         <div className="relative mt-4 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5 text-primary" /> {all.length.toLocaleString()} communautés
+            <Users className="h-3.5 w-3.5 text-primary" />{" "}
+            {t("communitiesCount", { count: all.length.toLocaleString() })}
           </span>
           <span className="flex items-center gap-1.5">
-            <Flame className="h-3.5 w-3.5 text-orange-500" /> {mine.size.toLocaleString()} rejointes
+            <Flame className="h-3.5 w-3.5 text-orange-500" />{" "}
+            {t("communitiesJoinedCount", { count: mine.size.toLocaleString() })}
           </span>
         </div>
         <Link
           to="/communities/create"
           className="spark-gradient relative mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-black text-white shadow-[0_10px_30px_-12px_rgba(168,85,247,.7)] transition active:scale-[0.98]"
         >
-          <Plus className="h-4 w-4" /> Créer une communauté
+          <Plus className="h-4 w-4" /> {t("communitiesCreateCta")}
         </Link>
       </div>
 
@@ -256,13 +262,13 @@ function CommunitiesPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher une communauté..."
+          placeholder={t("communitiesSearchPlaceholder")}
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       </label>
 
       <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
-        {CATEGORY_FILTERS.map((f) => (
+        {categoryFilters.map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
@@ -281,7 +287,7 @@ function CommunitiesPage() {
       <section className="mt-7">
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-lg font-black">
-            <Sparkles className="h-4.5 w-4.5 text-primary" /> Recommandées pour toi
+            <Sparkles className="h-4.5 w-4.5 text-primary" /> {t("communitiesRecommended")}
           </h2>
         </div>
         {recommended.length === 0 ? (
@@ -305,11 +311,9 @@ function CommunitiesPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-black">
-              <Trophy className="h-5 w-5 text-amber-500" /> Classement des communautés
+              <Trophy className="h-5 w-5 text-amber-500" /> {t("communitiesRankingTitle")}
             </h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Calculé selon les membres et l'activité des 30 derniers jours.
-            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("communitiesRankingHint")}</p>
           </div>
         </div>
         {ranked.length === 0 ? (
@@ -333,15 +337,16 @@ function CommunitiesPage() {
 }
 
 function EmptyState() {
+  const { t } = useI18n();
   return (
     <div className="mt-3 rounded-3xl border border-dashed border-border bg-surface/60 p-8 text-center">
       <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-2xl">
         🪐
       </span>
       <p className="mt-3 text-sm text-muted-foreground">
-        Aucune communauté pour l'instant.{" "}
+        {t("communitiesEmpty")}{" "}
         <Link to="/communities/create" className="font-bold text-primary">
-          Sois le premier à en créer une !
+          {t("communitiesEmptyCta")}
         </Link>
       </p>
     </div>
@@ -359,6 +364,7 @@ function CommunityCard({
   onToggleJoin: () => void;
   variant: "carousel" | "row";
 }) {
+  const { t } = useI18n();
   const rankStyle = RANK_STYLES[community.rank_position];
   return (
     <Link
@@ -405,7 +411,8 @@ function CommunityCard({
         </p>
         <p className="truncate text-xs text-muted-foreground">@{community.handle}</p>
         <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-          <Users className="h-3.5 w-3.5" /> {community.member_count.toLocaleString()} membres
+          <Users className="h-3.5 w-3.5" />{" "}
+          {t("communityMembersCount", { count: community.member_count.toLocaleString() })}
         </p>
         {community.description ? (
           <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
@@ -436,7 +443,7 @@ function CommunityCard({
               : "spark-gradient text-white shadow-[0_6px_18px_-8px_rgba(168,85,247,.7)]",
           )}
         >
-          {joined ? "Membre ✓" : "+ Rejoindre"}
+          {joined ? t("communityJoinedBadge") : t("communityJoinCtaLong")}
         </button>
       </div>
     </Link>
@@ -454,6 +461,7 @@ function CommunityRowItem({
   onToggleJoin: () => void;
   topActivity: number;
 }) {
+  const { t } = useI18n();
   const rankStyle = RANK_STYLES[community.rank_position];
   const activityRatio = Math.min(100, Math.round((community.activity_points / topActivity) * 100));
   return (
@@ -486,7 +494,7 @@ function CommunityRowItem({
           {community.verified ? <Verified className="h-3.5 w-3.5 shrink-0" /> : null}
         </p>
         <p className="truncate text-xs text-muted-foreground">
-          {community.member_count.toLocaleString()} membres
+          {t("communityMembersCount", { count: community.member_count.toLocaleString() })}
         </p>
         <div className="mt-1.5 flex items-center gap-1.5">
           <div className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-2">
@@ -510,7 +518,7 @@ function CommunityRowItem({
           joined ? "border border-border text-muted-foreground" : "spark-gradient text-white",
         )}
       >
-        {joined ? "Membre ✓" : "Rejoindre"}
+        {joined ? t("communityJoinedBadge") : t("communityJoinCta")}
       </button>
     </Link>
   );

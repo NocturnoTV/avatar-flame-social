@@ -365,7 +365,7 @@ function SparksPage() {
         {(
           [
             ["deck", t("sparks")],
-            ["matches", "Mes matchs"],
+            ["matches", t("sparkMatchesTab")],
             ["profile", t("sparkProfileTab")],
           ] as const
         ).map(([id, label]) => (
