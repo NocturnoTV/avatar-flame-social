@@ -9,9 +9,26 @@ import { Button } from "@/components/ui-kit";
 import { SoundPicker, type PickedSound } from "@/components/SoundPicker";
 import { cn } from "@/lib/utils";
 
-type Overlay = { id: string; type: "text" | "emoji"; content: string; x: number; y: number };
+type TextFont = "sans" | "serif" | "mono" | "display";
+type Overlay = {
+  id: string;
+  type: "text" | "emoji";
+  content: string;
+  x: number;
+  y: number;
+  color?: string;
+  font?: TextFont;
+};
 
 const STORY_EMOJIS = ["🔥", "❤️", "😂", "😎", "🎉", "✨", "😭", "👀", "🎮", "💯"];
+const TEXT_COLORS = ["#ffffff", "#facc15", "#f472b6", "#22d3ee", "#a855f7", "#000000"];
+const TEXT_FONTS: { id: TextFont; label: string; className: string }[] = [
+  { id: "sans", label: "Aa", className: "font-sans" },
+  { id: "serif", label: "Aa", className: "font-serif" },
+  { id: "mono", label: "Aa", className: "font-mono" },
+  { id: "display", label: "Aa", className: "font-black italic" },
+];
+const SNAP_THRESHOLD = 4;
 
 /** Full-screen Story creation flow: capture/pick media, then an editor
  * where text and emoji can be dropped and dragged onto the media before
@@ -26,10 +43,13 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [addingText, setAddingText] = useState(false);
   const [textDraft, setTextDraft] = useState("");
+  const [textColor, setTextColor] = useState(TEXT_COLORS[0]!);
+  const [textFont, setTextFont] = useState<TextFont>("sans");
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [sound, setSound] = useState<PickedSound | null>(null);
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [guide, setGuide] = useState<{ x: boolean; y: boolean }>({ x: false, y: false });
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -59,7 +79,14 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   function addOverlay(type: "text" | "emoji", content: string) {
     setOverlays((current) => [
       ...current,
-      { id: crypto.randomUUID(), type, content, x: 50, y: type === "text" ? 80 : 50 },
+      {
+        id: crypto.randomUUID(),
+        type,
+        content,
+        x: 50,
+        y: type === "text" ? 80 : 50,
+        ...(type === "text" ? { color: textColor, font: textFont } : {}),
+      },
     ]);
   }
 
@@ -70,8 +97,13 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   function onStageMove(clientX: number, clientY: number) {
     if (!dragId.current || !stageRef.current) return;
     const rect = stageRef.current.getBoundingClientRect();
-    const x = Math.min(95, Math.max(5, ((clientX - rect.left) / rect.width) * 100));
-    const y = Math.min(95, Math.max(5, ((clientY - rect.top) / rect.height) * 100));
+    let x = Math.min(95, Math.max(5, ((clientX - rect.left) / rect.width) * 100));
+    let y = Math.min(95, Math.max(5, ((clientY - rect.top) / rect.height) * 100));
+    const snapX = Math.abs(x - 50) <= SNAP_THRESHOLD;
+    const snapY = Math.abs(y - 50) <= SNAP_THRESHOLD;
+    if (snapX) x = 50;
+    if (snapY) y = 50;
+    setGuide({ x: snapX, y: snapY });
     setOverlays((current) =>
       current.map((o) => (o.id === dragId.current ? { ...o, x, y } : o)),
     );
@@ -111,7 +143,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[95] flex flex-col bg-black text-white">
+    <div className="fixed inset-0 z-[95] flex flex-col overflow-hidden bg-black text-white">
       <input
         ref={cameraRef}
         type="file"
@@ -161,8 +193,8 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
           </div>
         </div>
       ) : (
-        <div className="flex flex-1 flex-col">
-          <div className="flex items-center justify-between p-4">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex shrink-0 items-center justify-between p-3">
             <button onClick={() => setFile(null)} aria-label={t("cancel")}>
               <X className="h-6 w-6" />
             </button>
@@ -177,15 +209,24 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
 
           <div
             ref={stageRef}
-            className="relative mx-auto w-full max-w-sm flex-1 overflow-hidden bg-neutral-900"
+            className="relative mx-auto min-h-0 w-full max-w-sm flex-1 overflow-hidden bg-neutral-900"
             onMouseMove={(e) => onStageMove(e.clientX, e.clientY)}
-            onMouseUp={() => (dragId.current = null)}
-            onMouseLeave={() => (dragId.current = null)}
+            onMouseUp={() => {
+              dragId.current = null;
+              setGuide({ x: false, y: false });
+            }}
+            onMouseLeave={() => {
+              dragId.current = null;
+              setGuide({ x: false, y: false });
+            }}
             onTouchMove={(e) => {
               const t0 = e.touches[0];
               if (t0) onStageMove(t0.clientX, t0.clientY);
             }}
-            onTouchEnd={() => (dragId.current = null)}
+            onTouchEnd={() => {
+              dragId.current = null;
+              setGuide({ x: false, y: false });
+            }}
           >
             {preview ? (
               mediaType === "video" ? (
@@ -195,16 +236,26 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
               )
             ) : null}
 
+            {guide.x ? (
+              <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-primary/70" />
+            ) : null}
+            {guide.y ? (
+              <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-primary/70" />
+            ) : null}
+
             {overlays.map((o) => (
               <div
                 key={o.id}
                 onMouseDown={() => startDrag(o.id)}
                 onTouchStart={() => startDrag(o.id)}
-                style={{ left: `${o.x}%`, top: `${o.y}%` }}
+                style={{ left: `${o.x}%`, top: `${o.y}%`, color: o.color }}
                 className={cn(
                   "absolute -translate-x-1/2 -translate-y-1/2 cursor-grab select-none active:cursor-grabbing",
                   o.type === "text"
-                    ? "rounded-xl bg-black/40 px-3 py-1.5 text-lg font-bold"
+                    ? cn(
+                        "rounded-xl bg-black/40 px-3 py-1.5 text-lg font-bold",
+                        TEXT_FONTS.find((f) => f.id === o.font)?.className ?? "font-sans",
+                      )
                     : "text-4xl",
                 )}
               >
@@ -221,29 +272,62 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
           </div>
 
           {addingText ? (
-            <div className="flex items-center gap-2 border-t border-white/10 p-3">
-              <input
-                autoFocus
-                value={textDraft}
-                onChange={(e) => setTextDraft(e.target.value)}
-                placeholder={t("storyTextPlaceholder")}
-                className="min-w-0 flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white outline-none placeholder:text-white/50"
-              />
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (textDraft.trim()) addOverlay("text", textDraft.trim());
-                  setTextDraft("");
-                  setAddingText(false);
-                }}
-              >
-                {t("studioAdd")}
-              </Button>
+            <div className="shrink-0 space-y-2.5 border-t border-white/10 p-3">
+              <div className="flex gap-2">
+                {TEXT_FONTS.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setTextFont(f.id)}
+                    className={cn(
+                      "grid h-9 w-9 place-items-center rounded-full text-sm",
+                      f.className,
+                      textFont === f.id ? "bg-primary text-primary-foreground" : "bg-white/10",
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+                {TEXT_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setTextColor(c)}
+                    style={{ backgroundColor: c }}
+                    className={cn(
+                      "h-9 w-9 shrink-0 rounded-full border-2",
+                      textColor === c ? "border-primary" : "border-white/30",
+                    )}
+                    aria-label={c}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  value={textDraft}
+                  onChange={(e) => setTextDraft(e.target.value)}
+                  placeholder={t("storyTextPlaceholder")}
+                  style={{ color: textColor }}
+                  className={cn(
+                    "min-w-0 flex-1 rounded-full bg-white/10 px-4 py-2 text-sm outline-none placeholder:text-white/50",
+                    TEXT_FONTS.find((f) => f.id === textFont)?.className,
+                  )}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (textDraft.trim()) addOverlay("text", textDraft.trim());
+                    setTextDraft("");
+                    setAddingText(false);
+                  }}
+                >
+                  {t("studioAdd")}
+                </Button>
+              </div>
             </div>
           ) : null}
 
           {emojiPickerOpen ? (
-            <div className="grid grid-cols-5 gap-2 border-t border-white/10 p-3 text-3xl">
+            <div className="shrink-0 grid grid-cols-5 gap-2 border-t border-white/10 p-3 text-3xl">
               {STORY_EMOJIS.map((e) => (
                 <button
                   key={e}
@@ -259,7 +343,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             </div>
           ) : null}
 
-          <div className="flex items-center justify-center gap-6 p-4">
+          <div className="no-scrollbar flex shrink-0 items-center justify-center gap-4 overflow-x-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <button
               onClick={() => {
                 setAddingText(true);

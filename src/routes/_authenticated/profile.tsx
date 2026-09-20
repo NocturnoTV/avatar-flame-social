@@ -134,6 +134,50 @@ function ProfilePage() {
     enabled: !!user,
   });
 
+  const likedVideos = useQuery({
+    queryKey: ["my-liked-videos", user?.id],
+    queryFn: async () => {
+      const { data: likes } = await supabase
+        .from("video_likes")
+        .select("video_id,created_at")
+        .eq("user_id", user?.id ?? "")
+        .order("created_at", { ascending: false })
+        .limit(60);
+      const ids = (likes ?? []).map((l) => l.video_id);
+      if (!ids.length) return [];
+      const { data: videosData } = await supabase
+        .from("videos")
+        .select("id,storage_path,caption,views_count")
+        .in("id", ids);
+      return ids
+        .map((id) => videosData?.find((v) => v.id === id))
+        .filter((v): v is NonNullable<typeof v> => !!v);
+    },
+    enabled: !!user,
+  });
+
+  const favoriteVideos = useQuery({
+    queryKey: ["my-favorite-videos", user?.id],
+    queryFn: async () => {
+      const { data: favs } = await supabase
+        .from("video_favorites")
+        .select("video_id,created_at")
+        .eq("user_id", user?.id ?? "")
+        .order("created_at", { ascending: false })
+        .limit(60);
+      const ids = (favs ?? []).map((f) => f.video_id);
+      if (!ids.length) return [];
+      const { data: videosData } = await supabase
+        .from("videos")
+        .select("id,storage_path,caption,views_count")
+        .in("id", ids);
+      return ids
+        .map((id) => videosData?.find((v) => v.id === id))
+        .filter((v): v is NonNullable<typeof v> => !!v);
+    },
+    enabled: !!user,
+  });
+
   const sounds = useQuery({
     queryKey: ["my-sounds", user?.id],
     queryFn: async () => {
@@ -954,6 +998,8 @@ function ProfilePage() {
         onAddStickerClick={() => stickerRef.current?.click()}
         onDeleteSticker={(id) => void deleteSticker(id)}
         sounds={(sounds.data ?? []) as TabSound[]}
+        likedVideos={likedVideos.data ?? []}
+        favoriteVideos={favoriteVideos.data ?? []}
         soundsEditable
         onAddSoundClick={() => setAddSoundOpen(true)}
         onDeleteSound={(id) => void deleteSound(id)}

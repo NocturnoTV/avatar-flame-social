@@ -87,6 +87,7 @@ type Story = {
   thumbnail_path: string | null;
   caption: string | null;
   created_at: string;
+  sound_id: string | null;
   metadata: { overlays?: { id: string; type: "text" | "emoji"; content: string; x: number; y: number }[] } | null;
   username: string;
   avatar_url: string | null;
@@ -343,7 +344,7 @@ function MessagesPage() {
 
       const { data: rows } = await supabase
         .from("stories")
-        .select("id,user_id,media_url,media_type,thumbnail_path,caption,created_at,metadata")
+        .select("id,user_id,media_url,media_type,thumbnail_path,caption,created_at,sound_id,metadata")
         .gt("expires_at", new Date().toISOString())
         .in("user_id", [...allowedIds])
         .order("created_at", { ascending: false });

@@ -48,7 +48,7 @@ export function StoryHighlightsRow({
       if (!ids.length) return [];
       const { data: stories } = await supabase
         .from("stories")
-        .select("id,user_id,media_url,media_type,thumbnail_path,caption,created_at,metadata")
+        .select("id,user_id,media_url,media_type,thumbnail_path,caption,created_at,sound_id,metadata")
         .in("id", ids);
       return ids
         .map((id) => stories?.find((s) => s.id === id))

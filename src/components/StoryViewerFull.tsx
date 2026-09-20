@@ -10,7 +10,22 @@ import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 
-export type StoryOverlay = { id: string; type: "text" | "emoji"; content: string; x: number; y: number };
+export type StoryOverlay = {
+  id: string;
+  type: "text" | "emoji";
+  content: string;
+  x: number;
+  y: number;
+  color?: string;
+  font?: "sans" | "serif" | "mono" | "display";
+};
+
+const OVERLAY_FONT_CLASS: Record<NonNullable<StoryOverlay["font"]>, string> = {
+  sans: "font-sans",
+  serif: "font-serif",
+  mono: "font-mono",
+  display: "font-black italic",
+};
 export type StoryRow = {
   id: string;
   user_id: string;
@@ -19,6 +34,7 @@ export type StoryRow = {
   thumbnail_path: string | null;
   caption: string | null;
   created_at: string;
+  sound_id?: string | null;
   metadata: { overlays?: StoryOverlay[] } | null;
 };
 export type StoryUserGroup = {
@@ -53,12 +69,13 @@ export function StoryViewerFull({
   const [groupIndex, setGroupIndex] = useState(startGroupIndex);
   const [storyIndex, setStoryIndex] = useState(startStoryIndex);
   const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewersOpen, setViewersOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const soundRef = useRef<HTMLAudioElement>(null);
   const startPos = useRef<{ x: number; y: number } | null>(null);
   const holdTimer = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -67,6 +84,37 @@ export function StoryViewerFull({
   const story = group?.stories[storyIndex];
   const isOwn = story?.user_id === user?.id;
   const url = useSignedUrl(story?.media_url);
+
+  const storySound = useQuery({
+    queryKey: ["story-sound", story?.sound_id],
+    enabled: !!story?.sound_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sounds")
+        .select("storage_path")
+        .eq("id", story!.sound_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const soundUrl = useSignedUrl(storySound.data?.storage_path);
+
+  // Restart the attached sound from the top for every story - otherwise it
+  // would keep playing wherever it left off from the previous one.
+  useEffect(() => {
+    const audio = soundRef.current;
+    if (!audio || !soundUrl) return;
+    audio.currentTime = 0;
+    if (!paused) void audio.play();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.id, soundUrl]);
+
+  useEffect(() => {
+    const audio = soundRef.current;
+    if (!audio || !soundUrl) return;
+    if (paused) audio.pause();
+    else void audio.play();
+  }, [paused, soundUrl]);
 
   const close = () => {
     setMenuOpen(false);
@@ -281,14 +329,21 @@ export function StoryViewerFull({
             )
           ) : null}
 
+          {soundUrl ? (
+            <audio ref={soundRef} src={soundUrl} loop muted={muted} />
+          ) : null}
+
           {overlays.map((o) => (
             <div
               key={o.id}
-              style={{ left: `${o.x}%`, top: `${o.y}%` }}
+              style={{ left: `${o.x}%`, top: `${o.y}%`, color: o.color ?? "#fff" }}
               className={cn(
                 "pointer-events-none absolute -translate-x-1/2 -translate-y-1/2",
                 o.type === "text"
-                  ? "rounded-xl bg-black/40 px-3 py-1.5 text-lg font-bold text-white"
+                  ? cn(
+                      "rounded-xl bg-black/40 px-3 py-1.5 text-lg font-bold",
+                      OVERLAY_FONT_CLASS[o.font ?? "sans"],
+                    )
                   : "text-4xl",
               )}
             >
@@ -322,7 +377,7 @@ export function StoryViewerFull({
             <p className="text-[11px] text-white/70">{formatRelativeTime(story.created_at, t)}</p>
           </div>
           <div className="pointer-events-auto flex items-center gap-1.5">
-            {story.media_type === "video" ? (
+            {story.media_type === "video" || soundUrl ? (
               <button
                 onClick={() => setMuted((v) => !v)}
                 className="grid h-8 w-8 place-items-center rounded-full bg-black/40"

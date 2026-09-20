@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
+  Heart,
   ImagePlus,
   Lock,
   Music2,
@@ -10,6 +11,7 @@ import {
   Play,
   Repeat2,
   Smile,
+  Star,
   Trash2,
   Video,
   X,
@@ -34,7 +36,7 @@ export type TabSound = {
   visibility: "public" | "private";
   usage_count: number;
 };
-type Tab = "videos" | "reposts" | "photos" | "stickers" | "sounds";
+type Tab = "videos" | "reposts" | "photos" | "stickers" | "sounds" | "liked" | "favorites";
 type LightboxTarget = { list: TabPhoto[]; index: number };
 
 /**
@@ -50,6 +52,8 @@ export function ProfileContentTabs({
   photos,
   stickers = [],
   sounds = [],
+  likedVideos,
+  favoriteVideos,
   photosEditable = false,
   stickersEditable = false,
   soundsEditable = false,
@@ -69,6 +73,10 @@ export function ProfileContentTabs({
   photos: TabPhoto[];
   stickers?: TabSticker[];
   sounds?: TabSound[];
+  /** Only ever passed by the profile owner's own page - liked/favorited
+   * videos are nobody else's business but yours. */
+  likedVideos?: TabVideo[];
+  favoriteVideos?: TabVideo[];
   photosEditable?: boolean;
   stickersEditable?: boolean;
   soundsEditable?: boolean;
@@ -93,6 +101,19 @@ export function ProfileContentTabs({
     { id: "photos", label: t("photosTab"), icon: ImagePlus, count: photos.length },
     { id: "stickers", label: t("stickersTab"), icon: Smile, count: stickers.length },
     { id: "sounds", label: t("soundsTab"), icon: Music2, count: sounds.length },
+    ...(likedVideos
+      ? [{ id: "liked" as const, label: t("likedTab"), icon: Heart, count: likedVideos.length }]
+      : []),
+    ...(favoriteVideos
+      ? [
+          {
+            id: "favorites" as const,
+            label: t("favoritesTab"),
+            icon: Star,
+            count: favoriteVideos.length,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -102,15 +123,16 @@ export function ProfileContentTabs({
           <button
             key={tb.id}
             onClick={() => setTab(tb.id)}
+            aria-label={tb.label}
+            title={tb.label}
             className={cn(
-              "flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-xs font-bold transition",
+              "flex min-w-0 flex-1 items-center justify-center rounded-xl py-2.5 transition",
               tab === tb.id
                 ? "bg-background text-primary shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <tb.icon className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{tb.label}</span>
+            <tb.icon className="h-4.5 w-4.5 shrink-0" />
           </button>
         ))}
       </div>
@@ -248,6 +270,28 @@ export function ProfileContentTabs({
               </button>
             ) : null}
             {!sounds.length && !soundsEditable ? <EmptyState label={t("noSounds")} /> : null}
+          </div>
+        ) : null}
+
+        {tab === "liked" ? (
+          <div className="grid grid-cols-3 gap-1.5">
+            {(likedVideos ?? []).map((v) => (
+              <Link key={v.id} to="/discover" search={{ v: v.id }}>
+                <VideoThumb video={v} />
+              </Link>
+            ))}
+            {!likedVideos?.length ? <EmptyState label={t("noLikedVideos")} /> : null}
+          </div>
+        ) : null}
+
+        {tab === "favorites" ? (
+          <div className="grid grid-cols-3 gap-1.5">
+            {(favoriteVideos ?? []).map((v) => (
+              <Link key={v.id} to="/discover" search={{ v: v.id }}>
+                <VideoThumb video={v} />
+              </Link>
+            ))}
+            {!favoriteVideos?.length ? <EmptyState label={t("noFavoriteVideos")} /> : null}
           </div>
         ) : null}
       </div>

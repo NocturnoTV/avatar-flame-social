@@ -32,6 +32,20 @@ export function streakStatus(streak: {
   return hoursLeft <= WARNING_WINDOW_HOURS ? "warning" : "active";
 }
 
+/** The moment an active/warning streak goes out if nobody messages before
+ * then - null for a streak that's already broken/none, where there's no
+ * "still ticking" deadline to show. */
+export function extinguishDeadline(streak: {
+  count: number;
+  date: string | null;
+  brokenAt: string | null;
+}): Date | null {
+  if (streak.brokenAt || streak.count <= 0 || !streak.date) return null;
+  const deadline = new Date(`${streak.date}T00:00:00Z`);
+  deadline.setUTCDate(deadline.getUTCDate() + 2);
+  return deadline;
+}
+
 export function restoreDeadline(brokenAt: string): Date {
   return new Date(new Date(brokenAt).getTime() + RESTORE_WINDOW_HOURS * 3_600_000);
 }
