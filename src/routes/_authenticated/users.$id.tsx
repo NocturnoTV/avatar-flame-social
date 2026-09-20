@@ -9,7 +9,7 @@ import { ProfileBanner } from "@/components/ProfileBanner";
 import { Verified } from "@/components/Verified";
 import { EquippedBadges } from "@/components/Blox";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
-import { ProfileContentTabs, type TabVideo } from "@/components/ProfileContentTabs";
+import { ProfileContentTabs, type TabSound, type TabVideo } from "@/components/ProfileContentTabs";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -104,8 +104,14 @@ function PublicProfile() {
     queryKey: ["public-profile", id],
     enabled: !!id,
     queryFn: async () => {
-      const [{ data: person }, { data: photos }, { data: games }, { data: videos }, { data: stickers }] =
-        await Promise.all([
+      const [
+        { data: person },
+        { data: photos },
+        { data: games },
+        { data: videos },
+        { data: stickers },
+        { data: sounds },
+      ] = await Promise.all([
           supabase
             .from("profiles")
             .select(
@@ -136,6 +142,12 @@ function PublicProfile() {
             .select("id,storage_path")
             .eq("user_id", id!)
             .order("position"),
+          supabase
+            .from("sounds")
+            .select("id,storage_path,title,description,visibility,usage_count")
+            .eq("user_id", id!)
+            .eq("visibility", "public")
+            .order("created_at", { ascending: false }),
         ]);
       return {
         person,
@@ -143,6 +155,7 @@ function PublicProfile() {
         games: games ?? [],
         videos: videos ?? [],
         stickers: stickers ?? [],
+        sounds: sounds ?? [],
       };
     },
   });
@@ -393,6 +406,7 @@ function PublicProfile() {
           reposts={reposts.data ?? []}
           photos={profile.data?.photos ?? []}
           stickers={profile.data?.stickers ?? []}
+          sounds={(profile.data?.sounds ?? []) as TabSound[]}
         />
       </div>
     </div>

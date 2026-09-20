@@ -12,6 +12,7 @@ import {
   Hash,
   Heart,
   MessageCircle,
+  Music2,
   Pencil,
   Play,
   Sparkles,
@@ -31,12 +32,15 @@ import { Button, Card, Input, Label } from "@/components/ui-kit";
 import { captureVideoThumbnail, uploadFile } from "@/lib/media";
 import { useSignedUrl, VideoThumb } from "@/components/Media";
 import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEditor";
+import { SoundPicker, type PickedSound } from "@/components/SoundPicker";
 import { useI18n } from "@/lib/i18n";
 import { getCreatorAnalytics } from "@/lib/creator-analytics.functions";
 import { formatCount } from "./discover.index";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/discover/studio")({
+  validateSearch: (search: Record<string, unknown>): { sound?: string } =>
+    typeof search["sound"] === "string" ? { sound: search["sound"] } : {},
   head: () => ({ meta: [{ title: "Creator Studio - Bloxspark" }] }),
   component: StudioPage,
 });
@@ -48,8 +52,21 @@ function StudioPage() {
   const { user } = useSession();
   const { t } = useI18n();
   const qc = useQueryClient();
+  const { sound: presetSoundId } = Route.useSearch();
   const [tab, setTab] = useState<Tab>("stats");
-  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(!!presetSoundId);
+  const presetSound = useQuery({
+    queryKey: ["preset-sound", presetSoundId],
+    enabled: !!presetSoundId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sounds")
+        .select("id,storage_path,title")
+        .eq("id", presetSoundId!)
+        .maybeSingle();
+      return data;
+    },
+  });
   const videos = useQuery({
     queryKey: ["my-videos", user?.id],
     enabled: !!user,
@@ -258,7 +275,21 @@ function StudioPage() {
           </div>
         </Card>
       ) : null}
-      {uploadOpen ? <UploadWizard onClose={() => setUploadOpen(false)} onDone={refresh} /> : null}
+      {uploadOpen ? (
+        <UploadWizard
+          onClose={() => setUploadOpen(false)}
+          onDone={refresh}
+          {...(presetSound.data
+            ? {
+                presetSound: {
+                  id: presetSound.data.id,
+                  title: presetSound.data.title,
+                  storagePath: presetSound.data.storage_path,
+                },
+              }
+            : {})}
+        />
+      ) : null}
     </div>
   );
 }
@@ -696,9 +727,17 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
   );
 }
 
-const WIZARD_TOTAL_STEPS = 5;
+const WIZARD_TOTAL_STEPS = 7;
 
-function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
+function UploadWizard({
+  onDone,
+  onClose,
+  presetSound,
+}: {
+  onDone: () => void;
+  onClose: () => void;
+  presetSound?: PickedSound;
+}) {
   const { t } = useI18n();
   const { user } = useSession();
   const pendingVideo = useQuery({
@@ -713,7 +752,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
       return (count ?? 0) > 0;
     },
   });
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
   const [file, setFile] = useState<File | null>(null);
   const [editedBlob, setEditedBlob] = useState<Blob | null>(null);
   const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
@@ -721,6 +760,13 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
   const [tag, setTag] = useState("");
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<"public" | "sparks">("public");
+  const [sound, setSound] = useState<PickedSound | null>(presetSound ?? null);
+  const [soundPickerOpen, setSoundPickerOpen] = useState(false);
+  const [allowComments, setAllowComments] = useState(true);
+  const [allowReactions, setAllowReactions] = useState(true);
+  const [allowSharing, setAllowSharing] = useState(true);
+  const [allowRemix, setAllowRemix] = useState(true);
+  const [sensitiveContent, setSensitiveContent] = useState(false);
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
@@ -784,9 +830,15 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
           storage_path: path,
           thumbnail_path: thumbnailPath,
           caption: title.trim(),
-          sound_name: null,
+          sound_id: sound?.id ?? null,
+          sound_name: sound?.title ?? null,
           hashtags,
           visibility,
+          allow_comments: allowComments,
+          allow_reactions: allowReactions,
+          allow_sharing: allowSharing,
+          allow_remix: allowRemix,
+          sensitive_content: sensitiveContent,
         })
         .select("id")
         .single();
@@ -834,7 +886,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
         <header className="flex items-center border-b border-border px-5 py-4">
           {step > 1 ? (
             <button
-              onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4)}
+              onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4 | 5 | 6)}
               className="grid h-9 w-9 place-items-center"
             >
               <ArrowLeft />
@@ -852,7 +904,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
             <X />
           </button>
         </header>
-        <div className="grid grid-cols-5 gap-2 px-5 pt-4">
+        <div className="grid grid-cols-7 gap-2 px-5 pt-4">
           {Array.from({ length: WIZARD_TOTAL_STEPS }, (_, i) => i + 1).map((n) => (
             <span
               key={n}
@@ -903,13 +955,46 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
               onSkip={() => setStep(3)}
             />
           ) : null}
-          {step === 3 && file ? (
+          {step === 3 ? (
+            <section>
+              <h2 className="text-2xl font-black">{t("chooseSoundTitle")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("studioTitleHint")}</p>
+              <button
+                onClick={() => setSoundPickerOpen(true)}
+                className="mt-6 flex w-full items-center gap-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4 text-left"
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                  <Music2 className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-bold">
+                  {sound ? sound.title : t("noSoundSelected")}
+                </span>
+              </button>
+              {sound ? (
+                <button
+                  onClick={() => setSound(null)}
+                  className="mt-2 text-xs font-bold text-destructive"
+                >
+                  {t("removeSoundSelection")}
+                </button>
+              ) : null}
+              <SoundPicker
+                open={soundPickerOpen}
+                onClose={() => setSoundPickerOpen(false)}
+                onPick={(s) => {
+                  setSound(s);
+                  setSoundPickerOpen(false);
+                }}
+              />
+            </section>
+          ) : null}
+          {step === 4 && file ? (
             <section>
               <h2 className="text-2xl font-black">{t("thumbnailTitle")}</h2>
               <ThumbnailPicker source={editedBlob ?? file} onPick={setThumbnailBlob} />
             </section>
           ) : null}
-          {step === 4 ? (
+          {step === 5 ? (
             <section>
               <h2 className="text-2xl font-black">{t("studioGiveTitle")}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{t("studioTitleHint")}</p>
@@ -925,7 +1010,7 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
               <p className="mt-2 text-right text-xs text-muted-foreground">{title.length}/120</p>
             </section>
           ) : null}
-          {step === 5 ? (
+          {step === 6 ? (
             <section className="space-y-7">
               <div>
                 <h2 className="text-2xl font-black">{t("studioHashtagsVisibility")}</h2>
@@ -995,15 +1080,54 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
               </div>
             </section>
           ) : null}
+          {step === 7 ? (
+            <section className="space-y-5">
+              <div>
+                <h2 className="text-2xl font-black">{t("studioPublishOptionsTitle")}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("studioPublishOptionsHint")}
+                </p>
+              </div>
+              <PublishToggle
+                label={t("studioAllowComments")}
+                checked={allowComments}
+                onChange={setAllowComments}
+              />
+              <PublishToggle
+                label={t("studioAllowReactions")}
+                checked={allowReactions}
+                onChange={setAllowReactions}
+              />
+              <PublishToggle
+                label={t("studioAllowSharing")}
+                checked={allowSharing}
+                onChange={setAllowSharing}
+              />
+              <PublishToggle
+                label={t("studioAllowRemix")}
+                checked={allowRemix}
+                onChange={setAllowRemix}
+              />
+              <label className="flex items-center gap-2.5 rounded-2xl border border-border p-3.5 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={sensitiveContent}
+                  onChange={(e) => setSensitiveContent(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                {t("studioSensitiveContent")}
+              </label>
+            </section>
+          ) : null}
         </main>
         {step === 2 ? null : (
           <footer className="border-t border-border p-5">
-            {step < 5 ? (
+            {step < 7 ? (
               <Button
                 className="w-full"
                 size="lg"
-                disabled={(step === 1 && !file) || (step === 4 && !title.trim())}
-                onClick={() => setStep((step + 1) as 2 | 3 | 4 | 5)}
+                disabled={(step === 1 && !file) || (step === 5 && !title.trim())}
+                onClick={() => setStep((step + 1) as 2 | 3 | 4 | 5 | 6 | 7)}
               >
                 {t("continue")} <ArrowRight className="h-4 w-4" />
               </Button>
@@ -1016,6 +1140,40 @@ function UploadWizard({ onDone, onClose }: { onDone: () => void; onClose: () => 
         )}
       </div>
     </div>
+  );
+}
+
+function PublishToggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border p-3.5 text-left"
+      role="switch"
+      aria-checked={checked}
+    >
+      <span className="text-sm font-semibold">{label}</span>
+      <span
+        className={cn(
+          "relative h-6 w-11 shrink-0 rounded-full transition",
+          checked ? "spark-gradient" : "bg-surface-2",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all",
+            checked ? "left-[1.4rem]" : "left-0.5",
+          )}
+        />
+      </span>
+    </button>
   );
 }
 

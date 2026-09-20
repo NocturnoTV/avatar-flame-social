@@ -3597,6 +3597,10 @@ export type Database = {
       }
       videos: {
         Row: {
+          allow_comments: boolean
+          allow_reactions: boolean
+          allow_remix: boolean
+          allow_sharing: boolean
           boosted_until: string | null
           caption: string | null
           comments_count: number
@@ -3609,6 +3613,7 @@ export type Database = {
           moderation_status: string
           recommendation_eligible: boolean
           reposts_count: number
+          sensitive_content: boolean
           shares_count: number
           sound_id: string | null
           sound_name: string | null
@@ -3620,6 +3625,10 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          allow_comments?: boolean
+          allow_reactions?: boolean
+          allow_remix?: boolean
+          allow_sharing?: boolean
           boosted_until?: string | null
           caption?: string | null
           comments_count?: number
@@ -3632,6 +3641,7 @@ export type Database = {
           moderation_status?: string
           recommendation_eligible?: boolean
           reposts_count?: number
+          sensitive_content?: boolean
           shares_count?: number
           sound_id?: string | null
           sound_name?: string | null
@@ -3643,6 +3653,10 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          allow_comments?: boolean
+          allow_reactions?: boolean
+          allow_remix?: boolean
+          allow_sharing?: boolean
           boosted_until?: string | null
           caption?: string | null
           comments_count?: number
@@ -3655,6 +3669,7 @@ export type Database = {
           moderation_status?: string
           recommendation_eligible?: boolean
           reposts_count?: number
+          sensitive_content?: boolean
           shares_count?: number
           sound_id?: string | null
           sound_name?: string | null

@@ -31,7 +31,8 @@ import { StoredImage } from "@/components/Media";
 import { ProfileBanner, parseYouTubeId } from "@/components/ProfileBanner";
 import { Verified } from "@/components/Verified";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
-import { ProfileContentTabs, type TabVideo } from "@/components/ProfileContentTabs";
+import { ProfileContentTabs, type TabSound, type TabVideo } from "@/components/ProfileContentTabs";
+import { AddSoundSheet } from "@/components/AddSoundSheet";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -87,6 +88,7 @@ function ProfilePage() {
   const [gameSearch, setGameSearch] = useState("");
   const [gamePickerOpen, setGamePickerOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [addSoundOpen, setAddSoundOpen] = useState(false);
   const [youtubeInput, setYoutubeInput] = useState("");
   const bannerVideoRef = useRef<HTMLInputElement>(null);
   const stickerRef = useRef<HTMLInputElement>(null);
@@ -126,6 +128,19 @@ function ProfilePage() {
         .select("id,storage_path")
         .eq("user_id", user?.id ?? "")
         .order("position");
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const sounds = useQuery({
+    queryKey: ["my-sounds", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sounds")
+        .select("id,storage_path,title,description,visibility,usage_count")
+        .eq("user_id", user?.id ?? "")
+        .order("created_at", { ascending: false });
       return data ?? [];
     },
     enabled: !!user,
@@ -322,6 +337,16 @@ function ProfilePage() {
   async function deleteSticker(id: string) {
     await supabase.from("stickers").delete().eq("id", id);
     void stickers.refetch();
+  }
+
+  async function deleteSound(id: string) {
+    await supabase.from("sounds").delete().eq("id", id);
+    void sounds.refetch();
+  }
+
+  async function toggleSoundVisibility(id: string, visibility: "public" | "private") {
+    await supabase.from("sounds").update({ visibility }).eq("id", id);
+    void sounds.refetch();
   }
 
   function setBannerYoutube() {
@@ -918,6 +943,19 @@ function ProfilePage() {
         stickersEditable
         onAddStickerClick={() => stickerRef.current?.click()}
         onDeleteSticker={(id) => void deleteSticker(id)}
+        sounds={(sounds.data ?? []) as TabSound[]}
+        soundsEditable
+        onAddSoundClick={() => setAddSoundOpen(true)}
+        onDeleteSound={(id) => void deleteSound(id)}
+        onToggleSoundVisibility={(id, visibility) => void toggleSoundVisibility(id, visibility)}
+      />
+      <AddSoundSheet
+        open={addSoundOpen}
+        onClose={() => setAddSoundOpen(false)}
+        onPublished={() => {
+          setAddSoundOpen(false);
+          void sounds.refetch();
+        }}
       />
       <input
         ref={stickerRef}
