@@ -18,6 +18,8 @@ type Overlay = {
   y: number;
   color?: string;
   font?: TextFont;
+  scale?: number;
+  rotation?: number;
 };
 
 const STORY_EMOJIS = ["🔥", "❤️", "😂", "😎", "🎉", "✨", "😭", "👀", "🎮", "💯"];
@@ -54,6 +56,15 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   const cameraRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragId = useRef<string | null>(null);
+  const resizeId = useRef<string | null>(null);
+  const resizeStart = useRef<{
+    centerX: number;
+    centerY: number;
+    startDist: number;
+    startAngle: number;
+    baseScale: number;
+    baseRotation: number;
+  } | null>(null);
 
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
 
@@ -94,7 +105,37 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
     dragId.current = id;
   }
 
+  function startResize(id: string, clientX: number, clientY: number) {
+    if (!stageRef.current) return;
+    const overlay = overlays.find((o) => o.id === id);
+    if (!overlay) return;
+    const rect = stageRef.current.getBoundingClientRect();
+    const centerX = rect.left + (overlay.x / 100) * rect.width;
+    const centerY = rect.top + (overlay.y / 100) * rect.height;
+    resizeId.current = id;
+    resizeStart.current = {
+      centerX,
+      centerY,
+      startDist: Math.hypot(clientX - centerX, clientY - centerY),
+      startAngle: Math.atan2(clientY - centerY, clientX - centerX),
+      baseScale: overlay.scale ?? 1,
+      baseRotation: overlay.rotation ?? 0,
+    };
+  }
+
   function onStageMove(clientX: number, clientY: number) {
+    if (resizeId.current && resizeStart.current) {
+      const { centerX, centerY, startDist, startAngle, baseScale, baseRotation } =
+        resizeStart.current;
+      const dist = Math.hypot(clientX - centerX, clientY - centerY);
+      const angle = Math.atan2(clientY - centerY, clientX - centerX);
+      const scale = Math.min(4, Math.max(0.4, baseScale * (dist / Math.max(startDist, 1))));
+      const rotation = baseRotation + ((angle - startAngle) * 180) / Math.PI;
+      setOverlays((current) =>
+        current.map((o) => (o.id === resizeId.current ? { ...o, scale, rotation } : o)),
+      );
+      return;
+    }
     if (!dragId.current || !stageRef.current) return;
     const rect = stageRef.current.getBoundingClientRect();
     let x = Math.min(95, Math.max(5, ((clientX - rect.left) / rect.width) * 100));
@@ -213,10 +254,12 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             onMouseMove={(e) => onStageMove(e.clientX, e.clientY)}
             onMouseUp={() => {
               dragId.current = null;
+              resizeId.current = null;
               setGuide({ x: false, y: false });
             }}
             onMouseLeave={() => {
               dragId.current = null;
+              resizeId.current = null;
               setGuide({ x: false, y: false });
             }}
             onTouchMove={(e) => {
@@ -225,6 +268,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             }}
             onTouchEnd={() => {
               dragId.current = null;
+              resizeId.current = null;
               setGuide({ x: false, y: false });
             }}
           >
@@ -248,9 +292,14 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
                 key={o.id}
                 onMouseDown={() => startDrag(o.id)}
                 onTouchStart={() => startDrag(o.id)}
-                style={{ left: `${o.x}%`, top: `${o.y}%`, color: o.color }}
+                style={{
+                  left: `${o.x}%`,
+                  top: `${o.y}%`,
+                  color: o.color,
+                  transform: `translate(-50%, -50%) scale(${o.scale ?? 1}) rotate(${o.rotation ?? 0}deg)`,
+                }}
                 className={cn(
-                  "absolute -translate-x-1/2 -translate-y-1/2 cursor-grab select-none active:cursor-grabbing",
+                  "absolute cursor-grab select-none active:cursor-grabbing",
                   o.type === "text"
                     ? cn(
                         "rounded-xl bg-black/40 px-3 py-1.5 text-lg font-bold",
@@ -266,6 +315,21 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
                   aria-label={t("delete")}
                 >
                   <X className="h-3 w-3" />
+                </button>
+                <button
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    startResize(o.id, e.clientX, e.clientY);
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    const t0 = e.touches[0];
+                    if (t0) startResize(o.id, t0.clientX, t0.clientY);
+                  }}
+                  className="absolute -bottom-2 -right-2 grid h-5 w-5 cursor-nwse-resize place-items-center rounded-full bg-primary"
+                  aria-label={t("storyResizeHandle")}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-white" />
                 </button>
               </div>
             ))}

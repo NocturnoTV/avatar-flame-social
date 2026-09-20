@@ -18,6 +18,8 @@ export type StoryOverlay = {
   y: number;
   color?: string;
   font?: "sans" | "serif" | "mono" | "display";
+  scale?: number;
+  rotation?: number;
 };
 
 const OVERLAY_FONT_CLASS: Record<NonNullable<StoryOverlay["font"]>, string> = {
@@ -336,9 +338,14 @@ export function StoryViewerFull({
           {overlays.map((o) => (
             <div
               key={o.id}
-              style={{ left: `${o.x}%`, top: `${o.y}%`, color: o.color ?? "#fff" }}
+              style={{
+                left: `${o.x}%`,
+                top: `${o.y}%`,
+                color: o.color ?? "#fff",
+                transform: `translate(-50%, -50%) scale(${o.scale ?? 1}) rotate(${o.rotation ?? 0}deg)`,
+              }}
               className={cn(
-                "pointer-events-none absolute -translate-x-1/2 -translate-y-1/2",
+                "pointer-events-none absolute",
                 o.type === "text"
                   ? cn(
                       "rounded-xl bg-black/40 px-3 py-1.5 text-lg font-bold",
