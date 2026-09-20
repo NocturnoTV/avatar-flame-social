@@ -784,12 +784,18 @@ function Conversation() {
                 {!mine ? (
                   <div className="h-7 w-7 shrink-0">
                     {isLastOfGroup ? (
-                      <StoredImage
-                        path={sender?.avatar_url ?? null}
-                        alt={sender?.username ?? ""}
-                        className="h-7 w-7 rounded-full object-cover"
-                        fallback="🎮"
-                      />
+                      <Link
+                        to="/users/$id"
+                        params={{ id: sender?.username || m.sender_id }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <StoredImage
+                          path={sender?.avatar_url ?? null}
+                          alt={sender?.username ?? ""}
+                          className="h-7 w-7 rounded-full object-cover"
+                          fallback="🎮"
+                        />
+                      </Link>
                     ) : null}
                   </div>
                 ) : null}

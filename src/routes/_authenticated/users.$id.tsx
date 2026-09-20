@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, UserCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
@@ -343,6 +343,11 @@ function PublicProfile() {
               variant={relation.data?.following ? "outline" : "primary"}
               onClick={() => void toggleFollow()}
             >
+              {relation.data?.following ? (
+                <UserCheck className="h-4 w-4" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
               {relation.data?.following ? t("unfollow") : t("follow")}
             </Button>
             <Button
