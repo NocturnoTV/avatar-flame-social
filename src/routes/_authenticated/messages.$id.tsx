@@ -28,7 +28,6 @@ import {
   Send,
   ShieldCheck,
   Smile,
-  Sticker,
   Square,
   Trash2,
   X,
@@ -147,8 +146,8 @@ function Conversation() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [text, setText] = useState("");
-  const [showEmoji, setShowEmoji] = useState(false);
-  const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerTab, setPickerTab] = useState<"emojis" | "stickers">("emojis");
   const [streakSheetOpen, setStreakSheetOpen] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -504,7 +503,7 @@ function Conversation() {
 
   const myStickers = useQuery({
     queryKey: ["my-stickers", user?.id],
-    enabled: !!user && stickerPickerOpen,
+    enabled: !!user && pickerOpen,
     queryFn: async () => {
       const { data } = await supabase
         .from("stickers")
@@ -516,7 +515,7 @@ function Conversation() {
   });
 
   async function sendSticker(path: string) {
-    setStickerPickerOpen(false);
+    setPickerOpen(false);
     await send("sticker", path);
   }
 
@@ -991,20 +990,6 @@ function Conversation() {
           </button>
         )}
 
-        {showEmoji ? (
-          <div className="mb-2 grid grid-cols-8 gap-1 text-2xl">
-            {EMOJIS.map((e) => (
-              <button
-                key={e}
-                onClick={() => setText((v) => v + e)}
-                className="rounded-lg p-1 hover:bg-black/5 dark:hover:bg-white/10"
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
         {/* Barre de composition */}
         <div className="flex items-center gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
@@ -1063,18 +1048,11 @@ function Conversation() {
               }}
             />
             <button
-              onClick={() => setShowEmoji((v) => !v)}
-              aria-label="emoji"
-              className="shrink-0 text-[#050505] dark:text-white"
-            >
-              <Smile className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setStickerPickerOpen(true)}
+              onClick={() => setPickerOpen(true)}
               aria-label={t("sendSticker")}
               className="shrink-0 text-[#050505] dark:text-white"
             >
-              <Sticker className="h-5 w-5" />
+              <Smile className="h-5 w-5" />
             </button>
           </div>
 
@@ -1271,17 +1249,42 @@ function Conversation() {
         />
       ) : null}
 
-      <Sheet
-        open={stickerPickerOpen}
-        onClose={() => setStickerPickerOpen(false)}
-        title={t("sendSticker")}
-      >
-        {(myStickers.data ?? []).length === 0 ? (
+      <Sheet open={pickerOpen} onClose={() => setPickerOpen(false)}>
+        <div className="mb-4 flex gap-1 rounded-full bg-[#F5F5F5] p-1 dark:bg-[#1c1c1e]">
+          {(["emojis", "stickers"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setPickerTab(tab)}
+              className={cn(
+                "flex-1 rounded-full py-2 text-sm font-bold transition",
+                pickerTab === tab
+                  ? "bg-white text-[#050505] shadow-sm dark:bg-[#2c2c2e] dark:text-white"
+                  : "text-[#929292]",
+              )}
+            >
+              {tab === "emojis" ? t("emojisTab") : t("stickersTab")}
+            </button>
+          ))}
+        </div>
+
+        {pickerTab === "emojis" ? (
+          <div className="grid grid-cols-6 gap-1 text-2xl">
+            {EMOJIS.map((e) => (
+              <button
+                key={e}
+                onClick={() => setText((v) => v + e)}
+                className="rounded-lg p-1 hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        ) : (myStickers.data ?? []).length === 0 ? (
           <div className="py-6 text-center">
             <p className="text-sm text-muted-foreground">{t("noStickers")}</p>
             <Link
               to="/profile"
-              onClick={() => setStickerPickerOpen(false)}
+              onClick={() => setPickerOpen(false)}
               className="mt-3 inline-block text-sm font-bold text-primary"
             >
               {t("createSticker")}
