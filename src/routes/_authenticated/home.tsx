@@ -366,11 +366,15 @@ function HomePage() {
         // keyframe animation always settles at its end state on its own -
         // this is core navigation, so it must never depend on GSAP loading
         // successfully to become visible.
+        // The notification bell keeps its own CSS-only bx-pop entrance
+        // instead of joining this timeline, same reasoning as the
+        // quick-access nav below: a JS-driven .from() sets opacity:0 up
+        // front and only reveals it again once this script actually runs,
+        // so any hiccup loading gsap leaves core navigation invisible.
         const tl = gsap.timeline({ defaults: { ease, duration: reduceMotion ? 0.01 : 0.75 } });
         tl.from(heroGreetingRef.current, { y: 16, opacity: 0 })
           .from(heroTitleRef.current, { y: 26, opacity: 0, scale: 0.97 }, "-=0.4")
-          .from(heroSubtitleRef.current, { y: 12, opacity: 0 }, "-=0.35")
-          .from(heroBellRef.current, { scale: 0, opacity: 0, duration: 0.5 }, "-=0.45");
+          .from(heroSubtitleRef.current, { y: 12, opacity: 0 }, "-=0.35");
 
         if (statsRef.current) {
           gsap.from(statsRef.current, {
@@ -474,7 +478,7 @@ function HomePage() {
               ref={heroBellRef}
               to="/messages"
               aria-label="Notifications"
-              className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-xl transition hover:bg-white/10 active:scale-90"
+              className="bx-pop relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-xl transition hover:bg-white/10 active:scale-90"
             >
               <Bell className="h-4.5 w-4.5" />
               {counters.data?.unread ? (
