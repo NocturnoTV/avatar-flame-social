@@ -384,6 +384,13 @@ function ProfilePage() {
           <Link to="/settings" aria-label={t("settings")}>
             <Settings className="h-6 w-6" />
           </Link>
+          <Link
+            to="/discover/studio"
+            aria-label={t("creatorStudio")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <BarChart3 className="h-6 w-6" />
+          </Link>
         </div>
       </header>
 
