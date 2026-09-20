@@ -54,6 +54,7 @@ import { Route as AuthenticatedNewsAllRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedNewsSavedRouteImport } from './routes/_authenticated/news_.saved'
 import { Route as AuthenticatedShopBillingRouteImport } from './routes/_authenticated/shop_.billing'
 import { Route as AuthenticatedSoundsIdRouteImport } from './routes/_authenticated/sounds.$id'
+import { Route as AuthenticatedStoriesArchiveRouteImport } from './routes/_authenticated/stories.archive'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users.$id'
 import { Route as AuthRobloxCallbackRouteImport } from './routes/auth.roblox.callback'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -291,6 +292,12 @@ const AuthenticatedSoundsIdRoute = AuthenticatedSoundsIdRouteImport.update({
   path: '/sounds/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStoriesArchiveRoute =
+  AuthenticatedStoriesArchiveRouteImport.update({
+    id: '/stories/archive',
+    path: '/stories/archive',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
   id: '/users/$id',
   path: '/users/$id',
@@ -360,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/news/saved': typeof AuthenticatedNewsSavedRoute
   '/shop/billing': typeof AuthenticatedShopBillingRoute
   '/sounds/$id': typeof AuthenticatedSoundsIdRoute
+  '/stories/archive': typeof AuthenticatedStoriesArchiveRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities/': typeof AuthenticatedCommunitiesIndexRoute
@@ -411,6 +419,7 @@ export interface FileRoutesByTo {
   '/news/saved': typeof AuthenticatedNewsSavedRoute
   '/shop/billing': typeof AuthenticatedShopBillingRoute
   '/sounds/$id': typeof AuthenticatedSoundsIdRoute
+  '/stories/archive': typeof AuthenticatedStoriesArchiveRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities': typeof AuthenticatedCommunitiesIndexRoute
@@ -464,6 +473,7 @@ export interface FileRoutesById {
   '/_authenticated/news_/saved': typeof AuthenticatedNewsSavedRoute
   '/_authenticated/shop_/billing': typeof AuthenticatedShopBillingRoute
   '/_authenticated/sounds/$id': typeof AuthenticatedSoundsIdRoute
+  '/_authenticated/stories/archive': typeof AuthenticatedStoriesArchiveRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/_authenticated/communities/': typeof AuthenticatedCommunitiesIndexRoute
@@ -517,6 +527,7 @@ export interface FileRouteTypes {
     | '/news/saved'
     | '/shop/billing'
     | '/sounds/$id'
+    | '/stories/archive'
     | '/users/$id'
     | '/auth/roblox/callback'
     | '/communities/'
@@ -568,6 +579,7 @@ export interface FileRouteTypes {
     | '/news/saved'
     | '/shop/billing'
     | '/sounds/$id'
+    | '/stories/archive'
     | '/users/$id'
     | '/auth/roblox/callback'
     | '/communities'
@@ -620,6 +632,7 @@ export interface FileRouteTypes {
     | '/_authenticated/news_/saved'
     | '/_authenticated/shop_/billing'
     | '/_authenticated/sounds/$id'
+    | '/_authenticated/stories/archive'
     | '/_authenticated/users/$id'
     | '/auth/roblox/callback'
     | '/_authenticated/communities/'
@@ -972,6 +985,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSoundsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/stories/archive': {
+      id: '/_authenticated/stories/archive'
+      path: '/stories/archive'
+      fullPath: '/stories/archive'
+      preLoaderRoute: typeof AuthenticatedStoriesArchiveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/users/$id': {
       id: '/_authenticated/users/$id'
       path: '/users/$id'
@@ -1034,6 +1054,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNewsSavedRoute: typeof AuthenticatedNewsSavedRoute
   AuthenticatedShopBillingRoute: typeof AuthenticatedShopBillingRoute
   AuthenticatedSoundsIdRoute: typeof AuthenticatedSoundsIdRoute
+  AuthenticatedStoriesArchiveRoute: typeof AuthenticatedStoriesArchiveRoute
   AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRoute
   AuthenticatedCommunitiesIndexRoute: typeof AuthenticatedCommunitiesIndexRoute
   AuthenticatedDiscoverIndexRoute: typeof AuthenticatedDiscoverIndexRoute
@@ -1064,6 +1085,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNewsSavedRoute: AuthenticatedNewsSavedRoute,
   AuthenticatedShopBillingRoute: AuthenticatedShopBillingRoute,
   AuthenticatedSoundsIdRoute: AuthenticatedSoundsIdRoute,
+  AuthenticatedStoriesArchiveRoute: AuthenticatedStoriesArchiveRoute,
   AuthenticatedUsersIdRoute: AuthenticatedUsersIdRoute,
   AuthenticatedCommunitiesIndexRoute: AuthenticatedCommunitiesIndexRoute,
   AuthenticatedDiscoverIndexRoute: AuthenticatedDiscoverIndexRoute,

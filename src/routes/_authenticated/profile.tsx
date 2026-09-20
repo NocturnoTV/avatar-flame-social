@@ -33,6 +33,7 @@ import { Verified } from "@/components/Verified";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
 import { ProfileContentTabs, type TabSound, type TabVideo } from "@/components/ProfileContentTabs";
 import { AddSoundSheet } from "@/components/AddSoundSheet";
+import { StoryHighlightsRow } from "@/components/StoryHighlightsRow";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -928,6 +929,15 @@ function ProfilePage() {
           </Button>
         </div>
       </Sheet>
+
+      {user ? (
+        <StoryHighlightsRow
+          userId={user.id}
+          username={p?.username ?? ""}
+          avatarUrl={p?.avatar_url ?? null}
+          editable
+        />
+      ) : null}
 
       <ProfileContentTabs
         videos={videos.data ?? []}

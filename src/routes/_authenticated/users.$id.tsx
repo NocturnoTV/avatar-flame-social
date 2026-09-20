@@ -10,6 +10,7 @@ import { Verified } from "@/components/Verified";
 import { EquippedBadges } from "@/components/Blox";
 import { ExternalLinkButton } from "@/components/ExternalLinkButton";
 import { ProfileContentTabs, type TabSound, type TabVideo } from "@/components/ProfileContentTabs";
+import { StoryHighlightsRow } from "@/components/StoryHighlightsRow";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -401,6 +402,14 @@ function PublicProfile() {
             ))}
           </div>
         )}
+        {profile.data?.person?.id ? (
+          <StoryHighlightsRow
+            userId={profile.data.person.id}
+            username={profile.data.person.username ?? ""}
+            avatarUrl={profile.data.person.avatar_url ?? null}
+          />
+        ) : null}
+
         <ProfileContentTabs
           videos={profile.data?.videos ?? []}
           reposts={reposts.data ?? []}

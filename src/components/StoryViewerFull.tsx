@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { MoreHorizontal, Send, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,20 +37,21 @@ const STORY_DURATION_MS = 5000;
 export function StoryViewerFull({
   groups,
   startGroupIndex,
+  startStoryIndex = 0,
   onClose,
   onChanged,
 }: {
   groups: StoryUserGroup[];
   startGroupIndex: number;
+  startStoryIndex?: number;
   onClose: () => void;
   onChanged: () => void;
 }) {
   const { t, lang } = useI18n();
   const { user } = useSession();
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const [groupIndex, setGroupIndex] = useState(startGroupIndex);
-  const [storyIndex, setStoryIndex] = useState(0);
+  const [storyIndex, setStoryIndex] = useState(startStoryIndex);
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(true);
   const [progress, setProgress] = useState(0);
