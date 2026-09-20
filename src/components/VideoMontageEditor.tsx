@@ -493,6 +493,8 @@ async function renderEditedVideo({
 /** Captures one frame from a video at the given timestamp as a JPEG Blob -
  * used by the thumbnail picker for both a freshly-chosen local file (upload
  * wizard) and an already-uploaded video's signed URL (edit sheet). */
+const FILMSTRIP_FRAME_COUNT = 8;
+
 export function ThumbnailPicker({
   source,
   onPick,
@@ -502,6 +504,7 @@ export function ThumbnailPicker({
 }) {
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const importRef = useRef<HTMLInputElement>(null);
   // The source can arrive late (a signed URL resolves asynchronously when
   // editing an already-published video), so it must stay reactive - freezing
   // it in a ref left the picker pointing at an empty src forever.
@@ -513,11 +516,15 @@ export function ThumbnailPicker({
   const [time, setTime] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [frames, setFrames] = useState<string[] | null>(null);
+  const [selectedFrame, setSelectedFrame] = useState<number | null>(null);
 
   useEffect(() => {
     setPreview(null);
     setDuration(0);
     setTime(0);
+    setFrames(null);
+    setSelectedFrame(null);
     if (typeof source === "string") return;
     return () => URL.revokeObjectURL(mediaUrl);
   }, [mediaUrl, source]);
@@ -527,6 +534,33 @@ export function ThumbnailPicker({
     },
     [preview],
   );
+  useEffect(() => () => frames?.forEach((f) => URL.revokeObjectURL(f)), [frames]);
+
+  // Generates the cover-frame filmstrip once the video's duration is known -
+  // an evenly spaced set of frames someone can tap instead of scrubbing by
+  // hand for the exact moment they want.
+  useEffect(() => {
+    if (!duration || frames) return;
+    let cancelled = false;
+    void (async () => {
+      const urls: string[] = [];
+      for (let i = 0; i < FILMSTRIP_FRAME_COUNT; i++) {
+        if (cancelled) return;
+        const at = (duration * (i + 0.5)) / FILMSTRIP_FRAME_COUNT;
+        try {
+          const blob = await captureVideoFrame(source, at);
+          urls.push(URL.createObjectURL(blob));
+        } catch {
+          break;
+        }
+      }
+      if (!cancelled) setFrames(urls);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duration]);
 
   async function capture() {
     setBusy(true);
@@ -535,6 +569,22 @@ export function ThumbnailPicker({
       if (preview) URL.revokeObjectURL(preview);
       const url = URL.createObjectURL(blob);
       setPreview(url);
+      setSelectedFrame(null);
+      onPick(blob);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pickFrame(index: number, frameUrl: string) {
+    setBusy(true);
+    try {
+      const at = (duration * (index + 0.5)) / FILMSTRIP_FRAME_COUNT;
+      const blob = await captureVideoFrame(source, at);
+      setPreview(frameUrl);
+      setSelectedFrame(index);
       onPick(blob);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
@@ -559,6 +609,48 @@ export function ThumbnailPicker({
           />
         )}
       </div>
+
+      {frames ? (
+        <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
+          {frames.map((f, i) => (
+            <button
+              key={i}
+              onClick={() => void pickFrame(i, f)}
+              className={cn(
+                "aspect-[9/16] h-16 shrink-0 overflow-hidden rounded-lg border-2",
+                selectedFrame === i ? "border-primary" : "border-transparent",
+              )}
+            >
+              <img src={f} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <input
+        ref={importRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            if (preview) URL.revokeObjectURL(preview);
+            const url = URL.createObjectURL(file);
+            setPreview(url);
+            setSelectedFrame(null);
+            onPick(file);
+          }
+          e.target.value = "";
+        }}
+      />
+      <button
+        onClick={() => importRef.current?.click()}
+        className="w-full rounded-2xl border border-dashed border-border py-2 text-xs font-bold text-muted-foreground hover:border-primary hover:text-primary"
+      >
+        {t("thumbnailImportImage")}
+      </button>
+
       <p className="text-center text-xs text-muted-foreground">{t("thumbnailHint")}</p>
       <input
         type="range"
@@ -566,13 +658,13 @@ export function ThumbnailPicker({
         max={duration || 0}
         step={0.1}
         value={time}
-        disabled={!!preview}
         onChange={(e) => {
           const v = Number(e.target.value);
           setTime(v);
+          setSelectedFrame(null);
           if (videoRef.current) videoRef.current.currentTime = v;
         }}
-        className="w-full accent-primary disabled:opacity-40"
+        className="w-full accent-primary"
       />
       {preview ? (
         <button
