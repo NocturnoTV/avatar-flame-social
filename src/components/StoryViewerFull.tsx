@@ -79,6 +79,7 @@ export function StoryViewerFull({
   const videoRef = useRef<HTMLVideoElement>(null);
   const soundRef = useRef<HTMLAudioElement>(null);
   const startPos = useRef<{ x: number; y: number } | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const holdTimer = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -297,7 +298,14 @@ export function StoryViewerFull({
       return;
     }
     if (wasPaused) return; // was a hold, not a tap
-    if (clientX < window.innerWidth * 0.35) prev();
+    // Tap zones are relative to the story's own (centered, width-capped)
+    // stage, not the full window - on a wide screen the stage sits in the
+    // middle with black bars either side, and window-relative math would
+    // make the left/right halves wildly uneven or unreachable.
+    const rect = stageRef.current?.getBoundingClientRect();
+    const relativeX = rect ? clientX - rect.left : clientX;
+    const width = rect?.width ?? window.innerWidth;
+    if (relativeX < width * 0.35) prev();
     else next();
   }
 
@@ -306,8 +314,8 @@ export function StoryViewerFull({
   if (!group || !story) return null;
 
   return (
-    <div className="fixed inset-0 z-[95] overflow-hidden overscroll-contain bg-black">
-      <div className="relative mx-auto h-full w-full max-w-md">
+    <div className="fixed inset-0 z-[95] flex items-center justify-center overflow-hidden overscroll-contain bg-black">
+      <div ref={stageRef} className="relative h-full w-full max-w-md">
         <div
           className="absolute inset-0"
           onMouseDown={(e) => onPointerDown(e.clientX, e.clientY)}

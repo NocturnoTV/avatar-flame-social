@@ -27,14 +27,23 @@ import { captureVideoFrame } from "@/lib/media";
  * untouched in whatever format it was recorded in.
  */
 
+export type TextFont = "sans" | "serif" | "mono" | "display";
 export type TextLayer = {
   id: string;
   text: string;
   color: string;
   position: "top" | "center" | "bottom";
+  font?: TextFont;
+  bubble?: boolean;
 };
 
 const TEXT_COLORS = ["#ffffff", "#facc15", "#f472b6", "#22d3ee", "#a855f7", "#000000"];
+const TEXT_FONTS: { id: TextFont; className: string; canvasFont: string }[] = [
+  { id: "sans", className: "font-sans", canvasFont: "sans-serif" },
+  { id: "serif", className: "font-serif", canvasFont: "serif" },
+  { id: "mono", className: "font-mono", canvasFont: "monospace" },
+  { id: "display", className: "font-black italic", canvasFont: "sans-serif" },
+];
 
 function pickSupportedMimeType(): string | null {
   const candidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
@@ -77,9 +86,13 @@ export function VideoMontageEditor({
   const [mixOriginalAudio, setMixOriginalAudio] = useState(true);
   const [rendering, setRendering] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [filmstrip, setFilmstrip] = useState<string[] | null>(null);
   const soundInputRef = useRef<HTMLInputElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const dragHandle = useRef<"start" | "end" | null>(null);
 
   useEffect(() => () => URL.revokeObjectURL(objectUrl.current), []);
+  useEffect(() => () => filmstrip?.forEach((f) => URL.revokeObjectURL(f)), [filmstrip]);
 
   function onLoadedMetadata() {
     const d = videoRef.current?.duration ?? 0;
@@ -87,10 +100,60 @@ export function VideoMontageEditor({
     setTrimEnd(d);
   }
 
+  // Generates the "real trimmer" filmstrip once duration is known - a row
+  // of evenly-spaced frames behind the trim handles, instead of a bare pair
+  // of sliders with no visual sense of what's being cut.
+  useEffect(() => {
+    if (!duration || filmstrip) return;
+    const FRAME_COUNT = 10;
+    let cancelled = false;
+    void (async () => {
+      const urls: string[] = [];
+      for (let i = 0; i < FRAME_COUNT; i++) {
+        if (cancelled) return;
+        const at = (duration * (i + 0.5)) / FRAME_COUNT;
+        try {
+          const blob = await captureVideoFrame(objectUrl.current, at);
+          urls.push(URL.createObjectURL(blob));
+        } catch {
+          break;
+        }
+      }
+      if (!cancelled) setFilmstrip(urls);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duration]);
+
+  function onTimelinePointer(clientX: number) {
+    if (!dragHandle.current || !timelineRef.current || !duration) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    const t0 = ratio * duration;
+    if (dragHandle.current === "start") {
+      const v = Math.min(t0, trimEnd - 0.2);
+      setTrimStart(Math.max(0, v));
+      if (videoRef.current) videoRef.current.currentTime = Math.max(0, v);
+    } else {
+      const v = Math.max(t0, trimStart + 0.2);
+      setTrimEnd(Math.min(duration, v));
+      if (videoRef.current) videoRef.current.currentTime = Math.min(duration, v);
+    }
+  }
+
   function addTextLayer() {
     setTextLayers((layers) => [
       ...layers,
-      { id: crypto.randomUUID(), text: "", color: TEXT_COLORS[0]!, position: "center" },
+      {
+        id: crypto.randomUUID(),
+        text: "",
+        color: TEXT_COLORS[0]!,
+        position: "center",
+        font: "sans",
+        bubble: false,
+      },
     ]);
   }
   function updateTextLayer(id: string, patch: Partial<TextLayer>) {
@@ -154,7 +217,11 @@ export function VideoMontageEditor({
           <p
             key={layer.id}
             className={cn(
-              "pointer-events-none absolute inset-x-2 truncate text-center text-lg font-black drop-shadow-[0_2px_6px_rgba(0,0,0,.8)]",
+              "pointer-events-none absolute inset-x-2 truncate text-center text-lg font-black",
+              TEXT_FONTS.find((f) => f.id === layer.font)?.className,
+              layer.bubble
+                ? "rounded-xl bg-black/55 px-3 py-1.5"
+                : "drop-shadow-[0_2px_6px_rgba(0,0,0,.8)]",
               layer.position === "top" && "top-4",
               layer.position === "center" && "top-1/2 -translate-y-1/2",
               layer.position === "bottom" && "bottom-4",
@@ -202,34 +269,59 @@ export function VideoMontageEditor({
         <div className="space-y-3">
           <div className="flex justify-between text-xs font-bold text-muted-foreground">
             <span>{trimStart.toFixed(1)}s</span>
+            <span>{t("montageFinalDuration", { seconds: (trimEnd - trimStart).toFixed(1) })}</span>
             <span>{trimEnd.toFixed(1)}s</span>
           </div>
-          <input
-            type="range"
-            min={0}
-            max={duration || 0}
-            step={0.1}
-            value={trimStart}
-            onChange={(e) => {
-              const v = Math.min(Number(e.target.value), trimEnd - 0.2);
-              setTrimStart(Math.max(0, v));
-              if (videoRef.current) videoRef.current.currentTime = v;
+          <div
+            ref={timelineRef}
+            className="relative h-16 overflow-hidden rounded-2xl bg-black"
+            onMouseMove={(e) => onTimelinePointer(e.clientX)}
+            onMouseUp={() => (dragHandle.current = null)}
+            onMouseLeave={() => (dragHandle.current = null)}
+            onTouchMove={(e) => {
+              const t0 = e.touches[0];
+              if (t0) {
+                if (dragHandle.current) e.preventDefault();
+                onTimelinePointer(t0.clientX);
+              }
             }}
-            className="w-full accent-primary"
-          />
-          <input
-            type="range"
-            min={0}
-            max={duration || 0}
-            step={0.1}
-            value={trimEnd}
-            onChange={(e) => {
-              const v = Math.max(Number(e.target.value), trimStart + 0.2);
-              setTrimEnd(Math.min(duration, v));
-              if (videoRef.current) videoRef.current.currentTime = v;
-            }}
-            className="w-full accent-primary"
-          />
+            onTouchEnd={() => (dragHandle.current = null)}
+          >
+            {filmstrip ? (
+              <div className="flex h-full">
+                {filmstrip.map((f, i) => (
+                  <img key={i} src={f} alt="" className="h-full flex-1 object-cover" />
+                ))}
+              </div>
+            ) : (
+              <div className="h-full w-full animate-pulse bg-surface-2" />
+            )}
+            {duration > 0 ? (
+              <>
+                <div
+                  className="pointer-events-none absolute inset-y-0 left-0 bg-black/65"
+                  style={{ width: `${(trimStart / duration) * 100}%` }}
+                />
+                <div
+                  className="pointer-events-none absolute inset-y-0 right-0 bg-black/65"
+                  style={{ width: `${100 - (trimEnd / duration) * 100}%` }}
+                />
+                <div
+                  onMouseDown={() => (dragHandle.current = "start")}
+                  onTouchStart={() => (dragHandle.current = "start")}
+                  style={{ left: `${(trimStart / duration) * 100}%` }}
+                  className="absolute inset-y-0 w-3 -translate-x-1/2 cursor-ew-resize rounded-full bg-primary shadow-[0_0_0_2px_white]"
+                />
+                <div
+                  onMouseDown={() => (dragHandle.current = "end")}
+                  onTouchStart={() => (dragHandle.current = "end")}
+                  style={{ left: `${(trimEnd / duration) * 100}%` }}
+                  className="absolute inset-y-0 w-3 -translate-x-1/2 cursor-ew-resize rounded-full bg-primary shadow-[0_0_0_2px_white]"
+                />
+              </>
+            ) : null}
+          </div>
+          <p className="text-center text-xs text-muted-foreground">{t("montageTrimHint")}</p>
         </div>
       ) : null}
 
@@ -289,6 +381,34 @@ export function VideoMontageEditor({
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between gap-2">
+                <div className="flex gap-1.5">
+                  {TEXT_FONTS.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => updateTextLayer(layer.id, { font: f.id })}
+                      className={cn(
+                        "grid h-7 w-7 place-items-center rounded-lg text-xs",
+                        f.className,
+                        (layer.font ?? "sans") === f.id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-surface-2 text-foreground",
+                      )}
+                    >
+                      Aa
+                    </button>
+                  ))}
+                </div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                  {t("montageTextBubble")}
+                  <input
+                    type="checkbox"
+                    checked={!!layer.bubble}
+                    onChange={(e) => updateTextLayer(layer.id, { bubble: e.target.checked })}
+                    className="accent-primary"
+                  />
+                </label>
               </div>
             </div>
           ))}
@@ -463,18 +583,35 @@ async function renderEditedVideo({
       }
       ctx!.drawImage(video, 0, 0, canvas.width, canvas.height);
       for (const layer of textLayers) {
-        ctx!.font = `bold ${Math.round(canvas.width * 0.075)}px sans-serif`;
-        ctx!.fillStyle = layer.color;
+        const canvasFont = TEXT_FONTS.find((f) => f.id === layer.font)?.canvasFont ?? "sans-serif";
+        const fontSize = Math.round(canvas.width * 0.075);
+        ctx!.font = `bold ${fontSize}px ${canvasFont}`;
         ctx!.textAlign = "center";
-        ctx!.strokeStyle = "rgba(0,0,0,.6)";
-        ctx!.lineWidth = 4;
         const y =
           layer.position === "top"
             ? canvas.height * 0.12
             : layer.position === "bottom"
               ? canvas.height * 0.88
               : canvas.height * 0.5;
-        ctx!.strokeText(layer.text, canvas.width / 2, y);
+        if (layer.bubble) {
+          const textWidth = ctx!.measureText(layer.text).width;
+          const padX = fontSize * 0.4;
+          const padY = fontSize * 0.35;
+          ctx!.fillStyle = "rgba(0,0,0,.55)";
+          const radius = fontSize * 0.3;
+          const rectX = canvas.width / 2 - textWidth / 2 - padX;
+          const rectY = y - fontSize * 0.75 - padY;
+          const rectW = textWidth + padX * 2;
+          const rectH = fontSize + padY * 2;
+          ctx!.beginPath();
+          ctx!.roundRect(rectX, rectY, rectW, rectH, radius);
+          ctx!.fill();
+        } else {
+          ctx!.strokeStyle = "rgba(0,0,0,.6)";
+          ctx!.lineWidth = 4;
+          ctx!.strokeText(layer.text, canvas.width / 2, y);
+        }
+        ctx!.fillStyle = layer.color;
         ctx!.fillText(layer.text, canvas.width / 2, y);
       }
       onProgress(Math.min(1, (video.currentTime - trimStart) / Math.max(0.1, trimEnd - trimStart)));

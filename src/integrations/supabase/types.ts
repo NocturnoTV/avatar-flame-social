@@ -3625,6 +3625,8 @@ export type Database = {
           boosted_until: string | null
           caption: string | null
           comments_count: number
+          contains_ai_content: boolean
+          contains_paid_promotion: boolean
           created_at: string
           duration_seconds: number | null
           favorites_count: number
@@ -3653,6 +3655,8 @@ export type Database = {
           boosted_until?: string | null
           caption?: string | null
           comments_count?: number
+          contains_ai_content?: boolean
+          contains_paid_promotion?: boolean
           created_at?: string
           duration_seconds?: number | null
           favorites_count?: number
@@ -3681,6 +3685,8 @@ export type Database = {
           boosted_until?: string | null
           caption?: string | null
           comments_count?: number
+          contains_ai_content?: boolean
+          contains_paid_promotion?: boolean
           created_at?: string
           duration_seconds?: number | null
           favorites_count?: number

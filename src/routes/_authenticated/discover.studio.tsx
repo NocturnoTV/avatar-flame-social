@@ -767,6 +767,8 @@ function UploadWizard({
   const [allowSharing, setAllowSharing] = useState(true);
   const [allowRemix, setAllowRemix] = useState(true);
   const [sensitiveContent, setSensitiveContent] = useState(false);
+  const [containsPaidPromotion, setContainsPaidPromotion] = useState(false);
+  const [containsAiContent, setContainsAiContent] = useState(false);
   const [busy, setBusy] = useState(false);
   const myProfile = useQuery({
     queryKey: ["upload-wizard-profile", user?.id],
@@ -896,6 +898,8 @@ function UploadWizard({
           allow_sharing: allowSharing,
           allow_remix: allowRemix,
           sensitive_content: sensitiveContent,
+          contains_paid_promotion: containsPaidPromotion,
+          contains_ai_content: containsAiContent,
         })
         .select("id")
         .single();
@@ -1203,6 +1207,24 @@ function UploadWizard({
                   className="h-4 w-4"
                 />
                 {t("studioSensitiveContent")}
+              </label>
+              <label className="flex items-center gap-2.5 rounded-2xl border border-border p-3.5 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={containsPaidPromotion}
+                  onChange={(e) => setContainsPaidPromotion(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                {t("studioContainsPromotion")}
+              </label>
+              <label className="flex items-center gap-2.5 rounded-2xl border border-border p-3.5 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={containsAiContent}
+                  onChange={(e) => setContainsAiContent(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                {t("studioContainsAiContent")}
               </label>
             </section>
           ) : null}
