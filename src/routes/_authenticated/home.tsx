@@ -468,14 +468,14 @@ function HomePage() {
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/10" />
         <div className="absolute inset-0 flex flex-col justify-between p-4 pb-8">
-          <div className="flex items-start justify-between">
-            <LogoWordmark className="h-8 w-auto bx-float" forceVariant="dark" />
-            <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 p-1.5 backdrop-blur-xl">
+          <div className="flex items-start justify-between gap-2">
+            <LogoWordmark className="h-8 w-auto shrink-0 bx-float" forceVariant="dark" />
+            <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 bg-black/40 p-1.5 backdrop-blur-xl">
               <Link
                 ref={heroBellRef}
                 to="/messages"
                 aria-label="Notifications"
-                className="relative grid h-9 w-9 place-items-center rounded-full text-white transition hover:bg-white/10 active:scale-90"
+                className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-white transition hover:bg-white/10 active:scale-90"
               >
                 <Bell className="h-4.5 w-4.5" />
                 {counters.data?.unread ? (
@@ -484,13 +484,13 @@ function HomePage() {
                   </span>
                 ) : null}
               </Link>
-              <div className="h-5 w-px bg-white/15" />
+              <div className="h-5 w-px shrink-0 bg-white/15" />
               <Link
                 to="/shop"
                 aria-label="Blox"
-                className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-black text-white transition hover:bg-white/10 active:scale-95"
+                className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-black text-white transition hover:bg-white/10 active:scale-95"
               >
-                <BloxIcon className="h-4 w-4" />
+                <BloxIcon className="h-4 w-4 shrink-0" />
                 {(blox.data ?? 0).toLocaleString()}
               </Link>
             </div>
