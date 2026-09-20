@@ -41,6 +41,7 @@ import { GiftSheet } from "@/components/GiftSheet";
 import { Button, Sheet } from "@/components/ui-kit";
 import { cn, errorMessage } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
+import { formatRelativeTime } from "@/lib/relative-time";
 import {
   getPersonalizedFeed,
   logPositiveAction,
@@ -1468,6 +1469,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   } | null>(null);
   const [sort, setSort] = useState<"popular" | "recent">("popular");
   const [commentSearch, setCommentSearch] = useState("");
+  const [expanded, setExpanded] = useState(false);
 
   const myStickers = useQuery({
     queryKey: ["my-stickers", user?.id],
@@ -1631,11 +1633,21 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
       onClick={onClose}
     >
       <div
-        className="app-background relative flex h-[82dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[2.25rem] border border-b-0 border-primary/20 shadow-[0_-30px_100px_-25px_rgba(124,58,237,.65)] bx-comments-enter sm:h-[86dvh] sm:rounded-[2.25rem] sm:border-b"
+        className={cn(
+          "app-background relative flex w-full max-w-2xl flex-col overflow-hidden rounded-t-[2.25rem] border border-b-0 border-primary/20 shadow-[0_-30px_100px_-25px_rgba(124,58,237,.65)] bx-comments-enter transition-[height] duration-300 ease-out sm:rounded-[2.25rem] sm:border-b",
+          expanded ? "h-[94dvh] sm:h-[92dvh]" : "h-[58dvh] sm:h-[62dvh]",
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-primary/10 to-transparent" />
-        <div className="relative mx-auto mt-2 h-1 w-11 rounded-full bg-primary/35" />
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-label={expanded ? t("collapseComments") : t("expandComments")}
+          className="mx-auto mt-2 flex h-6 w-16 items-center justify-center active:scale-90"
+        >
+          <span className="h-1 w-11 rounded-full bg-primary/35" />
+        </button>
         <label className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-purple-400/30 bg-purple-500/15 px-4 py-2.5 text-sm shadow-[0_10px_30px_-20px_rgba(168,85,247,.8)] focus-within:border-purple-500">
           <Search className="h-4 w-4 shrink-0 text-purple-500" />
           <span className="sr-only">{t("commentSearchTopic")}</span>
@@ -1842,15 +1854,6 @@ type RichComment = {
   my_reaction: string | null;
 };
 
-function commentAge(value: string, lang: string) {
-  const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(value)) / 1000));
-  const formatter = new Intl.RelativeTimeFormat(lang, { numeric: "auto", style: "narrow" });
-  if (seconds < 60) return formatter.format(0, "second");
-  if (seconds < 3600) return formatter.format(-Math.floor(seconds / 60), "minute");
-  if (seconds < 86400) return formatter.format(-Math.floor(seconds / 3600), "hour");
-  return formatter.format(-Math.floor(seconds / 86400), "day");
-}
-
 function CommentStickerThumb({ path, className }: { path: string; className?: string }) {
   const url = useSignedUrl(path);
   return url ? (
@@ -1871,7 +1874,7 @@ function CommentItem({
   onReply: (id: string, username: string) => void;
   onReact: (id: string) => void;
 }) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const [likeBurst, setLikeBurst] = useState(0);
   return (
     <div className="space-y-2 rounded-3xl px-2 py-3 transition-colors hover:bg-primary/[0.035]">
@@ -1928,7 +1931,7 @@ function CommentItem({
             <CommentStickerThumb path={comment.media_url} className="mt-2 h-24 w-24" />
           ) : null}
           <div className="mt-2 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
-            <span>{commentAge(comment.created_at, lang)}</span>
+            <span>{formatRelativeTime(comment.created_at, t)}</span>
             <button
               onClick={() => onReply(comment.id, comment.username)}
               className="hover:text-primary"
@@ -2004,7 +2007,7 @@ function CommentItem({
               <CommentStickerThumb path={r.media_url} className="h-16 w-16" />
             ) : null}
             <div className="mt-1.5 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
-              <span>{commentAge(r.created_at, lang)}</span>
+              <span>{formatRelativeTime(r.created_at, t)}</span>
               <button
                 onClick={() => onReply(comment.id, r.username)}
                 className="hover:text-primary"

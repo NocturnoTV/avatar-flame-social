@@ -456,12 +456,25 @@
   transform-origin: center 22px;
   animation: bx-burst-ray 0.55s ease-out both;
 }
+/* Expanding ring that fades out completely, unlike bx-reaction-pop (which
+   only scales) - reusing that one here left a static, fully-opaque red
+   circle sitting on top of the like button forever after the first tap. */
+@keyframes bx-heart-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
 .bx-mini-heart-burst {
   position: absolute;
   inset: 4px;
   border: 2px solid rgb(244 63 94 / 0.75);
   border-radius: 999px;
-  animation: bx-reaction-pop 0.45s ease-out both;
+  animation: bx-heart-ring 0.5s ease-out both;
 }
 
 @keyframes bx-landing-reveal {
