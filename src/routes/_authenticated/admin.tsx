@@ -517,7 +517,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
     setBusy(true);
     try {
       await adminManageMember({ data: { action, userId: selectedId, value, targetId } });
-      toast.success("Action enregistrée et journalisée");
+      toast.success("Action recorded and logged");
       setNote("");
       setNewPassword("");
       await Promise.all([members.refetch(), detail.refetch()]);
@@ -535,7 +535,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
       return;
     }
     await log(next ? "verify_member" : "unverify_member", id);
-    toast.success(next ? "Membre certifié" : "Certification retirée");
+    toast.success(next ? "Member verified" : "Verification removed");
     void members.refetch();
   }
 
@@ -614,10 +614,10 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                   )}
                 >
                   {banned
-                    ? "Banni"
+                    ? "Banned"
                     : member.moderation_status === "warned"
-                      ? `${member.warning_count} avert.`
-                      : "Actif"}
+                      ? `${member.warning_count} warn.`
+                      : "Active"}
                 </span>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
@@ -630,7 +630,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                 <span>
                   Vu{" "}
                   {member.last_active_at
-                    ? new Date(String(member.last_active_at)).toLocaleDateString("fr-FR")
+                    ? new Date(String(member.last_active_at)).toLocaleDateString("en-US")
                     : "-"}
                 </span>
                 <span>{(member.roles as string[]).join(", ") || "membre"}</span>
@@ -651,7 +651,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                   variant="outline"
                   onClick={() => toggleVerified(String(member.id), !member.verified)}
                 >
-                  {member.verified ? "Décertifier" : "Certifier"}
+                  {member.verified ? "Unverify" : "Verify"}
                 </Button>
               </div>
               {isAdmin ? (
@@ -728,7 +728,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
               {(
                 [
                   ["info", "Informations", UserRound],
-                  ["moderation", "Modération", AlertTriangle],
+                  ["moderation", "Moderation", AlertTriangle],
                   ["billing", "Achats & Factures", Coins],
                   ["messages", "Messages", MessagesSquare],
                   ["content", "Contenu", Video],
@@ -785,7 +785,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                     <span className="text-muted-foreground">Dernière connexion</span>
                     <span className="font-semibold">
                       {selected.lastSignInAt
-                        ? new Date(String(selected.lastSignInAt)).toLocaleString("fr-FR")
+                        ? new Date(String(selected.lastSignInAt)).toLocaleString("en-US")
                         : "-"}
                     </span>
                   </p>
@@ -940,7 +940,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                         <p className="font-bold uppercase">{s.action}</p>
                         {s.reason ? <p className="mt-0.5">{s.reason}</p> : null}
                         <p className="mt-1 text-muted-foreground">
-                          {new Date(s.created_at).toLocaleString("fr-FR")}
+                          {new Date(s.created_at).toLocaleString("en-US")}
                           {s.moderatorUsername ? ` · par @${s.moderatorUsername}` : ""}
                         </p>
                       </div>
@@ -964,8 +964,8 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                             {d.status === "pending"
                               ? "En attente"
                               : d.status === "accepted"
-                                ? "Acceptée"
-                                : "Rejetée"}
+                                ? "Accepted"
+                                : "Rejected"}
                           </p>
                           <p className="mt-0.5">{d.message}</p>
                           {d.moderator_note ? (
@@ -974,7 +974,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                             </p>
                           ) : null}
                           <p className="mt-1 text-muted-foreground">
-                            {new Date(d.created_at).toLocaleString("fr-FR")}
+                            {new Date(d.created_at).toLocaleString("en-US")}
                           </p>
                         </div>
                       ))}
@@ -992,7 +992,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                       <div key={report.id} className="rounded-2xl border border-border p-3 text-xs">
                         <p className="font-bold">{report.reason}</p>
                         <p className="text-muted-foreground">
-                          {report.status} · {new Date(report.created_at).toLocaleString("fr-FR")}
+                          {report.status} · {new Date(report.created_at).toLocaleString("en-US")}
                         </p>
                         {report.details ? <p className="mt-1">{report.details}</p> : null}
                       </div>
@@ -1015,9 +1015,9 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                     <p className="text-xs text-muted-foreground">
                       {selected.sparkPlusActive
                         ? selected.sparkPlusExpiresAt
-                          ? `Actif jusqu'au ${new Date(String(selected.sparkPlusExpiresAt)).toLocaleDateString("fr-FR")}`
-                          : "Actif à vie"
-                        : "Pas de Spark Plus actif"}
+                          ? `Active until ${new Date(String(selected.sparkPlusExpiresAt)).toLocaleDateString("en-US")}`
+                          : "Active for life"
+                        : "No active Spark Plus"}
                     </p>
                     <div className="grid grid-cols-4 gap-2">
                       {(
@@ -1107,7 +1107,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                           <p className="mt-0.5 text-muted-foreground">{tx.description}</p>
                         ) : null}
                         <p className="mt-1 text-muted-foreground">
-                          {new Date(tx.created_at).toLocaleString("fr-FR")}
+                          {new Date(tx.created_at).toLocaleString("en-US")}
                         </p>
                       </div>
                     ))}
@@ -1131,11 +1131,11 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold">
-                            {video.caption || "Vidéo sans légende"}
+                            {video.caption || "Untitled video"}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
                             {video.views_count} vues · {video.visibility} ·{" "}
-                            {new Date(video.created_at).toLocaleString("fr-FR")}
+                            {new Date(video.created_at).toLocaleString("en-US")}
                           </p>
                         </div>
                         <div className="flex gap-1">
@@ -1206,7 +1206,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                     {detail.data?.messages.map((message) => (
                       <div key={message.id} className="rounded-2xl bg-surface p-3">
                         <p className="text-[10px] text-muted-foreground">
-                          {message.kind} · {new Date(message.created_at).toLocaleString("fr-FR")}
+                          {message.kind} · {new Date(message.created_at).toLocaleString("en-US")}
                         </p>
                         <p className="mt-1 break-words text-sm">{message.content || "(média)"}</p>
                       </div>
@@ -1231,7 +1231,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                       <div key={notification.id} className="rounded-2xl bg-surface p-3">
                         <p className="text-[10px] text-muted-foreground">
                           {notification.kind} · {notification.read ? "lue" : "non lue"} ·{" "}
-                          {new Date(notification.created_at).toLocaleString("fr-FR")}
+                          {new Date(notification.created_at).toLocaleString("en-US")}
                         </p>
                         <p className="mt-1 break-words text-sm">{notification.body || "-"}</p>
                       </div>
@@ -1249,7 +1249,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
                       <div key={entry.id} className="rounded-2xl border border-border p-3 text-xs">
                         <p className="font-bold">{entry.action}</p>
                         <p className="text-muted-foreground">
-                          {new Date(entry.created_at).toLocaleString("fr-FR")}
+                          {new Date(entry.created_at).toLocaleString("en-US")}
                           {entry.details ? ` · ${entry.details}` : ""}
                         </p>
                       </div>
@@ -1301,7 +1301,7 @@ function CommunitiesAdmin() {
     setBusyId(communityId);
     try {
       await adminManageCommunity({ data: { action, communityId, visibility } });
-      toast.success("Action enregistrée et journalisée");
+      toast.success("Action recorded and logged");
       await communities.refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Action impossible");
@@ -1334,7 +1334,7 @@ function CommunitiesAdmin() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Nom, handle ou propriétaire"
+            placeholder="Name, handle or owner"
             className="bg-background/70 pl-10"
           />
         </div>
@@ -1405,7 +1405,7 @@ function CommunitiesAdmin() {
                     }
                   >
                     <BadgeCheck className="mr-1 h-3.5 w-3.5" />
-                    {community.verified ? "Décertifier" : "Certifier"}
+                    {community.verified ? "Unverify" : "Verify"}
                   </Button>
                   <Button
                     size="sm"
@@ -1486,7 +1486,7 @@ function EventsAdmin() {
     setSettingWinner(userId ?? "__clear__");
     try {
       await adminSetEventWinner({ data: { eventId: viewingParticipants.id, userId } });
-      toast.success(userId ? "Gagnant désigné" : "Gagnant retiré");
+      toast.success(userId ? "Winner set" : "Winner removed");
       await events.refetch();
       setViewingParticipants((cur) =>
         cur ? { ...cur, winner_id: userId, winner_username: null } : cur,
@@ -1545,7 +1545,7 @@ function EventsAdmin() {
       } else {
         await adminCreateEvent({ data: payload });
       }
-      toast.success("Enregistré");
+      toast.success("Saved");
       setCreating(false);
       await events.refetch();
     } catch (error) {
@@ -1559,7 +1559,7 @@ function EventsAdmin() {
     if (!confirm(`Supprimer "${ev.title}" ?`)) return;
     try {
       await adminDeleteEvent({ data: { id: ev.id } });
-      toast.success("Supprimé");
+      toast.success("Deleted");
       await events.refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Action impossible");
@@ -1615,8 +1615,8 @@ function EventsAdmin() {
                     ) : (
                       <MapPin className="h-3.5 w-3.5" />
                     )}
-                    {new Date(ev.starts_at).toLocaleString("fr-FR")} →{" "}
-                    {new Date(ev.ends_at).toLocaleString("fr-FR")}
+                    {new Date(ev.starts_at).toLocaleString("en-US")} →{" "}
+                    {new Date(ev.ends_at).toLocaleString("en-US")}
                   </p>
                   {ev.kind === "giveaway" && ev.winner_username ? (
                     <p className="mt-1.5 flex items-center gap-1 text-xs font-bold text-amber-500">
@@ -1682,7 +1682,7 @@ function EventsAdmin() {
                       @{p.profile?.username ?? "inconnu"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      Rejoint le {new Date(p.joined_at).toLocaleDateString("fr-FR")}
+                      Joined on {new Date(p.joined_at).toLocaleDateString("en-US")}
                     </p>
                   </div>
                   {isWinner ? (
@@ -1821,7 +1821,7 @@ function EventsAdmin() {
             </div>
           </div>
           <Button className="w-full" disabled={saving} onClick={() => void save()}>
-            {saving ? "Enregistrement…" : editing ? "Enregistrer" : "Créer"}
+            {saving ? "Saving…" : editing ? "Save" : "Create"}
           </Button>
         </div>
       </Sheet>
@@ -2211,10 +2211,22 @@ type ReportProfile = {
   age: number | null;
 };
 
+type ReportKind = "conversation" | "content" | "other";
+type ReportStatusFilter = "all" | "pending" | "reviewed" | "dismissed" | "sanctioned";
+
+function reportKindOf(r: { message_id: string | null; video_id: string | null }): ReportKind {
+  if (r.video_id) return "content";
+  if (r.message_id) return "conversation";
+  return "other";
+}
+
 function Moderation({ log }: { log: LogFn }) {
   const [subTab, setSubTab] = useState<
     "reports" | "banned_words" | "suspicious" | "disputes" | "logs"
   >("reports");
+  const [reportKindFilter, setReportKindFilter] = useState<"all" | ReportKind>("all");
+  const [reportStatusFilter, setReportStatusFilter] = useState<ReportStatusFilter>("all");
+  const [reportSearch, setReportSearch] = useState("");
   const [fileUserId, setFileUserId] = useState<string | null>(null);
 
   const reports = useQuery({
@@ -2222,9 +2234,11 @@ function Moderation({ log }: { log: LogFn }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id,reason,details,status,created_at,reporter_id,target_user_id,message_id")
+        .select(
+          "id,reason,details,status,created_at,reporter_id,target_user_id,message_id,video_id",
+        )
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(200);
       if (error) throw error;
       return data ?? [];
     },
@@ -2239,6 +2253,20 @@ function Moderation({ log }: { log: LogFn }) {
       const { data } = await supabase
         .from("messages")
         .select("id,content,kind,media_url,created_at")
+        .in("id", ids);
+      return data ?? [];
+    },
+  });
+
+  const reportedVideos = useQuery({
+    queryKey: ["admin-report-videos", (reports.data ?? []).map((r) => r.video_id).join(",")],
+    enabled: (reports.data ?? []).some((r) => r.video_id),
+    queryFn: async () => {
+      const ids = (reports.data ?? []).map((r) => r.video_id).filter((id): id is string => !!id);
+      if (!ids.length) return [];
+      const { data } = await supabase
+        .from("videos")
+        .select("id,caption,storage_path,thumbnail_path,moderation_status,created_at")
         .in("id", ids);
       return data ?? [];
     },
@@ -2284,6 +2312,33 @@ function Moderation({ log }: { log: LogFn }) {
 
   const fileProfile = fileUserId ? profiles.data?.[fileUserId] : undefined;
 
+  const filteredReports = (reports.data ?? []).filter((r) => {
+    const kind = reportKindOf(r);
+    if (reportKindFilter !== "all" && kind !== reportKindFilter) return false;
+    if (reportStatusFilter !== "all" && (r.status || "pending") !== reportStatusFilter) return false;
+    const q = reportSearch.trim().toLowerCase();
+    if (!q) return true;
+    const reporter = r.reporter_id ? profiles.data?.[r.reporter_id] : undefined;
+    const target = r.target_user_id ? profiles.data?.[r.target_user_id] : undefined;
+    const video = r.video_id
+      ? (reportedVideos.data ?? []).find((v) => v.id === r.video_id)
+      : undefined;
+    const haystack = [
+      r.id,
+      r.reason,
+      r.details,
+      reporter?.username,
+      reporter?.roblox_username,
+      target?.username,
+      target?.roblox_username,
+      video?.caption,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(q);
+  });
+
   return (
     <div className="space-y-4">
       <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
@@ -2292,7 +2347,7 @@ function Moderation({ log }: { log: LogFn }) {
             ["reports", "Reports"],
             ["banned_words", "Banned Words"],
             ["suspicious", "Suspicious Activity"],
-            ["disputes", "Contestations"],
+            ["disputes", "Disputes"],
             ["logs", "Logs"],
           ] as const
         ).map(([id, label]) => (
@@ -2319,86 +2374,197 @@ function Moderation({ log }: { log: LogFn }) {
         <DisputesReview />
       ) : subTab === "logs" ? (
         <Audit />
-      ) : (reports.data ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground">No reports.</p>
       ) : (
         <div className="space-y-3">
-          {(reports.data ?? []).map((r) => {
-            const reporter = r.reporter_id ? profiles.data?.[r.reporter_id] : undefined;
-            const target = r.target_user_id ? profiles.data?.[r.target_user_id] : undefined;
-            const message = r.message_id
-              ? (messages.data ?? []).find((m) => m.id === r.message_id)
-              : undefined;
-            return (
-              <div key={r.id} className="rounded-3xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold">{r.reason}</p>
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-1 text-[11px] font-bold",
-                      r.status === "pending"
-                        ? "bg-destructive/15 text-destructive"
-                        : "bg-surface-2 text-muted-foreground",
-                    )}
-                  >
-                    {r.status}
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {new Date(r.created_at).toLocaleString("fr-FR")}
-                </p>
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-3">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              value={reportSearch}
+              onChange={(e) => setReportSearch(e.target.value)}
+              placeholder="Search by word, video name, reported username, report ID..."
+              className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
 
-                {r.details ? (
-                  <div className="mt-2 rounded-2xl bg-surface p-3 text-sm">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                      Détails du signalement
-                    </p>
-                    <p className="mt-1">{r.details}</p>
+          <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
+            {(
+              [
+                ["all", "All content"],
+                ["conversation", "Conversation"],
+                ["content", "Content (videos, stories)"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setReportKindFilter(id)}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition",
+                  reportKindFilter === id
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-muted-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
+            {(
+              [
+                ["all", "All statuses"],
+                ["pending", "Pending"],
+                ["reviewed", "Reviewed"],
+                ["dismissed", "Dismissed"],
+                ["sanctioned", "Sanction applied"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setReportStatusFilter(id)}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition",
+                  reportStatusFilter === id
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-muted-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            {filteredReports.length} of {(reports.data ?? []).length} reports
+          </p>
+
+          {filteredReports.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No reports match.</p>
+          ) : (
+            filteredReports.map((r) => {
+              const reporter = r.reporter_id ? profiles.data?.[r.reporter_id] : undefined;
+              const target = r.target_user_id ? profiles.data?.[r.target_user_id] : undefined;
+              const message = r.message_id
+                ? (messages.data ?? []).find((m) => m.id === r.message_id)
+                : undefined;
+              const video = r.video_id
+                ? (reportedVideos.data ?? []).find((v) => v.id === r.video_id)
+                : undefined;
+              const kind = reportKindOf(r);
+              const status = r.status || "pending";
+              return (
+                <div key={r.id} className="rounded-3xl border border-border bg-card p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold">{r.reason}</p>
+                      <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                        ID: {r.id}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span
+                        className={cn(
+                          "rounded-full px-2.5 py-1 text-[11px] font-bold",
+                          status === "pending"
+                            ? "bg-destructive/15 text-destructive"
+                            : status === "sanctioned"
+                              ? "bg-amber-500/15 text-amber-500"
+                              : "bg-surface-2 text-muted-foreground",
+                        )}
+                      >
+                        {status}
+                      </span>
+                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                        {kind === "content" ? "Content" : kind === "conversation" ? "Conversation" : "Other"}
+                      </span>
+                    </div>
                   </div>
-                ) : null}
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {new Date(r.created_at).toLocaleString("en-US")}
+                  </p>
 
-                {message ? (
-                  <div className="mt-2 rounded-2xl bg-destructive/10 p-3 text-sm">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-destructive">
-                      Contenu signalé ({message.kind})
-                    </p>
-                    <p className="mt-1 break-words">{message.content ?? "(média)"}</p>
+                  {r.details ? (
+                    <div className="mt-2 rounded-2xl bg-surface p-3 text-sm">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                        Report details
+                      </p>
+                      <p className="mt-1">{r.details}</p>
+                    </div>
+                  ) : null}
+
+                  {message ? (
+                    <div className="mt-2 rounded-2xl bg-destructive/10 p-3 text-sm">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-destructive">
+                        Reported message ({message.kind})
+                      </p>
+                      <p className="mt-1 break-words">{message.content ?? "(media)"}</p>
+                    </div>
+                  ) : null}
+
+                  {video ? (
+                    <div className="mt-2 flex items-center gap-3 rounded-2xl bg-destructive/10 p-3">
+                      <StoredImage
+                        path={video.thumbnail_path}
+                        alt=""
+                        className="h-14 w-10 shrink-0 rounded-xl object-cover"
+                        fallback="🎬"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-destructive">
+                          Reported video
+                        </p>
+                        <p className="truncate text-sm font-semibold">
+                          {video.caption || "Untitled video"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {video.moderation_status}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <ReportPersonCard
+                      label="Reported by"
+                      profile={reporter}
+                      fallbackId={r.reporter_id}
+                      onOpenFile={setFileUserId}
+                    />
+                    <ReportPersonCard
+                      label="Reported user"
+                      profile={target}
+                      fallbackId={r.target_user_id}
+                      onOpenFile={setFileUserId}
+                    />
                   </div>
-                ) : null}
 
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <ReportPersonCard
-                    label="Signalé par"
-                    profile={reporter}
-                    fallbackId={r.reporter_id}
-                    onOpenFile={setFileUserId}
-                  />
-                  <ReportPersonCard
-                    label="Utilisateur signalé"
-                    profile={target}
-                    fallbackId={r.target_user_id}
-                    onOpenFile={setFileUserId}
-                  />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setStatus(r.id, "reviewed")}>
+                      Reviewed
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setStatus(r.id, "dismissed")}>
+                      Dismiss
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-amber-500"
+                      onClick={() => setStatus(r.id, "sanctioned")}
+                    >
+                      Mark sanctioned
+                    </Button>
+                  </div>
                 </div>
-
-                <div className="mt-3 flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setStatus(r.id, "reviewed")}>
-                    Traité
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setStatus(r.id, "dismissed")}>
-                    Rejeter
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       )}
 
       <Sheet
         open={!!fileUserId}
         onClose={() => setFileUserId(null)}
-        title={`Dossier · ${fileProfile?.username ?? "membre"}`}
+        title={`File · ${fileProfile?.username ?? "member"}`}
       >
         {fileUserId ? (
           <div className="space-y-4">
@@ -2410,22 +2576,22 @@ function Moderation({ log }: { log: LogFn }) {
                 fallback="🎮"
               />
               <div className="min-w-0">
-                <p className="font-black">{fileProfile?.username ?? "Profil incomplet"}</p>
+                <p className="font-black">{fileProfile?.username ?? "Incomplete profile"}</p>
                 <RobloxIdentity
                   displayName={fileProfile?.roblox_display_name ?? null}
                   username={fileProfile?.roblox_username ?? null}
                   className="mt-1 max-w-full text-xs"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {fileProfile?.age != null ? `${fileProfile.age} ans` : "Âge inconnu"}
+                  {fileProfile?.age != null ? `${fileProfile.age} y/o` : "Age unknown"}
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {[
-                [fileDetail.data?.videos.length ?? 0, "vidéos"],
+                [fileDetail.data?.videos.length ?? 0, "videos"],
                 [fileDetail.data?.messages.length ?? 0, "messages"],
-                [fileDetail.data?.reports.length ?? 0, "signalements"],
+                [fileDetail.data?.reports.length ?? 0, "reports"],
                 [fileDetail.data?.notifications.length ?? 0, "notifications"],
               ].map(([value, label]) => (
                 <div key={String(label)} className="rounded-2xl bg-primary/10 p-2 text-center">
@@ -2437,7 +2603,7 @@ function Moderation({ log }: { log: LogFn }) {
             {fileDetail.data?.audit.length ? (
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Historique de modération
+                  Moderation history
                 </p>
                 <div className="space-y-1.5">
                   {fileDetail.data.audit.slice(0, 10).map((a) => (
@@ -2446,7 +2612,7 @@ function Moderation({ log }: { log: LogFn }) {
                       className="rounded-xl bg-surface p-2 text-xs text-muted-foreground"
                     >
                       {a.action} {a.details ? `- ${a.details}` : ""} ·{" "}
-                      {new Date(a.created_at).toLocaleString("fr-FR")}
+                      {new Date(a.created_at).toLocaleString("en-US")}
                     </p>
                   ))}
                 </div>
@@ -2527,7 +2693,7 @@ function DisputesReview() {
       await adminReviewDispute({
         data: { disputeId: id, decision, moderatorNote: note || undefined },
       });
-      toast.success(decision === "accepted" ? "Contestation acceptée" : "Contestation refusée");
+      toast.success(decision === "accepted" ? "Dispute accepted" : "Dispute rejected");
       setReviewing(null);
       setNote("");
       await disputes.refetch();
@@ -2599,7 +2765,7 @@ function DisputesReview() {
               ) : null}
               <p className="mt-2 rounded-2xl bg-surface p-3 text-sm">{d.message}</p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                {new Date(d.created_at).toLocaleString("fr-FR")}
+                {new Date(d.created_at).toLocaleString("en-US")}
               </p>
 
               {d.status === "pending" ? (
@@ -2722,7 +2888,7 @@ function BannedWords({ log }: { log: LogFn }) {
     const { error } = await supabase.from("banned_words").insert({ word: value, language });
     if (error) {
       toast.error(
-        error.message.includes("duplicate") ? "Ce mot est déjà dans la liste." : error.message,
+        error.message.includes("duplicate") ? "This word is already in the list." : error.message,
       );
       return;
     }
@@ -2751,7 +2917,7 @@ function BannedWords({ log }: { log: LogFn }) {
           <Input
             value={word}
             onChange={(e) => setWord(e.target.value)}
-            placeholder="Ajouter un mot"
+            placeholder="Add a word"
             onKeyDown={(e) => e.key === "Enter" && addWord()}
           />
           <Select
@@ -2848,10 +3014,10 @@ function Conversations({ log }: { log: LogFn }) {
         >
           <span className="min-w-0">
             <span className="block truncate font-semibold">
-              {c.is_group ? (c.name ?? "Groupe") : "Conversation privée"}
+              {c.is_group ? (c.name ?? "Group") : "Private conversation"}
             </span>
             <span className="block text-xs text-muted-foreground">
-              {new Date(c.last_message_at).toLocaleString("fr-FR")}
+              {new Date(c.last_message_at).toLocaleString("en-US")}
             </span>
           </span>
           <Eye className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -2863,7 +3029,7 @@ function Conversations({ log }: { log: LogFn }) {
           {(messages.data ?? []).map((m) => (
             <div key={m.id} className="rounded-2xl bg-surface p-3">
               <p className="text-[11px] text-muted-foreground">
-                {m.sender_id.slice(0, 8)} · {new Date(m.created_at).toLocaleString("fr-FR")} ·{" "}
+                {m.sender_id.slice(0, 8)} · {new Date(m.created_at).toLocaleString("en-US")} ·{" "}
                 {m.kind}
               </p>
               <p className="mt-1 break-words">{m.content ?? "(média)"}</p>
@@ -3112,7 +3278,7 @@ function PendingVideosReview() {
           targetId: video.id,
         },
       });
-      toast.success(approve ? "Vidéo approuvée" : "Vidéo refusée");
+      toast.success(approve ? "Video approved" : "Video rejected");
       await pending.refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Action impossible");
@@ -3149,7 +3315,7 @@ function PendingVideosReview() {
                     @{v.creator?.username ?? "inconnu"}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    {new Date(v.created_at).toLocaleString("fr-FR")}
+                    {new Date(v.created_at).toLocaleString("en-US")}
                   </p>
                 </div>
               </div>
@@ -3180,7 +3346,7 @@ function PendingVideosReview() {
         </div>
       )}
 
-      <Sheet open={!!watching} onClose={() => setWatching(null)} title={watching?.caption || "Vidéo"}>
+      <Sheet open={!!watching} onClose={() => setWatching(null)} title={watching?.caption || "Video"}>
         {watching ? <AdminVideoPlayer storagePath={watching.storage_path} /> : null}
       </Sheet>
     </div>
@@ -3510,7 +3676,7 @@ function NewsAdmin({ log }: { log: (a: string, u?: string, d?: string) => Promis
       return;
     }
     await log(form.id ? "news_update" : "news_create", undefined, payload.title);
-    toast.success("Actualité enregistrée");
+    toast.success("Article saved");
     setForm(empty);
     void list.refetch();
   }
@@ -3523,7 +3689,7 @@ function NewsAdmin({ log }: { log: (a: string, u?: string, d?: string) => Promis
     }
     await log("news_delete", undefined, row.title);
     if (form.id === row.id) setForm(empty);
-    toast.success("Actualité supprimée");
+    toast.success("Article deleted");
     void list.refetch();
   }
 
@@ -3532,7 +3698,7 @@ function NewsAdmin({ log }: { log: (a: string, u?: string, d?: string) => Promis
       <div className="space-y-3 rounded-3xl border border-border bg-card p-4">
         <div className="flex items-center gap-2">
           <Newspaper className="h-5 w-5 text-primary" />
-          <p className="font-bold">{form.id ? "Modifier l'actualité" : "Nouvelle actualité"}</p>
+          <p className="font-bold">{form.id ? "Edit article" : "New article"}</p>
         </div>
         <div>
           <Label>Titre</Label>
@@ -3649,9 +3815,9 @@ function NewsAdmin({ log }: { log: (a: string, u?: string, d?: string) => Promis
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Brouillon",
-  scheduled: "Programmé",
-  published: "Publié",
-  archived: "Archivé",
+  scheduled: "Scheduled",
+  published: "Published",
+  archived: "Archived",
 };
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-surface-2 text-muted-foreground",
@@ -3796,7 +3962,7 @@ function NewsPortalAdmin({ log }: { log: LogFn }) {
       undefined,
       form.title.trim(),
     );
-    toast.success("Enregistré.");
+    toast.success("Saved.");
     setForm(null);
     void articles.refetch();
   }
@@ -4058,15 +4224,15 @@ function Broadcast({ isAdmin }: { isAdmin: boolean }) {
     .slice(0, 8);
 
   const audienceLabel: Record<BroadcastAudience, string> = {
-    all: "TOUS les membres de Bloxspark",
-    spark_plus: "tous les membres Spark Plus",
+    all: "ALL Bloxspark members",
+    spark_plus: "all Spark Plus members",
     specific: `${selected.size} membre${selected.size > 1 ? "s" : ""} sélectionné${selected.size > 1 ? "s" : ""}`,
   };
 
   async function send() {
     if (!message.trim()) return;
     if (audience === "specific" && selected.size === 0) {
-      toast.error("Sélectionne au moins un membre.");
+      toast.error("Select at least one member.");
       return;
     }
     if (!confirm(`Envoyer ce message à ${audienceLabel[audience]}, en tant que message Team Spark ? Cette action est irréversible.`)) {
