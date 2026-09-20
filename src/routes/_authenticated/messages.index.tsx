@@ -32,7 +32,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button, Input, Sheet } from "@/components/ui-kit";
-import { StoredImage, useSignedUrl } from "@/components/Media";
+import { StoredImage } from "@/components/Media";
 import { PresenceDot } from "@/components/PresenceDot";
 import { uploadFile } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
@@ -46,6 +46,8 @@ import {
 } from "@/lib/activityNotifications";
 import { cn } from "@/lib/utils";
 import { streakStatus } from "@/lib/streaks";
+import { StoryComposer } from "@/components/StoryComposer";
+import { StoryViewerFull, type StoryUserGroup } from "@/components/StoryViewerFull";
 
 export const Route = createFileRoute("/_authenticated/messages/")({
   head: () => ({ meta: [{ title: "Messages - Bloxspark" }] }),
@@ -82,8 +84,10 @@ type Story = {
   user_id: string;
   media_url: string;
   media_type: string;
+  thumbnail_path: string | null;
   caption: string | null;
   created_at: string;
+  metadata: { overlays?: { id: string; type: "text" | "emoji"; content: string; x: number; y: number }[] } | null;
   username: string;
   avatar_url: string | null;
   unread: boolean;
@@ -175,7 +179,8 @@ function MessagesPage() {
   const [friendQuery, setFriendQuery] = useState("");
   const [groupTitle, setGroupTitle] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
-  const [activeStory, setActiveStory] = useState<Story | null>(null);
+  const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -183,7 +188,6 @@ function MessagesPage() {
   const [notificationFilter, setNotificationFilter] = useState<
     "all" | "unread" | "social" | "system"
   >("all");
-  const storyInput = useRef<HTMLInputElement>(null);
   const cameraInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const [groupInfoRow, setGroupInfoRow] = useState<Row | null>(null);
   const [actionMenuRow, setActionMenuRow] = useState<Row | null>(null);
@@ -339,7 +343,7 @@ function MessagesPage() {
 
       const { data: rows } = await supabase
         .from("stories")
-        .select("id,user_id,media_url,media_type,caption,created_at")
+        .select("id,user_id,media_url,media_type,thumbnail_path,caption,created_at,metadata")
         .gt("expires_at", new Date().toISOString())
         .in("user_id", [...allowedIds])
         .order("created_at", { ascending: false });
@@ -356,6 +360,7 @@ function MessagesPage() {
         const p = (people ?? []).find((x) => x.id === s.user_id);
         return {
           ...s,
+          metadata: s.metadata as Story["metadata"],
           username: p?.username ?? "player",
           avatar_url: p?.avatar_url ?? null,
           unread: !seen.has(s.id),
@@ -607,29 +612,9 @@ function MessagesPage() {
     void conversations.refetch();
   }
 
-  async function uploadStory(file: File) {
-    if (!user) return;
-    try {
-      const path = await uploadFile("stories", user.id, file, file.name.split(".").pop() || "jpg");
-      const { error } = await supabase.from("stories").insert({
-        user_id: user.id,
-        media_url: path,
-        media_type: file.type.startsWith("video/") ? "video" : "image",
-      });
-      if (error) throw error;
-      toast.success(t("storyPublished"));
-      void stories.refetch();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("errorGeneric"));
-    }
-  }
-
-  async function openStory(story: Story) {
-    setActiveStory(story);
-    if (story.unread && user) {
-      await supabase.from("story_views").upsert({ story_id: story.id, user_id: user.id });
-      void stories.refetch();
-    }
+  function openStoryGroup(userId: string) {
+    const index = storyGroups.findIndex((g) => g.userId === userId);
+    if (index >= 0) setActiveGroupIndex(index);
   }
 
   async function markAll() {
@@ -697,6 +682,14 @@ function MessagesPage() {
   const peopleStories = (stories.data ?? []).filter(
     (story, index, all) => all.findIndex((x) => x.user_id === story.user_id) === index,
   );
+  const storyGroups: StoryUserGroup[] = peopleStories.map((p) => ({
+    userId: p.user_id,
+    username: p.username,
+    avatarUrl: p.avatar_url,
+    stories: (stories.data ?? [])
+      .filter((s) => s.user_id === p.user_id)
+      .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at)),
+  }));
   const pendingReceived = (conversations.data ?? []).filter(
     (c) => c.request_status === "pending" && c.created_by !== user?.id,
   );
@@ -891,10 +884,7 @@ function MessagesPage() {
       </header>
 
       <section className="no-scrollbar -mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2">
-        <button
-          onClick={() => storyInput.current?.click()}
-          className="w-[72px] shrink-0 text-center"
-        >
+        <button onClick={() => setComposerOpen(true)} className="w-[72px] shrink-0 text-center">
           <span className="relative mx-auto block h-[72px] w-[72px] rounded-full border-2 border-dashed border-primary bg-primary/10 p-1">
             <span className="grid h-full w-full place-items-center rounded-full bg-[#F5F5F5] dark:bg-[#1c1c1e]">
               <Plus className="h-6 w-6 text-primary" />
@@ -904,21 +894,10 @@ function MessagesPage() {
             {t("yourStory")}
           </span>
         </button>
-        <input
-          ref={storyInput}
-          hidden
-          type="file"
-          accept="image/*,video/*"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void uploadStory(f);
-            e.target.value = "";
-          }}
-        />
         {peopleStories.map((s) => (
           <button
             key={s.id}
-            onClick={() => void openStory(s)}
+            onClick={() => openStoryGroup(s.user_id)}
             className="w-[72px] shrink-0 text-center"
           >
             <span
@@ -1687,8 +1666,25 @@ function MessagesPage() {
         </div>
       </Sheet>
 
-      {activeStory ? (
-        <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />
+      <StoryComposer
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        onPublished={() => {
+          setComposerOpen(false);
+          void stories.refetch();
+        }}
+      />
+
+      {activeGroupIndex !== null ? (
+        <StoryViewerFull
+          groups={storyGroups}
+          startGroupIndex={activeGroupIndex}
+          onClose={() => {
+            setActiveGroupIndex(null);
+            void stories.refetch();
+          }}
+          onChanged={() => void stories.refetch()}
+        />
       ) : null}
 
       {groupInfoRow ? (
@@ -1797,45 +1793,3 @@ function MessagesPage() {
   );
 }
 
-function StoryViewer({ story, onClose }: { story: Story; onClose: () => void }) {
-  const url = useSignedUrl(story.media_url);
-  return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/95 p-3" onClick={onClose}>
-      <button
-        className="absolute right-4 top-4 z-10 rounded-full bg-black/40 p-2 text-white"
-        aria-label="Close"
-      >
-        <X className="h-6 w-6" />
-      </button>
-      <div
-        className="relative h-full max-h-[850px] w-full max-w-md overflow-hidden rounded-3xl bg-neutral-950"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {url ? (
-          story.media_type === "video" ? (
-            <video src={url} autoPlay controls className="h-full w-full object-contain" />
-          ) : (
-            <img src={url} alt="Story" className="h-full w-full object-contain" />
-          )
-        ) : null}
-        <div className="absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/70 to-transparent p-4 text-white">
-          <StoredImage
-            path={story.avatar_url}
-            alt=""
-            className="h-10 w-10 rounded-full"
-            fallback={story.username[0] ?? "?"}
-          />
-          <div>
-            <p className="font-bold">@{story.username}</p>
-            <p className="text-[11px] text-white/70">Story · 24 h</p>
-          </div>
-        </div>
-        {story.caption ? (
-          <p className="absolute inset-x-4 bottom-5 rounded-2xl bg-black/55 p-3 text-sm text-white backdrop-blur">
-            {story.caption}
-          </p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
