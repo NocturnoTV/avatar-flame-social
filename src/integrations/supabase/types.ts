@@ -1170,6 +1170,7 @@ export type Database = {
           request_status: string
           streak_count: number
           streak_date: string | null
+          streak_broken_at: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1183,6 +1184,7 @@ export type Database = {
           request_status?: string
           streak_count?: number
           streak_date?: string | null
+          streak_broken_at?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1196,6 +1198,7 @@ export type Database = {
           request_status?: string
           streak_count?: number
           streak_date?: string | null
+          streak_broken_at?: string | null
         }
         Relationships: [
           {
@@ -2426,6 +2429,42 @@ export type Database = {
           },
         ]
       }
+      streak_restores: {
+        Row: {
+          id: string
+          user_id: string
+          conversation_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          conversation_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          conversation_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streak_restores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "streak_restores_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_device_tokens: {
         Row: {
           created_at: string
@@ -3528,6 +3567,7 @@ export type Database = {
       can_read_voice_object: { Args: { _name: string }; Returns: boolean }
       can_view_community: { Args: { _community: string }; Returns: boolean }
       claim_ad_reward: { Args: never; Returns: number }
+      restore_streak: { Args: { _conversation_id: string }; Returns: number }
       claim_daily_quest: { Args: { _quest_id: string }; Returns: undefined }
       community_add_affiliate: {
         Args: { _affiliate: string; _community: string }

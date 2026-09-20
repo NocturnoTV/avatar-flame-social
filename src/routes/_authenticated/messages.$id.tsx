@@ -43,6 +43,8 @@ import { StoredImage, useSignedUrl } from "@/components/Media";
 import { PresenceDot, presenceStatus } from "@/components/PresenceDot";
 import { ConversationInfoSheet } from "@/components/ConversationInfoSheet";
 import { useCall } from "@/components/CallProvider";
+import { StreakRestoreSheet } from "@/components/StreakRestoreSheet";
+import { streakStatus } from "@/lib/streaks";
 import {
   BUBBLE_THEMES,
   WALLPAPERS,
@@ -147,6 +149,7 @@ function Conversation() {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [streakSheetOpen, setStreakSheetOpen] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [recording, setRecording] = useState(false);
   const [info, setInfo] = useState(false);
@@ -191,7 +194,7 @@ function Conversation() {
     queryFn: async () => {
       const { data: convo } = await supabase
         .from("conversations")
-        .select("id,is_group,name,request_status,created_by,streak_count")
+        .select("id,is_group,name,request_status,created_by,streak_count,streak_date,streak_broken_at")
         .eq("id", id)
         .maybeSingle();
       const { data: members } = await supabase
@@ -266,6 +269,10 @@ function Conversation() {
         pinned: mine?.pinned ?? false,
         muted: mine?.muted ?? false,
         streakCount: convo?.streak_count ?? 0,
+        streakDate: convo?.streak_date ?? null,
+        streakBrokenAt: convo?.streak_broken_at ?? null,
+        myAvatarUrl: user ? (byId[user.id]?.avatar_url ?? null) : null,
+        otherAvatarUrl: otherId ? (byId[otherId]?.avatar_url ?? null) : null,
       };
     },
   });
@@ -568,6 +575,13 @@ function Conversation() {
   }
 
   const myUsername = user ? (header.data?.people?.[user.id]?.username ?? "?") : "?";
+  const streakDisplayStatus = header.data
+    ? streakStatus({
+        count: header.data.streakCount,
+        date: header.data.streakDate,
+        brokenAt: header.data.streakBrokenAt,
+      })
+    : "none";
 
   async function reportMessage(reasonId: string) {
     if (!user || !reportingMessage) return;
@@ -671,10 +685,20 @@ function Conversation() {
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 truncate font-bold leading-tight text-[#050505] dark:text-white">
             <span className="truncate">{header.data?.title}</span>
-            {!header.data?.isGroup && header.data?.streakCount ? (
-              <span className="flex shrink-0 items-center gap-0.5 text-xs font-bold text-orange-500">
-                🔥{header.data.streakCount}
-              </span>
+            {!header.data?.isGroup && streakDisplayStatus !== "none" ? (
+              <button
+                onClick={() => streakDisplayStatus === "broken" && setStreakSheetOpen(true)}
+                className={cn(
+                  "flex shrink-0 items-center gap-0.5 text-xs font-bold",
+                  streakDisplayStatus === "warning"
+                    ? "text-muted-foreground grayscale"
+                    : streakDisplayStatus === "broken"
+                      ? "text-muted-foreground"
+                      : "text-orange-500",
+                )}
+              >
+                🔥{header.data?.streakCount}
+              </button>
             ) : null}
           </p>
           <p className="truncate text-xs text-[#929292]">
@@ -1277,6 +1301,19 @@ function Conversation() {
           </div>
         )}
       </Sheet>
+
+      {header.data ? (
+        <StreakRestoreSheet
+          open={streakSheetOpen}
+          onClose={() => setStreakSheetOpen(false)}
+          conversationId={id}
+          streakCount={header.data.streakCount}
+          brokenAt={header.data.streakBrokenAt}
+          myAvatarUrl={header.data.myAvatarUrl}
+          otherAvatarUrl={header.data.otherAvatarUrl}
+          onRestored={() => void header.refetch()}
+        />
+      ) : null}
     </div>
   );
 }

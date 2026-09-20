@@ -45,6 +45,7 @@ import {
   localizeActivityNotification,
 } from "@/lib/activityNotifications";
 import { cn } from "@/lib/utils";
+import { streakStatus } from "@/lib/streaks";
 
 export const Route = createFileRoute("/_authenticated/messages/")({
   head: () => ({ meta: [{ title: "Messages - Bloxspark" }] }),
@@ -73,6 +74,8 @@ type Row = {
   last_message_at: string;
   unread_count: number;
   streak_count: number;
+  streak_date: string | null;
+  streak_broken_at: string | null;
 };
 type Story = {
   id: string;
@@ -234,7 +237,9 @@ function MessagesPage() {
       const [{ data: convos }, { data: members }, { data: lastMessages }] = await Promise.all([
         supabase
           .from("conversations")
-          .select("id,is_group,name,last_message_at,request_status,created_by,streak_count")
+          .select(
+            "id,is_group,name,last_message_at,request_status,created_by,streak_count,streak_date,streak_broken_at",
+          )
           .in("id", ids),
         supabase
           .from("conversation_participants")
@@ -290,6 +295,8 @@ function MessagesPage() {
           last_message_at: c.last_message_at,
           unread_count: unreadCount,
           streak_count: c.streak_count ?? 0,
+          streak_date: c.streak_date ?? null,
+          streak_broken_at: c.streak_broken_at ?? null,
         };
       });
       return rows.sort((a, b) => {
@@ -1192,8 +1199,24 @@ function MessagesPage() {
                     <p className="flex items-center gap-1.5 text-[17px] font-bold text-[#050505] dark:text-white">
                       <span className="truncate">{name || "Discussion"}</span>
                       {!c.is_group && person?.verified ? <Verified /> : null}
-                      {!c.is_group && c.streak_count > 0 ? (
-                        <span className="flex shrink-0 items-center gap-0.5 text-xs font-bold text-orange-500">
+                      {!c.is_group &&
+                      streakStatus({
+                        count: c.streak_count,
+                        date: c.streak_date,
+                        brokenAt: c.streak_broken_at,
+                      }) !== "none" ? (
+                        <span
+                          className={cn(
+                            "flex shrink-0 items-center gap-0.5 text-xs font-bold",
+                            streakStatus({
+                              count: c.streak_count,
+                              date: c.streak_date,
+                              brokenAt: c.streak_broken_at,
+                            }) === "active"
+                              ? "text-orange-500"
+                              : "text-muted-foreground grayscale",
+                          )}
+                        >
                           🔥{c.streak_count}
                         </span>
                       ) : null}

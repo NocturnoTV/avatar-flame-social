@@ -9,6 +9,7 @@ import {
   Coins,
   Compass,
   Crown,
+  Flame,
   Gem,
   Gift,
   Hash,
@@ -215,6 +216,24 @@ const WIKI: Record<
           {
             note: "Active ou désactive les notifications par catégorie depuis les réglages de ton compte.",
             tone: "tip",
+          },
+        ]),
+        pg("streaks", "Les flammes : garder une conversation vivante", Flame, [
+          {
+            p: "Une flamme 🔥 apparaît à côté du nom d'une personne quand vous vous écrivez tous les deux, chaque jour, dans une conversation privée.",
+          },
+          {
+            ul: [
+              "La flamme augmente d'un jour dès que vous vous êtes tous les deux écrit au moins une fois dans la même journée.",
+              "Si un jour passe sans qu'aucun message ne soit échangé des deux côtés, la flamme devient grise : c'est un avertissement, il vous reste encore un peu de temps.",
+              "Si personne n'écrit à temps, la flamme se brise 💔 - mais elle n'est pas perdue tout de suite : l'un(e) de vous deux peut la restaurer dans les 30 heures qui suivent.",
+              "Restaurer une flamme brisée est réservé aux membres Spark Plus, avec une limite de 3 restaurations par mois.",
+              "Passé les 30 heures sans restauration, la flamme est définitivement perdue et repart de zéro au prochain message.",
+            ],
+          },
+          {
+            note: "Les groupes n'ont pas de flamme - elle ne concerne que les conversations privées à deux.",
+            tone: "info",
           },
         ]),
       ]),
@@ -463,6 +482,24 @@ const WIKI: Record<
             tone: "tip",
           },
         ]),
+        pg("streaks", "Streaks: keeping a conversation alive", Flame, [
+          {
+            p: "A 🔥 flame appears next to someone's name when you both message each other, every day, in a private conversation.",
+          },
+          {
+            ul: [
+              "The streak goes up by one day as soon as you've both sent at least one message on the same day.",
+              "If a day passes with no message from either side, the flame turns gray - a warning that there's still a little time left.",
+              "If nobody messages in time, the flame breaks 💔 - but it's not lost right away: either of you can restore it within 30 hours.",
+              "Restoring a broken streak is a Spark Plus perk, limited to 3 restores per month.",
+              "After 30 hours with no restore, the streak is gone for good and starts over from zero on the next message.",
+            ],
+          },
+          {
+            note: "Groups don't have a streak - it only applies to one-on-one private conversations.",
+            tone: "info",
+          },
+        ]),
       ]),
       cat("economy", "Blox & Shop", Coins, [
         pg("blox", "Blox, BloxSpark's currency", Gem, [
@@ -704,6 +741,24 @@ const WIKI: Record<
             tone: "tip",
           },
         ]),
+        pg("streaks", "Rachas: mantener viva una conversación", Flame, [
+          {
+            p: "Aparece una llama 🔥 junto al nombre de alguien cuando ambos se escriben, cada día, en una conversación privada.",
+          },
+          {
+            ul: [
+              "La racha sube un día en cuanto los dos han enviado al menos un mensaje el mismo día.",
+              "Si pasa un día sin ningún mensaje de ninguno de los dos lados, la llama se vuelve gris - un aviso de que aún queda algo de tiempo.",
+              "Si nadie escribe a tiempo, la llama se rompe 💔 - pero no se pierde de inmediato: cualquiera de los dos puede restaurarla en las próximas 30 horas.",
+              "Restaurar una racha rota es una ventaja de Spark Plus, limitada a 3 restauraciones al mes.",
+              "Pasadas las 30 horas sin restaurarla, la racha se pierde para siempre y vuelve a empezar de cero con el próximo mensaje.",
+            ],
+          },
+          {
+            note: "Los grupos no tienen racha - solo aplica a conversaciones privadas entre dos personas.",
+            tone: "info",
+          },
+        ]),
       ]),
       cat("economy", "Blox y Tienda", Coins, [
         pg("blox", "Blox, la moneda de BloxSpark", Gem, [
@@ -932,6 +987,24 @@ const WIKI: Record<
             ],
           },
           { note: "Ative ou desative notificações por categoria nas configurações.", tone: "tip" },
+        ]),
+        pg("streaks", "Sequências: manter uma conversa viva", Flame, [
+          {
+            p: "Uma chama 🔥 aparece ao lado do nome de alguém quando vocês dois se escrevem, todos os dias, em uma conversa privada.",
+          },
+          {
+            ul: [
+              "A sequência sobe um dia assim que vocês dois enviarem pelo menos uma mensagem no mesmo dia.",
+              "Se passar um dia sem mensagem de nenhum dos dois lados, a chama fica cinza - um aviso de que ainda resta um pouco de tempo.",
+              "Se ninguém escrever a tempo, a chama se apaga 💔 - mas não é perdida na hora: qualquer um de vocês pode restaurá-la em até 30 horas.",
+              "Restaurar uma sequência quebrada é um benefício do Spark Plus, limitado a 3 restaurações por mês.",
+              "Depois de 30 horas sem restaurar, a sequência é perdida para sempre e recomeça do zero na próxima mensagem.",
+            ],
+          },
+          {
+            note: "Grupos não têm sequência - ela só existe em conversas privadas entre duas pessoas.",
+            tone: "info",
+          },
         ]),
       ]),
       cat("economy", "Blox e Loja", Coins, [
@@ -1166,6 +1239,24 @@ const WIKI: Record<
             tone: "tip",
           },
         ]),
+        pg("streaks", "Serien: eine Unterhaltung am Leben halten", Flame, [
+          {
+            p: "Eine Flamme 🔥 erscheint neben dem Namen von jemandem, wenn ihr euch beide, jeden Tag, in einer privaten Unterhaltung schreibt.",
+          },
+          {
+            ul: [
+              "Die Serie steigt um einen Tag, sobald ihr beide am selben Tag mindestens eine Nachricht gesendet habt.",
+              "Vergeht ein Tag ohne Nachricht von beiden Seiten, wird die Flamme grau - ein Hinweis, dass noch etwas Zeit bleibt.",
+              "Schreibt niemand rechtzeitig, erlischt die Flamme 💔 - verloren ist sie aber nicht sofort: einer von euch beiden kann sie innerhalb von 30 Stunden wiederherstellen.",
+              "Eine erloschene Serie wiederherzustellen ist ein Spark-Plus-Vorteil, begrenzt auf 3 Wiederherstellungen pro Monat.",
+              "Nach 30 Stunden ohne Wiederherstellung ist die Serie endgültig verloren und beginnt bei der nächsten Nachricht wieder bei null.",
+            ],
+          },
+          {
+            note: "Gruppen haben keine Serie - sie gilt nur für private Unterhaltungen zwischen zwei Personen.",
+            tone: "info",
+          },
+        ]),
       ]),
       cat("economy", "Blox & Shop", Coins, [
         pg("blox", "Blox, die Währung von BloxSpark", Gem, [
@@ -1386,6 +1477,24 @@ const WIKI: Record<
             ],
           },
           { note: "계정 설정에서 카테고리별로 알림을 켜고 끌 수 있어요.", tone: "tip" },
+        ]),
+        pg("streaks", "연속 기록: 대화를 계속 이어가기", Flame, [
+          {
+            p: "1:1 대화에서 매일 서로 메시지를 주고받으면 상대방 이름 옆에 불꽃 🔥이 나타나요.",
+          },
+          {
+            ul: [
+              "같은 날 두 사람 모두 메시지를 한 번씩 보내면 연속 기록이 하루 늘어나요.",
+              "하루라도 양쪽 다 메시지를 보내지 않으면 불꽃이 회색으로 바뀌어요 - 아직 시간이 조금 남았다는 신호예요.",
+              "제때 메시지를 보내지 않으면 불꽃이 꺼져요 💔 - 하지만 바로 사라지는 건 아니에요: 30시간 안에 둘 중 한 명이 복구할 수 있어요.",
+              "끊긴 연속 기록 복구는 Spark Plus 혜택이며, 한 달에 3번까지만 가능해요.",
+              "30시간이 지나도록 복구하지 않으면 연속 기록은 완전히 사라지고, 다음 메시지부터 다시 0에서 시작해요.",
+            ],
+          },
+          {
+            note: "그룹에는 연속 기록이 없어요 - 1:1 개인 대화에서만 적용돼요.",
+            tone: "info",
+          },
         ]),
       ]),
       cat("economy", "Blox & 상점", Coins, [
