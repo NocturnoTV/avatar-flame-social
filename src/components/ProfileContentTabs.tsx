@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,8 +13,6 @@ import {
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { useSession } from "@/lib/session";
-import { supabase } from "@/integrations/supabase/client";
 
 export type TabVideo = {
   id: string;
@@ -23,9 +22,7 @@ export type TabVideo = {
 };
 type TabPhoto = { id: string; url: string };
 type Tab = "videos" | "reposts" | "photos";
-type LightboxTarget =
-  | { kind: "video"; list: TabVideo[]; index: number }
-  | { kind: "photo"; list: TabPhoto[]; index: number };
+type LightboxTarget = { list: TabPhoto[]; index: number };
 
 /**
  * The Videos / Reposts / Photos tab group shown on every profile - the
@@ -88,13 +85,10 @@ export function ProfileContentTabs({
       <div className="mt-3">
         {tab === "videos" ? (
           <div className="grid grid-cols-3 gap-1.5">
-            {videos.map((v, i) => (
-              <button
-                key={v.id}
-                onClick={() => setLightbox({ kind: "video", list: videos, index: i })}
-              >
+            {videos.map((v) => (
+              <Link key={v.id} to="/discover" search={{ v: v.id }}>
                 <VideoThumb video={v} />
-              </button>
+              </Link>
             ))}
             {!videos.length ? <EmptyState label={t("noProfileVideos")} /> : null}
           </div>
@@ -102,13 +96,10 @@ export function ProfileContentTabs({
 
         {tab === "reposts" ? (
           <div className="grid grid-cols-3 gap-1.5">
-            {reposts.map((v, i) => (
-              <button
-                key={v.id}
-                onClick={() => setLightbox({ kind: "video", list: reposts, index: i })}
-              >
+            {reposts.map((v) => (
+              <Link key={v.id} to="/discover" search={{ v: v.id }}>
                 <VideoThumb video={v} />
-              </button>
+              </Link>
             ))}
             {!reposts.length ? <EmptyState label={t("noReposts")} /> : null}
           </div>
@@ -118,7 +109,7 @@ export function ProfileContentTabs({
           <div className="flex flex-wrap gap-2">
             {photos.map((ph, i) => (
               <div key={ph.id} className="relative">
-                <button onClick={() => setLightbox({ kind: "photo", list: photos, index: i })}>
+                <button onClick={() => setLightbox({ list: photos, index: i })}>
                   <StoredImage path={ph.url} alt="" className="h-24 w-24 rounded-2xl" />
                 </button>
                 {i === 0 ? (
@@ -221,7 +212,7 @@ function Lightbox({
   function go(delta: number) {
     const next = index + delta;
     if (next < 0 || next >= list.length) return;
-    onChange({ ...target, index: next } as LightboxTarget);
+    onChange({ ...target, index: next });
   }
 
   return (
@@ -264,44 +255,9 @@ function Lightbox({
         className="relative h-full max-h-[850px] w-full max-w-md overflow-hidden rounded-3xl bg-neutral-950"
         onClick={(e) => e.stopPropagation()}
       >
-        {target.kind === "video" ? <LightboxVideo video={target.list[target.index]!} /> : null}
-        {target.kind === "photo" ? <LightboxPhoto photo={target.list[target.index]!} /> : null}
+        <LightboxPhoto photo={target.list[target.index]!} />
       </div>
     </div>
-  );
-}
-
-function LightboxVideo({ video }: { video: TabVideo }) {
-  const url = useSignedUrl(video.storage_path);
-  const { user } = useSession();
-
-  useEffect(() => {
-    if (!user) return;
-    const timer = window.setTimeout(() => {
-      // Plain insert - views_count counts watch events, not distinct viewers.
-      void supabase.from("video_views").insert({ video_id: video.id, viewer_id: user.id });
-    }, 1200);
-    return () => window.clearTimeout(timer);
-  }, [user, video.id]);
-
-  return (
-    <>
-      {url ? (
-        <video
-          src={url}
-          autoPlay
-          controls
-          loop
-          playsInline
-          className="h-full w-full object-contain"
-        />
-      ) : null}
-      {video.caption ? (
-        <p className="pointer-events-none absolute inset-x-4 bottom-5 rounded-2xl bg-black/55 p-3 text-sm text-white backdrop-blur">
-          {video.caption}
-        </p>
-      ) : null}
-    </>
   );
 }
 
