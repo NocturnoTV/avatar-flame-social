@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { StoredImage } from "@/components/Media";
+import { StoredImage, VideoThumb } from "@/components/Media";
 import { Button, Sheet } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -367,7 +367,7 @@ function BillingPage() {
       const { data } = await supabase
         .from("videos")
         .select(
-          "id,thumbnail_path,caption,views_count,likes_count,comments_count,favorites_count,reposts_count,created_at",
+          "id,thumbnail_path,storage_path,caption,views_count,likes_count,comments_count,favorites_count,reposts_count,created_at",
         )
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
@@ -870,11 +870,10 @@ function BillingPage() {
                   to="/discover/studio"
                   className="group relative aspect-[9/16] overflow-hidden rounded-xl bg-surface-2"
                 >
-                  <StoredImage
-                    path={v.thumbnail_path}
-                    alt={v.caption ?? ""}
+                  <VideoThumb
+                    storagePath={v.storage_path}
+                    thumbnailPath={v.thumbnail_path}
                     className="h-full w-full object-cover transition group-hover:scale-105"
-                    fallback="🎬"
                   />
                   <span className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1.5 text-[10px] font-bold text-white">
                     <Eye className="h-3 w-3" /> {v.views_count.toLocaleString()}

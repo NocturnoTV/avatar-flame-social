@@ -8,6 +8,7 @@ import { LogoWordmark } from "@/components/Logo";
 import { Sheet } from "@/components/ui-kit";
 import { NEWS_CATEGORIES, newsCategoryBadgeClass, newsCategoryLabel } from "@/lib/newsCategories";
 import { cn } from "@/lib/utils";
+import { pgIlikePattern } from "@/lib/pgFilter";
 
 export const Route = createFileRoute("/_authenticated/news")({
   head: () => ({
@@ -61,7 +62,7 @@ function NewsHomePage() {
         .limit(60);
       if (category !== "all") query = query.eq("category", category);
       if (language !== "all") query = query.eq("language", language);
-      if (search.trim()) query = query.or(`title.ilike.%${search.trim()}%,excerpt.ilike.%${search.trim()}%`);
+      if (search.trim()) query = query.or(`title.ilike.${pgIlikePattern(search.trim())},excerpt.ilike.${pgIlikePattern(search.trim())}`);
       if (period !== "all") {
         const since =
           period === "today"

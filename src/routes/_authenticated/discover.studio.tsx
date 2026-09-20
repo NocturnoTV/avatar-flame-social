@@ -29,7 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Button, Card, Input, Label } from "@/components/ui-kit";
 import { captureVideoThumbnail, uploadFile } from "@/lib/media";
-import { useSignedUrl } from "@/components/Media";
+import { useSignedUrl, VideoThumb } from "@/components/Media";
 import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEditor";
 import { useI18n } from "@/lib/i18n";
 import { getCreatorAnalytics } from "@/lib/creator-analytics.functions";
@@ -396,7 +396,11 @@ function VideoCard({
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-black">
       {url ? (
-        <video src={url} muted playsInline className="aspect-[9/16] w-full object-cover" />
+        <VideoThumb
+          storagePath={video.storage_path}
+          thumbnailPath={video.thumbnail_path}
+          className="aspect-[9/16] w-full"
+        />
       ) : (
         <div className="aspect-[9/16] animate-pulse bg-surface-2" />
       )}

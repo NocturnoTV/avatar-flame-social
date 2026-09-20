@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { pgQuote } from "@/lib/pgFilter";
 
 const schema = z.object({
   identifier: z.string().trim().min(1).max(120),
@@ -25,7 +26,7 @@ export const signInWithIdentifier = createServerFn({ method: "POST" })
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("id")
-        .or(`username.ilike.${identifier},roblox_username.ilike.${identifier}`)
+        .or(`username.ilike.${pgQuote(identifier)},roblox_username.ilike.${pgQuote(identifier)}`)
         .limit(1)
         .maybeSingle();
       if (profile) {

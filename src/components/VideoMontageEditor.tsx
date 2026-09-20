@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Music2, Plus, Trash2, Type, X } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
@@ -568,18 +568,25 @@ export function ThumbnailPicker({
 }) {
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const objectUrl = useRef(typeof source === "string" ? source : URL.createObjectURL(source));
+  // The source can arrive late (a signed URL resolves asynchronously when
+  // editing an already-published video), so it must stay reactive - freezing
+  // it in a ref left the picker pointing at an empty src forever.
+  const mediaUrl = useMemo(
+    () => (typeof source === "string" ? source : URL.createObjectURL(source)),
+    [source],
+  );
   const [duration, setDuration] = useState(0);
   const [time, setTime] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(
-    () => () => {
-      if (typeof source !== "string") URL.revokeObjectURL(objectUrl.current);
-    },
-    [source],
-  );
+  useEffect(() => {
+    setPreview(null);
+    setDuration(0);
+    setTime(0);
+    if (typeof source === "string") return;
+    return () => URL.revokeObjectURL(mediaUrl);
+  }, [mediaUrl, source]);
   useEffect(
     () => () => {
       if (preview) URL.revokeObjectURL(preview);
@@ -610,7 +617,7 @@ export function ThumbnailPicker({
         ) : (
           <video
             ref={videoRef}
-            src={objectUrl.current}
+            src={mediaUrl}
             muted
             playsInline
             onLoadedMetadata={() => setDuration(videoRef.current?.duration ?? 0)}
