@@ -1,5 +1,15 @@
 import { useMemo, useRef, useState } from "react";
-import { Camera, Image as ImageIcon, Music2, Smile, Trash2, Type, X } from "lucide-react";
+import {
+  Camera,
+  Check,
+  Image as ImageIcon,
+  Music2,
+  Smile,
+  Trash2,
+  Type,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
@@ -7,6 +17,7 @@ import { uploadFile, captureVideoThumbnail } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 import { SoundPicker, type PickedSound } from "@/components/SoundPicker";
+import { CloseFriendsSheet } from "@/components/CloseFriendsSheet";
 import { cn } from "@/lib/utils";
 
 type TextFont = "sans" | "serif" | "mono" | "display";
@@ -51,6 +62,9 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   const [sound, setSound] = useState<PickedSound | null>(null);
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [audience, setAudience] = useState<"followers" | "close_friends">("followers");
+  const [audienceOpen, setAudienceOpen] = useState(false);
+  const [closeFriendsSheetOpen, setCloseFriendsSheetOpen] = useState(false);
   const [guide, setGuide] = useState<{ x: boolean; y: boolean }>({ x: false, y: false });
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -74,6 +88,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
     setSound(null);
     setAddingText(false);
     setTextDraft("");
+    setAudience("followers");
   }
 
   function choose(selected: File | null) {
@@ -167,7 +182,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
         media_type: mediaType,
         thumbnail_path: thumbnailPath,
         sound_id: sound?.id ?? null,
-        visibility: "followers",
+        visibility: audience,
         metadata: { overlays },
       });
       if (error) throw error;
@@ -235,9 +250,16 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex shrink-0 items-center justify-between p-3">
+          <div className="flex shrink-0 items-center justify-between gap-2 p-3">
             <button onClick={() => setFile(null)} aria-label={t("cancel")}>
               <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setAudienceOpen(true)}
+              className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold"
+            >
+              <Users className="h-3.5 w-3.5" />
+              {audience === "followers" ? t("storyAudienceFollowers") : t("storyAudienceCloseFriends")}
             </button>
             <button
               onClick={() => void publish()}
@@ -468,6 +490,54 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
           setSound(s);
           setSoundPickerOpen(false);
         }}
+      />
+
+      {audienceOpen ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60"
+          onClick={() => setAudienceOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-3xl bg-neutral-900 p-5 text-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-lg font-black">{t("storyAudienceTitle")}</p>
+            <div className="space-y-2">
+            {(
+              [
+                ["followers", t("storyAudienceFollowers")],
+                ["close_friends", t("storyAudienceCloseFriends")],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => {
+                  setAudience(value);
+                  setAudienceOpen(false);
+                }}
+                className="flex w-full items-center justify-between rounded-2xl border border-white/10 p-3.5 text-left"
+              >
+                <span className="font-semibold">{label}</span>
+                {audience === value ? <Check className="h-4 w-4 text-primary" /> : null}
+              </button>
+            ))}
+            </div>
+            <button
+              onClick={() => {
+                setAudienceOpen(false);
+                setCloseFriendsSheetOpen(true);
+              }}
+              className="mt-3 w-full text-center text-xs font-bold text-primary"
+            >
+              {t("closeFriendsManage")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <CloseFriendsSheet
+        open={closeFriendsSheetOpen}
+        onClose={() => setCloseFriendsSheetOpen(false)}
       />
     </div>
   );
