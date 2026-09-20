@@ -42,12 +42,8 @@ import { Button, Sheet } from "@/components/ui-kit";
 import { cn, errorMessage } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
-import {
-  getPersonalizedFeed,
-  logPositiveAction,
-  logVideoWatch,
-  markNotInterested,
-} from "@/lib/recommendation.functions";
+import { discoverFeedKey, fetchDiscoverFeed, type VideoRow } from "@/lib/discover-feed";
+import { logPositiveAction, logVideoWatch, markNotInterested } from "@/lib/recommendation.functions";
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -86,23 +82,6 @@ export const Route = createFileRoute("/_authenticated/discover/")({
   }),
   component: DiscoverPage,
 });
-
-type VideoRow = {
-  id: string;
-  user_id: string;
-  storage_path: string;
-  thumbnail_path: string | null;
-  caption: string | null;
-  sound_name: string | null;
-  likes_count: number;
-  comments_count: number;
-  favorites_count: number;
-  reposts_count: number;
-  shares_count: number;
-  views_count: number;
-  boosted_until?: string | null;
-  reason?: string;
-};
 
 export function formatCount(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(".0", "")}M`;
@@ -156,110 +135,21 @@ function DiscoverPage() {
   });
 
   const feed = useQuery({
-    queryKey: ["feed", user?.id, tab, following.data?.join(","), pinnedVideoId],
+    queryKey: discoverFeedKey(user?.id, tab, following.data, pinnedVideoId),
     enabled: !!user && following.isFetched,
     // Cached feed renders instantly when coming back to Discover instead of
     // showing a spinner every time - it still refreshes quietly in the
-    // background once this goes stale.
+    // background once this goes stale. Shares fetchDiscoverFeed with the
+    // bottom nav's prefetch-on-hover (src/lib/discover-feed.ts) so a tap on
+    // the Discover tab often lands on already-warm cache.
     staleTime: 30_000,
-    queryFn: async () => {
-      let videos: VideoRow[];
-      if (tab === "foryou") {
-        // Personalized ranking - see src/lib/recommendation-engine.server.ts
-        const rows = await getPersonalizedFeed({ data: { limit: 30 } });
-        videos = rows.map((v) => ({ ...v, thumbnail_path: null }));
-        const { data: ownVideos, error: ownVideosError } = await supabase
-          .from("videos")
-          .select(
-            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
-          )
-          .eq("user_id", user!.id)
-          .eq("visibility", "public")
-          .eq("moderation_status", "approved")
-          .order("created_at", { ascending: false })
-          .limit(12);
-        if (ownVideosError) throw ownVideosError;
-        const ownIds = new Set((ownVideos ?? []).map((video) => video.id));
-        videos = [
-          ...((ownVideos ?? []) as VideoRow[]),
-          ...videos.filter((video) => !ownIds.has(video.id)),
-        ];
-      } else {
-        const ids = [...new Set([user!.id, ...(following.data ?? [])])];
-        const { data, error } = await supabase
-          .from("videos")
-          .select(
-            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
-          )
-          .eq("visibility", "public")
-          .eq("moderation_status", "approved")
-          .in("user_id", ids)
-          .order("created_at", { ascending: false })
-          .limit(30);
-        if (error) throw error;
-        videos = (data ?? []) as VideoRow[];
-      }
-
-      // Deep-linked from a video thumbnail elsewhere (e.g. Home's Discover
-      // preview) - pin it as the first slide of the scroll feed.
-      if (pinnedVideoId && !videos.some((v) => v.id === pinnedVideoId)) {
-        const { data: pinned } = await supabase
-          .from("videos")
-          .select(
-            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
-          )
-          .eq("id", pinnedVideoId)
-          .eq("moderation_status", "approved")
-          .maybeSingle();
-        if (pinned) videos = [pinned as VideoRow, ...videos];
-      } else if (pinnedVideoId) {
-        videos = [
-          videos.find((v) => v.id === pinnedVideoId)!,
-          ...videos.filter((v) => v.id !== pinnedVideoId),
-        ];
-      }
-
-      const ids = [...new Set(videos.map((v) => v.user_id))];
-      const profiles: Record<
-        string,
-        { username: string | null; avatar_url: string | null; verified: boolean | null }
-      > = {};
-      if (ids.length) {
-        const { data: p } = await supabase
-          .from("profiles")
-          .select("id,username,avatar_url,verified")
-          .in("id", ids);
-        for (const row of p ?? [])
-          profiles[row.id] = {
-            username: row.username,
-            avatar_url: row.avatar_url,
-            verified: row.verified,
-          };
-        const { data: plusProfiles } = await supabase
-          .from("profiles")
-          .select("id,spark_plus_active,spark_plus_expires_at")
-          .in("id", ids);
-        const boosted = new Set(
-          (plusProfiles ?? [])
-            .filter(
-              (profile) =>
-                profile.spark_plus_active &&
-                (!profile.spark_plus_expires_at ||
-                  new Date(profile.spark_plus_expires_at).getTime() > Date.now()),
-            )
-            .map((profile) => profile.id),
-        );
-        videos = videos
-          .map((video, index) => ({ video, index }))
-          .sort((a, b) => {
-            const boostDifference =
-              Number(boosted.has(b.video.user_id)) - Number(boosted.has(a.video.user_id));
-            return boostDifference || a.index - b.index;
-          })
-          .map(({ video }) => video);
-      }
-      return { videos, profiles };
-    },
+    queryFn: () =>
+      fetchDiscoverFeed({
+        userId: user!.id,
+        tab,
+        followingIds: following.data ?? [],
+        ...(pinnedVideoId ? { pinnedVideoId } : {}),
+      }),
   });
 
   // Deep-linked from an "Activités" notification about a comment - open

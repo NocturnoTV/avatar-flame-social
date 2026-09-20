@@ -19,7 +19,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
 import { useSession } from "@/lib/session";
@@ -27,6 +27,7 @@ import { useI18n } from "@/lib/i18n";
 import { useUnreadConversations } from "@/lib/unreadConversations";
 import { cn } from "@/lib/utils";
 import { LogoWordmark } from "@/components/Logo";
+import { discoverFeedKey, fetchDiscoverFeed } from "@/lib/discover-feed";
 
 // Shares its cache with AppMenu's own profile query (same queryKey) so the
 // avatar shown on the bottom-nav "Profil" tab never re-fetches twice.
@@ -45,6 +46,38 @@ function useMyAvatar() {
     },
   });
   return data;
+}
+
+/** Warms the Discover feed cache the moment a finger/cursor touches the tab
+ * - by the time the actual navigation lands, the feed is often already
+ * fetched, so the page renders instantly instead of showing a spinner.
+ * Shares its query key and fetch logic with discover.index.tsx exactly
+ * (src/lib/discover-feed.ts) so this prefetch is the same cache entry the
+ * page itself reads, not a wasted parallel fetch. */
+function usePrefetchDiscover() {
+  const { user } = useSession();
+  const queryClient = useQueryClient();
+  return () => {
+    if (!user) return;
+    void (async () => {
+      const followingIds = await queryClient.fetchQuery({
+        queryKey: ["following", user.id],
+        staleTime: 60_000,
+        queryFn: async () => {
+          const { data } = await supabase
+            .from("follows")
+            .select("following_id")
+            .eq("follower_id", user.id);
+          return (data ?? []).map((r) => r.following_id);
+        },
+      });
+      void queryClient.prefetchQuery({
+        queryKey: discoverFeedKey(user.id, "foryou", followingIds, undefined),
+        staleTime: 30_000,
+        queryFn: () => fetchDiscoverFeed({ userId: user.id, tab: "foryou", followingIds }),
+      });
+    })();
+  };
 }
 
 function useItems() {
@@ -85,6 +118,7 @@ export function SideNav() {
   const unread = useUnreadConversations();
   const unreadNotifications = useUnreadNotifications();
   const { t } = useI18n();
+  const prefetchDiscover = usePrefetchDiscover();
   const primaryItems = [
     { to: "/home", icon: Home, label: t("home") },
     { to: "/discover", icon: Compass, label: t("discover") },
@@ -129,6 +163,9 @@ export function SideNav() {
       <Link
         key={`${group}-${item.to}-${item.label}`}
         to={item.to}
+        {...(item.to === "/discover"
+          ? { onMouseEnter: prefetchDiscover, onFocus: prefetchDiscover }
+          : {})}
         className={cn(
           "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
           active
@@ -181,6 +218,7 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
   const isActive = useActive();
   const unread = useUnreadConversations();
   const myAvatar = useMyAvatar();
+  const prefetchDiscover = usePrefetchDiscover();
 
   return (
     <nav className="fixed inset-x-3 bottom-[max(0.65rem,env(safe-area-inset-bottom))] z-40 rounded-[1.65rem] border border-border/80 bg-background/90 p-1.5 shadow-[0_14px_45px_-12px_rgba(0,0,0,.35)] backdrop-blur-2xl lg:hidden">
@@ -237,6 +275,9 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
             <Link
               key={item.to}
               to={item.to}
+              {...(item.to === "/discover"
+                ? { onTouchStart: prefetchDiscover, onMouseEnter: prefetchDiscover }
+                : {})}
               className={cn(
                 "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 text-[10px] font-bold transition-all duration-200 active:scale-95",
                 active
