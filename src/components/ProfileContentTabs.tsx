@@ -81,14 +81,14 @@ export function ProfileContentTabs({
             key={tb.id}
             onClick={() => setTab(tb.id)}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition",
+              "flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-xs font-bold transition",
               tab === tb.id
                 ? "bg-background text-primary shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <tb.icon className="h-3.5 w-3.5" />
-            {tb.label}
+            <tb.icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{tb.label}</span>
           </button>
         ))}
       </div>
