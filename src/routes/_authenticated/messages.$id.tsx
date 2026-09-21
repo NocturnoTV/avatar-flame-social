@@ -1592,7 +1592,7 @@ const ACTIVITY_TAB_KINDS: Record<ActivityTab, readonly string[] | null> = {
   all: null,
   comments: ["video_comment", "video_comment_reply"],
   mentions: ["video_mention"],
-  likes: ["video_like", "video_favorite"],
+  likes: ["video_like", "video_favorite", "video_comment_like"],
   other: ["video_repost"],
 };
 
@@ -1603,6 +1603,7 @@ const ACTIVITY_KIND_ICON: Record<string, typeof Heart> = {
   video_comment: MessageCircle,
   video_comment_reply: MessageCircle,
   video_mention: AtSign,
+  video_comment_like: Heart,
 };
 
 const ACTIVITY_KIND_ICON_CLASS: Record<string, string> = {
@@ -1612,6 +1613,7 @@ const ACTIVITY_KIND_ICON_CLASS: Record<string, string> = {
   video_comment: "bg-primary text-primary-foreground",
   video_comment_reply: "bg-primary text-primary-foreground",
   video_mention: "bg-violet-500 text-white",
+  video_comment_like: "bg-red-500 text-white",
 };
 
 function ActivitiesConversation() {
@@ -1696,7 +1698,8 @@ function ActivitiesConversation() {
     const isCommentKind =
       item.kind === "video_comment" ||
       item.kind === "video_comment_reply" ||
-      item.kind === "video_mention";
+      item.kind === "video_mention" ||
+      item.kind === "video_comment_like";
     void navigate({
       to: "/discover",
       search:

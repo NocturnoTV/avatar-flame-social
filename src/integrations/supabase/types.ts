@@ -2504,6 +2504,7 @@ export type Database = {
       }
       reports: {
         Row: {
+          comment_id: string | null
           created_at: string
           details: string | null
           handled_at: string | null
@@ -2518,6 +2519,7 @@ export type Database = {
           video_id: string | null
         }
         Insert: {
+          comment_id?: string | null
           created_at?: string
           details?: string | null
           handled_at?: string | null
@@ -2532,6 +2534,7 @@ export type Database = {
           video_id?: string | null
         }
         Update: {
+          comment_id?: string | null
           created_at?: string
           details?: string | null
           handled_at?: string | null
@@ -2546,6 +2549,13 @@ export type Database = {
           video_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reports_message_id_fkey"
             columns: ["message_id"]
@@ -4218,6 +4228,7 @@ export type Database = {
         | "video_repost"
         | "video_comment_reply"
         | "video_mention"
+        | "video_comment_like"
       swipe_action: "like" | "pass" | "super"
     }
     CompositeTypes: {
@@ -4360,6 +4371,7 @@ export const Constants = {
         "video_repost",
         "video_comment_reply",
         "video_mention",
+        "video_comment_like",
       ],
       swipe_action: ["like", "pass", "super"],
     },

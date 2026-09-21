@@ -2211,10 +2211,15 @@ type ReportProfile = {
   age: number | null;
 };
 
-type ReportKind = "conversation" | "content" | "other";
+type ReportKind = "conversation" | "content" | "comment" | "other";
 type ReportStatusFilter = "all" | "pending" | "reviewed" | "dismissed" | "sanctioned";
 
-function reportKindOf(r: { message_id: string | null; video_id: string | null }): ReportKind {
+function reportKindOf(r: {
+  message_id: string | null;
+  video_id: string | null;
+  comment_id?: string | null;
+}): ReportKind {
+  if (r.comment_id) return "comment";
   if (r.video_id) return "content";
   if (r.message_id) return "conversation";
   return "other";
@@ -2235,7 +2240,7 @@ function Moderation({ log }: { log: LogFn }) {
       const { data, error } = await supabase
         .from("reports")
         .select(
-          "id,reason,details,status,created_at,reporter_id,target_user_id,message_id,video_id",
+          "id,reason,details,status,created_at,reporter_id,target_user_id,message_id,video_id,comment_id",
         )
         .order("created_at", { ascending: false })
         .limit(200);
@@ -2267,6 +2272,22 @@ function Moderation({ log }: { log: LogFn }) {
       const { data } = await supabase
         .from("videos")
         .select("id,caption,storage_path,thumbnail_path,moderation_status,created_at")
+        .in("id", ids);
+      return data ?? [];
+    },
+  });
+
+  const reportedComments = useQuery({
+    queryKey: ["admin-report-comments", (reports.data ?? []).map((r) => r.comment_id).join(",")],
+    enabled: (reports.data ?? []).some((r) => r.comment_id),
+    queryFn: async () => {
+      const ids = (reports.data ?? [])
+        .map((r) => r.comment_id)
+        .filter((id): id is string => !!id);
+      if (!ids.length) return [];
+      const { data } = await supabase
+        .from("video_comments")
+        .select("id,content,media_type,created_at")
         .in("id", ids);
       return data ?? [];
     },
@@ -2323,6 +2344,9 @@ function Moderation({ log }: { log: LogFn }) {
     const video = r.video_id
       ? (reportedVideos.data ?? []).find((v) => v.id === r.video_id)
       : undefined;
+    const comment = r.comment_id
+      ? (reportedComments.data ?? []).find((c) => c.id === r.comment_id)
+      : undefined;
     const haystack = [
       r.id,
       r.reason,
@@ -2332,6 +2356,7 @@ function Moderation({ log }: { log: LogFn }) {
       target?.username,
       target?.roblox_username,
       video?.caption,
+      comment?.content,
     ]
       .filter(Boolean)
       .join(" ")
@@ -2392,6 +2417,7 @@ function Moderation({ log }: { log: LogFn }) {
                 ["all", "All content"],
                 ["conversation", "Conversation"],
                 ["content", "Content (videos, stories)"],
+                ["comment", "Comments"],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -2450,6 +2476,9 @@ function Moderation({ log }: { log: LogFn }) {
               const video = r.video_id
                 ? (reportedVideos.data ?? []).find((v) => v.id === r.video_id)
                 : undefined;
+              const comment = r.comment_id
+                ? (reportedComments.data ?? []).find((c) => c.id === r.comment_id)
+                : undefined;
               const kind = reportKindOf(r);
               const status = r.status || "pending";
               return (
@@ -2475,7 +2504,13 @@ function Moderation({ log }: { log: LogFn }) {
                         {status}
                       </span>
                       <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
-                        {kind === "content" ? "Content" : kind === "conversation" ? "Conversation" : "Other"}
+                        {kind === "content"
+                          ? "Content"
+                          : kind === "comment"
+                            ? "Comment"
+                            : kind === "conversation"
+                              ? "Conversation"
+                              : "Other"}
                       </span>
                     </div>
                   </div>
@@ -2498,6 +2533,15 @@ function Moderation({ log }: { log: LogFn }) {
                         Reported message ({message.kind})
                       </p>
                       <p className="mt-1 break-words">{message.content ?? "(media)"}</p>
+                    </div>
+                  ) : null}
+
+                  {comment ? (
+                    <div className="mt-2 rounded-2xl bg-destructive/10 p-3 text-sm">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-destructive">
+                        Reported comment{comment.media_type ? ` (${comment.media_type})` : ""}
+                      </p>
+                      <p className="mt-1 break-words">{comment.content || "(media)"}</p>
                     </div>
                   ) : null}
 

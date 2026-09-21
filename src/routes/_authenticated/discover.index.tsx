@@ -4,8 +4,10 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
   Bookmark,
   AtSign,
+  ChevronDown,
   ChevronLeft,
   ChevronsDown,
+  ChevronUp,
   Check,
   EyeOff,
   Eye,
@@ -17,6 +19,7 @@ import {
   ImagePlus,
   Link2,
   MessageCircle,
+  MessageSquareOff,
   MoreHorizontal,
   Music2,
   Play,
@@ -30,6 +33,7 @@ import {
   SlidersHorizontal,
   Smile,
   Sparkles,
+  Trash2,
   Volume2,
   VolumeX,
   X,
@@ -65,6 +69,25 @@ const REPORT_SCENARIOS = [
   "intellectual_property",
   "other",
 ] as const;
+
+const COMMENT_EMOJIS = ["😀", "😂", "🥰", "😎", "😭", "🔥", "✨", "💖", "👀", "😢", "🙏", "💯"];
+
+/** Shared between the video and comment report sheets - same taxonomy either way. */
+function reportScenarioLabels(
+  t: (key: string) => string,
+): Record<(typeof REPORT_SCENARIOS)[number], string> {
+  return {
+    violence: t("reportScenarioViolence"),
+    hate: t("reportScenarioHate"),
+    suicide: t("reportScenarioSuicide"),
+    nudity: t("reportScenarioNudity"),
+    graphic: t("reportScenarioGraphic"),
+    fraud: t("reportScenarioFraud"),
+    personal_info: t("reportScenarioPersonalInfo"),
+    intellectual_property: t("reportScenarioIP"),
+    other: t("reportScenarioOther"),
+  };
+}
 
 export const Route = createFileRoute("/_authenticated/discover/")({
   validateSearch: (search: Record<string, unknown>): { v?: string; c?: string } => ({
@@ -469,7 +492,7 @@ function DiscoverSearch({
           <button
             onClick={onClose}
             className="grid h-12 w-12 shrink-0 place-items-center rounded-full hover:bg-surface-2"
-            aria-label={t("close")}
+            aria-label={t("cancel")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -1055,17 +1078,7 @@ function VideoContextMenu({
     if (!open) setReporting(false);
   }, [open]);
 
-  const SCENARIO_LABELS: Record<(typeof REPORT_SCENARIOS)[number], string> = {
-    violence: t("reportScenarioViolence"),
-    hate: t("reportScenarioHate"),
-    suicide: t("reportScenarioSuicide"),
-    nudity: t("reportScenarioNudity"),
-    graphic: t("reportScenarioGraphic"),
-    fraud: t("reportScenarioFraud"),
-    personal_info: t("reportScenarioPersonalInfo"),
-    intellectual_property: t("reportScenarioIP"),
-    other: t("reportScenarioOther"),
-  };
+  const SCENARIO_LABELS = reportScenarioLabels(t);
 
   async function submitReport(reason: string) {
     if (!user || sendingReport) return;
@@ -1429,6 +1442,24 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const [mentionSuggestions, setMentionSuggestions] = useState<
     { id: string; username: string; avatar_url: string | null; isFriend: boolean }[]
   >([]);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [menuFor, setMenuFor] = useState<RichComment | null>(null);
+  const [deletingComment, setDeletingComment] = useState<RichComment | null>(null);
+  const [reportingComment, setReportingComment] = useState<RichComment | null>(null);
+  const [sendingReport, setSendingReport] = useState(false);
+  const [pending, setPending] = useState<(RichComment & { status: "sending" | "failed" }) | null>(
+    null,
+  );
+
+  function toggleReplies(commentId: string) {
+    setExpandedReplies((current) => {
+      const next = new Set(current);
+      if (next.has(commentId)) next.delete(commentId);
+      else next.add(commentId);
+      return next;
+    });
+  }
 
   const mentionMatch = /(?:^|\s)@([\w.]*)$/.exec(text);
   const mentionQuery = mentionMatch ? mentionMatch[1] : null;
@@ -1506,6 +1537,18 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     },
   });
 
+  const commentsAllowed = useQuery({
+    queryKey: ["comment-permissions", video.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("videos")
+        .select("allow_comments")
+        .eq("id", video.id)
+        .maybeSingle();
+      return data?.allow_comments ?? true;
+    },
+  });
+
   const comments = useQuery({
     queryKey: ["video-comments", video.id],
     queryFn: async () => {
@@ -1566,34 +1609,94 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     },
   });
 
-  async function send() {
-    const content = text.trim();
-    if ((!content && !media) || !user) return;
-    setText("");
+  // Optimistic send: the draft appears in the list right away (status
+  // "sending"); a failure flips it to "failed" in place instead of losing
+  // the text, and the input keeps its contents until the post actually
+  // succeeds so a retry is just hitting send again.
+  async function postComment(draft: RichComment) {
+    setPending({ ...draft, status: "sending" });
     const { error } = await supabase.from("video_comments").insert({
       video_id: video.id,
+      user_id: draft.user_id,
+      content: draft.content,
+      parent_id: draft.parent_id,
+      media_url: draft.media_url,
+      media_type: draft.media_type,
+    });
+    if (error) {
+      setPending((current) => (current ? { ...current, status: "failed" } : current));
+      return;
+    }
+    setPending(null);
+    setText("");
+    setReplyingTo(null);
+    setMedia(null);
+    setShowExtras(false);
+    setEmojiOpen(false);
+    setGifUrl("");
+    void logPositiveAction({ data: { videoId: video.id, action: "comment" } });
+    void supabase.rpc("bump_quest_progress", {
+      _metric_key: "conversation",
+      _entity_id: video.id,
+    });
+    await comments.refetch();
+    await qc.invalidateQueries({ queryKey: ["feed"] });
+  }
+
+  function send() {
+    const content = text.trim();
+    if ((!content && !media) || !user || pending?.status === "sending") return;
+    void postComment({
+      id: `pending-${Date.now()}`,
       user_id: user.id,
       content:
         content ||
         (media?.type === "sticker" || media?.type === "custom_sticker" ? "Autocollant" : "GIF"),
+      created_at: new Date().toISOString(),
       parent_id: replyingTo?.id ?? null,
       media_url: media?.url ?? null,
       media_type: media?.type ?? null,
+      username: myProfile.data?.username ?? "",
+      avatar_url: myProfile.data?.avatar_url ?? null,
+      verified: false,
+      likes_count: 0,
+      creator_liked: false,
+      creator_avatar_url: null,
+      my_reaction: null,
     });
-    if (error) toast.error(error.message);
-    else {
-      void logPositiveAction({ data: { videoId: video.id, action: "comment" } });
-      void supabase.rpc("bump_quest_progress", {
-        _metric_key: "conversation",
-        _entity_id: video.id,
-      });
+  }
+
+  async function confirmDeleteComment() {
+    if (!deletingComment) return;
+    const id = deletingComment.id;
+    setDeletingComment(null);
+    const { error } = await supabase.from("video_comments").delete().eq("id", id);
+    if (error) {
+      toast.error(t("errorGeneric"));
+      return;
     }
-    setReplyingTo(null);
-    setMedia(null);
-    setShowExtras(false);
-    setGifUrl("");
     await comments.refetch();
     await qc.invalidateQueries({ queryKey: ["feed"] });
+  }
+
+  async function submitCommentReport(reason: string) {
+    if (!user || !reportingComment || sendingReport) return;
+    setSendingReport(true);
+    const { error } = await supabase
+      .from("reports")
+      .insert({
+        reporter_id: user.id,
+        comment_id: reportingComment.id,
+        video_id: video.id,
+        reason,
+      });
+    setSendingReport(false);
+    setReportingComment(null);
+    if (error) {
+      toast.error(t("errorGeneric"));
+      return;
+    }
+    toast.success(t("reportSubmitted"));
   }
 
   async function react(commentId: string) {
@@ -1671,13 +1774,26 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
           </button>
           <button
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={t("cancel")}
             className="absolute right-5 rounded-full p-1.5 text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
           >
             <X className="h-6 w-6" />
           </button>
         </div>
         <div className="relative flex-1 space-y-1 overflow-y-auto px-3 py-4 sm:px-5">
+          {!commentsAllowed.isLoading && commentsAllowed.data === false ? (
+            <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
+              <MessageSquareOff className="h-6 w-6" />
+              {t("commentsDisabledMessage")}
+            </div>
+          ) : null}
+          {pending && !pending.parent_id ? (
+            <PendingCommentRow
+              comment={pending}
+              onRetry={() => void postComment(pending)}
+              onDiscard={() => setPending(null)}
+            />
+          ) : null}
           {comments.data?.length ? (
             [...comments.data]
               .filter((comment) => !comment.parent_id)
@@ -1704,12 +1820,20 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                     setText(`@${username} `);
                   }}
                   onReact={react}
+                  onOpenMenu={setMenuFor}
+                  expanded={expandedReplies.has(c.id)}
+                  onToggleExpand={() => toggleReplies(c.id)}
+                  pendingReply={pending?.parent_id === c.id ? pending : null}
+                  onRetryPending={() => pending && void postComment(pending)}
+                  onDiscardPending={() => setPending(null)}
                 />
               ))
-          ) : (
+          ) : !pending && commentsAllowed.data !== false ? (
             <p className="py-10 text-center text-sm text-muted-foreground">{t("firstComment")}</p>
-          )}
+          ) : null}
         </div>
+        {commentsAllowed.data === false ? null : (
+        <>
         {showExtras ? (
           <div className="border-t border-border bg-card/95 px-4 py-3 backdrop-blur-xl">
             <div className="flex gap-2">
@@ -1752,6 +1876,19 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 ))}
               </div>
             ) : null}
+          </div>
+        ) : null}
+        {emojiOpen ? (
+          <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-t border-border bg-card/95 px-4 py-3 text-2xl backdrop-blur-xl">
+            {COMMENT_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => setText((v) => v + emoji)}
+                className="shrink-0 rounded-xl p-1.5 transition active:scale-90"
+              >
+                {emoji}
+              </button>
+            ))}
           </div>
         ) : null}
         {replyingTo || media ? (
@@ -1818,18 +1955,29 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
               type="button"
               onClick={() => setText((v) => (v.endsWith("@") || !v ? v + "@" : `${v} @`))}
               className="p-1.5"
-              aria-label="Mentionner quelqu’un"
+              aria-label={t("commentMentionButton")}
             >
               <AtSign className="h-5 w-5" />
             </button>
-            <button type="button" className="p-1.5" aria-label="Ajouter un emoji">
+            <button
+              type="button"
+              onClick={() => {
+                setEmojiOpen((v) => !v);
+                setShowExtras(false);
+              }}
+              className="p-1.5"
+              aria-label={t("commentEmojiButton")}
+            >
               <Smile className="h-5 w-5" />
             </button>
           </div>
           <button
-            onClick={() => setShowExtras((v) => !v)}
+            onClick={() => {
+              setShowExtras((v) => !v);
+              setEmojiOpen(false);
+            }}
             className="grid h-10 w-10 place-items-center rounded-full text-primary"
-            aria-label="GIF et autocollants"
+            aria-label={t("commentAttachButton")}
           >
             <ImagePlus className="h-5 w-5" />
           </button>
@@ -1844,10 +1992,17 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
               <Gift className="h-5 w-5" />
             </button>
           ) : null}
-          <Button size="icon" onClick={send} aria-label="Envoyer" disabled={!text.trim() && !media}>
+          <Button
+            size="icon"
+            onClick={send}
+            aria-label={t("send")}
+            disabled={(!text.trim() && !media) || pending?.status === "sending"}
+          >
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        </>
+        )}
         {giftingCreator ? (
           <GiftSheet
             targetUserId={video.user_id}
@@ -1858,6 +2013,75 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
           />
         ) : null}
       </div>
+      {menuFor ? (
+        <Sheet open onClose={() => setMenuFor(null)}>
+          <div className="space-y-1">
+            {menuFor.user_id === user?.id || video.user_id === user?.id ? (
+              <button
+                onClick={() => {
+                  setDeletingComment(menuFor);
+                  setMenuFor(null);
+                }}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-destructive hover:bg-surface-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="text-sm font-semibold">{t("delete")}</span>
+              </button>
+            ) : null}
+            {menuFor.user_id !== user?.id ? (
+              <button
+                onClick={() => {
+                  setReportingComment(menuFor);
+                  setMenuFor(null);
+                }}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+              >
+                <Flag className="h-4 w-4" />
+                <span className="text-sm font-semibold">{t("videoMenuReport")}</span>
+              </button>
+            ) : null}
+          </div>
+        </Sheet>
+      ) : null}
+      {deletingComment ? (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-6"
+          onClick={() => setDeletingComment(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl bg-card p-5 text-center shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-bold">{t("commentDeleteConfirm")}</p>
+            <div className="mt-4 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setDeletingComment(null)}>
+                {t("cancel")}
+              </Button>
+              <Button variant="danger" className="flex-1" onClick={() => void confirmDeleteComment()}>
+                {t("delete")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {reportingComment ? (
+        <Sheet open onClose={() => setReportingComment(null)}>
+          <p className="mb-3 text-lg font-black">{t("videoMenuReport")}</p>
+          <p className="mb-3 text-sm text-muted-foreground">{t("reportSelectScenario")}</p>
+          <div className="space-y-1">
+            {REPORT_SCENARIOS.map((reason) => (
+              <button
+                key={reason}
+                disabled={sendingReport}
+                onClick={() => void submitCommentReport(reason)}
+                className="flex w-full items-center rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-surface-2 disabled:opacity-50"
+              >
+                {reportScenarioLabels(t)[reason]}
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      ) : null}
     </div>
   );
 }
@@ -1888,16 +2112,75 @@ function CommentStickerThumb({ path, className }: { path: string; className?: st
   );
 }
 
+function PendingCommentRow({
+  comment,
+  nested,
+  onRetry,
+  onDiscard,
+}: {
+  comment: RichComment & { status: "sending" | "failed" };
+  nested?: boolean;
+  onRetry: () => void;
+  onDiscard: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className={cn("flex gap-2 px-2 py-2", nested ? "ml-12 pl-3" : "gap-3")}>
+      <StoredImage
+        path={comment.avatar_url}
+        alt={comment.username}
+        className={cn(
+          "shrink-0 rounded-full object-cover",
+          nested ? "h-8 w-8" : "h-11 w-11",
+          comment.status === "sending" && "opacity-50",
+        )}
+        fallback={comment.username[0]?.toUpperCase() ?? "?"}
+      />
+      <div className="min-w-0 flex-1">
+        <span className="text-xs font-bold text-muted-foreground">@{comment.username}</span>
+        <p className={cn("text-sm text-foreground", comment.status === "sending" && "opacity-50")}>
+          <MentionText text={comment.content} />
+        </p>
+        {comment.status === "sending" ? (
+          <p className="mt-1 text-xs font-semibold text-muted-foreground">{t("loading")}</p>
+        ) : (
+          <div className="mt-1 flex items-center gap-3 text-xs font-bold">
+            <span className="text-destructive">{t("commentSendFailed")}</span>
+            <button onClick={onRetry} className="text-primary hover:underline">
+              {t("retryAction")}
+            </button>
+            <button onClick={onDiscard} className="text-muted-foreground hover:underline">
+              {t("cancel")}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CommentItem({
   comment,
   replies,
   onReply,
   onReact,
+  onOpenMenu,
+  expanded,
+  onToggleExpand,
+  pendingReply,
+  onRetryPending,
+  onDiscardPending,
 }: {
   comment: RichComment;
   replies: RichComment[];
   onReply: (id: string, username: string) => void;
   onReact: (id: string) => void;
+  onOpenMenu: (comment: RichComment) => void;
+  expanded: boolean;
+  onToggleExpand: () => void;
+  pendingReply?: (RichComment & { status: "sending" | "failed" }) | null;
+  onRetryPending: () => void;
+  onDiscardPending: () => void;
 }) {
   const { t } = useI18n();
   const [likeBurst, setLikeBurst] = useState(0);
@@ -1986,7 +2269,7 @@ function CommentItem({
               void onReact(comment.id);
             }}
             className="group relative flex flex-col items-center text-muted-foreground transition active:scale-75"
-            aria-label="J’aime"
+            aria-label={t("like")}
           >
             {comment.my_reaction === "like" ? (
               <span key={likeBurst} className="bx-mini-heart-burst" />
@@ -1999,9 +2282,26 @@ function CommentItem({
             />
             <span className="text-[11px]">{comment.likes_count || ""}</span>
           </button>
+          <button
+            onClick={() => onOpenMenu(comment)}
+            className="text-muted-foreground transition hover:text-foreground"
+            aria-label={t("commentMenuLabel")}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
         </div>
       </div>
-      {replies.map((r) => (
+      {replies.length > 0 ? (
+        <button
+          onClick={onToggleExpand}
+          className="ml-12 flex items-center gap-1 pl-3 text-xs font-bold text-muted-foreground hover:text-primary"
+        >
+          {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {expanded ? t("hideReplies") : t("showRepliesCount", { count: replies.length })}
+        </button>
+      ) : null}
+      {expanded
+        ? replies.map((r) => (
         <div key={r.id} className="ml-12 flex gap-2 pl-3">
           <Link to="/users/$id" params={{ id: r.username || r.user_id }}>
             <StoredImage
@@ -2041,21 +2341,39 @@ function CommentItem({
               </button>
             </div>
           </div>
-          <button
-            onClick={() => void onReact(r.id)}
-            className="flex w-9 shrink-0 flex-col items-center pt-2 text-muted-foreground transition active:scale-75"
-            aria-label="J’aime"
-          >
-            <Heart
-              className={cn(
-                "h-5 w-5",
-                r.my_reaction === "like" && "fill-rose-500 text-rose-500 bx-reaction-pop",
-              )}
-            />
-            <span className="text-[11px]">{r.likes_count || ""}</span>
-          </button>
+          <div className="flex w-9 shrink-0 flex-col items-center gap-2 pt-2 text-muted-foreground">
+            <button
+              onClick={() => void onReact(r.id)}
+              className="flex flex-col items-center transition active:scale-75"
+              aria-label={t("like")}
+            >
+              <Heart
+                className={cn(
+                  "h-5 w-5",
+                  r.my_reaction === "like" && "fill-rose-500 text-rose-500 bx-reaction-pop",
+                )}
+              />
+              <span className="text-[11px]">{r.likes_count || ""}</span>
+            </button>
+            <button
+              onClick={() => onOpenMenu(r)}
+              className="transition hover:text-foreground"
+              aria-label={t("commentMenuLabel")}
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
-      ))}
+      ))
+        : null}
+      {pendingReply ? (
+        <PendingCommentRow
+          comment={pendingReply}
+          nested
+          onRetry={onRetryPending}
+          onDiscard={onDiscardPending}
+        />
+      ) : null}
     </div>
   );
 }

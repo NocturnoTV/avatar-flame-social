@@ -11,6 +11,7 @@ export const ACTIVITY_NOTIFICATION_KINDS = [
   "video_comment",
   "video_comment_reply",
   "video_mention",
+  "video_comment_like",
 ] as const;
 
 export type ActivityNotificationKind = (typeof ACTIVITY_NOTIFICATION_KINDS)[number];
@@ -46,6 +47,8 @@ export function localizeActivityNotification(
       return t("notifVideoCommentReplyBody", { name: actorName, text: body ?? "" });
     case "video_mention":
       return t("notifVideoMentionBody", { name: actorName, text: body ?? "" });
+    case "video_comment_like":
+      return t("notifVideoCommentLikeBody", { name: actorName });
     default:
       return body ?? "";
   }
@@ -76,6 +79,8 @@ export function localizeActivityAction(
       return t("notifVideoCommentReplyAction", { text: body ?? "" });
     case "video_mention":
       return t("notifVideoMentionAction", { text: body ?? "" });
+    case "video_comment_like":
+      return t("notifVideoCommentLikeAction");
     default:
       return body ?? "";
   }
