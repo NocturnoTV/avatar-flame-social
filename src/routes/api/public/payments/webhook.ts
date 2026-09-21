@@ -164,7 +164,7 @@ async function handleBloxPackPurchase(session: Stripe.Checkout.Session) {
   // balance change.
   const conversationId = session.metadata?.["conversationId"];
   const note = session.metadata?.["note"];
-  if (conversationId && userId !== payerId) {
+  if (conversationId && userId !== payerId && (await isConversationMember(conversationId, payerId))) {
     await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: payerId,
