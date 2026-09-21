@@ -480,6 +480,7 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
   const [bloxAmount, setBloxAmount] = useState("500");
   const [busy, setBusy] = useState(false);
   const [impersonating, setImpersonating] = useState(false);
+  const [segment, setSegment] = useState<"all" | "creators" | "viewers" | "spark_plus">("all");
 
   async function impersonate(userId: string) {
     setImpersonating(true);
@@ -501,11 +502,18 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
     queryFn: () => adminGetMemberDetail({ data: { userId: selectedId! } }),
   });
 
-  const rows = (members.data ?? []).filter((member) => {
-    const haystack =
-      `${member.username ?? ""} ${member.roblox_username ?? ""} ${member.email ?? ""}`.toLowerCase();
-    return haystack.includes(search.trim().toLowerCase());
-  });
+  const rows = (members.data ?? [])
+    .filter((member) => {
+      if (segment === "creators") return member.isCreator;
+      if (segment === "viewers") return !member.isCreator;
+      if (segment === "spark_plus") return member.sparkPlusActive;
+      return true;
+    })
+    .filter((member) => {
+      const haystack =
+        `${member.username ?? ""} ${member.roblox_username ?? ""} ${member.email ?? ""}`.toLowerCase();
+      return haystack.includes(search.trim().toLowerCase());
+    });
   const selected = (members.data ?? []).find((member) => member.id === selectedId);
 
   async function act(
@@ -570,6 +578,30 @@ function Members({ isAdmin, log }: { isAdmin: boolean; log: LogFn }) {
             placeholder="Pseudo, Roblox ou e-mail"
             className="bg-background/70 pl-10"
           />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {(
+            [
+              { key: "all" as const, label: "Tous" },
+              { key: "creators" as const, label: "Créateurs de contenu" },
+              { key: "viewers" as const, label: "Simples spectateurs" },
+              { key: "spark_plus" as const, label: "Spark Plus" },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setSegment(opt.key)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                segment === opt.key
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground",
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -4251,6 +4283,7 @@ function Broadcast({ isAdmin }: { isAdmin: boolean }) {
   const [selected, setSelected] = useState<Map<string, string>>(new Map());
   const [sending, setSending] = useState(false);
   const [lastResult, setLastResult] = useState<number | null>(null);
+  const [channels, setChannels] = useState({ teamSpark: true, push: true, email: false });
 
   const members = useQuery({
     queryKey: ["admin-members-v2"],
@@ -4279,7 +4312,11 @@ function Broadcast({ isAdmin }: { isAdmin: boolean }) {
       toast.error("Select at least one member.");
       return;
     }
-    if (!confirm(`Envoyer ce message à ${audienceLabel[audience]}, en tant que message Team Spark ? Cette action est irréversible.`)) {
+    if (!channels.teamSpark && !channels.push && !channels.email) {
+      toast.error("Choisis au moins un canal d'envoi.");
+      return;
+    }
+    if (!confirm(`Envoyer ce message à ${audienceLabel[audience]} ? Cette action est irréversible.`)) {
       return;
     }
     setSending(true);
@@ -4288,6 +4325,7 @@ function Broadcast({ isAdmin }: { isAdmin: boolean }) {
         data: {
           message: message.trim(),
           audience,
+          channels,
           ...(audience === "specific" ? { userIds: [...selected.keys()] } : {}),
         },
       });
@@ -4318,10 +4356,10 @@ function Broadcast({ isAdmin }: { isAdmin: boolean }) {
         </p>
         <h2 className="mt-1 text-2xl font-black">Annonces</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Envoie un message Team Spark à qui tu veux - tout le monde, seulement les Spark Plus, ou
-          des membres précis. Chaque membre le reçoit comme n'importe quel autre message Team
-          Spark, et ceux qui ont désactivé les "Annonces Bloxspark" dans leurs notifications ne le
-          reçoivent pas.
+          Envoie un message à qui tu veux - tout le monde, seulement les Spark Plus, ou des membres
+          précis - par le ou les canaux de ton choix (Team Spark, push, e-mail). Ceux qui ont
+          désactivé les "Annonces Bloxspark" dans leurs notifications ne reçoivent pas le message
+          Team Spark ni le push.
         </p>
       </div>
 
@@ -4421,6 +4459,40 @@ function Broadcast({ isAdmin }: { isAdmin: boolean }) {
               ) : null}
             </div>
           </div>
+        ) : null}
+
+        <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+          Canaux d'envoi
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              { key: "teamSpark" as const, icon: MessagesSquare, label: "Team Spark" },
+              { key: "push" as const, icon: Bell, label: "Push" },
+              { key: "email" as const, icon: Mail, label: "E-mail" },
+            ] as const
+          ).map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => setChannels((cur) => ({ ...cur, [c.key]: !cur[c.key] }))}
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-xl border px-3 py-2.5 text-xs font-bold",
+                channels[c.key]
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground",
+              )}
+            >
+              <c.icon className="h-4 w-4" />
+              {c.label}
+            </button>
+          ))}
+        </div>
+        {channels.email ? (
+          <p className="text-xs text-muted-foreground">
+            L'e-mail ne partira que si RESEND_API_KEY et RESEND_FROM_EMAIL sont configurés côté
+            serveur - sinon ce canal ne fait simplement rien.
+          </p>
         ) : null}
 
         <Textarea

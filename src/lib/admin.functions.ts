@@ -25,7 +25,7 @@ export const adminListMembers = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabaseAdmin, roles: callerRoles } = await requireStaff(context.userId);
     const canManageCredentials = callerRoles.includes("admin");
-    const [{ data: authPage, error: authError }, profilesResult, { data: roles }] =
+    const [{ data: authPage, error: authError }, profilesResult, { data: roles }, { data: creatorRows }] =
       await Promise.all([
         supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 500 }),
         (supabaseAdmin as any)
@@ -35,7 +35,9 @@ export const adminListMembers = createServerFn({ method: "GET" })
           )
           .order("created_at", { ascending: false }),
         supabaseAdmin.from("user_roles").select("user_id,role"),
+        supabaseAdmin.from("videos").select("user_id"),
       ]);
+    const creatorIds = new Set((creatorRows ?? []).map((v) => v.user_id));
     const profiles = profilesResult.data as Array<Record<string, unknown>> | null;
     const profileError = profilesResult.error;
     if (authError) throw authError;
@@ -84,6 +86,7 @@ export const adminListMembers = createServerFn({ method: "GET" })
           : null,
         parentalConsent: Boolean(priv?.["parental_consent"]),
         bloxBalance: Number(profile["blox_balance"] ?? 0),
+        isCreator: creatorIds.has(String(profile["id"])),
       };
     });
   });
@@ -551,6 +554,13 @@ const broadcastSchema = z.object({
   message: z.string().trim().min(1).max(500),
   audience: z.enum(["all", "spark_plus", "specific"]).default("all"),
   userIds: z.array(z.string().uuid()).max(500).optional(),
+  channels: z
+    .object({
+      teamSpark: z.boolean().default(true),
+      push: z.boolean().default(true),
+      email: z.boolean().default(false),
+    })
+    .default({ teamSpark: true, push: true, email: false }),
 });
 
 /**
@@ -578,32 +588,40 @@ export const adminBroadcastNotification = createServerFn({ method: "POST" })
     }
     const { data: profiles, error } = await query;
     if (error) throw error;
+    const recipientIds = (profiles ?? []).map((p) => p.id);
 
-    const rows = (profiles ?? []).map((p) => ({
-      user_id: p.id,
-      kind: "system" as const,
-      body: data.message,
-    }));
-
-    const CHUNK = 500;
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const { error: insertError } = await supabaseAdmin
-        .from("notifications")
-        .insert(rows.slice(i, i + CHUNK));
-      if (insertError) throw insertError;
+    if (data.channels.teamSpark) {
+      const rows = recipientIds.map((id) => ({
+        user_id: id,
+        kind: "system" as const,
+        body: data.message,
+      }));
+      const CHUNK = 500;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const { error: insertError } = await supabaseAdmin
+          .from("notifications")
+          .insert(rows.slice(i, i + CHUNK));
+        if (insertError) throw insertError;
+      }
     }
 
+    const sentChannels = Object.entries(data.channels)
+      .filter(([, on]) => on)
+      .map(([name]) => name);
     await supabaseAdmin.from("admin_audit_log").insert({
       admin_id: context.userId,
       action: "broadcast_notification",
-      details: `Sent to ${rows.length} members (${data.audience}): ${data.message.slice(0, 200)}`,
+      details: `Sent to ${recipientIds.length} members (${data.audience}) via ${sentChannels.join(", ") || "no channel"}: ${data.message.slice(0, 200)}`,
     });
 
-    const { sendPushToUsers } = await import("@/lib/push.server");
-    void sendPushToUsers(
-      rows.map((r) => r.user_id),
-      { title: "BloxSpark", body: data.message },
-    );
+    if (data.channels.push) {
+      const { sendPushToUsers } = await import("@/lib/push.server");
+      void sendPushToUsers(recipientIds, { title: "BloxSpark", body: data.message });
+    }
+    if (data.channels.email) {
+      const { sendEmailToUsers } = await import("@/lib/email.server");
+      void sendEmailToUsers(recipientIds, { subject: "BloxSpark", body: data.message });
+    }
 
-    return { sentTo: rows.length };
+    return { sentTo: recipientIds.length };
   });
