@@ -2028,17 +2028,6 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 Ajouter
               </Button>
             </div>
-            <div className="mt-3 flex gap-2 text-3xl">
-              {["🔥", "😂", "💙", "🎮", "👀", "🏆"].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setMedia({ url: s, type: "sticker" })}
-                  className="rounded-xl bg-background p-2 transition active:scale-90"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
             {(myStickers.data ?? []).length > 0 ? (
               <div className="mt-3 flex gap-2 overflow-x-auto">
                 {myStickers.data!.map((s) => (
@@ -2124,7 +2113,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             fallback={myProfile.data?.username?.[0]?.toUpperCase() ?? "?"}
             className="h-10 w-10 shrink-0 rounded-full"
           />
-          <div className="flex min-w-0 flex-1 items-center rounded-full bg-surface-2 px-3">
+          <div className="flex min-w-0 flex-1 items-center gap-0.5 rounded-full bg-surface-2 pl-3.5 pr-1">
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -2135,10 +2124,10 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             <button
               type="button"
               onClick={() => setText((v) => (v.endsWith("@") || !v ? v + "@" : `${v} @`))}
-              className="p-1.5"
+              className="shrink-0 p-1.5 text-muted-foreground"
               aria-label={t("commentMentionButton")}
             >
-              <AtSign className="h-5 w-5" />
+              <AtSign className="h-4.5 w-4.5" />
             </button>
             <button
               type="button"
@@ -2146,38 +2135,41 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 setEmojiOpen((v) => !v);
                 setShowExtras(false);
               }}
-              className="p-1.5"
+              className="shrink-0 p-1.5 text-muted-foreground"
               aria-label={t("commentEmojiButton")}
             >
-              <Smile className="h-5 w-5" />
+              <Smile className="h-4.5 w-4.5" />
             </button>
-          </div>
-          <button
-            onClick={() => {
-              setShowExtras((v) => !v);
-              setEmojiOpen(false);
-            }}
-            className="grid h-10 w-10 place-items-center rounded-full text-primary"
-            aria-label={t("commentAttachButton")}
-          >
-            <ImagePlus className="h-5 w-5" />
-          </button>
-          {user?.id !== video.user_id ? (
             <button
-              onClick={() => setGiftingCreator(true)}
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white shadow-[0_6px_20px_-6px_rgba(168,85,247,.9)] transition hover:scale-105 active:scale-90"
-              aria-label={t("giftTo", {
-                username: videoCreator.data?.username ?? "creator",
-              })}
+              type="button"
+              onClick={() => {
+                setShowExtras((v) => !v);
+                setEmojiOpen(false);
+              }}
+              className="shrink-0 p-1.5 text-muted-foreground"
+              aria-label={t("commentAttachButton")}
             >
-              <Gift className="h-5 w-5" />
+              <ImagePlus className="h-4.5 w-4.5" />
             </button>
-          ) : null}
+            {user?.id !== video.user_id ? (
+              <button
+                type="button"
+                onClick={() => setGiftingCreator(true)}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white"
+                aria-label={t("giftTo", {
+                  username: videoCreator.data?.username ?? "creator",
+                })}
+              >
+                <Gift className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
           <Button
             size="icon"
             onClick={send}
             aria-label={t("send")}
             disabled={(!text.trim() && !media) || pending?.status === "sending"}
+            className="shrink-0"
           >
             <Send className="h-4 w-4" />
           </Button>

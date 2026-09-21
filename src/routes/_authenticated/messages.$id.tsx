@@ -1029,7 +1029,7 @@ function Conversation() {
             >
               <Trash2 className="h-5 w-5" />
             </button>
-            <div className="flex min-h-[64px] flex-1 items-center rounded-[32px] bg-[#F5F5F5] px-4 py-2 dark:bg-[#1c1c1e]">
+            <div className="flex min-h-[64px] min-w-0 flex-1 items-center rounded-[32px] bg-[#F5F5F5] px-4 py-2 dark:bg-[#1c1c1e]">
               <audio src={pendingVoice.url} controls className="h-9 w-full" />
             </div>
             <Button
@@ -1063,7 +1063,7 @@ function Conversation() {
             }}
           />
 
-          <div className="flex min-h-[64px] flex-1 items-center gap-2 rounded-[32px] bg-[#F5F5F5] px-4 py-2 transition-shadow focus-within:ring-2 focus-within:ring-primary/40 dark:bg-[#1c1c1e]">
+          <div className="flex min-h-[64px] min-w-0 flex-1 items-center gap-2 rounded-[32px] bg-[#F5F5F5] px-4 py-2 transition-shadow focus-within:ring-2 focus-within:ring-primary/40 dark:bg-[#1c1c1e]">
             <textarea
               rows={1}
               value={text}
