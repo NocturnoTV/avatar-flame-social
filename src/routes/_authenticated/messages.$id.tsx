@@ -154,6 +154,7 @@ function Conversation() {
   const [recording, setRecording] = useState(false);
   const [pendingVoice, setPendingVoice] = useState<{ blob: Blob; url: string } | null>(null);
   const [info, setInfo] = useState(false);
+  const [matchSafetyOpen, setMatchSafetyOpen] = useState(false);
   const [activeMessage, setActiveMessage] = useState<Message | null>(null);
   const [reportingMessage, setReportingMessage] = useState<Message | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
@@ -197,6 +198,11 @@ function Conversation() {
         .from("conversations")
         .select("id,is_group,name,request_status,created_by,streak_count,streak_date,streak_broken_at")
         .eq("id", id)
+        .maybeSingle();
+      const { data: matchRow } = await supabase
+        .from("matches")
+        .select("conversation_id")
+        .eq("conversation_id", id)
         .maybeSingle();
       const { data: members } = await supabase
         .from("conversation_participants")
@@ -258,6 +264,7 @@ function Conversation() {
         title: convo?.is_group ? convo.name : (nickname ?? others[0] ?? "?"),
         realUsername: others[0] ?? "?",
         isGroup: !!convo?.is_group,
+        isMatch: !!matchRow,
         members: others.length + 1,
         people: byId,
         otherId,
@@ -812,6 +819,21 @@ function Conversation() {
         className="flex-1 space-y-1 overflow-y-auto px-3 py-4"
         style={{ background: wallpaperCss }}
       >
+        {header.data?.isMatch ? (
+          <div className="mx-auto mb-3 max-w-sm rounded-2xl border border-primary/20 bg-primary/5 p-4 text-center">
+            <p className="text-2xl">💘</p>
+            <p className="mt-1 text-sm font-bold">
+              {t("matchBanner", { username: header.data.realUsername })}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-primary">{t("matchBannerMeet")}</p>
+            <button
+              onClick={() => setMatchSafetyOpen(true)}
+              className="mt-2 text-xs font-bold text-primary underline underline-offset-2"
+            >
+              {t("matchBannerCta")}
+            </button>
+          </div>
+        ) : null}
         {list.map((m, i) => {
           const mine = m.sender_id === user?.id;
           const sender = header.data?.people?.[m.sender_id];
@@ -1303,6 +1325,30 @@ function Conversation() {
           }}
         />
       ) : null}
+
+      <Sheet
+        open={matchSafetyOpen}
+        onClose={() => setMatchSafetyOpen(false)}
+        title={t("matchSafetyTitle")}
+      >
+        <ul className="space-y-3 text-sm text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            {t("matchSafetyTip1")}
+          </li>
+          <li className="flex items-start gap-2">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            {t("matchSafetyTip2")}
+          </li>
+          <li className="flex items-start gap-2">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            {t("matchSafetyTip3")}
+          </li>
+        </ul>
+        <Button className="mt-5 w-full" onClick={() => setMatchSafetyOpen(false)}>
+          {t("matchSafetyClose")}
+        </Button>
+      </Sheet>
 
       <Sheet open={pickerOpen} onClose={() => setPickerOpen(false)}>
         <div className="mb-4 flex gap-1 rounded-full bg-[#F5F5F5] p-1 dark:bg-[#1c1c1e]">
