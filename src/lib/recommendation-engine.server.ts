@@ -25,31 +25,14 @@
  * any single stage can be iterated on independently.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { TOPIC_CATEGORIES, type TopicCategory } from "@/lib/topicCategories";
+
+export { TOPIC_CATEGORIES };
+export type { TopicCategory };
 
 // ---------------------------------------------------------------------------
 // Config & constants
 // ---------------------------------------------------------------------------
-
-export const TOPIC_CATEGORIES = [
-  "roblox_development",
-  "scripting",
-  "building",
-  "gaming",
-  "meme",
-  "funny",
-  "roleplay",
-  "obby",
-  "tutorial",
-  "news",
-  "updates",
-  "showcase",
-  "ugc",
-  "animation",
-  "vehicles",
-  "scp",
-  "murder_mystery",
-] as const;
-export type TopicCategory = (typeof TOPIC_CATEGORIES)[number];
 
 const DEFAULT_AFFINITY = 0.3;
 const NEUTRAL_AFFINITY = 0.5;
@@ -362,21 +345,35 @@ export async function getSponsoredCandidate(
   excludeVideoIds: Set<string>,
 ): Promise<ScoredVideo | null> {
   const nowIso = new Date().toISOString();
-  const [{ data: campaigns }, viewerRes, topicProfile] = await Promise.all([
-    supabaseAdmin
-      .from("ad_campaigns")
-      .select(
-        "id,video_id,user_id,budget_blox,spent_blox,duration_days,created_at,ends_at,target_language,game_url",
-      )
-      .eq("status", "active")
-      .gt("ends_at", nowIso)
-      .neq("user_id", userId),
-    supabaseAdmin.from("profiles").select("language").eq("id", userId).maybeSingle(),
-    getUserInterestProfile(userId),
-  ]);
+  const oneDayAgoIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: campaigns }, viewerRes, topicProfile, { data: recentImpressions }] =
+    await Promise.all([
+      supabaseAdmin
+        .from("ad_campaigns")
+        .select(
+          "id,video_id,user_id,budget_blox,spent_blox,duration_days,created_at,ends_at,target_language,target_categories,game_url",
+        )
+        .eq("status", "active")
+        .gt("ends_at", nowIso)
+        .neq("user_id", userId),
+      supabaseAdmin.from("profiles").select("language").eq("id", userId).maybeSingle(),
+      getUserInterestProfile(userId),
+      // Frequency cap: never show the same viewer the same campaign more
+      // than once a day, so a sponsored slot doesn't turn into the same
+      // video on repeat.
+      supabaseAdmin
+        .from("ad_impressions")
+        .select("campaign_id")
+        .eq("viewer_id", userId)
+        .gte("created_at", oneDayAgoIso),
+    ]);
   const viewerLanguage = viewerRes.data?.language ?? null;
+  const recentlySeenCampaigns = new Set((recentImpressions ?? []).map((i) => i.campaign_id));
   const eligible = (campaigns ?? []).filter(
-    (c) => !excludeVideoIds.has(c.video_id) && (!c.target_language || c.target_language === viewerLanguage),
+    (c) =>
+      !excludeVideoIds.has(c.video_id) &&
+      !recentlySeenCampaigns.has(c.id) &&
+      (!c.target_language || c.target_language === viewerLanguage),
   );
   if (!eligible.length) return null;
 
@@ -406,10 +403,19 @@ export async function getSponsoredCandidate(
       commentRatio: 0,
       shareRatio: 0,
     };
-    const topicAffinity = categories.length
+    const videoAffinity = categories.length
       ? categories.reduce((sum, cat) => sum + (topicProfile[cat] ?? DEFAULT_AFFINITY), 0) /
         categories.length
       : NEUTRAL_AFFINITY;
+    // An explicit audience the advertiser chose (target_categories) counts
+    // for more than the video's own auto-detected topics, since it's a
+    // deliberate targeting choice rather than an inferred one.
+    const targetCats = (c.target_categories ?? []) as TopicCategory[];
+    const targetAffinity = targetCats.length
+      ? targetCats.reduce((sum, cat) => sum + (topicProfile[cat] ?? DEFAULT_AFFINITY), 0) /
+        targetCats.length
+      : null;
+    const topicAffinity = targetAffinity !== null ? 0.7 * targetAffinity + 0.3 * videoAffinity : videoAffinity;
     const quality = clamp01(0.5 * s.completionRate + 0.3 * s.watchRatio + 0.2 * topicAffinity);
 
     const remainingDays = Math.max(

@@ -36,6 +36,7 @@ import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEd
 import { SoundPicker, type PickedSound } from "@/components/SoundPicker";
 import { LANGUAGES, useI18n } from "@/lib/i18n";
 import { getCreatorAnalytics } from "@/lib/creator-analytics.functions";
+import { TOPIC_CATEGORIES, type TopicCategory } from "@/lib/topicCategories";
 import { formatCount } from "./discover.index";
 import { cn } from "@/lib/utils";
 
@@ -829,6 +830,7 @@ function CampaignSheet({ videoId, onClose }: { videoId: string; onClose: () => v
   const [durationDays, setDurationDays] = useState(3);
   const [autoAudience, setAutoAudience] = useState(true);
   const [targetLanguage, setTargetLanguage] = useState<string>(lang);
+  const [targetCategories, setTargetCategories] = useState<TopicCategory[]>([]);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -847,7 +849,7 @@ function CampaignSheet({ videoId, onClose }: { videoId: string; onClose: () => v
         _budget: budget,
         _duration_days: durationDays,
         _target_language: autoAudience ? "" : targetLanguage,
-        _target_categories: [],
+        _target_categories: autoAudience ? [] : targetCategories,
       });
       if (error) throw error;
       toast.success(t("studioCampaignCreated"));
@@ -976,6 +978,37 @@ function CampaignSheet({ videoId, onClose }: { videoId: string; onClose: () => v
               </option>
             ))}
           </Select>
+        ) : null}
+        {!autoAudience ? (
+          <>
+            <p className="mt-3 text-xs font-black uppercase tracking-wide text-muted-foreground">
+              {t("studioCampaignCategories")}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {TOPIC_CATEGORIES.map((cat) => {
+                const selected = targetCategories.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() =>
+                      setTargetCategories((prev) =>
+                        prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+                      )
+                    }
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-bold",
+                      selected
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground",
+                    )}
+                  >
+                    {t(`studioCategory_${cat}`)}
+                  </button>
+                );
+              })}
+            </div>
+          </>
         ) : null}
 
         <label className="mt-4 flex items-start gap-2.5 text-xs text-muted-foreground">
