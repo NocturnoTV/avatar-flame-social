@@ -1451,6 +1451,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   >([]);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [reactionTab, setReactionTab] = useState<"emoji" | "stickers">("emoji");
   const [menuFor, setMenuFor] = useState<RichComment | null>(null);
   const [deletingComment, setDeletingComment] = useState<RichComment | null>(null);
   const [reportingComment, setReportingComment] = useState<RichComment | null>(null);
@@ -1517,7 +1518,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
 
   const myStickers = useQuery({
     queryKey: ["my-stickers", user?.id],
-    enabled: !!user && showExtras,
+    enabled: !!user && emojiOpen,
     queryFn: async () => {
       const { data } = await supabase
         .from("stickers")
@@ -2028,32 +2029,68 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 Ajouter
               </Button>
             </div>
-            {(myStickers.data ?? []).length > 0 ? (
-              <div className="mt-3 flex gap-2 overflow-x-auto">
+          </div>
+        ) : null}
+        {emojiOpen ? (
+          <div className="border-t border-border bg-card/95 backdrop-blur-xl">
+            <div className="flex gap-1 px-4 pt-3">
+              <button
+                type="button"
+                onClick={() => setReactionTab("emoji")}
+                className={cn(
+                  "flex-1 rounded-full py-1.5 text-xs font-bold transition",
+                  reactionTab === "emoji"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {t("commentEmojiButton")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReactionTab("stickers")}
+                className={cn(
+                  "flex-1 rounded-full py-1.5 text-xs font-bold transition",
+                  reactionTab === "stickers"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {t("stickersTab")}
+              </button>
+            </div>
+            {reactionTab === "emoji" ? (
+              <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 py-3 text-2xl">
+                {COMMENT_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => setText((v) => v + emoji)}
+                    className="shrink-0 rounded-xl p-1.5 transition active:scale-90"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            ) : (myStickers.data ?? []).length > 0 ? (
+              <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3">
                 {myStickers.data!.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => setMedia({ url: s.storage_path, type: "custom_sticker" })}
-                    className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-background p-1 transition active:scale-90"
+                    onClick={() => {
+                      setMedia({ url: s.storage_path, type: "custom_sticker" });
+                      setEmojiOpen(false);
+                    }}
+                    className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-surface-2 p-1 transition active:scale-90"
                   >
                     <CommentStickerThumb path={s.storage_path} />
                   </button>
                 ))}
               </div>
-            ) : null}
-          </div>
-        ) : null}
-        {emojiOpen ? (
-          <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-t border-border bg-card/95 px-4 py-3 text-2xl backdrop-blur-xl">
-            {COMMENT_EMOJIS.map((emoji) => (
-              <button
-                key={emoji}
-                onClick={() => setText((v) => v + emoji)}
-                className="shrink-0 rounded-xl p-1.5 transition active:scale-90"
-              >
-                {emoji}
-              </button>
-            ))}
+            ) : (
+              <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+                {t("noStickers")}
+              </p>
+            )}
           </div>
         ) : null}
         {replyingTo || media ? (
