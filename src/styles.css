@@ -212,7 +212,14 @@
 }
 
 @utility bx-page-enter {
-  animation: bx-page-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* No fill-mode: "both" kept the animation's transform "active" forever
+     after it finished (same computed end state, translateY(0), but a
+     lingering transform on this ancestor of every routed page silently
+     turns it into the containing block for any `position: fixed`
+     descendant - e.g. a fullscreen Story sheet - so `inset-0` resolved
+     against this wrapper's box instead of the real viewport and could
+     land short of/behind the bottom nav bar instead of covering it). */
+  animation: bx-page-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes shake {

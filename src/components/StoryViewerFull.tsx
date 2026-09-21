@@ -413,7 +413,7 @@ export function StoryViewerFull({
           ))}
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 top-0 flex gap-1 p-2">
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex gap-1 p-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
           {group.stories.map((s, i) => (
             <span key={s.id} className="h-1 flex-1 overflow-hidden rounded-full bg-white/30">
               <span
@@ -426,7 +426,7 @@ export function StoryViewerFull({
           ))}
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 top-4 flex items-center gap-2.5 px-3 pt-3 text-white">
+        <div className="pointer-events-none absolute inset-x-0 top-[calc(1rem+env(safe-area-inset-top))] flex items-center gap-2.5 px-3 pt-3 text-white">
           <StoredImage
             path={group.avatarUrl}
             alt=""

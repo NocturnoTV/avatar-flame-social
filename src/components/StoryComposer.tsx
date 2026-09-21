@@ -575,7 +575,7 @@ export function StoryComposer({
 
       {!file ? (
         <div className="flex flex-1 flex-col">
-          <div className="flex items-center justify-between p-4">
+          <div className="flex items-center justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))]">
             <button onClick={onClose} aria-label={t("cancel")}>
               <X className="h-6 w-6" />
             </button>
@@ -608,7 +608,7 @@ export function StoryComposer({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex shrink-0 items-center justify-between gap-2 p-3">
+          <div className="flex shrink-0 items-center justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <button onClick={requestClose} aria-label={t("cancel")}>
               <X className="h-6 w-6" />
             </button>
@@ -865,7 +865,7 @@ export function StoryComposer({
           </div>
 
           {addingText ? (
-            <div className="shrink-0 space-y-2.5 border-t border-white/10 p-3">
+            <div className="shrink-0 space-y-2.5 border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <div className="flex gap-2">
                 {TEXT_FONTS.map((f) => (
                   <button
@@ -920,7 +920,7 @@ export function StoryComposer({
           ) : null}
 
           {emojiPickerOpen ? (
-            <div className="shrink-0 grid grid-cols-5 gap-2 border-t border-white/10 p-3 text-3xl">
+            <div className="shrink-0 grid grid-cols-5 gap-2 border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-3xl">
               {STORY_EMOJIS.map((e) => (
                 <button
                   key={e}
@@ -937,7 +937,7 @@ export function StoryComposer({
           ) : null}
 
           {drawingMode ? (
-            <div className="shrink-0 space-y-2.5 border-t border-white/10 p-3">
+            <div className="shrink-0 space-y-2.5 border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setErasing(false)}
@@ -1000,7 +1000,7 @@ export function StoryComposer({
           ) : null}
 
           {filterPickerOpen ? (
-            <div className="no-scrollbar shrink-0 overflow-x-auto border-t border-white/10 p-3">
+            <div className="no-scrollbar shrink-0 overflow-x-auto border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <div className="flex gap-3">
                 {FILTERS.map((f) => (
                   <button
