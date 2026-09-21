@@ -32,6 +32,19 @@ async function sendPurchaseThanks(userId: string, kind: "blox" | "spark_plus", a
     });
 }
 
+/** Checkout metadata is supplied by the buyer, so a conversation id in it is
+ * untrusted: only post the gift message when the payer really is a member of
+ * that conversation. */
+async function isConversationMember(conversationId: string, userId: string) {
+  const { data } = await getSupabase()
+    .from("conversation_participants")
+    .select("user_id")
+    .eq("conversation_id", conversationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return !!data;
+}
+
 async function syncProfile(userId: string, status: string, periodEnd: string | null) {
   const active =
     ["active", "trialing", "past_due"].includes(status) ||
@@ -151,7 +164,7 @@ async function handleBloxPackPurchase(session: Stripe.Checkout.Session) {
   // balance change.
   const conversationId = session.metadata?.["conversationId"];
   const note = session.metadata?.["note"];
-  if (conversationId && userId !== payerId) {
+  if (conversationId && userId !== payerId && (await isConversationMember(conversationId, payerId))) {
     await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: payerId,
@@ -221,7 +234,7 @@ async function handleSparkPlusGift(session: Stripe.Checkout.Session) {
   const payerId = session.metadata?.["userId"];
   const note = session.metadata?.["note"];
   if (payerId) await sendPurchaseThanks(payerId, "spark_plus");
-  if (conversationId && payerId) {
+  if (conversationId && payerId && (await isConversationMember(conversationId, payerId))) {
     await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: payerId,

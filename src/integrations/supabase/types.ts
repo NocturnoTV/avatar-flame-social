@@ -265,7 +265,22 @@ export type Database = {
           friend_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "close_friends_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "close_friends_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       communities: {
         Row: {
@@ -1186,9 +1201,9 @@ export type Database = {
           name: string | null
           owner_id: string | null
           request_status: string
+          streak_broken_at: string | null
           streak_count: number
           streak_date: string | null
-          streak_broken_at: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1200,9 +1215,9 @@ export type Database = {
           name?: string | null
           owner_id?: string | null
           request_status?: string
+          streak_broken_at?: string | null
           streak_count?: number
           streak_date?: string | null
-          streak_broken_at?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1214,9 +1229,9 @@ export type Database = {
           name?: string | null
           owner_id?: string | null
           request_status?: string
+          streak_broken_at?: string | null
           streak_count?: number
           streak_date?: string | null
-          streak_broken_at?: string | null
         }
         Relationships: [
           {
@@ -1279,35 +1294,6 @@ export type Database = {
         }
         Relationships: []
       }
-      device_login_links: {
-        Row: {
-          created_at: string
-          last_used_at: string | null
-          token_hash: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          last_used_at?: string | null
-          token_hash: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          last_used_at?: string | null
-          token_hash?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "device_login_links_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       device_login_codes: {
         Row: {
           attempts: number
@@ -1338,6 +1324,35 @@ export type Database = {
             foreignKeyName: "device_login_codes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_login_links: {
+        Row: {
+          created_at: string
+          last_used_at: string | null
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_used_at?: string | null
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_used_at?: string | null
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_login_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1782,6 +1797,13 @@ export type Database = {
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "messages_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
         ]
       }
       moderation_disputes: {
@@ -2213,6 +2235,7 @@ export type Database = {
         Row: {
           accent_color: string
           age: number | null
+          age_visible: boolean
           avatar_url: string | null
           banner_style: string
           banner_url: string | null
@@ -2228,11 +2251,6 @@ export type Database = {
           language: string
           last_active_at: string
           last_ad_reward_at: string | null
-          age_visible: boolean
-          spoken_languages: string[]
-          spark_looking_for: string | null
-          spark_voice_pref: string[]
-          spark_availability: string[]
           link_url: string | null
           onboarding_completed: boolean
           profile_font: string
@@ -2244,10 +2262,14 @@ export type Database = {
           roblox_user_id: string | null
           roblox_username: string | null
           show_online_status: boolean
+          spark_availability: string[]
           spark_badges: string[]
+          spark_looking_for: string | null
           spark_plus_active: boolean
           spark_plus_expires_at: string | null
+          spark_voice_pref: string[]
           sparks_enabled: boolean
+          spoken_languages: string[]
           sticker: string | null
           theme: string
           timezone: string
@@ -2262,6 +2284,7 @@ export type Database = {
         Insert: {
           accent_color?: string
           age?: number | null
+          age_visible?: boolean
           avatar_url?: string | null
           banner_style?: string
           banner_url?: string | null
@@ -2277,11 +2300,6 @@ export type Database = {
           language?: string
           last_active_at?: string
           last_ad_reward_at?: string | null
-          age_visible?: boolean
-          spoken_languages?: string[]
-          spark_looking_for?: string | null
-          spark_voice_pref?: string[]
-          spark_availability?: string[]
           link_url?: string | null
           onboarding_completed?: boolean
           profile_font?: string
@@ -2293,10 +2311,14 @@ export type Database = {
           roblox_user_id?: string | null
           roblox_username?: string | null
           show_online_status?: boolean
+          spark_availability?: string[]
           spark_badges?: string[]
+          spark_looking_for?: string | null
           spark_plus_active?: boolean
           spark_plus_expires_at?: string | null
+          spark_voice_pref?: string[]
           sparks_enabled?: boolean
+          spoken_languages?: string[]
           sticker?: string | null
           theme?: string
           timezone?: string
@@ -2311,6 +2333,7 @@ export type Database = {
         Update: {
           accent_color?: string
           age?: number | null
+          age_visible?: boolean
           avatar_url?: string | null
           banner_style?: string
           banner_url?: string | null
@@ -2326,11 +2349,6 @@ export type Database = {
           language?: string
           last_active_at?: string
           last_ad_reward_at?: string | null
-          age_visible?: boolean
-          spoken_languages?: string[]
-          spark_looking_for?: string | null
-          spark_voice_pref?: string[]
-          spark_availability?: string[]
           link_url?: string | null
           onboarding_completed?: boolean
           profile_font?: string
@@ -2342,10 +2360,14 @@ export type Database = {
           roblox_user_id?: string | null
           roblox_username?: string | null
           show_online_status?: boolean
+          spark_availability?: string[]
           spark_badges?: string[]
+          spark_looking_for?: string | null
           spark_plus_active?: boolean
           spark_plus_expires_at?: string | null
+          spark_voice_pref?: string[]
           sparks_enabled?: boolean
+          spoken_languages?: string[]
           sticker?: string | null
           theme?: string
           timezone?: string
@@ -2420,77 +2442,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      stickers: {
-        Row: {
-          created_at: string
-          format: string
-          id: string
-          position: number
-          storage_path: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          format: string
-          id?: string
-          position?: number
-          storage_path: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          format?: string
-          id?: string
-          position?: number
-          storage_path?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "stickers_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      streak_restores: {
-        Row: {
-          id: string
-          user_id: string
-          conversation_id: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          conversation_id: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          conversation_id?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "streak_restores_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "streak_restores_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -2728,6 +2679,53 @@ export type Database = {
         }
         Relationships: []
       }
+      sounds: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          rights_confirmed: boolean
+          storage_path: string
+          title: string
+          usage_count: number
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          rights_confirmed?: boolean
+          storage_path: string
+          title: string
+          usage_count?: number
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          rights_confirmed?: boolean
+          storage_path?: string
+          title?: string
+          usage_count?: number
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sounds_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spark_plus_subscriptions: {
         Row: {
           created_at: string
@@ -2796,6 +2794,41 @@ export type Database = {
           },
         ]
       }
+      stickers: {
+        Row: {
+          created_at: string
+          format: string
+          id: string
+          position: number
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          format: string
+          id?: string
+          position?: number
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          format?: string
+          id?: string
+          position?: number
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stickers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stories: {
         Row: {
           archived: boolean
@@ -2849,62 +2882,6 @@ export type Database = {
           },
         ]
       }
-      story_reactions: {
-        Row: {
-          created_at: string
-          id: string
-          reaction: string
-          story_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          reaction: string
-          story_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          reaction?: string
-          story_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "story_reactions_story_id_fkey"
-            columns: ["story_id"]
-            isOneToOne: false
-            referencedRelation: "stories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      story_highlights: {
-        Row: {
-          cover_path: string | null
-          created_at: string
-          id: string
-          title: string
-          user_id: string
-        }
-        Insert: {
-          cover_path?: string | null
-          created_at?: string
-          id?: string
-          title: string
-          user_id: string
-        }
-        Update: {
-          cover_path?: string | null
-          created_at?: string
-          id?: string
-          title?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       story_highlight_items: {
         Row: {
           highlight_id: string
@@ -2938,44 +2915,76 @@ export type Database = {
           },
         ]
       }
-      sounds: {
+      story_highlights: {
+        Row: {
+          cover_path: string | null
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          cover_path?: string | null
+          created_at?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          cover_path?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_highlights_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_reactions: {
         Row: {
           created_at: string
-          description: string | null
-          duration_seconds: number | null
           id: string
-          rights_confirmed: boolean
-          storage_path: string
-          title: string
-          usage_count: number
+          reaction: string
+          story_id: string
           user_id: string
-          visibility: string
         }
         Insert: {
           created_at?: string
-          description?: string | null
-          duration_seconds?: number | null
           id?: string
-          rights_confirmed?: boolean
-          storage_path: string
-          title: string
-          usage_count?: number
+          reaction: string
+          story_id: string
           user_id: string
-          visibility?: string
         }
         Update: {
           created_at?: string
-          description?: string | null
-          duration_seconds?: number | null
           id?: string
-          rights_confirmed?: boolean
-          storage_path?: string
-          title?: string
-          usage_count?: number
+          reaction?: string
+          story_id?: string
           user_id?: string
-          visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "story_reactions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_views: {
         Row: {
@@ -2999,6 +3008,42 @@ export type Database = {
             columns: ["story_id"]
             isOneToOne: false
             referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      streak_restores: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streak_restores_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "streak_restores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3436,6 +3481,78 @@ export type Database = {
           },
         ]
       }
+      video_drafts: {
+        Row: {
+          allow_comments: boolean
+          allow_reactions: boolean
+          allow_remix: boolean
+          allow_sharing: boolean
+          contains_ai_content: boolean
+          contains_paid_promotion: boolean
+          created_at: string
+          hashtags: string[]
+          id: string
+          sensitive_content: boolean
+          sound_id: string | null
+          sound_title: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          allow_comments?: boolean
+          allow_reactions?: boolean
+          allow_remix?: boolean
+          allow_sharing?: boolean
+          contains_ai_content?: boolean
+          contains_paid_promotion?: boolean
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          sensitive_content?: boolean
+          sound_id?: string | null
+          sound_title?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          allow_comments?: boolean
+          allow_reactions?: boolean
+          allow_remix?: boolean
+          allow_sharing?: boolean
+          contains_ai_content?: boolean
+          contains_paid_promotion?: boolean
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          sensitive_content?: boolean
+          sound_id?: string | null
+          sound_title?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_drafts_sound_id_fkey"
+            columns: ["sound_id"]
+            isOneToOne: false
+            referencedRelation: "sounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_drafts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_favorites: {
         Row: {
           created_at: string
@@ -3616,63 +3733,6 @@ export type Database = {
           },
         ]
       }
-      video_drafts: {
-        Row: {
-          allow_comments: boolean
-          allow_reactions: boolean
-          allow_remix: boolean
-          allow_sharing: boolean
-          contains_ai_content: boolean
-          contains_paid_promotion: boolean
-          created_at: string
-          hashtags: string[]
-          id: string
-          sensitive_content: boolean
-          sound_id: string | null
-          sound_title: string | null
-          title: string
-          updated_at: string
-          user_id: string
-          visibility: string
-        }
-        Insert: {
-          allow_comments?: boolean
-          allow_reactions?: boolean
-          allow_remix?: boolean
-          allow_sharing?: boolean
-          contains_ai_content?: boolean
-          contains_paid_promotion?: boolean
-          created_at?: string
-          hashtags?: string[]
-          id?: string
-          sensitive_content?: boolean
-          sound_id?: string | null
-          sound_title?: string | null
-          title?: string
-          updated_at?: string
-          user_id: string
-          visibility?: string
-        }
-        Update: {
-          allow_comments?: boolean
-          allow_reactions?: boolean
-          allow_remix?: boolean
-          allow_sharing?: boolean
-          contains_ai_content?: boolean
-          contains_paid_promotion?: boolean
-          created_at?: string
-          hashtags?: string[]
-          id?: string
-          sensitive_content?: boolean
-          sound_id?: string | null
-          sound_title?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-          visibility?: string
-        }
-        Relationships: []
-      }
       videos: {
         Row: {
           allow_comments: boolean
@@ -3764,7 +3824,15 @@ export type Database = {
           views_count?: number
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "videos_sound_id_fkey"
+            columns: ["sound_id"]
+            isOneToOne: false
+            referencedRelation: "sounds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       watch_history: {
         Row: {
@@ -3829,7 +3897,6 @@ export type Database = {
       can_read_voice_object: { Args: { _name: string }; Returns: boolean }
       can_view_community: { Args: { _community: string }; Returns: boolean }
       claim_ad_reward: { Args: never; Returns: number }
-      restore_streak: { Args: { _conversation_id: string }; Returns: number }
       claim_daily_quest: { Args: { _quest_id: string }; Returns: undefined }
       community_add_affiliate: {
         Args: { _affiliate: string; _community: string }
@@ -3992,6 +4059,10 @@ export type Database = {
         Returns: boolean
       }
       is_blocked: { Args: { _a: string; _b: string }; Returns: boolean }
+      is_close_friend: {
+        Args: { _owner: string; _viewer: string }
+        Returns: boolean
+      }
       is_member: {
         Args: { _conversation: string; _user: string }
         Returns: boolean
@@ -4036,6 +4107,14 @@ export type Database = {
         Args: { _conversation: string; _name: string }
         Returns: undefined
       }
+      restore_streak: { Args: { _conversation_id: string }; Returns: number }
+      search_hashtags: {
+        Args: { _limit?: number; _prefix: string }
+        Returns: {
+          tag: string
+          uses: number
+        }[]
+      }
       send_welcome_notification: { Args: { _user: string }; Returns: undefined }
       set_group_avatar: {
         Args: { _avatar_url: string; _conversation: string }
@@ -4055,6 +4134,7 @@ export type Database = {
         Returns: {
           accent_color: string
           age: number | null
+          age_visible: boolean
           avatar_url: string | null
           banner_style: string
           banner_url: string | null
@@ -4070,11 +4150,6 @@ export type Database = {
           language: string
           last_active_at: string
           last_ad_reward_at: string | null
-          age_visible: boolean
-          spoken_languages: string[]
-          spark_looking_for: string | null
-          spark_voice_pref: string[]
-          spark_availability: string[]
           link_url: string | null
           onboarding_completed: boolean
           profile_font: string
@@ -4086,10 +4161,14 @@ export type Database = {
           roblox_user_id: string | null
           roblox_username: string | null
           show_online_status: boolean
+          spark_availability: string[]
           spark_badges: string[]
+          spark_looking_for: string | null
           spark_plus_active: boolean
           spark_plus_expires_at: string | null
+          spark_voice_pref: string[]
           sparks_enabled: boolean
+          spoken_languages: string[]
           sticker: string | null
           theme: string
           timezone: string
@@ -4107,10 +4186,6 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
-      }
-      search_hashtags: {
-        Args: { _prefix: string; _limit?: number }
-        Returns: { tag: string; uses: number }[]
       }
       start_direct_message: { Args: { _target: string }; Returns: string }
       status_report_series: {
