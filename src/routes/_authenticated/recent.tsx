@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Clock, History, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
-import { useSignedUrl, StoredImage } from "@/components/Media";
+import { StoredImage, VideoThumb } from "@/components/Media";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { errorMessage, cn } from "@/lib/utils";
@@ -67,7 +67,7 @@ function RecentPage() {
       if (!ids.length) return [];
       const { data: videos } = await supabase
         .from("videos")
-        .select("id,storage_path,caption,user_id,views_count")
+        .select("id,storage_path,thumbnail_path,caption,user_id,views_count")
         .in("id", ids);
       const creatorIds = [...new Set((videos ?? []).map((v) => v.user_id))];
       const { data: creators } = creatorIds.length
@@ -188,6 +188,7 @@ function RecentRow({
   video: {
     id: string;
     storage_path: string;
+    thumbnail_path: string | null;
     caption: string | null;
     watched_at: string;
     views_count: number;
@@ -195,7 +196,6 @@ function RecentRow({
   };
   lang: string;
 }) {
-  const url = useSignedUrl(video.storage_path);
   return (
     <Link
       to="/discover"
@@ -203,7 +203,11 @@ function RecentRow({
       className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2 transition hover:border-primary/30"
     >
       <div className="h-20 w-14 shrink-0 overflow-hidden rounded-xl bg-black">
-        {url ? <video src={url} muted playsInline className="h-full w-full object-cover" /> : null}
+        <VideoThumb
+          storagePath={video.storage_path}
+          thumbnailPath={video.thumbnail_path}
+          className="h-full w-full"
+        />
       </div>
       <div className="min-w-0 flex-1 py-1">
         <div className="flex items-center gap-1.5">

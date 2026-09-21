@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Bookmark, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
-import { useSignedUrl } from "@/components/Media";
+import { VideoThumb } from "@/components/Media";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/saved")({
@@ -20,7 +20,13 @@ export const Route = createFileRoute("/_authenticated/saved")({
   component: SavedVideosPage,
 });
 
-type SavedVideo = { id: string; storage_path: string; caption: string | null; views_count: number };
+type SavedVideo = {
+  id: string;
+  storage_path: string;
+  thumbnail_path: string | null;
+  caption: string | null;
+  views_count: number;
+};
 
 function SavedVideosPage() {
   const { t } = useI18n();
@@ -39,7 +45,7 @@ function SavedVideosPage() {
       if (!ids.length) return [];
       const { data } = await supabase
         .from("videos")
-        .select("id,storage_path,caption,views_count")
+        .select("id,storage_path,thumbnail_path,caption,views_count")
         .in("id", ids);
       const byId = new Map((data ?? []).map((v) => [v.id, v as SavedVideo]));
       return ids.map((id) => byId.get(id)).filter((v): v is SavedVideo => !!v);
@@ -71,7 +77,12 @@ function SavedVideosPage() {
             search={{ v: v.id }}
             className="group relative aspect-[9/16] overflow-hidden rounded-xl bg-black transition hover:-translate-y-0.5"
           >
-            <SavedVideoThumb path={v.storage_path} views={v.views_count} caption={v.caption} />
+            <SavedVideoThumb
+              storagePath={v.storage_path}
+              thumbnailPath={v.thumbnail_path}
+              views={v.views_count}
+              caption={v.caption}
+            />
           </Link>
         ))}
       </div>
@@ -80,27 +91,23 @@ function SavedVideosPage() {
 }
 
 function SavedVideoThumb({
-  path,
+  storagePath,
+  thumbnailPath,
   views,
   caption,
 }: {
-  path: string;
+  storagePath: string;
+  thumbnailPath: string | null;
   views: number;
   caption: string | null;
 }) {
-  const url = useSignedUrl(path);
   return (
     <>
-      {url ? (
-        <video
-          src={url}
-          muted
-          playsInline
-          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-        />
-      ) : (
-        <div className="h-full w-full animate-pulse bg-surface-2" />
-      )}
+      <VideoThumb
+        storagePath={storagePath}
+        thumbnailPath={thumbnailPath}
+        className="h-full w-full transition duration-300 group-hover:scale-105"
+      />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-1.5 text-white">
         <p className="flex items-center gap-1 text-[10px] font-bold">
           <Play className="h-3 w-3 fill-white" /> {views}

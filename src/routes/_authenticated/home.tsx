@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Card } from "@/components/ui-kit";
 import { LogoWordmark } from "@/components/Logo";
-import { useSignedUrl, StoredImage } from "@/components/Media";
+import { StoredImage, VideoThumb as VideoTilePreview } from "@/components/Media";
 import { PresenceDot } from "@/components/PresenceDot";
 import { Verified } from "@/components/Verified";
 import { BloxIcon, useBloxBalance } from "@/components/Blox";
@@ -313,7 +313,7 @@ function HomePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("videos")
-        .select("id,caption,storage_path,views_count,likes_count")
+        .select("id,caption,storage_path,thumbnail_path,views_count,likes_count")
         .eq("visibility", "public")
         .eq("moderation_status", "approved")
         .order("views_count", { ascending: false })
@@ -598,7 +598,13 @@ function HomePage() {
           {latest.data?.length ? (
             <div className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
               {latest.data.map((v) => (
-                <VideoThumb key={v.id} id={v.id} path={v.storage_path} views={v.views_count} />
+                <VideoThumb
+                  key={v.id}
+                  id={v.id}
+                  storagePath={v.storage_path}
+                  thumbnailPath={v.thumbnail_path}
+                  views={v.views_count}
+                />
               ))}
             </div>
           ) : (
@@ -724,24 +730,28 @@ function HomePage() {
   );
 }
 
-function VideoThumb({ id, path, views }: { id: string; path: string; views: number }) {
-  const url = useSignedUrl(path);
+function VideoThumb({
+  id,
+  storagePath,
+  thumbnailPath,
+  views,
+}: {
+  id: string;
+  storagePath: string;
+  thumbnailPath: string | null;
+  views: number;
+}) {
   return (
     <Link
       to="/discover"
       search={{ v: id }}
       className="group relative w-24 shrink-0 overflow-hidden rounded-2xl bg-black shadow-sm transition hover:-translate-y-0.5 sm:w-28"
     >
-      {url ? (
-        <video
-          src={url}
-          muted
-          playsInline
-          className="aspect-[9/16] w-full object-cover transition duration-300 group-hover:scale-105"
-        />
-      ) : (
-        <div className="aspect-[9/16] w-full animate-pulse bg-surface-2" />
-      )}
+      <VideoTilePreview
+        storagePath={storagePath}
+        thumbnailPath={thumbnailPath}
+        className="aspect-[9/16] w-full transition duration-300 group-hover:scale-105"
+      />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/80 to-transparent" />
       <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 text-[10px] font-bold text-white drop-shadow">
         ▶️ {views}
