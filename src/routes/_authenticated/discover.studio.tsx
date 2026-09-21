@@ -759,6 +759,8 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
   const { t } = useI18n();
   const qc = useQueryClient();
   const [buying, setBuying] = useState<number | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
 
   async function buy(hours: number, cost: number) {
     setBuying(hours);
@@ -800,7 +802,7 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
             <button
               key={tier.hours}
               onClick={() => void buy(tier.hours, tier.cost)}
-              disabled={buying !== null}
+              disabled={buying !== null || !termsAccepted}
               className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-bold transition hover:border-primary/40 disabled:opacity-50"
             >
               <span>{tier.hours}h</span>
@@ -810,6 +812,24 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
             </button>
           ))}
         </div>
+        <label className="mt-4 flex items-start gap-2.5 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+          />
+          <span>
+            {t("boostTermsAccept")}{" "}
+            <button
+              type="button"
+              onClick={() => setTermsOpen(true)}
+              className="font-bold text-primary underline"
+            >
+              {t("boostTermsLink")}
+            </button>
+          </span>
+        </label>
         <button
           onClick={onClose}
           className="mt-4 w-full rounded-2xl border border-border py-3 text-sm font-bold text-muted-foreground"
@@ -817,6 +837,28 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
           {t("cancel")}
         </button>
       </div>
+      {termsOpen ? (
+        <div
+          className="fixed inset-0 z-[95] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
+          onClick={() => setTermsOpen(false)}
+        >
+          <div
+            className="max-h-[80dvh] w-full max-w-sm overflow-y-auto rounded-t-3xl border border-border bg-background p-5 sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-lg font-black">{t("boostTermsTitle")}</p>
+            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              {t("boostTermsBody")}
+            </p>
+            <button
+              onClick={() => setTermsOpen(false)}
+              className="mt-4 w-full rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground"
+            >
+              {t("cancel")}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

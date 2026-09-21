@@ -500,6 +500,11 @@ const en: Dict = {
   studioBoostMyVideo: "Boost my video",
   studioBoostDescription:
     "Boosting increases your video's visibility in the feed for the chosen duration. It doesn't guarantee likes, views or followers.",
+  boostTermsAccept: "I accept the",
+  boostTermsLink: "boost terms",
+  boostTermsTitle: "Boost terms",
+  boostTermsBody:
+    "Boosting your video spends Blox to increase how often it's shown in the feed for the duration you choose - it does not guarantee views, likes, or followers, and never adds fake engagement.\n\nA boosted video is a real video competing on real signals: nothing here fabricates numbers.\n\nBoosted videos may be labeled to viewers as promoted.\n\nBlox spent to boost a video are not refunded once the boost starts.\n\nA video that gets reported or breaks the community guidelines while boosted is removed from boosting immediately, with no refund.\n\nBoosting only affects how often your video is shown - it's a chance to be discovered, not a guarantee of results.",
   studioBoostSuccess: "Boosted for {hours}h!",
   studioBoostInsufficientBalance: "Not enough Blox for this boost.",
   studioMaxFileSize: "Maximum file size is 200 MB.",
@@ -1723,6 +1728,11 @@ const fr: Dict = {
   studioBoostMyVideo: "Booster ma vidéo",
   studioBoostDescription:
     "Le boost augmente la visibilité de ta vidéo dans le feed pendant la durée choisie. Il ne garantit pas de likes, vues ou abonnés.",
+  boostTermsAccept: "J'accepte les",
+  boostTermsLink: "conditions relatives aux promotions",
+  boostTermsTitle: "Conditions relatives aux promotions",
+  boostTermsBody:
+    "Booster ta vidéo dépense des Blox pour augmenter sa visibilité dans le fil pendant la durée choisie - cela ne garantit ni vues, ni likes, ni abonnés, et n'ajoute jamais de fausses interactions.\n\nUne vidéo boostée reste une vraie vidéo qui se bat avec de vrais signaux : rien n'est fabriqué ici.\n\nLes vidéos boostées peuvent être signalées aux spectateurs comme sponsorisées.\n\nLes Blox dépensés pour booster une vidéo ne sont pas remboursés une fois le boost lancé.\n\nUne vidéo signalée ou qui enfreint les règles de la communauté pendant qu'elle est boostée est immédiatement retirée du boost, sans remboursement.\n\nLe boost n'agit que sur la fréquence d'affichage de ta vidéo - c'est une chance d'être découvert, pas une garantie de résultat.",
   studioBoostSuccess: "Vidéo boostée pour {hours}h !",
   studioBoostInsufficientBalance: "Pas assez de Blox pour ce boost.",
   studioMaxFileSize: "La taille maximale du fichier est de 200 Mo.",
@@ -2954,6 +2964,11 @@ const es: Dict = {
   studioBoostMyVideo: "Impulsar mi vídeo",
   studioBoostDescription:
     "Impulsar aumenta la visibilidad de tu vídeo en el feed durante el tiempo elegido. No garantiza me gusta, vistas ni seguidores.",
+  boostTermsAccept: "Acepto las",
+  boostTermsLink: "condiciones de promoción",
+  boostTermsTitle: "Condiciones de promoción",
+  boostTermsBody:
+    "Impulsar tu vídeo gasta Blox para aumentar su visibilidad en el feed durante el tiempo elegido - no garantiza vistas, me gusta ni seguidores, y nunca añade interacciones falsas.\n\nUn vídeo impulsado sigue siendo un vídeo real que compite con señales reales: aquí no se fabrica nada.\n\nLos vídeos impulsados pueden mostrarse a los espectadores como contenido patrocinado.\n\nLos Blox gastados para impulsar un vídeo no se reembolsan una vez iniciado el impulso.\n\nUn vídeo denunciado o que incumpla las normas de la comunidad mientras está impulsado se retira del impulso de inmediato, sin reembolso.\n\nEl impulso solo afecta a la frecuencia de aparición de tu vídeo - es una oportunidad de ser descubierto, no una garantía de resultado.",
   studioBoostSuccess: "¡Impulsado durante {hours}h!",
   studioBoostInsufficientBalance: "No tienes suficientes Blox para este impulso.",
   studioMaxFileSize: "El tamaño máximo del archivo es de 200 MB.",
@@ -4181,6 +4196,11 @@ const pt: Dict = {
   studioBoostMyVideo: "Impulsionar meu vídeo",
   studioBoostDescription:
     "O impulso aumenta a visibilidade do seu vídeo no feed durante o período escolhido. Não garante curtidas, visualizações ou seguidores.",
+  boostTermsAccept: "Aceito as",
+  boostTermsLink: "condições de promoção",
+  boostTermsTitle: "Condições de promoção",
+  boostTermsBody:
+    "Impulsionar o teu vídeo gasta Blox para aumentar a sua visibilidade no feed durante o tempo escolhido - não garante visualizações, gostos nem seguidores, e nunca acrescenta interações falsas.\n\nUm vídeo impulsionado continua a ser um vídeo real que compete com sinais reais: aqui nada é fabricado.\n\nOs vídeos impulsionados podem ser assinalados aos espetadores como conteúdo patrocinado.\n\nOs Blox gastos para impulsionar um vídeo não são reembolsados depois de o impulso começar.\n\nUm vídeo denunciado ou que viole as regras da comunidade enquanto está impulsionado é retirado do impulso de imediato, sem reembolso.\n\nO impulso afeta apenas a frequência com que o teu vídeo é mostrado - é uma oportunidade de seres descoberto, não uma garantia de resultado.",
   studioBoostSuccess: "Impulsionado por {hours}h!",
   studioBoostInsufficientBalance: "Blox insuficiente para esse impulso.",
   studioMaxFileSize: "O tamanho máximo do arquivo é 200 MB.",
@@ -5407,6 +5427,11 @@ const de: Dict = {
   studioBoostMyVideo: "Mein Video boosten",
   studioBoostDescription:
     "Ein Boost erhöht die Sichtbarkeit deines Videos im Feed für die gewählte Dauer. Er garantiert keine Likes, Aufrufe oder Follower.",
+  boostTermsAccept: "Ich akzeptiere die",
+  boostTermsLink: "Boost-Bedingungen",
+  boostTermsTitle: "Boost-Bedingungen",
+  boostTermsBody:
+    "Das Boosten deines Videos kostet Blox, um seine Sichtbarkeit im Feed für die gewählte Dauer zu erhöhen - es garantiert keine Aufrufe, Likes oder Follower und fügt niemals gefälschte Interaktionen hinzu.\n\nEin geboostetes Video bleibt ein echtes Video, das mit echten Signalen konkurriert: Hier wird nichts erfunden.\n\nGeboostete Videos können den Zuschauern als gesponsert gekennzeichnet werden.\n\nFür das Boosten ausgegebene Blox werden nach Start des Boosts nicht erstattet.\n\nEin Video, das gemeldet wird oder gegen die Community-Richtlinien verstößt, während es geboostet ist, wird sofort aus dem Boost entfernt, ohne Erstattung.\n\nDer Boost wirkt sich nur darauf aus, wie oft dein Video gezeigt wird - es ist eine Chance, entdeckt zu werden, keine Erfolgsgarantie.",
   studioBoostSuccess: "Für {hours}h geboostet!",
   studioBoostInsufficientBalance: "Nicht genug Blox für diesen Boost.",
   studioMaxFileSize: "Die maximale Dateigröße beträgt 200 MB.",
@@ -6638,6 +6663,11 @@ const ko: Dict = {
   studioBoostMyVideo: "내 동영상 부스트하기",
   studioBoostDescription:
     "부스트는 선택한 기간 동안 피드에서 동영상의 노출을 높여줘요. 좋아요, 조회수, 팔로워를 보장하지는 않아요.",
+  boostTermsAccept: "다음에 동의합니다:",
+  boostTermsLink: "부스트 이용 약관",
+  boostTermsTitle: "부스트 이용 약관",
+  boostTermsBody:
+    "동영상 부스트는 선택한 기간 동안 피드에서 더 자주 노출되도록 블록스를 사용하는 것으로, 조회수·좋아요·팔로워를 보장하지 않으며 가짜 참여를 추가하지 않아요.\n\n부스트된 동영상도 실제 신호로 경쟁하는 진짜 동영상이에요. 여기서는 아무것도 조작되지 않아요.\n\n부스트된 동영상은 시청자에게 광고로 표시될 수 있어요.\n\n부스트를 위해 사용한 블록스는 부스트가 시작되면 환불되지 않아요.\n\n부스트 중인 동영상이 신고되거나 커뮤니티 가이드라인을 위반하면 환불 없이 즉시 부스트가 중단돼요.\n\n부스트는 동영상 노출 빈도에만 영향을 주며, 발견될 기회일 뿐 결과를 보장하지 않아요.",
   studioBoostSuccess: "{hours}시간 동안 부스트했어요!",
   studioBoostInsufficientBalance: "이 부스트에 필요한 Blox가 부족해요.",
   studioMaxFileSize: "파일 최대 크기는 200MB예요.",
