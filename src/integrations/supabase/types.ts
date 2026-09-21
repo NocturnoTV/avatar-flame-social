@@ -320,34 +320,37 @@ export type Database = {
       calls: {
         Row: {
           answered_at: string | null
-          callee_id: string
+          callee_id: string | null
           caller_id: string
           conversation_id: string
           duration_seconds: number | null
           ended_at: string | null
           id: string
+          is_group: boolean
           started_at: string
           status: string
         }
         Insert: {
           answered_at?: string | null
-          callee_id: string
+          callee_id?: string | null
           caller_id: string
           conversation_id: string
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
+          is_group?: boolean
           started_at?: string
           status?: string
         }
         Update: {
           answered_at?: string | null
-          callee_id?: string
+          callee_id?: string | null
           caller_id?: string
           conversation_id?: string
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
+          is_group?: boolean
           started_at?: string
           status?: string
         }
@@ -357,6 +360,41 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      call_participants: {
+        Row: {
+          call_id: string
+          id: string
+          joined_at: string | null
+          left_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
             referencedColumns: ["id"]
           },
         ]

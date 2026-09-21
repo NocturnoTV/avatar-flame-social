@@ -268,6 +268,7 @@ function Conversation() {
         members: others.length + 1,
         people: byId,
         otherId,
+        otherIds,
         online,
         otherPresence,
         lastActiveAt: otherId ? (byId[otherId]?.last_active_at ?? null) : null,
@@ -752,17 +753,20 @@ function Conversation() {
             )}
           </p>
         </div>
-        {!header.data?.isGroup && header.data?.otherId ? (
+        {header.data?.otherIds?.length ? (
           <button
             onClick={() => {
-              const otherId = header.data?.otherId;
-              if (!otherId) return;
-              const other = header.data?.people[otherId];
-              void startCall(id, {
-                id: otherId,
-                username: header.data?.realUsername ?? other?.username ?? "?",
-                avatarUrl: other?.avatar_url ?? null,
+              const otherIds = header.data?.otherIds ?? [];
+              if (!otherIds.length) return;
+              const peers = otherIds.map((uid) => {
+                const other = header.data?.people[uid];
+                return {
+                  id: uid,
+                  username: (uid === header.data?.otherId ? header.data?.realUsername : null) ?? other?.username ?? "?",
+                  avatarUrl: other?.avatar_url ?? null,
+                };
               });
+              void startCall(id, peers);
             }}
             aria-label={t("call")}
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#050505] hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
