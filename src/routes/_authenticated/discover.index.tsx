@@ -847,12 +847,57 @@ function VideoSlide({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const COUNT_FIELD = {
+    video_likes: "likes_count",
+    video_favorites: "favorites_count",
+    video_reposts: "reposts_count",
+  } as const;
+  const STATE_FIELD = {
+    video_likes: "liked",
+    video_favorites: "faved",
+    video_reposts: "reposted",
+  } as const;
+
+  // Flips the icon and its count immediately, patching the already-cached
+  // feed data directly instead of invalidating (which would refetch and
+  // re-shuffle the whole feed just to bump one number) - this is what makes
+  // liking/favoriting/reposting feel instant instead of waiting on a round
+  // trip. Called again with the opposite delta to roll back on failure.
+  function applyOptimistic(
+    table: "video_likes" | "video_favorites" | "video_reposts",
+    nowOn: boolean,
+    delta: number,
+  ) {
+    qc.setQueryData(["video-state", video.id, user?.id], (old: typeof state.data) =>
+      old ? { ...old, [STATE_FIELD[table]]: nowOn } : old,
+    );
+    qc.setQueriesData(
+      { queryKey: ["feed"] },
+      (old: { videos: VideoRow[]; profiles: unknown } | undefined) => {
+        if (!old?.videos) return old;
+        const field = COUNT_FIELD[table];
+        return {
+          ...old,
+          videos: old.videos.map((v) =>
+            v.id === video.id ? { ...v, [field]: Math.max(0, v[field] + delta) } : v,
+          ),
+        };
+      },
+    );
+  }
+
   async function toggle(table: "video_likes" | "video_favorites" | "video_reposts", on: boolean) {
     if (!user) return;
-    if (on) {
-      await supabase.from(table).delete().eq("video_id", video.id).eq("user_id", user.id);
-    } else {
-      await supabase.from(table).insert({ video_id: video.id, user_id: user.id });
+    applyOptimistic(table, !on, on ? -1 : 1);
+    const result = on
+      ? await supabase.from(table).delete().eq("video_id", video.id).eq("user_id", user.id)
+      : await supabase.from(table).insert({ video_id: video.id, user_id: user.id });
+    if (result.error) {
+      applyOptimistic(table, on, on ? 1 : -1);
+      toast.error(t("errorGeneric"));
+      return;
+    }
+    if (!on) {
       if (table === "video_likes") {
         void logPositiveAction({ data: { videoId: video.id, action: "like" } });
         void supabase.rpc("bump_quest_progress", {
@@ -870,28 +915,36 @@ function VideoSlide({
       if (table === "video_reposts")
         void logPositiveAction({ data: { videoId: video.id, action: "share" } });
     }
-    await qc.invalidateQueries({ queryKey: ["video-state", video.id] });
-    await qc.invalidateQueries({ queryKey: ["feed"] });
   }
 
   async function toggleFollow() {
     if (!user || isMine) return;
-    if (state.data?.following) {
-      await supabase
-        .from("follows")
-        .delete()
-        .eq("follower_id", user.id)
-        .eq("following_id", video.user_id);
-    } else {
-      await supabase.from("follows").insert({ follower_id: user.id, following_id: video.user_id });
+    const wasFollowing = !!state.data?.following;
+    qc.setQueryData(["video-state", video.id, user.id], (old: typeof state.data) =>
+      old ? { ...old, following: !wasFollowing } : old,
+    );
+    const result = wasFollowing
+      ? await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("following_id", video.user_id)
+      : await supabase.from("follows").insert({ follower_id: user.id, following_id: video.user_id });
+    if (result.error) {
+      qc.setQueryData(["video-state", video.id, user.id], (old: typeof state.data) =>
+        old ? { ...old, following: wasFollowing } : old,
+      );
+      toast.error(t("errorGeneric"));
+      return;
+    }
+    if (!wasFollowing) {
       void logPositiveAction({ data: { videoId: video.id, action: "follow" } });
       void supabase.rpc("bump_quest_progress", {
         _metric_key: "make_a_friend",
         _entity_id: video.user_id,
       });
     }
-    await qc.invalidateQueries({ queryKey: ["video-state"] });
-    await qc.invalidateQueries({ queryKey: ["following"] });
+    void qc.invalidateQueries({ queryKey: ["following"] });
   }
 
   return (
