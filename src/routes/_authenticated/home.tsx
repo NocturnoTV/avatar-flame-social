@@ -2,7 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowUpRight, Bell, Compass, Flame, LifeBuoy, ShoppingBag, Users } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bell,
+  Compass,
+  Flame,
+  LifeBuoy,
+  Newspaper,
+  Plus,
+  ShoppingBag,
+  Users,
+  Video,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Card } from "@/components/ui-kit";
@@ -453,8 +464,10 @@ function HomePage() {
   const quickAccess = [
     { to: "/discover" as const, label: t("discover"), icon: Compass },
     { to: "/sparks" as const, label: t("sparks"), icon: Flame },
-    { to: "/support" as const, label: t("support"), icon: LifeBuoy },
+    { to: "/communities" as const, label: t("menuCommunities"), icon: Users },
     { to: "/shop" as const, label: t("shop"), icon: ShoppingBag },
+    { to: "/news" as const, label: t("newsFeedTitle"), icon: Newspaper },
+    { to: "/support" as const, label: t("support"), icon: LifeBuoy },
   ];
 
   return (
@@ -683,28 +696,31 @@ function HomePage() {
           )}
         </section>
 
-        {/* 4. Actualités Roblox */}
-        <div ref={newsRef}>
-          <NewsSection />
-        </div>
-
-        {/* 5. CTA - poster du contenu */}
+        {/* 4. CTA - poster du contenu */}
         <Link
           ref={ctaRef}
           to="/discover/studio"
           onMouseMove={magnetize}
           onMouseLeave={unmagnetize}
-          className="group flex items-center gap-4 rounded-2xl border border-primary/25 bg-primary/5 p-4 transition hover:border-primary/50 hover:bg-primary/10"
+          className="spark-gradient group relative flex items-center gap-4 overflow-hidden rounded-2xl p-5 text-white shadow-md shadow-primary/25 transition hover:-translate-y-0.5"
         >
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary text-xl text-primary-foreground">
-            🎬
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/15 backdrop-blur">
+            <Video className="h-6 w-6" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-base font-black">{t("postCtaTitle")}</span>
-            <span className="block text-sm text-muted-foreground">{t("postCtaText")}</span>
+            <span className="block text-lg font-black">{t("postCtaTitle")}</span>
+            <span className="mt-0.5 block text-sm text-white/80">{t("postCtaText")}</span>
           </span>
-          <ArrowUpRight className="h-5 w-5 shrink-0 text-primary transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-white px-4 py-2 text-sm font-black text-primary transition group-hover:gap-1.5">
+            <Plus className="h-4 w-4" />
+            {t("publish")}
+          </span>
         </Link>
+
+        {/* 5. Actualités Roblox - tout en bas */}
+        <div ref={newsRef}>
+          <NewsSection />
+        </div>
 
         <p className="text-center text-[11px] text-muted-foreground">{t("notAffiliated")}</p>
       </div>
