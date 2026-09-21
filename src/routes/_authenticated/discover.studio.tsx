@@ -448,14 +448,6 @@ function Progress({ label, value }: { label: string; value: number }) {
   );
 }
 
-const BOOST_TIERS = [
-  { hours: 1, cost: 500 },
-  { hours: 3, cost: 1000 },
-  { hours: 6, cost: 1750 },
-  { hours: 12, cost: 3000 },
-  { hours: 24, cost: 5000 },
-];
-
 function VideoCard({
   video,
   onDeleted,
@@ -479,7 +471,6 @@ function VideoCard({
   const { user } = useSession();
   const url = useSignedUrl(video.storage_path);
   const [busy, setBusy] = useState(false);
-  const [boosting, setBoosting] = useState(false);
   const [campaignOpen, setCampaignOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const isBoosted = !!video.boosted_until && new Date(video.boosted_until).getTime() > Date.now();
@@ -546,20 +537,12 @@ function VideoCard({
         <p className="mt-1 text-[10px] uppercase text-white/60">
           {video.visibility === "sparks" ? t("studioMySparks") : t("studioEveryone")}
         </p>
-        <div className="mt-2 flex gap-1.5">
-          <button
-            onClick={() => setBoosting(true)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/15 py-1.5 text-[11px] font-bold backdrop-blur"
-          >
-            🚀 {isBoosted ? t("studioExtendBoost") : t("studioBoost")}
-          </button>
-          <button
-            onClick={() => setCampaignOpen(true)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/15 py-1.5 text-[11px] font-bold backdrop-blur"
-          >
-            📢 {t("studioCreateCampaign")}
-          </button>
-        </div>
+        <button
+          onClick={() => setCampaignOpen(true)}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full bg-white/15 py-1.5 text-[11px] font-bold backdrop-blur"
+        >
+          📢 {t("studioCreateCampaign")}
+        </button>
       </div>
       <div className="absolute right-2 top-2 flex gap-1.5">
         <button
@@ -579,7 +562,6 @@ function VideoCard({
         </button>
       </div>
 
-      {boosting ? <BoostSheet videoId={video.id} onClose={() => setBoosting(false)} /> : null}
       {campaignOpen ? (
         <CampaignSheet videoId={video.id} onClose={() => setCampaignOpen(false)} />
       ) : null}
@@ -763,117 +745,6 @@ function EditVideoSheet({
           </Button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/** Spends Blox to extend videos.boosted_until - a real visibility-weighting
- * flag elsewhere in the feed/algorithm, never a fabricated like/view/follow
- * count. */
-function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void }) {
-  const { t } = useI18n();
-  const qc = useQueryClient();
-  const [buying, setBuying] = useState<number | null>(null);
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [termsOpen, setTermsOpen] = useState(false);
-
-  async function buy(hours: number, cost: number) {
-    setBuying(hours);
-    try {
-      const { error } = await supabase.rpc("boost_video", {
-        _video: videoId,
-        _blox_cost: cost,
-        _hours: hours,
-      });
-      if (error) throw error;
-      toast.success(t("studioBoostSuccess", { hours }));
-      await qc.invalidateQueries({ queryKey: ["my-videos"] });
-      await qc.invalidateQueries({ queryKey: ["blox-balance"] });
-      onClose();
-    } catch (err) {
-      toast.error(
-        err instanceof Error && err.message.includes("insufficient_balance")
-          ? t("studioBoostInsufficientBalance")
-          : t("errorGeneric"),
-      );
-    } finally {
-      setBuying(null);
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-t-3xl border border-border bg-background p-5 sm:rounded-3xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p className="text-lg font-black">🚀 {t("studioBoostMyVideo")}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{t("studioBoostDescription")}</p>
-        <div className="mt-4 space-y-2">
-          {BOOST_TIERS.map((tier) => (
-            <button
-              key={tier.hours}
-              onClick={() => void buy(tier.hours, tier.cost)}
-              disabled={buying !== null || !termsAccepted}
-              className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-bold transition hover:border-primary/40 disabled:opacity-50"
-            >
-              <span>{tier.hours}h</span>
-              <span className="flex items-center gap-1 text-primary">
-                {buying === tier.hours ? "…" : `${tier.cost.toLocaleString()} Blox`}
-              </span>
-            </button>
-          ))}
-        </div>
-        <label className="mt-4 flex items-start gap-2.5 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={termsAccepted}
-            onChange={(e) => setTermsAccepted(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-          />
-          <span>
-            {t("boostTermsAccept")}{" "}
-            <button
-              type="button"
-              onClick={() => setTermsOpen(true)}
-              className="font-bold text-primary underline"
-            >
-              {t("boostTermsLink")}
-            </button>
-          </span>
-        </label>
-        <button
-          onClick={onClose}
-          className="mt-4 w-full rounded-2xl border border-border py-3 text-sm font-bold text-muted-foreground"
-        >
-          {t("cancel")}
-        </button>
-      </div>
-      {termsOpen ? (
-        <div
-          className="fixed inset-0 z-[95] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
-          onClick={() => setTermsOpen(false)}
-        >
-          <div
-            className="max-h-[80dvh] w-full max-w-sm overflow-y-auto rounded-t-3xl border border-border bg-background p-5 sm:rounded-3xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="text-lg font-black">{t("boostTermsTitle")}</p>
-            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-              {t("boostTermsBody")}
-            </p>
-            <button
-              onClick={() => setTermsOpen(false)}
-              className="mt-4 w-full rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground"
-            >
-              {t("cancel")}
-            </button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
