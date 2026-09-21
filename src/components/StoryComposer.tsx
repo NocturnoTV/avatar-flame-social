@@ -353,7 +353,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[95] flex flex-col overflow-hidden overscroll-contain bg-black text-white">
+    <div className="fixed inset-0 z-[95] flex flex-col overflow-y-auto overscroll-contain bg-black text-white">
       <input
         ref={cameraRef}
         type="file"
