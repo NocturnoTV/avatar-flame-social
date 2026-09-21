@@ -167,7 +167,10 @@ export const generateDeviceLoginLink = createServerFn({ method: "POST" })
       created_at: new Date().toISOString(),
       last_used_at: null,
     });
-    if (error) throw error;
+    if (error) {
+      console.error("generateDeviceLoginLink failed", error);
+      throw new Error("Impossible de générer le lien de connexion.");
+    }
     return { token };
   });
 
