@@ -85,7 +85,10 @@ export const disconnectRobloxAccount = createServerFn({ method: "POST" })
       .select("avatar_url,roblox_avatar_url")
       .eq("id", context.userId)
       .maybeSingle();
-    if (readError) throw readError;
+    if (readError) {
+      console.error("disconnectRobloxAccount read failed", readError);
+      throw new Error("Impossible de dissocier le compte Roblox.");
+    }
     const avatarWasFromRoblox = profile?.avatar_url === profile?.roblox_avatar_url;
     const { error } = await supabaseAdmin
       .from("profiles")

@@ -234,7 +234,7 @@ async function handleSparkPlusGift(session: Stripe.Checkout.Session) {
   const payerId = session.metadata?.["userId"];
   const note = session.metadata?.["note"];
   if (payerId) await sendPurchaseThanks(payerId, "spark_plus");
-  if (conversationId && payerId) {
+  if (conversationId && payerId && (await isConversationMember(conversationId, payerId))) {
     await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: payerId,
