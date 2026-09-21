@@ -1,10 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { isNativeApp, nativePlatform } from "@/lib/native";
+import { Download } from "lucide-react";
+import { isNativeApp, nativePlatform, openExternal } from "@/lib/native";
 import { useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
+import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { redeemDeviceLoginLink, redeemDeviceLoginCode } from "@/lib/device-login.functions";
+import { Button } from "@/components/ui-kit";
+
+/** "1.2.10" > "1.2.9" numerically, not lexicographically. */
+function isNewerVersion(latest: string, current: string): boolean {
+  const a = latest.split(".").map((n) => parseInt(n, 10) || 0);
+  const b = current.split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const diff = (a[i] ?? 0) - (b[i] ?? 0);
+    if (diff !== 0) return diff > 0;
+  }
+  return false;
+}
 
 /**
  * Everything the iOS/Android shell needs that a normal browser tab doesn't:
@@ -17,7 +31,38 @@ import { redeemDeviceLoginLink, redeemDeviceLoginCode } from "@/lib/device-login
 export function NativeAppBridge() {
   const { theme } = useTheme();
   const { user } = useSession();
+  const { t } = useI18n();
   const navigate = useNavigate();
+  const [updatePrompt, setUpdatePrompt] = useState<{ storeUrl: string; version: string } | null>(
+    null,
+  );
+
+  // Checks once per app launch whether a newer build has been published -
+  // app_releases is a small table we update ourselves whenever a new native
+  // build actually goes live, since there's no public API to poll the
+  // Play/App Store listing directly.
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    void (async () => {
+      try {
+        const [{ App }, { data: release }] = await Promise.all([
+          import("@capacitor/app"),
+          supabase
+            .from("app_releases")
+            .select("latest_version,store_url")
+            .eq("platform", nativePlatform())
+            .maybeSingle(),
+        ]);
+        if (!release) return;
+        const info = await App.getInfo();
+        if (isNewerVersion(release.latest_version, info.version)) {
+          setUpdatePrompt({ storeUrl: release.store_url, version: release.latest_version });
+        }
+      } catch {
+        // No update prompt is better than a broken one.
+      }
+    })();
+  }, []);
 
   // Catches the app being (re)opened via the custom bloxspark:// scheme
   // carrying either a persistent device-login-link token (see /link/$token,
@@ -151,5 +196,34 @@ export function NativeAppBridge() {
     return () => remove?.();
   }, []);
 
-  return null;
+  if (!updatePrompt) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-3xl bg-card p-6 text-center shadow-2xl">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary">
+          <Download className="h-8 w-8" />
+        </div>
+        <h2 className="mt-4 text-xl font-black">{t("updateAvailableTitle")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t("updateAvailableBody", { version: updatePrompt.version })}
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Button
+            onClick={() => {
+              void openExternal(updatePrompt.storeUrl);
+            }}
+          >
+            {t("updateNow")}
+          </Button>
+          <button
+            onClick={() => setUpdatePrompt(null)}
+            className="py-2 text-sm font-semibold text-muted-foreground"
+          >
+            {t("updateLater")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

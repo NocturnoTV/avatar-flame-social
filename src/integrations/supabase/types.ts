@@ -44,6 +44,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_releases: {
+        Row: {
+          latest_version: string
+          platform: string
+          store_url: string
+          updated_at: string
+        }
+        Insert: {
+          latest_version: string
+          platform: string
+          store_url: string
+          updated_at?: string
+        }
+        Update: {
+          latest_version?: string
+          platform?: string
+          store_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           active: boolean

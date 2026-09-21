@@ -105,6 +105,14 @@ export function VideoMontageEditor({
     const d = videoRef.current?.duration ?? 0;
     setDuration(d);
     setTrimEnd(d);
+    // Otherwise this stays a black rectangle on a lot of Android WebViews
+    // until the user manually scrubs it - same decoder quirk as
+    // captureVideoFrame, same fix (briefly play, then pause right away so
+    // nothing actually plays).
+    videoRef.current
+      ?.play()
+      .then(() => videoRef.current?.pause())
+      .catch(() => {});
   }
 
   // Generates the "real trimmer" filmstrip once duration is known - a row
@@ -881,7 +889,17 @@ export function ThumbnailPicker({
             src={mediaUrl}
             muted
             playsInline
-            onLoadedMetadata={() => setDuration(videoRef.current?.duration ?? 0)}
+            onLoadedMetadata={() => {
+              setDuration(videoRef.current?.duration ?? 0);
+              // Otherwise this stays a black rectangle on a lot of Android
+              // WebViews until the user manually scrubs it - same decoder
+              // quirk as captureVideoFrame, same fix (briefly play, then
+              // pause right away so nothing actually plays).
+              videoRef.current
+                ?.play()
+                .then(() => videoRef.current?.pause())
+                .catch(() => {});
+            }}
             className="h-full w-full object-contain"
           />
         )}
@@ -900,6 +918,15 @@ export function ThumbnailPicker({
             >
               <img src={f} alt="" className="h-full w-full object-cover" />
             </button>
+          ))}
+        </div>
+      ) : duration > 0 ? (
+        <div className="flex gap-1.5">
+          {Array.from({ length: FILMSTRIP_FRAME_COUNT }).map((_, i) => (
+            <div
+              key={i}
+              className="aspect-[9/16] h-16 shrink-0 animate-pulse rounded-lg bg-surface-2"
+            />
           ))}
         </div>
       ) : null}
