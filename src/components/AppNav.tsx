@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect } from "react";
 import {
   BookOpen,
   Bookmark,
@@ -219,6 +220,16 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu?: () => void } = {}) {
   const unread = useUnreadConversations();
   const myAvatar = useMyAvatar();
   const prefetchDiscover = usePrefetchDiscover();
+
+  // Warms the Discover feed cache as soon as the app shell mounts (i.e. on
+  // launch, since BottomNav is part of the persistent authenticated layout)
+  // rather than waiting for a hover/tap on the Discover tab, so the very
+  // first visit to /discover in a session is instant instead of a fresh
+  // fetch.
+  useEffect(() => {
+    prefetchDiscover();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <nav className="fixed inset-x-3 bottom-[max(0.65rem,env(safe-area-inset-bottom))] z-40 rounded-[1.65rem] border border-border/80 bg-background/90 p-1.5 shadow-[0_14px_45px_-12px_rgba(0,0,0,.35)] backdrop-blur-2xl lg:hidden">

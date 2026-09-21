@@ -27,6 +27,7 @@ import { COUNTRY_CODES, countryFlagEmoji, countryName } from "@/lib/countries";
 import { MAX_SPARK_BADGES, SPARK_BADGES, sparkBadge } from "@/lib/sparkBadges";
 import { errorMessage } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { notifyNewMatch } from "@/lib/matches.functions";
 
 export const Route = createFileRoute("/_authenticated/sparks")({
   head: () => ({
@@ -276,6 +277,7 @@ function SparksPage() {
     const result = data as unknown as { match: boolean; conversation_id?: string };
     if (result?.match && result.conversation_id) {
       setMatch({ name: target.username ?? "?", conversationId: result.conversation_id });
+      void notifyNewMatch({ data: { targetUserId: target.id } });
     }
   }
 

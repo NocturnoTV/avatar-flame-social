@@ -510,6 +510,7 @@ const en: Dict = {
   studioPendingVideoBlockedTitle: "Video pending review",
   studioPendingVideoBlocked:
     "One of your videos is still pending review. You can't publish a new video until it's approved or rejected.",
+  studioRateLimited: "You can only post one video every 30 minutes. Try again in {minutes} min.",
   notifVideoPendingReview:
     "Your first video is pending review 🎬 First by AI, then manually by our team (can take up to 24h).",
   notifVideoApproved: "Your video was approved and is now live 🎉",
@@ -544,6 +545,7 @@ const en: Dict = {
   studioStepOf: "Step {step} of {total}",
   studioChooseVideo: "Choose your video",
   studioSelectVideoHint: "Select a video file up to 200 MB.",
+  studioProcessingVideo: "Processing video…",
   studioChangeVideo: "Change video",
   studioSelectVideoFile: "Select a video file",
   studioGiveTitle: "Give it a title",
@@ -1728,6 +1730,8 @@ const fr: Dict = {
   studioPendingVideoBlockedTitle: "Vidéo en attente de vérification",
   studioPendingVideoBlocked:
     "Une de tes vidéos est encore en attente de vérification. Tu ne peux pas publier de nouvelle vidéo tant qu'elle n'a pas été approuvée ou refusée.",
+  studioRateLimited:
+    "Tu ne peux publier qu'une vidéo toutes les 30 minutes. Réessaie dans {minutes} min.",
   notifVideoPendingReview:
     "Ta première vidéo est en attente de validation 🎬 Elle va être analysée par une IA puis manuellement par notre équipe (jusqu'à 24h dans de rares cas).",
   notifVideoApproved: "Ta vidéo a été validée et est maintenant en ligne 🎉",
@@ -1764,6 +1768,7 @@ const fr: Dict = {
   studioStepOf: "Étape {step} sur {total}",
   studioChooseVideo: "Choisis ta vidéo",
   studioSelectVideoHint: "Sélectionne un fichier vidéo jusqu'à 200 Mo.",
+  studioProcessingVideo: "Traitement de la vidéo…",
   studioChangeVideo: "Changer de vidéo",
   studioSelectVideoFile: "Sélectionner un fichier vidéo",
   studioGiveTitle: "Donne-lui un titre",
@@ -2953,6 +2958,7 @@ const es: Dict = {
   studioPendingVideoBlockedTitle: "Vídeo en revisión",
   studioPendingVideoBlocked:
     "Uno de tus vídeos todavía está en revisión. No puedes publicar un vídeo nuevo hasta que sea aprobado o rechazado.",
+  studioRateLimited: "Solo puedes publicar un vídeo cada 30 minutos. Inténtalo en {minutes} min.",
   notifVideoPendingReview:
     "Tu primer vídeo está en revisión 🎬 Primero por IA, luego manualmente por nuestro equipo (puede tardar hasta 24h).",
   notifVideoApproved: "Tu vídeo fue aprobado y ya está publicado 🎉",
@@ -2988,6 +2994,7 @@ const es: Dict = {
   studioStepOf: "Paso {step} de {total}",
   studioChooseVideo: "Elige tu vídeo",
   studioSelectVideoHint: "Selecciona un archivo de vídeo de hasta 200 MB.",
+  studioProcessingVideo: "Procesando vídeo…",
   studioChangeVideo: "Cambiar vídeo",
   studioSelectVideoFile: "Seleccionar un archivo de vídeo",
   studioGiveTitle: "Ponle un título",
@@ -4175,6 +4182,7 @@ const pt: Dict = {
   studioPendingVideoBlockedTitle: "Vídeo em análise",
   studioPendingVideoBlocked:
     "Um dos seus vídeos ainda está em análise. Você não pode publicar um novo vídeo até que ele seja aprovado ou recusado.",
+  studioRateLimited: "Só podes publicar um vídeo a cada 30 minutos. Tenta novamente em {minutes} min.",
   notifVideoPendingReview:
     "Seu primeiro vídeo está em análise 🎬 Primeiro por IA, depois manualmente pela nossa equipe (pode levar até 24h).",
   notifVideoApproved: "Seu vídeo foi aprovado e já está no ar 🎉",
@@ -4209,6 +4217,7 @@ const pt: Dict = {
   studioStepOf: "Etapa {step} de {total}",
   studioChooseVideo: "Escolha seu vídeo",
   studioSelectVideoHint: "Selecione um arquivo de vídeo de até 200 MB.",
+  studioProcessingVideo: "A processar o vídeo…",
   studioChangeVideo: "Trocar vídeo",
   studioSelectVideoFile: "Selecionar um arquivo de vídeo",
   studioGiveTitle: "Dê um título",
@@ -5396,6 +5405,7 @@ const de: Dict = {
   studioPendingVideoBlockedTitle: "Video wird noch geprüft",
   studioPendingVideoBlocked:
     "Eines deiner Videos wird noch geprüft. Du kannst kein neues Video hochladen, bis es angenommen oder abgelehnt wurde.",
+  studioRateLimited: "Du kannst nur alle 30 Minuten ein Video posten. Versuch es in {minutes} Min. erneut.",
   notifVideoPendingReview:
     "Dein erstes Video wird geprüft 🎬 Erst durch eine KI, dann manuell von unserem Team (kann bis zu 24h dauern).",
   notifVideoApproved: "Dein Video wurde freigegeben und ist jetzt live 🎉",
@@ -5432,6 +5442,7 @@ const de: Dict = {
   studioStepOf: "Schritt {step} von {total}",
   studioChooseVideo: "Wähle dein Video",
   studioSelectVideoHint: "Wähle eine Videodatei mit bis zu 200 MB.",
+  studioProcessingVideo: "Video wird verarbeitet…",
   studioChangeVideo: "Video ändern",
   studioSelectVideoFile: "Videodatei auswählen",
   studioGiveTitle: "Gib ihm einen Titel",
@@ -6622,6 +6633,7 @@ const ko: Dict = {
   studioPendingVideoBlockedTitle: "동영상 검토 대기 중",
   studioPendingVideoBlocked:
     "동영상 하나가 아직 검토 대기 중이에요. 승인되거나 거부될 때까지 새 동영상을 올릴 수 없어요.",
+  studioRateLimited: "동영상은 30분마다 하나만 올릴 수 있어요. {minutes}분 후에 다시 시도하세요.",
   notifVideoPendingReview:
     "첫 동영상이 검토 대기 중이에요 🎬 AI 분석 후 운영팀이 직접 확인합니다 (최대 24시간 소요될 수 있어요).",
   notifVideoApproved: "동영상이 승인되어 게시되었어요 🎉",
@@ -6656,6 +6668,7 @@ const ko: Dict = {
   studioStepOf: "{total}단계 중 {step}단계",
   studioChooseVideo: "동영상을 선택하세요",
   studioSelectVideoHint: "최대 200MB의 동영상 파일을 선택하세요.",
+  studioProcessingVideo: "동영상 처리 중…",
   studioChangeVideo: "동영상 변경",
   studioSelectVideoFile: "동영상 파일 선택",
   studioGiveTitle: "제목을 붙여주세요",

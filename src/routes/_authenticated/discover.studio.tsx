@@ -893,6 +893,11 @@ function UploadWizard({
   const [busy, setBusy] = useState(false);
   const [draftPromptOpen, setDraftPromptOpen] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  // The video's metadata (duration, dimensions) loads asynchronously after
+  // choose() - moving on to trim/thumbnail steps before it's ready left them
+  // unable to read a duration or capture a frame, looking broken rather
+  // than just not-loaded-yet.
+  const [videoReady, setVideoReady] = useState(false);
   const myProfile = useQuery({
     queryKey: ["upload-wizard-profile", user?.id],
     enabled: !!user,
@@ -926,6 +931,7 @@ function UploadWizard({
     setFile(selected);
     setEditedBlob(null);
     setThumbnailBlob(null);
+    setVideoReady(false);
   }
   function addTag(explicit?: string) {
     const value = (explicit ?? tag).trim().replace(/^#+/, "").replace(/\s+/g, "");
@@ -1041,8 +1047,12 @@ function UploadWizard({
       if (draft) await supabase.from("video_drafts").delete().eq("id", draft.id);
       onDone();
     } catch (error) {
+      const rateLimitMatch =
+        error instanceof Error ? error.message.match(/rate_limited: (\d+)/) : null;
       if (error instanceof Error && error.message.includes("pending_video_exists")) {
         toast.error(t("studioPendingVideoBlocked"));
+      } else if (rateLimitMatch) {
+        toast.error(t("studioRateLimited", { minutes: rateLimitMatch[1]! }));
       } else {
         toast.error(error instanceof Error ? error.message : t("studioPublishFailed"));
       }
@@ -1159,10 +1169,29 @@ function UploadWizard({
                   onClick={() => input.current?.click()}
                   className="relative mx-auto mt-6 block overflow-hidden rounded-3xl bg-black"
                 >
-                  <video src={preview} muted playsInline className="max-h-[48dvh]" />
-                  <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-xs font-bold text-white">
-                    {t("studioChangeVideo")}
-                  </span>
+                  <video
+                    src={preview}
+                    muted
+                    playsInline
+                    onLoadedMetadata={(e) => {
+                      setVideoReady(true);
+                      e.currentTarget
+                        .play()
+                        .then(() => e.currentTarget.pause())
+                        .catch(() => {});
+                    }}
+                    className="max-h-[48dvh]"
+                  />
+                  {!videoReady ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                      <p className="text-xs font-bold text-white">{t("studioProcessingVideo")}</p>
+                    </div>
+                  ) : (
+                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-xs font-bold text-white">
+                      {t("studioChangeVideo")}
+                    </span>
+                  )}
                 </button>
               ) : (
                 <button
@@ -1453,7 +1482,7 @@ function UploadWizard({
               <Button
                 className="w-full"
                 size="lg"
-                disabled={(step === 1 && !file) || (step === 5 && !title.trim())}
+                disabled={(step === 1 && (!file || !videoReady)) || (step === 5 && !title.trim())}
                 onClick={() => setStep((step + 1) as 2 | 3 | 4 | 5 | 6 | 7 | 8)}
               >
                 {t("continue")} <ArrowRight className="h-4 w-4" />
