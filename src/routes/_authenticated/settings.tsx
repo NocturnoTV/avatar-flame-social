@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Bell,
+  Check,
   Copy,
   Crown,
   Database,
@@ -71,8 +72,14 @@ type PrivacyPrefs = {
   discoverable: boolean;
   show_age: boolean;
   show_activity: boolean;
-  messages_from: string;
+  messages_from: string[];
 };
+
+const MESSAGES_FROM_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: "matches", labelKey: "messagesMatchesOnly" },
+  { value: "followers", labelKey: "messagesFollowers" },
+  { value: "everyone", labelKey: "messagesEveryone" },
+];
 
 // NOTE: "followers" has no matching entry yet - there is no "someone
 // followed you" notification kind in the database at all (following a
@@ -352,8 +359,15 @@ function SettingsPage() {
   function setNotif(key: keyof NotifPrefs, value: boolean) {
     void patchPrefs({ notification_prefs: { ...notif, [key]: value } });
   }
-  function setPrivacy(key: keyof PrivacyPrefs, value: boolean | string) {
+  function setPrivacy(key: keyof PrivacyPrefs, value: boolean | string | string[]) {
     void patchPrefs({ privacy_prefs: { ...privacy, [key]: value } });
+  }
+  function toggleMessagesFrom(value: string) {
+    const current = privacy.messages_from ?? ["matches"];
+    const next = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
+    setPrivacy("messages_from", next);
   }
   function setParental(values: Record<string, unknown>) {
     void patchPrefs(values);
@@ -795,14 +809,35 @@ function SettingsPage() {
         />
         <div>
           <Label>{t("whoCanMessage")}</Label>
-          <Select
-            value={privacy.messages_from ?? "matches"}
-            onChange={(e) => setPrivacy("messages_from", e.target.value)}
-          >
-            <option value="matches">{t("messagesMatchesOnly")}</option>
-            <option value="everyone">{t("messagesEveryone")}</option>
-            <option value="nobody">{t("messagesNobody")}</option>
-          </Select>
+          <p className="mb-2 text-xs text-muted-foreground">{t("whoCanMessageHint")}</p>
+          <div className="space-y-1.5">
+            {MESSAGES_FROM_OPTIONS.map((opt) => {
+              const checked = (privacy.messages_from ?? ["matches"]).includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => toggleMessagesFrom(opt.value)}
+                  className="flex w-full items-center justify-between rounded-2xl border border-border p-3.5 text-left"
+                >
+                  <span className="font-semibold">{t(opt.labelKey)}</span>
+                  <span
+                    className={cn(
+                      "grid h-5 w-5 shrink-0 place-items-center rounded-md border-2",
+                      checked ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                    )}
+                  >
+                    {checked ? <Check className="h-3.5 w-3.5" /> : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {(privacy.messages_from ?? ["matches"]).length === 0 ? (
+            <p className="mt-2 text-xs font-semibold text-muted-foreground">
+              {t("messagesNobody")}
+            </p>
+          ) : null}
         </div>
       </Section>
 

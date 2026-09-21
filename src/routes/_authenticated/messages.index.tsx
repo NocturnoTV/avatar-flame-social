@@ -561,7 +561,11 @@ function MessagesPage() {
       setSearch("");
       await navigate({ to: "/messages/$id", params: { id: conversationId as string } });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("errorGeneric"));
+      if (err instanceof Error && err.message.includes("messages_restricted")) {
+        toast.error(t("messagesRestrictedError"));
+      } else {
+        toast.error(err instanceof Error ? err.message : t("errorGeneric"));
+      }
     }
   }
 

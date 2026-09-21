@@ -288,7 +288,11 @@ function PublicProfile() {
       await navigate({ to: "/messages/$id", params: { id: conversationId as string } });
     } catch (err) {
       console.error("start_direct_message failed", err);
-      toast.error(errorMessage(err, t("errorGeneric")));
+      if (err instanceof Error && err.message.includes("messages_restricted")) {
+        toast.error(t("messagesRestrictedError"));
+      } else {
+        toast.error(errorMessage(err, t("errorGeneric")));
+      }
     } finally {
       setMessaging(false);
     }
