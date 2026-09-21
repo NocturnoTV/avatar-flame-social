@@ -21,6 +21,7 @@ import {
   Music2,
   Play,
   Plus,
+  RefreshCw,
   Reply,
   Repeat2,
   Search,
@@ -43,7 +44,12 @@ import { cn, errorMessage } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { discoverFeedKey, fetchDiscoverFeed, type VideoRow } from "@/lib/discover-feed";
-import { logPositiveAction, logVideoWatch, markNotInterested } from "@/lib/recommendation.functions";
+import {
+  logPositiveAction,
+  logVideoWatch,
+  markNotInterested,
+  resetRecommendations,
+} from "@/lib/recommendation.functions";
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -112,6 +118,8 @@ function DiscoverPage() {
     window.localStorage.setItem("bloxspark-discover-autoscroll", String(autoScroll));
   }, [autoScroll]);
   const [comments, setComments] = useState<VideoRow | null>(null);
+  const [resettingAlgo, setResettingAlgo] = useState(false);
+  const feedScrollRef = useRef<HTMLDivElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [spotlight, setSpotlight] = useState<{
@@ -151,6 +159,21 @@ function DiscoverPage() {
         ...(pinnedVideoId ? { pinnedVideoId } : {}),
       }),
   });
+
+  async function resetAlgorithm() {
+    if (!confirm(t("feedResetConfirm"))) return;
+    setResettingAlgo(true);
+    try {
+      await resetRecommendations();
+      await queryClient.invalidateQueries({ queryKey: ["feed"] });
+      feedScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      toast.success(t("feedResetDone"));
+    } catch {
+      toast.error(t("errorGeneric"));
+    } finally {
+      setResettingAlgo(false);
+    }
+  }
 
   // Deep-linked from an "Activités" notification about a comment - open
   // that video's comments sheet as soon as it's loaded.
@@ -308,7 +331,10 @@ function DiscoverPage() {
           </div>
         </div>
       ) : (
-        <div className="h-full snap-y snap-mandatory overflow-y-scroll overscroll-contain">
+        <div
+          ref={feedScrollRef}
+          className="h-full snap-y snap-mandatory overflow-y-scroll overscroll-contain"
+        >
           {displayedVideos.map((video) => {
             const highlighted = spotlight?.video.id === video.id ? spotlight : null;
             return (
@@ -356,6 +382,14 @@ function DiscoverPage() {
               <Link to="/discover/studio">
                 <Button>{t("publishVideo")}</Button>
               </Link>
+              <button
+                onClick={() => void resetAlgorithm()}
+                disabled={resettingAlgo}
+                className="mx-auto flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                {resettingAlgo ? t("feedResetting") : t("feedResetButton")}
+              </button>
             </div>
           </div>
         </div>

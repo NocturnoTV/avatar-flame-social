@@ -840,3 +840,17 @@ export async function recordPositiveAction(
     ...(categories ?? []).map((c) => bumpTopicAffinity(userId, c.category, 1, lr * 0.6, trust)),
   ]);
 }
+
+/** Wipes every learned signal the "For You" ranking uses for this account -
+ * topic/creator affinities, "not interested" marks, and watch history - so
+ * the feed starts recommending from a blank slate again. Doesn't touch
+ * hidden_creators/hidden_categories, which are deliberate blocks the user
+ * set on purpose rather than something the algorithm learned. */
+export async function resetRecommendationProfile(userId: string) {
+  await Promise.all([
+    supabaseAdmin.from("user_topic_affinity").delete().eq("user_id", userId),
+    supabaseAdmin.from("user_creator_affinity").delete().eq("user_id", userId),
+    supabaseAdmin.from("video_not_interested").delete().eq("user_id", userId),
+    supabaseAdmin.from("video_watch_events").delete().eq("user_id", userId),
+  ]);
+}

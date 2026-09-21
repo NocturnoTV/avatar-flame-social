@@ -9,6 +9,7 @@ import {
   recordNotInterested,
   recordPositiveAction,
   recordWatchEvent,
+  resetRecommendationProfile,
 } from "@/lib/recommendation-engine.server";
 
 /** Personalized "For You" feed - see recommendation-engine.server.ts for the pipeline. */
@@ -87,5 +88,12 @@ export const hideCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
     await recordHideCategory(context.userId, data.category);
+    return { success: true };
+  });
+
+export const resetRecommendations = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await resetRecommendationProfile(context.userId);
     return { success: true };
   });
