@@ -330,6 +330,7 @@ export function StoryComposer({
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (const stroke of strokes) {
+      if (!stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) continue;
       ctx.globalCompositeOperation = stroke.erase ? "destination-out" : "source-over";
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = (stroke.size / 100) * canvas.width;
