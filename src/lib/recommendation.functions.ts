@@ -58,7 +58,7 @@ export const logPositiveAction = createServerFn({ method: "POST" })
   .validator(
     z.object({
       videoId: z.string().uuid(),
-      action: z.enum(["like", "comment", "share", "follow", "visit_profile"]),
+      action: z.enum(["like", "comment", "share", "follow", "favorite", "visit_profile"]),
     }),
   )
   .middleware([requireSupabaseAuth])

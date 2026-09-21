@@ -65,6 +65,7 @@ const LR = {
   comment: 0.22,
   share: 0.22,
   follow: 0.3,
+  favorite: 0.3,
   visitProfile: 0.08,
   ignore: 0.045,
   notInterested: 0.07,
@@ -332,6 +333,9 @@ export async function getCandidateVideos(userId: string): Promise<Candidate[]> {
   for (const { rows, source } of results) {
     const withCategories = await attachCategories(rows);
     for (const video of withCategories) {
+      // "For You" is for discovering other creators - never recommend the
+      // viewer their own videos back.
+      if (video.user_id === userId) continue;
       if (!seen.has(video.id)) seen.set(video.id, { ...video, source });
     }
   }
@@ -821,7 +825,7 @@ export async function recordHideCategory(userId: string, category: TopicCategory
 export async function recordPositiveAction(
   userId: string,
   videoId: string,
-  action: "like" | "comment" | "share" | "follow" | "visit_profile",
+  action: "like" | "comment" | "share" | "follow" | "favorite" | "visit_profile",
 ) {
   const { data: video } = await supabaseAdmin
     .from("videos")

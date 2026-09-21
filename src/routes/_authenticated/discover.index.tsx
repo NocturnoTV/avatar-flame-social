@@ -24,6 +24,7 @@ import {
   RefreshCw,
   Reply,
   Repeat2,
+  RotateCcw,
   Search,
   Send,
   SlidersHorizontal,
@@ -633,6 +634,12 @@ function VideoSlide({
       longPressTimer.current = null;
     }
   }
+  function restart() {
+    const el = ref.current;
+    if (!el) return;
+    el.currentTime = 0;
+    void el.play();
+  }
 
   // --- Watch-time tracking for the recommendation engine (section 2) ---
   const watchStartRef = useRef<number | null>(null);
@@ -820,6 +827,7 @@ function VideoSlide({
         });
       }
       if (table === "video_favorites") {
+        void logPositiveAction({ data: { videoId: video.id, action: "favorite" } });
         void supabase.rpc("bump_quest_progress", {
           _metric_key: "show_some_love",
           _entity_id: video.id,
@@ -899,6 +907,9 @@ function VideoSlide({
           <Link
             to="/users/$id"
             params={{ id: username || video.user_id }}
+            onClick={() => {
+              if (!isMine) void logPositiveAction({ data: { videoId: video.id, action: "visit_profile" } });
+            }}
             className="pointer-events-auto flex items-center gap-1 text-[15px] font-extrabold text-white drop-shadow hover:underline"
           >
             @{username}
@@ -932,6 +943,9 @@ function VideoSlide({
             <Link
               to="/users/$id"
               params={{ id: username || video.user_id }}
+              onClick={() => {
+                if (!isMine) void logPositiveAction({ data: { videoId: video.id, action: "visit_profile" } });
+              }}
               className="block h-10 w-10 overflow-hidden rounded-full border-2 border-white"
               aria-label={`Profil de ${username}`}
             >
@@ -1001,6 +1015,7 @@ function VideoSlide({
         onSpeedChange={onSpeedChange}
         autoScroll={autoScroll}
         onToggleAutoScroll={onToggleAutoScroll}
+        onRestart={restart}
         onNotInterested={onNotInterested}
       />
     </div>
@@ -1018,6 +1033,7 @@ function VideoContextMenu({
   onSpeedChange,
   autoScroll,
   onToggleAutoScroll,
+  onRestart,
   onNotInterested,
 }: {
   open: boolean;
@@ -1027,6 +1043,7 @@ function VideoContextMenu({
   onSpeedChange: (speed: number) => void;
   autoScroll: boolean;
   onToggleAutoScroll: () => void;
+  onRestart: () => void;
   onNotInterested: () => void;
 }) {
   const { t } = useI18n();
@@ -1135,6 +1152,16 @@ function VideoContextMenu({
             >
               <span className="block h-5 w-5 rounded-full bg-white shadow" />
             </span>
+          </button>
+          <button
+            onClick={() => {
+              onRestart();
+              onClose();
+            }}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+          >
+            <RotateCcw className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">{t("videoMenuRestart")}</span>
           </button>
           <button
             onClick={() => {

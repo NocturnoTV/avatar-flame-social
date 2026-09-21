@@ -53,22 +53,12 @@ export async function fetchDiscoverFeed({
 }> {
   let videos: VideoRow[];
   if (tab === "foryou") {
+    // The personalized engine already excludes the viewer's own videos from
+    // its candidate pool (see getCandidateVideos) - "For You" is for
+    // discovering other creators, not a place to keep re-surfacing your own
+    // posts every time you open the feed.
     const rows = await getPersonalizedFeed({ data: { limit: 30 } });
     videos = rows.map((v) => ({ ...v, thumbnail_path: null }));
-    const { data: ownVideos, error: ownVideosError } = await supabase
-      .from("videos")
-      .select(VIDEO_COLUMNS)
-      .eq("user_id", userId)
-      .eq("visibility", "public")
-      .eq("moderation_status", "approved")
-      .order("created_at", { ascending: false })
-      .limit(12);
-    if (ownVideosError) throw ownVideosError;
-    const ownIds = new Set((ownVideos ?? []).map((video) => video.id));
-    videos = [
-      ...((ownVideos ?? []) as VideoRow[]),
-      ...videos.filter((video) => !ownIds.has(video.id)),
-    ];
   } else {
     const ids = [...new Set([userId, ...followingIds])];
     const { data, error } = await supabase
