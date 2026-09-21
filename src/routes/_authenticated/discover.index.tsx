@@ -22,6 +22,8 @@ import {
   MessageSquareOff,
   MoreHorizontal,
   Music2,
+  Pin,
+  PinOff,
   Play,
   Plus,
   RefreshCw,
@@ -49,6 +51,7 @@ import { cn, errorMessage } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { discoverFeedKey, fetchDiscoverFeed, type VideoRow } from "@/lib/discover-feed";
+import { uploadFile } from "@/lib/media";
 import {
   logPositiveAction,
   logVideoWatch,
@@ -1434,7 +1437,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const [gifUrl, setGifUrl] = useState("");
   const [media, setMedia] = useState<{
     url: string;
-    type: "gif" | "sticker" | "custom_sticker";
+    type: "gif" | "sticker" | "custom_sticker" | "image";
   } | null>(null);
   const [sort, setSort] = useState<"popular" | "recent">("popular");
   const [commentSearch, setCommentSearch] = useState("");
@@ -1451,6 +1454,16 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const [pending, setPending] = useState<(RichComment & { status: "sending" | "failed" }) | null>(
     null,
   );
+  const [page, setPage] = useState(0);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Changing sort re-queries from scratch rather than re-sorting whatever
+  // happened to already be paginated in.
+  useEffect(() => {
+    setPage(0);
+  }, [sort]);
 
   function toggleReplies(commentId: string) {
     setExpandedReplies((current) => {
@@ -1537,27 +1550,84 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     },
   });
 
-  const commentsAllowed = useQuery({
-    queryKey: ["comment-permissions", video.id],
+  const COMMENT_PAGE_SIZE = 20;
+  const COMMENT_COLUMNS = "id,user_id,content,created_at,parent_id,media_url,media_type,likes_count";
+
+  const videoMeta = useQuery({
+    queryKey: ["comment-video-meta", video.id],
     queryFn: async () => {
       const { data } = await supabase
         .from("videos")
-        .select("allow_comments")
+        .select("allow_comments,pinned_comment_id")
         .eq("id", video.id)
         .maybeSingle();
-      return data?.allow_comments ?? true;
+      return {
+        allowComments: data?.allow_comments ?? true,
+        pinnedCommentId: data?.pinned_comment_id ?? null,
+      };
+    },
+  });
+  const commentsAllowed = { data: videoMeta.data?.allowComments, isLoading: videoMeta.isLoading };
+
+  const commentCount = useQuery({
+    queryKey: ["video-comments-count", video.id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("video_comments")
+        .select("id", { count: "exact", head: true })
+        .eq("video_id", video.id);
+      return count ?? 0;
     },
   });
 
+  // Top-level comments are paginated (never the whole thread at once);
+  // replies are fetched only for the top-level comments currently loaded,
+  // and the creator's pinned comment is always included even if it would
+  // otherwise fall outside the current page or a search match.
   const comments = useQuery({
-    queryKey: ["video-comments", video.id],
-    queryFn: async () => {
-      const { data } = await supabase
+    queryKey: ["video-comments", video.id, sort, page, commentSearch, videoMeta.data?.pinnedCommentId],
+    queryFn: async (): Promise<{ rows: RichComment[]; hasMore: boolean }> => {
+      const query = commentSearch.trim();
+      const searching = query.length > 0;
+      let topQuery = supabase
         .from("video_comments")
-        .select("id,user_id,content,created_at,parent_id,media_url,media_type")
+        .select(COMMENT_COLUMNS)
         .eq("video_id", video.id)
-        .order("created_at", { ascending: false });
-      const rows = data ?? [];
+        .is("parent_id", null);
+      topQuery = searching
+        ? topQuery.ilike("content", `%${query}%`)
+        : sort === "popular"
+          ? topQuery
+              .order("likes_count", { ascending: false })
+              .order("created_at", { ascending: false })
+          : topQuery.order("created_at", { ascending: false });
+      if (!searching) topQuery = topQuery.range(0, (page + 1) * COMMENT_PAGE_SIZE);
+      const { data: topRows } = await topQuery;
+      const fetchedTop = topRows ?? [];
+      const hasMore = !searching && fetchedTop.length > (page + 1) * COMMENT_PAGE_SIZE;
+      const visibleTop = searching ? fetchedTop : fetchedTop.slice(0, (page + 1) * COMMENT_PAGE_SIZE);
+
+      const pinnedId = videoMeta.data?.pinnedCommentId ?? null;
+      let pinnedRow: (typeof visibleTop)[number] | null = null;
+      if (pinnedId && !visibleTop.some((r) => r.id === pinnedId)) {
+        const { data: pinned } = await supabase
+          .from("video_comments")
+          .select(COMMENT_COLUMNS)
+          .eq("id", pinnedId)
+          .maybeSingle();
+        pinnedRow = pinned ?? null;
+      }
+
+      const topIds = [...visibleTop, ...(pinnedRow ? [pinnedRow] : [])].map((r) => r.id);
+      const { data: replyRows } = topIds.length
+        ? await supabase
+            .from("video_comments")
+            .select(COMMENT_COLUMNS)
+            .in("parent_id", topIds)
+            .order("created_at", { ascending: true })
+        : { data: [] };
+
+      const rows = [...(pinnedRow ? [pinnedRow] : []), ...visibleTop, ...(replyRows ?? [])];
       const ids = [...new Set([...rows.map((r) => r.user_id), video.user_id])];
       const people: Record<
         string,
@@ -1575,25 +1645,27 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             verified: row.verified ?? false,
           };
       }
+      // Only the current viewer's and the creator's own reactions are needed
+      // now that likes_count is a stored, trigger-maintained column -
+      // fetching every reaction row just to count them isn't necessary.
+      const reactorIds = [...new Set([user?.id, video.user_id].filter((x): x is string => !!x))];
       const reactions: Array<{ comment_id: string; user_id: string; reaction: string }> = [];
-      if (rows.length) {
+      if (rows.length && reactorIds.length) {
         const { data: reactionRows } = await supabase
           .from("video_comment_reactions")
           .select("comment_id,user_id,reaction")
           .in(
             "comment_id",
             rows.map((row) => row.id),
-          );
+          )
+          .in("user_id", reactorIds);
         reactions.push(...(reactionRows ?? []));
       }
-      return rows.map((r) => ({
+      const richRows: RichComment[] = rows.map((r) => ({
         ...r,
         username: people[r.user_id]?.username ?? "joueur",
         avatar_url: people[r.user_id]?.avatar_url ?? null,
         verified: people[r.user_id]?.verified ?? false,
-        likes_count: reactions.filter(
-          (reaction) => reaction.comment_id === r.id && reaction.reaction === "like",
-        ).length,
         creator_liked: reactions.some(
           (reaction) =>
             reaction.comment_id === r.id &&
@@ -1606,8 +1678,58 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             (reaction) => reaction.comment_id === r.id && reaction.user_id === user?.id,
           )?.reaction ?? null,
       }));
+      return { rows: richRows, hasMore };
     },
   });
+
+  const pinnedCommentId = videoMeta.data?.pinnedCommentId ?? null;
+
+  // Live sync: another viewer's new comment, deletion, reply, or like on
+  // this video shows up here without closing and reopening the sheet.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`video-comments-${video.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "video_comments",
+          filter: `video_id=eq.${video.id}`,
+        },
+        () => {
+          void comments.refetch();
+          void commentCount.refetch();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "video_comment_reactions" },
+        () => void comments.refetch(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video.id]);
+
+  // Infinite scroll: load the next page of top-level comments once the
+  // sentinel at the bottom of the list comes into view.
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && comments.data?.hasMore && !comments.isFetching) {
+          setPage((p) => p + 1);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [comments.data?.hasMore, comments.isFetching]);
 
   // Optimistic send: the draft appears in the list right away (status
   // "sending"); a failure flips it to "failed" in place instead of losing
@@ -1651,7 +1773,11 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
       user_id: user.id,
       content:
         content ||
-        (media?.type === "sticker" || media?.type === "custom_sticker" ? "Autocollant" : "GIF"),
+        (media?.type === "sticker" || media?.type === "custom_sticker"
+          ? "Autocollant"
+          : media?.type === "image"
+            ? "Photo"
+            : "GIF"),
       created_at: new Date().toISOString(),
       parent_id: replyingTo?.id ?? null,
       media_url: media?.url ?? null,
@@ -1676,7 +1802,39 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
       return;
     }
     await comments.refetch();
+    await commentCount.refetch();
+    await videoMeta.refetch();
     await qc.invalidateQueries({ queryKey: ["feed"] });
+  }
+
+  async function pickCommentImage(file: File) {
+    if (!user) return;
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = await uploadFile("comment-images", user.id, file, ext);
+      setMedia({ url: path, type: "image" });
+      setShowExtras(false);
+    } catch {
+      toast.error(t("errorGeneric"));
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  async function togglePin(comment: RichComment) {
+    const nextId = pinnedCommentId === comment.id ? null : comment.id;
+    const { error } = await supabase
+      .from("videos")
+      .update({ pinned_comment_id: nextId })
+      .eq("id", video.id);
+    setMenuFor(null);
+    if (error) {
+      toast.error(t("errorGeneric"));
+      return;
+    }
+    await videoMeta.refetch();
+    await comments.refetch();
   }
 
   async function submitCommentReport(reason: string) {
@@ -1701,7 +1859,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
 
   async function react(commentId: string) {
     if (!user) return;
-    const current = comments.data?.find((comment) => comment.id === commentId)?.my_reaction;
+    const current = comments.data?.rows.find((comment) => comment.id === commentId)?.my_reaction;
     if (current === "like") {
       const { error } = await supabase
         .from("video_comment_reactions")
@@ -1724,7 +1882,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     await comments.refetch();
   }
 
-  const total = comments.data?.length ?? 0;
+  const total = commentCount.data ?? 0;
 
   return (
     <div
@@ -1794,41 +1952,35 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
               onDiscard={() => setPending(null)}
             />
           ) : null}
-          {comments.data?.length ? (
-            [...comments.data]
-              .filter((comment) => !comment.parent_id)
-              .filter((comment) => {
-                const query = commentSearch.trim().toLocaleLowerCase();
-                return (
-                  !query ||
-                  comment.content.toLocaleLowerCase().includes(query) ||
-                  comment.username.toLocaleLowerCase().includes(query)
-                );
-              })
-              .sort((a, b) =>
-                sort === "popular"
-                  ? b.likes_count - a.likes_count
-                  : Date.parse(b.created_at) - Date.parse(a.created_at),
-              )
-              .map((c) => (
-                <CommentItem
-                  key={c.id}
-                  comment={c}
-                  replies={comments.data.filter((r) => r.parent_id === c.id)}
-                  onReply={(id, username) => {
-                    setReplyingTo({ id, username });
-                    setText(`@${username} `);
-                  }}
-                  onReact={react}
-                  onOpenMenu={setMenuFor}
-                  expanded={expandedReplies.has(c.id)}
-                  onToggleExpand={() => toggleReplies(c.id)}
-                  pendingReply={pending?.parent_id === c.id ? pending : null}
-                  onRetryPending={() => pending && void postComment(pending)}
-                  onDiscardPending={() => setPending(null)}
-                />
-              ))
-          ) : !pending && commentsAllowed.data !== false ? (
+          {comments.data?.rows.length ? (
+            <>
+              {comments.data.rows
+                .filter((comment) => !comment.parent_id)
+                .map((c) => (
+                  <CommentItem
+                    key={c.id}
+                    comment={c}
+                    replies={comments.data!.rows.filter((r) => r.parent_id === c.id)}
+                    isPinned={c.id === pinnedCommentId}
+                    onReply={(id, username) => {
+                      setReplyingTo({ id, username });
+                      setText(`@${username} `);
+                    }}
+                    onReact={react}
+                    onOpenMenu={setMenuFor}
+                    expanded={expandedReplies.has(c.id)}
+                    onToggleExpand={() => toggleReplies(c.id)}
+                    pendingReply={pending?.parent_id === c.id ? pending : null}
+                    onRetryPending={() => pending && void postComment(pending)}
+                    onDiscardPending={() => setPending(null)}
+                  />
+                ))}
+              <div ref={loadMoreRef} className="h-1" />
+              {comments.isFetching && page > 0 ? (
+                <p className="py-3 text-center text-xs text-muted-foreground">{t("loading")}</p>
+              ) : null}
+            </>
+          ) : !pending && commentsAllowed.data !== false && !comments.isLoading ? (
             <p className="py-10 text-center text-sm text-muted-foreground">{t("firstComment")}</p>
           ) : null}
         </div>
@@ -1836,6 +1988,26 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         <>
         {showExtras ? (
           <div className="border-t border-border bg-card/95 px-4 py-3 backdrop-blur-xl">
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void pickCommentImage(file);
+              }}
+            />
+            <button
+              type="button"
+              disabled={uploadingImage}
+              onClick={() => imageInputRef.current?.click()}
+              className="mb-3 flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-input py-2.5 text-sm font-semibold text-primary disabled:opacity-50"
+            >
+              <ImagePlus className="h-4 w-4" />
+              {uploadingImage ? t("loading") : t("commentPickImage")}
+            </button>
             <div className="flex gap-2">
               <input
                 value={gifUrl}
@@ -1893,14 +2065,19 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         ) : null}
         {replyingTo || media ? (
           <div className="flex items-center justify-between border-t border-border bg-primary/10 px-4 py-2 text-xs">
-            <span>
+            <span className="flex items-center gap-2">
+              {media?.type === "image" ? (
+                <CommentStickerThumb path={media.url} className="h-9 w-9 rounded-lg object-cover" />
+              ) : null}
               {replyingTo
                 ? `Réponse à @${replyingTo.username}`
                 : media?.type === "gif"
                   ? "GIF ajouté"
                   : media?.type === "custom_sticker"
                     ? "Autocollant ajouté"
-                    : `Autocollant ${media?.url}`}
+                    : media?.type === "image"
+                      ? t("commentPickImage")
+                      : `Autocollant ${media?.url}`}
             </span>
             <button
               onClick={() => {
@@ -2016,6 +2193,21 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
       {menuFor ? (
         <Sheet open onClose={() => setMenuFor(null)}>
           <div className="space-y-1">
+            {video.user_id === user?.id && !menuFor.parent_id ? (
+              <button
+                onClick={() => void togglePin(menuFor)}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+              >
+                {pinnedCommentId === menuFor.id ? (
+                  <PinOff className="h-4 w-4" />
+                ) : (
+                  <Pin className="h-4 w-4" />
+                )}
+                <span className="text-sm font-semibold">
+                  {pinnedCommentId === menuFor.id ? t("commentMenuUnpin") : t("commentMenuPin")}
+                </span>
+              </button>
+            ) : null}
             {menuFor.user_id === user?.id || video.user_id === user?.id ? (
               <button
                 onClick={() => {
@@ -2162,6 +2354,7 @@ function PendingCommentRow({
 function CommentItem({
   comment,
   replies,
+  isPinned,
   onReply,
   onReact,
   onOpenMenu,
@@ -2173,6 +2366,7 @@ function CommentItem({
 }: {
   comment: RichComment;
   replies: RichComment[];
+  isPinned?: boolean;
   onReply: (id: string, username: string) => void;
   onReact: (id: string) => void;
   onOpenMenu: (comment: RichComment) => void;
@@ -2204,6 +2398,12 @@ function CommentItem({
             @{comment.username}
             {comment.verified ? <Verified className="h-3.5 w-3.5 shrink-0" /> : null}
           </Link>
+          {isPinned ? (
+            <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold text-primary">
+              <Pin className="h-3 w-3" />
+              {t("commentPinnedBadge")}
+            </span>
+          ) : null}
           {comment.media_type === "gift" ? (
             <div className="mt-1 overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-500 p-[1px] shadow-[0_10px_30px_-15px_rgba(217,70,239,.9)] bx-gift-comment">
               <div className="flex items-center gap-3 rounded-[calc(1rem-1px)] bg-black/20 px-3 py-2.5 text-white backdrop-blur-sm">
@@ -2237,6 +2437,12 @@ function CommentItem({
           ) : null}
           {comment.media_type === "custom_sticker" && comment.media_url ? (
             <CommentStickerThumb path={comment.media_url} className="mt-2 h-24 w-24" />
+          ) : null}
+          {comment.media_type === "image" && comment.media_url ? (
+            <CommentStickerThumb
+              path={comment.media_url}
+              className="mt-2 max-h-52 w-full max-w-[220px] rounded-2xl object-cover"
+            />
           ) : null}
           <div className="mt-2 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
             <span>{formatRelativeTime(comment.created_at, t)}</span>
@@ -2330,6 +2536,12 @@ function CommentItem({
             ) : null}
             {r.media_type === "custom_sticker" && r.media_url ? (
               <CommentStickerThumb path={r.media_url} className="h-16 w-16" />
+            ) : null}
+            {r.media_type === "image" && r.media_url ? (
+              <CommentStickerThumb
+                path={r.media_url}
+                className="mt-1 max-h-40 w-full max-w-[180px] rounded-xl object-cover"
+              />
             ) : null}
             <div className="mt-1.5 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
               <span>{formatRelativeTime(r.created_at, t)}</span>

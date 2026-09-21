@@ -3451,6 +3451,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          likes_count: number
           media_type: string | null
           media_url: string | null
           parent_id: string | null
@@ -3461,6 +3462,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          likes_count?: number
           media_type?: string | null
           media_url?: string | null
           parent_id?: string | null
@@ -3471,6 +3473,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          likes_count?: number
           media_type?: string | null
           media_url?: string | null
           parent_id?: string | null
@@ -3764,6 +3767,7 @@ export type Database = {
           id: string
           likes_count: number
           moderation_status: string
+          pinned_comment_id: string | null
           recommendation_eligible: boolean
           reposts_count: number
           sensitive_content: boolean
@@ -3794,6 +3798,7 @@ export type Database = {
           id?: string
           likes_count?: number
           moderation_status?: string
+          pinned_comment_id?: string | null
           recommendation_eligible?: boolean
           reposts_count?: number
           sensitive_content?: boolean
@@ -3824,6 +3829,7 @@ export type Database = {
           id?: string
           likes_count?: number
           moderation_status?: string
+          pinned_comment_id?: string | null
           recommendation_eligible?: boolean
           reposts_count?: number
           sensitive_content?: boolean
@@ -3838,6 +3844,13 @@ export type Database = {
           visibility?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "videos_pinned_comment_id_fkey"
+            columns: ["pinned_comment_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "videos_sound_id_fkey"
             columns: ["sound_id"]
