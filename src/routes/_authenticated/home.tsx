@@ -329,11 +329,11 @@ function HomePage() {
   const heroBellRef = useRef<HTMLAnchorElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
-  const discoverRef = useRef<HTMLDivElement>(null);
-  const friendsRef = useRef<HTMLDivElement>(null);
-  const sparksRef = useRef<HTMLDivElement>(null);
+  const discoverRef = useRef<HTMLElement>(null);
+  const friendsRef = useRef<HTMLElement>(null);
+  const sparksRef = useRef<HTMLElement>(null);
   const newsRef = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLAnchorElement>(null);
 
   const gsapRef = useRef<typeof import("gsap").gsap | null>(null);
   const [gsapReady, setGsapReady] = useState(false);
@@ -451,10 +451,10 @@ function HomePage() {
   }
 
   const quickAccess = [
-    { to: "/discover" as const, label: t("discover"), icon: Compass, tint: "from-fuchsia-500 to-purple-600" },
-    { to: "/sparks" as const, label: t("sparks"), icon: Flame, tint: "from-orange-500 to-rose-500" },
-    { to: "/support" as const, label: t("support"), icon: LifeBuoy, tint: "from-sky-500 to-cyan-500" },
-    { to: "/shop" as const, label: t("shop"), icon: ShoppingBag, tint: "from-emerald-500 to-teal-500" },
+    { to: "/discover" as const, label: t("discover"), icon: Compass },
+    { to: "/sparks" as const, label: t("sparks"), icon: Flame },
+    { to: "/support" as const, label: t("support"), icon: LifeBuoy },
+    { to: "/shop" as const, label: t("shop"), icon: ShoppingBag },
   ];
 
   return (
@@ -518,78 +518,67 @@ function HomePage() {
         </div>
       </header>
 
-      {/* Stats strip - floats up over the hero's bottom edge */}
-      <div
-        ref={statsRef}
-        className="relative z-10 -mt-6 grid grid-cols-3 divide-x divide-border overflow-hidden rounded-[1.5rem] border border-border bg-card/95 shadow-lg shadow-black/5 backdrop-blur-xl"
-      >
-        <Link
-          to="/sparks"
-          className="flex flex-col items-center gap-0.5 py-3 transition hover:bg-surface-2"
+      <div className="mt-6 space-y-9">
+        {/* Stats strip */}
+        <div
+          ref={statsRef}
+          className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card"
         >
-          <span className="flex items-center gap-1 text-base font-black">
-            <Users className="h-3.5 w-3.5 text-primary" /> {counters.data?.followers ?? 0}
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-            {t("friends")}
-          </span>
-        </Link>
-        <Link
-          to="/sparks"
-          className="flex flex-col items-center gap-0.5 py-3 transition hover:bg-surface-2"
-        >
-          <span className="flex items-center gap-1 text-base font-black">
-            <Flame className="h-3.5 w-3.5 text-orange-500" /> {counters.data?.matches ?? 0}
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-            {t("matches")}
-          </span>
-        </Link>
-        <Link
-          to="/shop"
-          className="flex flex-col items-center gap-0.5 py-3 transition hover:bg-surface-2"
-        >
-          <span className="flex items-center gap-1 text-base font-black">
-            <BloxIcon className="h-3.5 w-3.5" /> {(blox.data ?? 0).toLocaleString()}
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-            Blox
-          </span>
-        </Link>
-      </div>
-
-      <nav
-        ref={navRef}
-        className="mt-6 grid grid-cols-4 gap-2"
-        aria-label={t("quickAccess")}
-      >
-        {quickAccess.map((item, i) => (
           <Link
-            key={item.to}
-            to={item.to}
-            onMouseMove={magnetize}
-            onMouseLeave={unmagnetize}
-            className={cn(
-              "bx-pop flex flex-col items-center gap-2 rounded-2xl border border-border bg-card py-3.5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md",
-              `bx-delay-${i + 1}`,
-            )}
+            to="/sparks"
+            className="flex flex-col items-center gap-0.5 py-3.5 transition hover:bg-surface-2"
           >
-            <span
-              className={cn(
-                "grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br text-white shadow-sm",
-                item.tint,
-              )}
-            >
-              <item.icon className="h-5 w-5" />
+            <span className="flex items-center gap-1.5 text-base font-black">
+              <Users className="h-3.5 w-3.5 text-muted-foreground" /> {counters.data?.followers ?? 0}
             </span>
-            <span className="text-xs font-bold">{item.label}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              {t("friends")}
+            </span>
           </Link>
-        ))}
-      </nav>
+          <Link
+            to="/sparks"
+            className="flex flex-col items-center gap-0.5 py-3.5 transition hover:bg-surface-2"
+          >
+            <span className="flex items-center gap-1.5 text-base font-black">
+              <Flame className="h-3.5 w-3.5 text-muted-foreground" /> {counters.data?.matches ?? 0}
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              {t("matches")}
+            </span>
+          </Link>
+          <Link
+            to="/shop"
+            className="flex flex-col items-center gap-0.5 py-3.5 transition hover:bg-surface-2"
+          >
+            <span className="flex items-center gap-1.5 text-base font-black">
+              <BloxIcon className="h-3.5 w-3.5" /> {(blox.data ?? 0).toLocaleString()}
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              Blox
+            </span>
+          </Link>
+        </div>
 
-      {/* 1. Découvrir - vidéos du moment */}
-      <div ref={discoverRef} className="mt-8">
-        <section>
+        {/* Quick access */}
+        <nav
+          ref={navRef}
+          className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4"
+          aria-label={t("quickAccess")}
+        >
+          {quickAccess.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-bold text-foreground transition hover:border-primary/40 hover:text-primary"
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* 1. Découvrir - vidéos du moment */}
+        <section ref={discoverRef}>
           <SectionHeader
             emoji="🧭"
             title={t("discover")}
@@ -616,38 +605,34 @@ function HomePage() {
             </Card>
           )}
         </section>
-      </div>
 
-      {/* 2. Amis / Abonnements */}
-      <div ref={friendsRef} className="mt-8">
-        <section>
+        {/* 2. Amis / Abonnements */}
+        <section ref={friendsRef}>
           <SectionHeader emoji="👥" title={t("friends")} />
           {following.data?.length ? (
             <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-              {following.data.map((f) => {
-                return (
-                  <Link
-                    key={f.id}
-                    to="/messages"
-                    className="bx-pop flex w-16 shrink-0 flex-col items-center gap-1.5"
-                  >
-                    <span className="relative">
-                      <span className="block h-14 w-14 overflow-hidden rounded-full spark-gradient p-[2px]">
-                        <StoredImage
-                          path={f.avatar_url}
-                          alt={f.username ?? ""}
-                          className="h-full w-full rounded-full"
-                          fallback="🎮"
-                        />
-                      </span>
-                      <PresenceDot profile={f} className="absolute bottom-0 right-0 h-3.5 w-3.5" />
+              {following.data.map((f) => (
+                <Link
+                  key={f.id}
+                  to="/messages"
+                  className="flex w-16 shrink-0 flex-col items-center gap-1.5"
+                >
+                  <span className="relative">
+                    <span className="block h-14 w-14 overflow-hidden rounded-full border border-border p-[2px]">
+                      <StoredImage
+                        path={f.avatar_url}
+                        alt={f.username ?? ""}
+                        className="h-full w-full rounded-full"
+                        fallback="🎮"
+                      />
                     </span>
-                    <span className="w-full truncate text-center text-[11px] font-semibold">
-                      {f.username ?? "player"}
-                    </span>
-                  </Link>
-                );
-              })}
+                    <PresenceDot profile={f} className="absolute bottom-0 right-0 h-3.5 w-3.5" />
+                  </span>
+                  <span className="w-full truncate text-center text-[11px] font-semibold">
+                    {f.username ?? "player"}
+                  </span>
+                </Link>
+              ))}
             </div>
           ) : (
             <Card className="text-center text-sm text-muted-foreground">
@@ -658,11 +643,9 @@ function HomePage() {
             </Card>
           )}
         </section>
-      </div>
 
-      {/* 3. Mes matchs Sparks */}
-      <div ref={sparksRef} className="mt-8">
-        <section>
+        {/* 3. Mes matchs Sparks */}
+        <section ref={sparksRef}>
           <SectionHeader
             emoji="🔥"
             title={t("matches")}
@@ -674,9 +657,9 @@ function HomePage() {
                 <Link
                   key={m.id}
                   to="/messages"
-                  className="bx-pop flex w-16 shrink-0 flex-col items-center gap-1.5"
+                  className="flex w-16 shrink-0 flex-col items-center gap-1.5"
                 >
-                  <span className="block h-14 w-14 overflow-hidden rounded-full spark-gradient p-[2px]">
+                  <span className="block h-14 w-14 overflow-hidden rounded-full border border-border p-[2px]">
                     <StoredImage
                       path={m.avatar_url}
                       alt={m.username ?? ""}
@@ -699,33 +682,32 @@ function HomePage() {
             </Card>
           )}
         </section>
-      </div>
 
-      {/* 4. Actualités Roblox */}
-      <div ref={newsRef} className="mt-8">
-        <NewsSection />
-      </div>
+        {/* 4. Actualités Roblox */}
+        <div ref={newsRef}>
+          <NewsSection />
+        </div>
 
-      {/* 5. CTA - poster du contenu */}
-      <div ref={ctaRef} className="mt-8 mb-4">
+        {/* 5. CTA - poster du contenu */}
         <Link
+          ref={ctaRef}
           to="/discover/studio"
           onMouseMove={magnetize}
           onMouseLeave={unmagnetize}
-          className="spark-gradient bx-glow group relative flex items-center gap-4 overflow-hidden rounded-[1.75rem] p-5 text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
+          className="group flex items-center gap-4 rounded-2xl border border-primary/25 bg-primary/5 p-4 transition hover:border-primary/50 hover:bg-primary/10"
         >
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/20 text-2xl">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary text-xl text-primary-foreground">
             🎬
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-lg font-black">{t("postCtaTitle")}</span>
-            <span className="block text-sm text-white/85">{t("postCtaText")}</span>
+            <span className="block text-base font-black">{t("postCtaTitle")}</span>
+            <span className="block text-sm text-muted-foreground">{t("postCtaText")}</span>
           </span>
-          <ArrowUpRight className="h-5 w-5 shrink-0 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          <ArrowUpRight className="h-5 w-5 shrink-0 text-primary transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </Link>
-      </div>
 
-      <p className="mt-4 text-center text-[11px] text-muted-foreground">{t("notAffiliated")}</p>
+        <p className="text-center text-[11px] text-muted-foreground">{t("notAffiliated")}</p>
+      </div>
     </div>
   );
 }
