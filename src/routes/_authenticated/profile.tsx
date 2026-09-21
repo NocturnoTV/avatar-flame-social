@@ -1,6 +1,8 @@
 import { Flag } from "@/components/Flag";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getAdvancedStats } from "@/lib/profile-stats.functions";
 import { useRef, useState } from "react";
 import {
   BarChart3,
