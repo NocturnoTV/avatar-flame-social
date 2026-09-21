@@ -278,44 +278,15 @@ function ProfilePage() {
     },
   });
 
-  // "Statistiques avancées" (Spark Plus perk) - real aggregates from the
-  // videos this account owns, not placeholder numbers. Fetched regardless
-  // of plan status (cheap) - display is what's gated.
+  // "Statistiques avancées" (Spark Plus perk) - computed on the server,
+  // which also verifies the Spark Plus entitlement before returning any
+  // numbers, so the blur in the UI is not the only gate.
+  const fetchAdvancedStats = useServerFn(getAdvancedStats);
   const advancedStats = useQuery({
     queryKey: ["my-advanced-stats", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const [{ data: vids }, { count: followerCount }] = await Promise.all([
-        supabase
-          .from("videos")
-          .select("views_count,likes_count,comments_count,favorites_count,reposts_count")
-          .eq("user_id", user!.id),
-        supabase
-          .from("follows")
-          .select("follower_id", { count: "exact", head: true })
-          .eq("following_id", user!.id),
-      ]);
-      const totals = (vids ?? []).reduce(
-        (acc, v) => ({
-          views: acc.views + (v.views_count ?? 0),
-          likes: acc.likes + (v.likes_count ?? 0),
-          comments: acc.comments + (v.comments_count ?? 0),
-          favorites: acc.favorites + (v.favorites_count ?? 0),
-          reposts: acc.reposts + (v.reposts_count ?? 0),
-        }),
-        { views: 0, likes: 0, comments: 0, favorites: 0, reposts: 0 },
-      );
-      const engagementRate = totals.views
-        ? ((totals.likes + totals.comments + totals.favorites + totals.reposts) / totals.views) *
-          100
-        : 0;
-      return {
-        ...totals,
-        followers: followerCount ?? 0,
-        videoCount: vids?.length ?? 0,
-        engagementRate,
-      };
-    },
+    retry: false,
+    queryFn: () => fetchAdvancedStats(),
   });
 
   // Les modifications sont mises en brouillon et enregistrées uniquement au clic sur "Enregistrer".
