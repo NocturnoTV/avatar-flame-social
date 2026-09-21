@@ -200,6 +200,25 @@ export async function captureVideoFrame(source: Blob | string, atSeconds: number
     }, 8000);
     if (loadError) throw loadError;
     if (!video.duration || Number.isNaN(video.duration)) throw new Error("Could not read video.");
+
+    // A video element that's only ever been seeked, never played, never
+    // actually initializes its decoder on a lot of Android WebView builds -
+    // the seek "succeeds" (onseeked fires, currentTime updates) but drawImage
+    // still reads a blank frame, so the "thumbnail" that got generated and
+    // uploaded was itself blank. A brief muted, inline play forces the
+    // decoder to actually start producing frames before the real seek below.
+    try {
+      await video.play();
+      await raceWithTimeout((resolve) => {
+        video.onplaying = () => resolve();
+      }, 2000);
+    } catch {
+      // Some engines refuse programmatic play even muted - the seek still
+      // has a chance of working on those, so keep going rather than bail.
+    } finally {
+      video.pause();
+    }
+
     video.currentTime = Math.min(Math.max(atSeconds, 0), Math.max(video.duration - 0.05, 0));
     await raceWithTimeout((resolve) => {
       video.onseeked = () => resolve();

@@ -473,11 +473,39 @@ function VideoCard({
   onUpdated: () => void;
 }) {
   const { t } = useI18n();
+  const { user } = useSession();
   const url = useSignedUrl(video.storage_path);
   const [busy, setBusy] = useState(false);
   const [boosting, setBoosting] = useState(false);
   const [editing, setEditing] = useState(false);
   const isBoosted = !!video.boosted_until && new Date(video.boosted_until).getTime() > Date.now();
+
+  // Self-heal: videos published before thumbnail capture was reliable (or
+  // where it silently failed) render fine here from storage_path directly,
+  // but show as a black tile everywhere else (Discover, reposts, other
+  // people's feeds) since those never attempt the video-decode fallback at
+  // scale. Backfill the missing thumbnail quietly the next time the owner
+  // opens their own Studio page.
+  useEffect(() => {
+    if (!url || !user || video.thumbnail_path) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const blob = await fetch(url).then((r) => r.blob());
+        const thumb = await captureVideoThumbnail(blob);
+        if (!thumb || cancelled) return;
+        const thumbnailPath = await uploadFile("thumbnails", user.id, thumb, "jpg");
+        await supabase.from("videos").update({ thumbnail_path: thumbnailPath }).eq("id", video.id);
+        if (!cancelled) onUpdated();
+      } catch {
+        // best-effort - the next visit to this page will just try again
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, video.thumbnail_path, video.id, user?.id]);
 
   async function remove() {
     setBusy(true);
