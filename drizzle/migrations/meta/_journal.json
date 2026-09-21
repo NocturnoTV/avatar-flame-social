@@ -36,6 +36,13 @@
       "when": 1789964132896,
       "tag": "0004_scope_highlights_stickers_sounds_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789983964031,
+      "tag": "0005_bind_comment_images_bucket_read",
+      "breakpoints": true
     }
   ]
 }
