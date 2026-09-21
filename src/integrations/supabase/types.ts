@@ -2840,6 +2840,7 @@ export type Database = {
           media_url: string
           metadata: Json
           sound_id: string | null
+          status: string
           thumbnail_path: string | null
           user_id: string
           visibility: string
@@ -2854,6 +2855,7 @@ export type Database = {
           media_url: string
           metadata?: Json
           sound_id?: string | null
+          status?: string
           thumbnail_path?: string | null
           user_id: string
           visibility?: string
@@ -2868,6 +2870,7 @@ export type Database = {
           media_url?: string
           metadata?: Json
           sound_id?: string | null
+          status?: string
           thumbnail_path?: string | null
           user_id?: string
           visibility?: string

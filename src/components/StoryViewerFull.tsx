@@ -28,6 +28,16 @@ const OVERLAY_FONT_CLASS: Record<NonNullable<StoryOverlay["font"]>, string> = {
   mono: "font-mono",
   display: "font-black italic",
 };
+
+const STORY_FILTER_CSS: Record<string, string> = {
+  normal: "none",
+  vintage: "sepia(0.35) contrast(1.1) saturate(1.3)",
+  warm: "saturate(1.3) hue-rotate(-8deg) brightness(1.05)",
+  cool: "saturate(1.15) hue-rotate(12deg) brightness(1.02)",
+  bw: "grayscale(1) contrast(1.1)",
+  glow: "brightness(1.15) contrast(0.95) saturate(1.2)",
+  blur: "blur(2px) brightness(1.05)",
+};
 export type StoryRow = {
   id: string;
   user_id: string;
@@ -37,7 +47,12 @@ export type StoryRow = {
   caption: string | null;
   created_at: string;
   sound_id?: string | null;
-  metadata: { overlays?: StoryOverlay[]; drawing_path?: string | null } | null;
+  metadata: {
+    overlays?: StoryOverlay[];
+    drawing_path?: string | null;
+    filter?: "normal" | "vintage" | "warm" | "cool" | "bw" | "glow" | "blur";
+    fitMode?: "cover" | "contain";
+  } | null;
 };
 export type StoryUserGroup = {
   userId: string;
@@ -338,7 +353,11 @@ export function StoryViewerFull({
                 autoPlay
                 muted={muted}
                 playsInline
-                className="h-full w-full object-contain"
+                style={{ filter: STORY_FILTER_CSS[story.metadata?.filter ?? "normal"] }}
+                className={cn(
+                  "h-full w-full",
+                  story.metadata?.fitMode === "cover" ? "object-cover" : "object-contain",
+                )}
                 onEnded={next}
                 onTimeUpdate={(e) => {
                   const v = e.currentTarget;
@@ -346,7 +365,15 @@ export function StoryViewerFull({
                 }}
               />
             ) : (
-              <img src={url} alt="" className="h-full w-full object-contain" />
+              <img
+                src={url}
+                alt=""
+                style={{ filter: STORY_FILTER_CSS[story.metadata?.filter ?? "normal"] }}
+                className={cn(
+                  "h-full w-full",
+                  story.metadata?.fitMode === "cover" ? "object-cover" : "object-contain",
+                )}
+              />
             )
           ) : null}
 

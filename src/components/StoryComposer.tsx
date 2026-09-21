@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera,
   Check,
+  Crop,
   Eraser,
   Image as ImageIcon,
   Music2,
   Pencil,
   Redo2,
   Smile,
+  Sparkles,
   Trash2,
   Type,
   Undo2,
@@ -19,10 +21,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { uploadFile, captureVideoThumbnail } from "@/lib/media";
 import { useI18n } from "@/lib/i18n";
-import { Button } from "@/components/ui-kit";
+import { Button, Sheet } from "@/components/ui-kit";
 import { SoundPicker, type PickedSound } from "@/components/SoundPicker";
 import { CloseFriendsSheet } from "@/components/CloseFriendsSheet";
 import { cn } from "@/lib/utils";
+
+type Audience = "everyone" | "followers" | "close_friends";
+type FilterId = "normal" | "vintage" | "warm" | "cool" | "bw" | "glow" | "blur";
+const FILTERS: { id: FilterId; label: string; css: string }[] = [
+  { id: "normal", label: "Normal", css: "none" },
+  { id: "vintage", label: "Vintage", css: "sepia(0.35) contrast(1.1) saturate(1.3)" },
+  { id: "warm", label: "Warm", css: "saturate(1.3) hue-rotate(-8deg) brightness(1.05)" },
+  { id: "cool", label: "Cool", css: "saturate(1.15) hue-rotate(12deg) brightness(1.02)" },
+  { id: "bw", label: "B&W", css: "grayscale(1) contrast(1.1)" },
+  { id: "glow", label: "Glow", css: "brightness(1.15) contrast(0.95) saturate(1.2)" },
+  { id: "blur", label: "Blur", css: "blur(2px) brightness(1.05)" },
+];
+
+export type StoryDraft = {
+  id: string;
+  media_url: string;
+  media_type: string;
+  thumbnail_path: string | null;
+  sound_id: string | null;
+  visibility: string;
+  created_at?: string;
+  metadata: {
+    overlays?: Overlay[];
+    filter?: FilterId;
+    fitMode?: "cover" | "contain";
+  } | null;
+};
 
 type TextFont = "sans" | "serif" | "mono" | "display";
 type Overlay = {
@@ -55,21 +84,38 @@ const SNAP_THRESHOLD = 4;
  * publishing. Overlays are stored as positions (metadata.overlays) and
  * composited back on top of the media at view time in StoryViewer, rather
  * than burned into the pixels - much simpler and just as visible. */
-export function StoryComposer({ open, onClose, onPublished }: { open: boolean; onClose: () => void; onPublished: () => void }) {
+export function StoryComposer({
+  open,
+  onClose,
+  onPublished,
+  draft,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onPublished: () => void;
+  draft?: StoryDraft;
+}) {
   const { t } = useI18n();
   const { user } = useSession();
   const [file, setFile] = useState<File | null>(null);
+  const [resolvingDraftMedia, setResolvingDraftMedia] = useState(false);
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
-  const [overlays, setOverlays] = useState<Overlay[]>([]);
+  const [overlays, setOverlays] = useState<Overlay[]>(draft?.metadata?.overlays ?? []);
   const [addingText, setAddingText] = useState(false);
   const [textDraft, setTextDraft] = useState("");
   const [textColor, setTextColor] = useState(TEXT_COLORS[0]!);
   const [textFont, setTextFont] = useState<TextFont>("sans");
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  const [sound, setSound] = useState<PickedSound | null>(null);
+  const [sound, setSound] = useState<PickedSound | null>(
+    draft?.sound_id ? { id: draft.sound_id, title: "", storagePath: "" } : null,
+  );
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [audience, setAudience] = useState<"followers" | "close_friends">("followers");
+  const [audience, setAudience] = useState<Audience>(
+    draft?.visibility === "everyone" || draft?.visibility === "close_friends"
+      ? draft.visibility
+      : "followers",
+  );
   const [audienceOpen, setAudienceOpen] = useState(false);
   const [closeFriendsSheetOpen, setCloseFriendsSheetOpen] = useState(false);
   const [guide, setGuide] = useState<{ x: boolean; y: boolean }>({ x: false, y: false });
@@ -79,13 +125,31 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   const [drawColor, setDrawColor] = useState(DRAW_COLORS[0]!);
   const [drawSize, setDrawSize] = useState(6);
   const [erasing, setErasing] = useState(false);
+  const [filter, setFilter] = useState<FilterId>(draft?.metadata?.filter ?? "normal");
+  const [filterPickerOpen, setFilterPickerOpen] = useState(false);
+  const [fitMode, setFitMode] = useState<"cover" | "contain">(
+    draft?.metadata?.fitMode ?? "contain",
+  );
+  const [draggingOverlay, setDraggingOverlay] = useState(false);
+  const [overTrash, setOverTrash] = useState(false);
+  const [exitPromptOpen, setExitPromptOpen] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(draft?.id ?? null);
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const activeStroke = useRef<DrawStroke | null>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const trashZoneRef = useRef<HTMLDivElement>(null);
   const dragId = useRef<string | null>(null);
   const resizeId = useRef<string | null>(null);
+  const pinch = useRef<{
+    id: string;
+    startDist: number;
+    startAngle: number;
+    baseScale: number;
+    baseRotation: number;
+  } | null>(null);
   const resizeStart = useRef<{
     centerX: number;
     centerY: number;
@@ -96,6 +160,32 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
   } | null>(null);
 
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+
+  // Resuming a draft: the media was already uploaded, so fetch it back down
+  // into a real File so editing/publishing can proceed exactly like a fresh
+  // pick - a signed URL alone can't be dragged onto a canvas or re-uploaded.
+  useEffect(() => {
+    if (!draft) return;
+    setResolvingDraftMedia(true);
+    void (async () => {
+      try {
+        const { data } = await supabase.storage
+          .from(draft.media_url.split("/")[0]!)
+          .createSignedUrl(draft.media_url.split("/").slice(1).join("/"), 3600);
+        if (!data) throw new Error("missing");
+        const res = await fetch(data.signedUrl);
+        const blob = await res.blob();
+        const ext = draft.media_type === "video" ? "mp4" : "jpg";
+        setMediaType(draft.media_type === "video" ? "video" : "image");
+        setFile(new File([blob], `draft.${ext}`, { type: blob.type }));
+      } catch {
+        toast.error(t("errorGeneric"));
+      } finally {
+        setResolvingDraftMedia(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft]);
 
   // Locks the page behind this full-screen composer so a drag gesture on
   // the media (moving/resizing text) can never rubber-band-scroll the page
@@ -119,6 +209,9 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
     setDrawingMode(false);
     setStrokes([]);
     setRedoStack([]);
+    setFilter("normal");
+    setFitMode("contain");
+    setCurrentDraftId(null);
   }
 
   function choose(selected: File | null) {
@@ -133,6 +226,56 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
     setStrokes([]);
     setRedoStack([]);
     setDrawingMode(false);
+    setFilter("normal");
+    setFitMode("contain");
+  }
+
+  function requestClose() {
+    if (file) setExitPromptOpen(true);
+    else onClose();
+  }
+
+  function discardAndClose() {
+    setExitPromptOpen(false);
+    reset();
+    onClose();
+  }
+
+  async function saveDraft() {
+    if (!user || !file) return;
+    setSavingDraft(true);
+    try {
+      const ext = file.name.split(".").pop() || (mediaType === "video" ? "mp4" : "jpg");
+      const path = await uploadFile("stories", user.id, file, ext);
+      let thumbnailPath: string | null = null;
+      if (mediaType === "video") {
+        const thumb = await captureVideoThumbnail(file);
+        if (thumb) thumbnailPath = await uploadFile("thumbnails", user.id, thumb, "jpg");
+      }
+      const values = {
+        user_id: user.id,
+        media_url: path,
+        media_type: mediaType,
+        thumbnail_path: thumbnailPath,
+        sound_id: sound?.id ?? null,
+        visibility: audience,
+        status: "draft" as const,
+        metadata: { overlays, filter, fitMode },
+      };
+      if (currentDraftId) {
+        await supabase.from("stories").update(values).eq("id", currentDraftId);
+      } else {
+        await supabase.from("stories").insert(values);
+      }
+      toast.success(t("studioDraftSaved"));
+      setExitPromptOpen(false);
+      reset();
+      onClose();
+    } catch {
+      toast.error(t("errorGeneric"));
+    } finally {
+      setSavingDraft(false);
+    }
   }
 
   function addOverlay(type: "text" | "emoji", content: string) {
@@ -151,6 +294,34 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
 
   function startDrag(id: string) {
     dragId.current = id;
+    setDraggingOverlay(true);
+  }
+
+  /** True multi-touch pinch/rotate on an overlay - alongside the single-
+   * finger corner handle, so a two-finger gesture works the way it does in
+   * every other photo editor. */
+  function startPinch(id: string, touches: React.TouchList) {
+    const overlay = overlays.find((o) => o.id === id);
+    if (!overlay || touches.length < 2) return;
+    const [a, b] = [touches[0]!, touches[1]!];
+    pinch.current = {
+      id,
+      startDist: Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY),
+      startAngle: Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX),
+      baseScale: overlay.scale ?? 1,
+      baseRotation: overlay.rotation ?? 0,
+    };
+  }
+
+  function continuePinch(touches: React.TouchList) {
+    if (!pinch.current || touches.length < 2) return;
+    const { id, startDist, startAngle, baseScale, baseRotation } = pinch.current;
+    const [a, b] = [touches[0]!, touches[1]!];
+    const dist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+    const angle = Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX);
+    const scale = Math.min(4, Math.max(0.4, baseScale * (dist / Math.max(startDist, 1))));
+    const rotation = baseRotation + ((angle - startAngle) * 180) / Math.PI;
+    setOverlays((current) => current.map((o) => (o.id === id ? { ...o, scale, rotation } : o)));
   }
 
   function redrawCanvas() {
@@ -299,6 +470,16 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
       return;
     }
     if (!dragId.current || !stageRef.current) return;
+    const trashRect = trashZoneRef.current?.getBoundingClientRect();
+    const overTrashNow = !!(
+      trashRect &&
+      clientX >= trashRect.left &&
+      clientX <= trashRect.right &&
+      clientY >= trashRect.top &&
+      clientY <= trashRect.bottom
+    );
+    setOverTrash(overTrashNow);
+    if (overTrashNow) return; // hovering the trash - freeze position, don't snap/reposition
     const rect = stageRef.current.getBoundingClientRect();
     let x = Math.min(95, Math.max(5, ((clientX - rect.left) / rect.width) * 100));
     let y = Math.min(95, Math.max(5, ((clientY - rect.top) / rect.height) * 100));
@@ -310,6 +491,15 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
     setOverlays((current) =>
       current.map((o) => (o.id === dragId.current ? { ...o, x, y } : o)),
     );
+  }
+
+  function endDrag() {
+    if (dragId.current && overTrash) {
+      setOverlays((current) => current.filter((o) => o.id !== dragId.current));
+    }
+    dragId.current = null;
+    setDraggingOverlay(false);
+    setOverTrash(false);
   }
 
   async function publish() {
@@ -330,15 +520,22 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
         );
         if (blob) drawingPath = await uploadFile("stories", user.id, blob, "png");
       }
-      const { error } = await supabase.from("stories").insert({
+      const values = {
         user_id: user.id,
         media_url: path,
         media_type: mediaType,
         thumbnail_path: thumbnailPath,
         sound_id: sound?.id ?? null,
         visibility: audience,
-        metadata: { overlays, drawing_path: drawingPath },
-      });
+        status: "published" as const,
+        // Fresh 24h window from the moment it's actually shared, not from
+        // whenever the media first got uploaded (e.g. resuming an old draft).
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        metadata: { overlays, drawing_path: drawingPath, filter, fitMode },
+      };
+      const { error } = currentDraftId
+        ? await supabase.from("stories").update(values).eq("id", currentDraftId)
+        : await supabase.from("stories").insert(values);
       if (error) throw error;
       toast.success(t("storyPublished"));
       reset();
@@ -385,27 +582,34 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             <b>{t("addStory")}</b>
             <span className="w-6" />
           </div>
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8">
-            <button
-              onClick={() => cameraRef.current?.click()}
-              className="flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-white/30 bg-white/5 py-10"
-            >
-              <Camera className="h-9 w-9" />
-              <b>{t("storyUseCamera")}</b>
-            </button>
-            <button
-              onClick={() => galleryRef.current?.click()}
-              className="flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-white/30 bg-white/5 py-10"
-            >
-              <ImageIcon className="h-9 w-9" />
-              <b>{t("storyUseGallery")}</b>
-            </button>
-          </div>
+          {resolvingDraftMedia ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+              <p className="text-sm text-white/70">{t("loading")}</p>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8">
+              <button
+                onClick={() => cameraRef.current?.click()}
+                className="flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-white/30 bg-white/5 py-10"
+              >
+                <Camera className="h-9 w-9" />
+                <b>{t("storyUseCamera")}</b>
+              </button>
+              <button
+                onClick={() => galleryRef.current?.click()}
+                className="flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-white/30 bg-white/5 py-10"
+              >
+                <ImageIcon className="h-9 w-9" />
+                <b>{t("storyUseGallery")}</b>
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex shrink-0 items-center justify-between gap-2 p-3">
-            <button onClick={() => setFile(null)} aria-label={t("cancel")}>
+            <button onClick={requestClose} aria-label={t("cancel")}>
               <X className="h-6 w-6" />
             </button>
             <button
@@ -413,12 +617,16 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
               className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold"
             >
               <Users className="h-3.5 w-3.5" />
-              {audience === "followers" ? t("storyAudienceFollowers") : t("storyAudienceCloseFriends")}
+              {audience === "everyone"
+                ? t("storyAudienceEveryone")
+                : audience === "followers"
+                  ? t("storyAudienceFollowers")
+                  : t("storyAudienceCloseFriends")}
             </button>
             <button
               onClick={() => void publish()}
-              disabled={publishing}
-              className="rounded-full bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground"
+              disabled={publishing || resolvingDraftMedia}
+              className="rounded-full bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
             >
               {publishing ? "…" : t("storyShareButton")}
             </button>
@@ -434,13 +642,13 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             }}
             onMouseUp={() => {
               endDrawStroke();
-              dragId.current = null;
+              endDrag();
               resizeId.current = null;
               setGuide({ x: false, y: false });
             }}
             onMouseLeave={() => {
               endDrawStroke();
-              dragId.current = null;
+              endDrag();
               resizeId.current = null;
               setGuide({ x: false, y: false });
             }}
@@ -449,6 +657,11 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
               if (t0 && drawingMode) startDrawStroke(t0.clientX, t0.clientY);
             }}
             onTouchMove={(e) => {
+              if (pinch.current && e.touches.length >= 2) {
+                e.preventDefault();
+                continuePinch(e.touches);
+                return;
+              }
               const t0 = e.touches[0];
               if (t0) {
                 if (drawingMode || dragId.current || resizeId.current) e.preventDefault();
@@ -458,16 +671,30 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             }}
             onTouchEnd={() => {
               endDrawStroke();
-              dragId.current = null;
+              endDrag();
               resizeId.current = null;
+              pinch.current = null;
               setGuide({ x: false, y: false });
             }}
           >
             {preview ? (
               mediaType === "video" ? (
-                <video src={preview} autoPlay muted loop playsInline className="h-full w-full object-contain" />
+                <video
+                  src={preview}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  style={{ filter: FILTERS.find((f) => f.id === filter)?.css }}
+                  className={cn("h-full w-full", fitMode === "cover" ? "object-cover" : "object-contain")}
+                />
               ) : (
-                <img src={preview} alt="" className="h-full w-full object-contain" />
+                <img
+                  src={preview}
+                  alt=""
+                  style={{ filter: FILTERS.find((f) => f.id === filter)?.css }}
+                  className={cn("h-full w-full", fitMode === "cover" ? "object-cover" : "object-contain")}
+                />
               )
             ) : null}
 
@@ -490,7 +717,10 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
               <div
                 key={o.id}
                 onMouseDown={() => startDrag(o.id)}
-                onTouchStart={() => startDrag(o.id)}
+                onTouchStart={(e) => {
+                  if (e.touches.length >= 2) startPinch(o.id, e.touches);
+                  else startDrag(o.id);
+                }}
                 style={{
                   left: `${o.x}%`,
                   top: `${o.y}%`,
@@ -532,6 +762,19 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
                 </button>
               </div>
             ))}
+
+            {draggingOverlay ? (
+              <div
+                ref={trashZoneRef}
+                className={cn(
+                  "pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors",
+                  overTrash ? "bg-destructive text-white" : "bg-black/60 text-white/80",
+                )}
+              >
+                <Trash2 className="h-5 w-5" />
+                {t("storyDropToDelete")}
+              </div>
+            ) : null}
           </div>
 
           {addingText ? (
@@ -669,12 +912,44 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             </div>
           ) : null}
 
+          {filterPickerOpen ? (
+            <div className="no-scrollbar shrink-0 overflow-x-auto border-t border-white/10 p-3">
+              <div className="flex gap-3">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFilter(f.id)}
+                    className="flex shrink-0 flex-col items-center gap-1.5"
+                  >
+                    <span
+                      className={cn(
+                        "h-14 w-14 overflow-hidden rounded-2xl border-2 bg-neutral-700",
+                        filter === f.id ? "border-primary" : "border-transparent",
+                      )}
+                    >
+                      {preview ? (
+                        <img
+                          src={preview}
+                          alt=""
+                          style={{ filter: f.css }}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </span>
+                    <span className="text-[11px] font-bold">{f.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="no-scrollbar flex shrink-0 items-center justify-center gap-4 overflow-x-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <button
               onClick={() => {
                 setAddingText(true);
                 setEmojiPickerOpen(false);
                 setDrawingMode(false);
+                setFilterPickerOpen(false);
               }}
               className="flex flex-col items-center gap-1 text-xs font-bold"
             >
@@ -688,6 +963,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
                 setEmojiPickerOpen((v) => !v);
                 setAddingText(false);
                 setDrawingMode(false);
+                setFilterPickerOpen(false);
               }}
               className="flex flex-col items-center gap-1 text-xs font-bold"
             >
@@ -701,6 +977,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
                 setDrawingMode((v) => !v);
                 setAddingText(false);
                 setEmojiPickerOpen(false);
+                setFilterPickerOpen(false);
               }}
               className="flex flex-col items-center gap-1 text-xs font-bold"
             >
@@ -713,6 +990,34 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
                 <Pencil className="h-5 w-5" />
               </span>
               {t("montageDrawTool")}
+            </button>
+            <button
+              onClick={() => {
+                setFilterPickerOpen((v) => !v);
+                setAddingText(false);
+                setEmojiPickerOpen(false);
+                setDrawingMode(false);
+              }}
+              className="flex flex-col items-center gap-1 text-xs font-bold"
+            >
+              <span
+                className={cn(
+                  "grid h-11 w-11 place-items-center rounded-full",
+                  filter !== "normal" ? "bg-primary text-primary-foreground" : "bg-white/10",
+                )}
+              >
+                <Sparkles className="h-5 w-5" />
+              </span>
+              {t("storyFilterTool")}
+            </button>
+            <button
+              onClick={() => setFitMode((m) => (m === "cover" ? "contain" : "cover"))}
+              className="flex flex-col items-center gap-1 text-xs font-bold"
+            >
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10">
+                <Crop className="h-5 w-5" />
+              </span>
+              {fitMode === "cover" ? t("storyFitFill") : t("storyFitFit")}
             </button>
             <button
               onClick={() => setSoundPickerOpen(true)}
@@ -769,6 +1074,7 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
             <div className="space-y-2">
             {(
               [
+                ["everyone", t("storyAudienceEveryone")],
                 ["followers", t("storyAudienceFollowers")],
                 ["close_friends", t("storyAudienceCloseFriends")],
               ] as const
@@ -803,6 +1109,33 @@ export function StoryComposer({ open, onClose, onPublished }: { open: boolean; o
         open={closeFriendsSheetOpen}
         onClose={() => setCloseFriendsSheetOpen(false)}
       />
+
+      {exitPromptOpen ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-5">
+          <div className="w-full max-w-sm rounded-3xl bg-neutral-900 p-5 text-center text-white">
+            <p className="text-lg font-black">{t("storyExitTitle")}</p>
+            <p className="mt-1 text-sm text-white/70">{t("storyExitBody")}</p>
+            <div className="mt-4 space-y-2">
+              <Button className="w-full" variant="outline" onClick={() => setExitPromptOpen(false)}>
+                {t("storyKeepEditing")}
+              </Button>
+              <Button
+                className="w-full"
+                disabled={savingDraft}
+                onClick={() => void saveDraft()}
+              >
+                {savingDraft ? "…" : t("studioSaveDraft")}
+              </Button>
+              <button
+                onClick={discardAndClose}
+                className="w-full py-2 text-sm font-bold text-destructive"
+              >
+                {t("storyDiscardAndExit")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

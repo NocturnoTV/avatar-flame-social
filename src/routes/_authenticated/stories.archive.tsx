@@ -35,6 +35,7 @@ function StoryArchivePage() {
         .from("stories")
         .select("id,user_id,media_url,media_type,thumbnail_path,caption,created_at,sound_id,metadata")
         .eq("user_id", user!.id)
+        .eq("status", "published")
         .lt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false });
       return (data ?? []).map((s) => ({ ...s, metadata: s.metadata as StoryRow["metadata"] }));

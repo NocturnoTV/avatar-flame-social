@@ -46,7 +46,7 @@ import {
 } from "@/lib/activityNotifications";
 import { cn } from "@/lib/utils";
 import { streakStatus } from "@/lib/streaks";
-import { StoryComposer } from "@/components/StoryComposer";
+import { StoryComposer, type StoryDraft } from "@/components/StoryComposer";
 import { StoryViewerFull, type StoryUserGroup } from "@/components/StoryViewerFull";
 
 export const Route = createFileRoute("/_authenticated/messages/")({
@@ -182,6 +182,21 @@ function MessagesPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [resumeStoryDraft, setResumeStoryDraft] = useState<StoryDraft | null>(null);
+  const [storyDraftsOpen, setStoryDraftsOpen] = useState(false);
+  const storyDrafts = useQuery({
+    queryKey: ["story-drafts", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<StoryDraft[]> => {
+      const { data } = await supabase
+        .from("stories")
+        .select("id,media_url,media_type,thumbnail_path,sound_id,visibility,metadata,created_at")
+        .eq("user_id", user!.id)
+        .eq("status", "draft")
+        .order("created_at", { ascending: false });
+      return (data ?? []).map((d) => ({ ...d, metadata: d.metadata as StoryDraft["metadata"] }));
+    },
+  });
   const [showRequests, setShowRequests] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -345,6 +360,7 @@ function MessagesPage() {
       const { data: rows } = await supabase
         .from("stories")
         .select("id,user_id,media_url,media_type,thumbnail_path,caption,created_at,sound_id,metadata")
+        .eq("status", "published")
         .gt("expires_at", new Date().toISOString())
         .in("user_id", [...allowedIds])
         .order("created_at", { ascending: false });
@@ -885,16 +901,27 @@ function MessagesPage() {
       </header>
 
       <section className="no-scrollbar -mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2">
-        <button onClick={() => setComposerOpen(true)} className="w-[72px] shrink-0 text-center">
-          <span className="relative mx-auto block h-[72px] w-[72px] rounded-full border-2 border-dashed border-primary bg-primary/10 p-1">
-            <span className="grid h-full w-full place-items-center rounded-full bg-[#F5F5F5] dark:bg-[#1c1c1e]">
-              <Plus className="h-6 w-6 text-primary" />
+        <div className="relative w-[72px] shrink-0 text-center">
+          <button onClick={() => setComposerOpen(true)} className="w-full">
+            <span className="relative mx-auto block h-[72px] w-[72px] rounded-full border-2 border-dashed border-primary bg-primary/10 p-1">
+              <span className="grid h-full w-full place-items-center rounded-full bg-[#F5F5F5] dark:bg-[#1c1c1e]">
+                <Plus className="h-6 w-6 text-primary" />
+              </span>
             </span>
-          </span>
-          <span className="mt-1.5 block truncate text-xs font-semibold text-[#050505] dark:text-white">
-            {t("yourStory")}
-          </span>
-        </button>
+            <span className="mt-1.5 block truncate text-xs font-semibold text-[#050505] dark:text-white">
+              {t("yourStory")}
+            </span>
+          </button>
+          {storyDrafts.data?.length ? (
+            <button
+              onClick={() => setStoryDraftsOpen(true)}
+              className="absolute right-1 top-0 grid h-6 min-w-6 place-items-center rounded-full bg-primary px-1 text-[10px] font-black text-primary-foreground ring-2 ring-background"
+              aria-label={t("studioDraftsTitle")}
+            >
+              {storyDrafts.data.length}
+            </button>
+          ) : null}
+        </div>
         {peopleStories.map((s) => (
           <button
             key={s.id}
@@ -1669,12 +1696,62 @@ function MessagesPage() {
 
       <StoryComposer
         open={composerOpen}
-        onClose={() => setComposerOpen(false)}
+        onClose={() => {
+          setComposerOpen(false);
+          setResumeStoryDraft(null);
+          void storyDrafts.refetch();
+        }}
         onPublished={() => {
           setComposerOpen(false);
+          setResumeStoryDraft(null);
           void stories.refetch();
+          void storyDrafts.refetch();
         }}
+        {...(resumeStoryDraft ? { draft: resumeStoryDraft } : {})}
       />
+
+      <Sheet
+        open={storyDraftsOpen}
+        onClose={() => setStoryDraftsOpen(false)}
+        title={t("studioDraftsTitle")}
+      >
+        <div className="space-y-2">
+          {(storyDrafts.data ?? []).map((d) => (
+            <button
+              key={d.id}
+              onClick={() => {
+                setResumeStoryDraft(d);
+                setStoryDraftsOpen(false);
+                setComposerOpen(true);
+              }}
+              className="flex w-full items-center justify-between rounded-2xl border border-border p-3.5 text-left"
+            >
+              <span className="min-w-0 flex-1">
+                <b className="block">{d.media_type === "video" ? t("storyUseCamera") : t("storyUseGallery")}</b>
+                {d.created_at ? (
+                  <small className="text-muted-foreground">
+                    {new Date(d.created_at).toLocaleDateString()}
+                  </small>
+                ) : null}
+              </span>
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await supabase.from("stories").delete().eq("id", d.id);
+                  void storyDrafts.refetch();
+                }}
+                aria-label={t("delete")}
+                className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </button>
+          ))}
+          {!storyDrafts.data?.length ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">{t("studioNoDrafts")}</p>
+          ) : null}
+        </div>
+      </Sheet>
 
       {activeGroupIndex !== null ? (
         <StoryViewerFull
