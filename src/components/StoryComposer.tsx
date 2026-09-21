@@ -775,6 +775,93 @@ export function StoryComposer({
                 {t("storyDropToDelete")}
               </div>
             ) : null}
+
+            <div className="absolute right-3 top-3 z-20 flex flex-col items-center gap-3">
+              <button
+                onClick={() => {
+                  setAddingText(true);
+                  setEmojiPickerOpen(false);
+                  setDrawingMode(false);
+                  setFilterPickerOpen(false);
+                }}
+                aria-label={t("storyTextTool")}
+                className="grid h-11 w-11 place-items-center rounded-full bg-black/40 backdrop-blur"
+              >
+                <Type className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setEmojiPickerOpen((v) => !v);
+                  setAddingText(false);
+                  setDrawingMode(false);
+                  setFilterPickerOpen(false);
+                }}
+                aria-label={t("storyStickerTool")}
+                className="grid h-11 w-11 place-items-center rounded-full bg-black/40 backdrop-blur"
+              >
+                <Smile className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setDrawingMode((v) => !v);
+                  setAddingText(false);
+                  setEmojiPickerOpen(false);
+                  setFilterPickerOpen(false);
+                }}
+                aria-label={t("montageDrawTool")}
+                className={cn(
+                  "grid h-11 w-11 place-items-center rounded-full backdrop-blur",
+                  drawingMode ? "bg-primary text-primary-foreground" : "bg-black/40",
+                )}
+              >
+                <Pencil className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setFilterPickerOpen((v) => !v);
+                  setAddingText(false);
+                  setEmojiPickerOpen(false);
+                  setDrawingMode(false);
+                }}
+                aria-label={t("storyFilterTool")}
+                className={cn(
+                  "grid h-11 w-11 place-items-center rounded-full backdrop-blur",
+                  filter !== "normal" ? "bg-primary text-primary-foreground" : "bg-black/40",
+                )}
+              >
+                <Sparkles className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setFitMode((m) => (m === "cover" ? "contain" : "cover"))}
+                aria-label={fitMode === "cover" ? t("storyFitFill") : t("storyFitFit")}
+                className="grid h-11 w-11 place-items-center rounded-full bg-black/40 backdrop-blur"
+              >
+                <Crop className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setSoundPickerOpen(true)}
+                aria-label={sound ? sound.title : t("storyMusicTool")}
+                className={cn(
+                  "grid h-11 w-11 place-items-center rounded-full backdrop-blur",
+                  sound ? "bg-primary text-primary-foreground" : "bg-black/40",
+                )}
+              >
+                <Music2 className="h-5 w-5" />
+              </button>
+              {overlays.length > 0 || strokes.length > 0 ? (
+                <button
+                  onClick={() => {
+                    setOverlays([]);
+                    setStrokes([]);
+                    setRedoStack([]);
+                  }}
+                  aria-label={t("delete")}
+                  className="grid h-11 w-11 place-items-center rounded-full bg-black/40 backdrop-blur"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              ) : null}
+            </div>
           </div>
 
           {addingText ? (
@@ -943,112 +1030,6 @@ export function StoryComposer({
             </div>
           ) : null}
 
-          <div className="no-scrollbar flex shrink-0 items-center justify-center gap-4 overflow-x-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <button
-              onClick={() => {
-                setAddingText(true);
-                setEmojiPickerOpen(false);
-                setDrawingMode(false);
-                setFilterPickerOpen(false);
-              }}
-              className="flex flex-col items-center gap-1 text-xs font-bold"
-            >
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10">
-                <Type className="h-5 w-5" />
-              </span>
-              {t("storyTextTool")}
-            </button>
-            <button
-              onClick={() => {
-                setEmojiPickerOpen((v) => !v);
-                setAddingText(false);
-                setDrawingMode(false);
-                setFilterPickerOpen(false);
-              }}
-              className="flex flex-col items-center gap-1 text-xs font-bold"
-            >
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10">
-                <Smile className="h-5 w-5" />
-              </span>
-              {t("storyStickerTool")}
-            </button>
-            <button
-              onClick={() => {
-                setDrawingMode((v) => !v);
-                setAddingText(false);
-                setEmojiPickerOpen(false);
-                setFilterPickerOpen(false);
-              }}
-              className="flex flex-col items-center gap-1 text-xs font-bold"
-            >
-              <span
-                className={cn(
-                  "grid h-11 w-11 place-items-center rounded-full",
-                  drawingMode ? "bg-primary text-primary-foreground" : "bg-white/10",
-                )}
-              >
-                <Pencil className="h-5 w-5" />
-              </span>
-              {t("montageDrawTool")}
-            </button>
-            <button
-              onClick={() => {
-                setFilterPickerOpen((v) => !v);
-                setAddingText(false);
-                setEmojiPickerOpen(false);
-                setDrawingMode(false);
-              }}
-              className="flex flex-col items-center gap-1 text-xs font-bold"
-            >
-              <span
-                className={cn(
-                  "grid h-11 w-11 place-items-center rounded-full",
-                  filter !== "normal" ? "bg-primary text-primary-foreground" : "bg-white/10",
-                )}
-              >
-                <Sparkles className="h-5 w-5" />
-              </span>
-              {t("storyFilterTool")}
-            </button>
-            <button
-              onClick={() => setFitMode((m) => (m === "cover" ? "contain" : "cover"))}
-              className="flex flex-col items-center gap-1 text-xs font-bold"
-            >
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10">
-                <Crop className="h-5 w-5" />
-              </span>
-              {fitMode === "cover" ? t("storyFitFill") : t("storyFitFit")}
-            </button>
-            <button
-              onClick={() => setSoundPickerOpen(true)}
-              className="flex flex-col items-center gap-1 text-xs font-bold"
-            >
-              <span
-                className={cn(
-                  "grid h-11 w-11 place-items-center rounded-full",
-                  sound ? "bg-primary text-primary-foreground" : "bg-white/10",
-                )}
-              >
-                <Music2 className="h-5 w-5" />
-              </span>
-              {sound ? sound.title.slice(0, 10) : t("storyMusicTool")}
-            </button>
-            {overlays.length > 0 || strokes.length > 0 ? (
-              <button
-                onClick={() => {
-                  setOverlays([]);
-                  setStrokes([]);
-                  setRedoStack([]);
-                }}
-                className="flex flex-col items-center gap-1 text-xs font-bold"
-              >
-                <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10">
-                  <Trash2 className="h-5 w-5" />
-                </span>
-                {t("delete")}
-              </button>
-            ) : null}
-          </div>
         </div>
       )}
 
