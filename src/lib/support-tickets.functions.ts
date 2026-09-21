@@ -100,5 +100,15 @@ export const staffReplyToTicket = createServerFn({ method: "POST" })
       }
     }
 
+    // Outbound staff email is a sensitive, member-facing action: keep an
+    // attributable trail of who sent what to which ticket reporter.
+    await supabaseAdmin.from("admin_audit_log").insert({
+      admin_id: context.userId,
+      action: "support_ticket_reply",
+      target_user_id: ticket.reporter_id,
+      target_id: ticket.id,
+      details: `status=${nextStatus}; email=${emailSent ? "sent" : "skipped"}; message=${data.message.slice(0, 500)}`,
+    });
+
     return { emailSent, status: nextStatus };
   });
