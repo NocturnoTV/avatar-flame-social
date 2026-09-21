@@ -8,6 +8,7 @@ import { useSession } from "@/lib/session";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
+import { notifyNewMessage } from "@/lib/messages.functions";
 import { cn } from "@/lib/utils";
 
 export type StoryOverlay = {
@@ -272,6 +273,9 @@ export function StoryViewerFull({
         kind: "text",
         content: replyText.trim(),
         story_id: story.id,
+      });
+      void notifyNewMessage({
+        data: { conversationId: conversationId as string, kind: "text", content: replyText.trim() },
       });
       setReplyText("");
       toast.success(t("storyReplySent"));

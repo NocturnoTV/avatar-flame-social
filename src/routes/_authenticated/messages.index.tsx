@@ -35,6 +35,7 @@ import { Button, Input, Sheet } from "@/components/ui-kit";
 import { StoredImage } from "@/components/Media";
 import { PresenceDot } from "@/components/PresenceDot";
 import { uploadFile } from "@/lib/media";
+import { notifyNewMessage } from "@/lib/messages.functions";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { getRobloxFriendSuggestions } from "@/lib/roblox-friends.functions";
@@ -690,6 +691,7 @@ function MessagesPage() {
         media_url: path,
       });
       if (error) throw error;
+      void notifyNewMessage({ data: { conversationId, kind: "image", content: null } });
       void conversations.refetch();
     } catch {
       toast.error(t("errorGeneric"));

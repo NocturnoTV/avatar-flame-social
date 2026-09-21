@@ -52,6 +52,7 @@ import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { discoverFeedKey, fetchDiscoverFeed, type VideoRow } from "@/lib/discover-feed";
 import { uploadFile } from "@/lib/media";
+import { notifyNewMessage } from "@/lib/messages.functions";
 import {
   logPositiveAction,
   logVideoWatch,
@@ -1274,6 +1275,9 @@ function ShareSheet({
         content: `video:${video.id}`,
       });
       if (msgError) throw msgError;
+      void notifyNewMessage({
+        data: { conversationId: conversationId as string, kind: "text", content: `video:${video.id}` },
+      });
       await bumpShares();
       toast.success(t("sentToFriend", { username: friendUsername }));
       onClose();

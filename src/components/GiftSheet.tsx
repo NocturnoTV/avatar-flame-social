@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { errorMessage, cn } from "@/lib/utils";
+import { notifyNewMessage } from "@/lib/messages.functions";
 import { Sheet, Button } from "@/components/ui-kit";
 import { BloxIcon, useBloxBalance, useInvalidateBloxBalance } from "@/components/Blox";
 import { BloxPackCheckout } from "@/components/BloxPackCheckout";
@@ -123,16 +124,18 @@ export function GiftSheet({
           });
       if (error) throw error;
       if (conversationId && user) {
+        const giftContent = JSON.stringify({
+          type: "blox",
+          amount,
+          ...(trimmedNote ? { note: trimmedNote } : {}),
+        });
         void supabase.from("messages").insert({
           conversation_id: conversationId,
           sender_id: user.id,
           kind: "gift",
-          content: JSON.stringify({
-            type: "blox",
-            amount,
-            ...(trimmedNote ? { note: trimmedNote } : {}),
-          }),
+          content: giftContent,
         });
+        void notifyNewMessage({ data: { conversationId, kind: "gift", content: giftContent } });
       }
       toast.success(t("bloxGiftSent", { amount: amount.toLocaleString() }));
       invalidateBalance();

@@ -58,6 +58,7 @@ import { useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { ACTIVITY_NOTIFICATION_KINDS, localizeActivityAction } from "@/lib/activityNotifications";
 import { UNREAD_CONVERSATIONS_KEY } from "@/lib/unreadConversations";
+import { notifyNewMessage } from "@/lib/messages.functions";
 import { cn, errorMessage } from "@/lib/utils";
 
 const EMOJIS = [
@@ -500,6 +501,9 @@ function Conversation() {
     if (kind === "text") setText("");
     setShowQuickReplies(false);
     void messages.refetch();
+    void notifyNewMessage({
+      data: { conversationId: id, kind, content: kind === "text" ? text.trim() : null },
+    });
   }
 
   const myStickers = useQuery({
@@ -616,13 +620,24 @@ function Conversation() {
         _target: friendId,
       });
       if (error) throw error;
+      const forwardedKind =
+        forwardingMessage.kind === "system" ? "text" : forwardingMessage.kind;
       await supabase.from("messages").insert({
         conversation_id: destConversationId as string,
         sender_id: user.id,
-        kind: forwardingMessage.kind === "system" ? "text" : forwardingMessage.kind,
+        kind: forwardedKind,
         content: forwardingMessage.content,
         media_url: forwardingMessage.media_url,
       });
+      if (forwardedKind !== "gift") {
+        void notifyNewMessage({
+          data: {
+            conversationId: destConversationId as string,
+            kind: forwardedKind as "text" | "image" | "voice" | "sticker",
+            content: forwardingMessage.content,
+          },
+        });
+      }
       await supabase.from("messages").insert({
         conversation_id: id,
         sender_id: user.id,

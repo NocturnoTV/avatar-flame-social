@@ -13,6 +13,7 @@ import { StoredImage } from "@/components/Media";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { notifyNewMessage } from "@/lib/messages.functions";
 
 // Public STUN only - no TURN server is configured (that requires a paid
 // relay service). Calls connect directly between the two devices, which
@@ -175,6 +176,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             kind: "system",
             content: "sys:missedcall:",
           });
+          void notifyNewMessage({ data: { conversationId, kind: "missed_call", content: null } });
         } else if (finalStatus === "declined") {
           await supabase.from("messages").insert({
             conversation_id: conversationId,
