@@ -32,6 +32,19 @@ async function sendPurchaseThanks(userId: string, kind: "blox" | "spark_plus", a
     });
 }
 
+/** Checkout metadata is supplied by the buyer, so a conversation id in it is
+ * untrusted: only post the gift message when the payer really is a member of
+ * that conversation. */
+async function isConversationMember(conversationId: string, userId: string) {
+  const { data } = await getSupabase()
+    .from("conversation_participants")
+    .select("user_id")
+    .eq("conversation_id", conversationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return !!data;
+}
+
 async function syncProfile(userId: string, status: string, periodEnd: string | null) {
   const active =
     ["active", "trialing", "past_due"].includes(status) ||
