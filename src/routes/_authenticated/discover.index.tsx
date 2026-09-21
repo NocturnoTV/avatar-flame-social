@@ -370,6 +370,7 @@ function DiscoverPage() {
               <VideoSlide
                 key={video.id}
                 video={video}
+                viewSource={video.id === pinnedVideoId ? "direct" : tab}
                 muted={muted}
                 speed={playbackSpeed}
                 onSpeedChange={setPlaybackSpeed}
@@ -591,6 +592,7 @@ function SearchVideoThumb({ video }: { video: VideoRow }) {
 
 function VideoSlide({
   video,
+  viewSource,
   muted,
   speed,
   onSpeedChange,
@@ -603,6 +605,7 @@ function VideoSlide({
   onNotInterested,
 }: {
   video: VideoRow;
+  viewSource: "foryou" | "following" | "direct";
   muted: boolean;
   speed: number;
   onSpeedChange: (speed: number) => void;
@@ -772,7 +775,7 @@ function VideoSlide({
         // repeat view (in a later session) should add a fresh row.
         void supabase
           .from("video_views")
-          .insert({ video_id: video.id, viewer_id: user.id })
+          .insert({ video_id: video.id, viewer_id: user.id, source: viewSource })
           .then(async () => {
             const { data } = await supabase
               .from("videos")

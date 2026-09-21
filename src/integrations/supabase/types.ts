@@ -3789,18 +3789,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          source: string | null
           video_id: string
           viewer_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          source?: string | null
           video_id: string
           viewer_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          source?: string | null
           video_id?: string
           viewer_id?: string
         }

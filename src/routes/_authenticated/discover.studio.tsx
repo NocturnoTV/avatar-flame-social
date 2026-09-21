@@ -7,6 +7,7 @@ import {
   BarChart3,
   Check,
   Clock3,
+  Crown,
   Eye,
   Globe2,
   Hash,
@@ -258,6 +259,64 @@ function StudioPage() {
               </div>
             </Card>
           </section>
+          {analytics.data?.isSparkPlus ? (
+            <section className="grid gap-5 lg:grid-cols-2">
+              <Card className="p-5">
+                <p className="flex items-center gap-1.5 font-black">
+                  <Crown className="h-4 w-4 text-primary" /> {t("studioTrafficSources")}
+                </p>
+                <div className="mt-4 space-y-3">
+                  {(
+                    [
+                      ["foryou", t("forYou")],
+                      ["following", t("following")],
+                      ["direct", t("studioTrafficDirect")],
+                      ["other", t("studioTrafficOther")],
+                    ] as const
+                  ).map(([key, label]) => {
+                    const sources = analytics.data?.trafficSources ?? {};
+                    const total = Object.values(sources).reduce((a, b) => a + b, 0) || 1;
+                    const count = sources[key] ?? 0;
+                    return (
+                      <Progress
+                        key={key}
+                        label={`${label} (${formatCount(count)})`}
+                        value={(count / total) * 100}
+                      />
+                    );
+                  })}
+                </div>
+              </Card>
+              <Card className="p-5">
+                <p className="flex items-center gap-1.5 font-black">
+                  <Globe2 className="h-4 w-4 text-primary" /> {t("studioTopLanguages")}
+                </p>
+                <div className="mt-4 space-y-2">
+                  {analytics.data?.topLanguages?.length ? (
+                    analytics.data.topLanguages.map((l) => (
+                      <p key={l.language} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {LANGUAGES.find((lg) => lg.code === l.language)?.flag ?? "🌐"}{" "}
+                          {LANGUAGES.find((lg) => lg.code === l.language)?.label ?? l.language}
+                        </span>
+                        <b>{formatCount(l.count)}</b>
+                      </p>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">{t("studioNoDataYet")}</p>
+                  )}
+                </div>
+              </Card>
+            </section>
+          ) : (
+            <Card className="relative overflow-hidden p-5 text-center">
+              <Crown className="mx-auto h-6 w-6 text-primary" />
+              <p className="mt-2 font-black">{t("studioAdvancedStatsLocked")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("studioAdvancedStatsHint")}
+              </p>
+            </Card>
+          )}
         </div>
       ) : null}
       {tab === "videos" ? (
