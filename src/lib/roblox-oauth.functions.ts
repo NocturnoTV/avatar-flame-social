@@ -102,12 +102,18 @@ export const disconnectRobloxAccount = createServerFn({ method: "POST" })
         ...(avatarWasFromRoblox ? { avatar_url: null } : {}),
       })
       .eq("id", context.userId);
-    if (error) throw error;
+    if (error) {
+      console.error("disconnectRobloxAccount update failed", error);
+      throw new Error("Impossible de dissocier le compte Roblox.");
+    }
     const { error: gamesError } = await supabaseAdmin
       .from("roblox_games")
       .delete()
       .eq("user_id", context.userId)
       .eq("source", "roblox");
-    if (gamesError) throw gamesError;
+    if (gamesError) {
+      console.error("disconnectRobloxAccount games cleanup failed", gamesError);
+      throw new Error("Impossible de dissocier le compte Roblox.");
+    }
     return { success: true };
   });
