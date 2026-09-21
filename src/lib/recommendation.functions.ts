@@ -32,6 +32,8 @@ export const getPersonalizedFeed = createServerFn({ method: "GET" })
       views_count: v.views_count,
       boosted_until: v.boosted_until,
       reason: v.reason,
+      campaignId: v.campaignId ?? null,
+      campaignGameUrl: v.campaignGameUrl ?? null,
     }));
   });
 

@@ -16,6 +16,8 @@ export type VideoRow = {
   views_count: number;
   boosted_until?: string | null;
   reason?: string;
+  campaignId?: string | null;
+  campaignGameUrl?: string | null;
 };
 
 const VIDEO_COLUMNS =

@@ -53,6 +53,7 @@ import { formatRelativeTime } from "@/lib/relative-time";
 import { discoverFeedKey, fetchDiscoverFeed, type VideoRow } from "@/lib/discover-feed";
 import { uploadFile } from "@/lib/media";
 import { notifyNewMessage } from "@/lib/messages.functions";
+import { openExternal } from "@/lib/native";
 import {
   logPositiveAction,
   logVideoWatch,
@@ -788,6 +789,9 @@ function VideoSlide({
               { onConflict: "user_id,video_id" },
             );
         }
+        if (video.campaignId) {
+          void supabase.rpc("charge_ad_impression", { _campaign: video.campaignId });
+        }
       }
     } else {
       el.pause();
@@ -923,7 +927,11 @@ function VideoSlide({
           </div>
         )}
 
-        {video.boosted_until && new Date(video.boosted_until).getTime() > Date.now() ? (
+        {video.campaignId ? (
+          <span className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur">
+            {t("sponsoredLabel")}
+          </span>
+        ) : video.boosted_until && new Date(video.boosted_until).getTime() > Date.now() ? (
           <span className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-primary/90 px-2.5 py-1 text-[11px] font-black text-primary-foreground backdrop-blur">
             🚀 Boostée
           </span>
@@ -955,6 +963,14 @@ function VideoSlide({
             <Music2 className="h-3.5 w-3.5 shrink-0 animate-pulse" />
             <span className="truncate">{video.sound_name || `Son original - @${username}`}</span>
           </p>
+          {video.campaignId && video.campaignGameUrl ? (
+            <button
+              onClick={() => void openExternal(video.campaignGameUrl!)}
+              className="pointer-events-auto mt-3 flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-black"
+            >
+              🎮 {t("sponsoredPlayNow")}
+            </button>
+          ) : null}
         </div>
 
         {/* disque vinyle du son */}

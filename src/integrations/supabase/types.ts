@@ -14,6 +14,97 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_campaigns: {
+        Row: {
+          budget_blox: number
+          created_at: string
+          duration_days: number
+          ends_at: string
+          game_url: string | null
+          id: string
+          objective: string
+          spent_blox: number
+          status: string
+          stop_reason: string | null
+          target_categories: string[] | null
+          target_language: string | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          budget_blox: number
+          created_at?: string
+          duration_days: number
+          ends_at: string
+          game_url?: string | null
+          id?: string
+          objective: string
+          spent_blox?: number
+          status?: string
+          stop_reason?: string | null
+          target_categories?: string[] | null
+          target_language?: string | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          budget_blox?: number
+          created_at?: string
+          duration_days?: number
+          ends_at?: string
+          game_url?: string | null
+          id?: string
+          objective?: string
+          spent_blox?: number
+          status?: string
+          stop_reason?: string | null
+          target_categories?: string[] | null
+          target_language?: string | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaigns_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_impressions: {
+        Row: {
+          campaign_id: string
+          cost_blox: number
+          created_at: string
+          id: string
+          viewer_id: string | null
+        }
+        Insert: {
+          campaign_id: string
+          cost_blox: number
+          created_at?: string
+          id?: string
+          viewer_id?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          cost_blox?: number
+          created_at?: string
+          id?: string
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_impressions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -3943,8 +4034,22 @@ export type Database = {
       can_read_community_object: { Args: { _name: string }; Returns: boolean }
       can_read_voice_object: { Args: { _name: string }; Returns: boolean }
       can_view_community: { Args: { _community: string }; Returns: boolean }
+      charge_ad_impression: { Args: { _campaign: string }; Returns: undefined }
       claim_ad_reward: { Args: never; Returns: number }
       claim_daily_quest: { Args: { _quest_id: string }; Returns: undefined }
+      close_my_expired_ad_campaigns: { Args: never; Returns: undefined }
+      create_ad_campaign: {
+        Args: {
+          _budget: number
+          _duration_days: number
+          _game_url: string
+          _objective: string
+          _target_categories: string[]
+          _target_language: string
+          _video: string
+        }
+        Returns: string
+      }
       community_add_affiliate: {
         Args: { _affiliate: string; _community: string }
         Returns: undefined
@@ -4235,6 +4340,7 @@ export type Database = {
         }
       }
       start_direct_message: { Args: { _target: string }; Returns: string }
+      stop_ad_campaign: { Args: { _campaign: string }; Returns: undefined }
       status_report_series: {
         Args: never
         Returns: {

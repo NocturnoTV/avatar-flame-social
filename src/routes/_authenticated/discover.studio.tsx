@@ -28,12 +28,12 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
-import { Button, Card, Input, Label, Sheet } from "@/components/ui-kit";
+import { Button, Card, Input, Label, Select, Sheet } from "@/components/ui-kit";
 import { captureVideoThumbnail, uploadFile } from "@/lib/media";
 import { StoredImage, useSignedUrl, VideoThumb } from "@/components/Media";
 import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEditor";
 import { SoundPicker, type PickedSound } from "@/components/SoundPicker";
-import { useI18n } from "@/lib/i18n";
+import { LANGUAGES, useI18n } from "@/lib/i18n";
 import { getCreatorAnalytics } from "@/lib/creator-analytics.functions";
 import { formatCount } from "./discover.index";
 import { cn } from "@/lib/utils";
@@ -261,6 +261,8 @@ function StudioPage() {
         </div>
       ) : null}
       {tab === "videos" ? (
+        <>
+        <MyCampaigns />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {!rows.length ? (
             <Card className="col-span-full py-14 text-center">
@@ -276,6 +278,7 @@ function StudioPage() {
             ))
           )}
         </div>
+        </>
       ) : null}
       {tab === "earnings" ? (
         <Card className="relative overflow-hidden px-6 py-16 text-center">
@@ -477,6 +480,7 @@ function VideoCard({
   const url = useSignedUrl(video.storage_path);
   const [busy, setBusy] = useState(false);
   const [boosting, setBoosting] = useState(false);
+  const [campaignOpen, setCampaignOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const isBoosted = !!video.boosted_until && new Date(video.boosted_until).getTime() > Date.now();
 
@@ -542,12 +546,20 @@ function VideoCard({
         <p className="mt-1 text-[10px] uppercase text-white/60">
           {video.visibility === "sparks" ? t("studioMySparks") : t("studioEveryone")}
         </p>
-        <button
-          onClick={() => setBoosting(true)}
-          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full bg-white/15 py-1.5 text-[11px] font-bold backdrop-blur"
-        >
-          🚀 {isBoosted ? t("studioExtendBoost") : t("studioBoost")}
-        </button>
+        <div className="mt-2 flex gap-1.5">
+          <button
+            onClick={() => setBoosting(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/15 py-1.5 text-[11px] font-bold backdrop-blur"
+          >
+            🚀 {isBoosted ? t("studioExtendBoost") : t("studioBoost")}
+          </button>
+          <button
+            onClick={() => setCampaignOpen(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/15 py-1.5 text-[11px] font-bold backdrop-blur"
+          >
+            📢 {t("studioCreateCampaign")}
+          </button>
+        </div>
       </div>
       <div className="absolute right-2 top-2 flex gap-1.5">
         <button
@@ -568,6 +580,9 @@ function VideoCard({
       </div>
 
       {boosting ? <BoostSheet videoId={video.id} onClose={() => setBoosting(false)} /> : null}
+      {campaignOpen ? (
+        <CampaignSheet videoId={video.id} onClose={() => setCampaignOpen(false)} />
+      ) : null}
       {editing && url ? (
         <EditVideoSheet
           video={video}
@@ -859,6 +874,307 @@ function BoostSheet({ videoId, onClose }: { videoId: string; onClose: () => void
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+const AD_OBJECTIVES = [
+  { value: "views", emoji: "👁️" },
+  { value: "game_clicks", emoji: "🎮" },
+  { value: "followers", emoji: "👥" },
+  { value: "engagement", emoji: "💬" },
+] as const;
+
+/** Real budget-based sponsored campaign: objective, targeting, a fixed
+ * per-impression cost server-side (ad_cost_per_impression), progressive
+ * spend tracked in ad_campaigns.spent_blox as real viewers actually see the
+ * video (charge_ad_impression, called from the feed), and an automatic
+ * refund of whatever's left when the budget/duration runs out, the creator
+ * stops it, or the video gets rejected by moderation. */
+function CampaignSheet({ videoId, onClose }: { videoId: string; onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const [objective, setObjective] = useState<(typeof AD_OBJECTIVES)[number]["value"]>("views");
+  const [gameUrl, setGameUrl] = useState("");
+  const [budget, setBudget] = useState(500);
+  const [durationDays, setDurationDays] = useState(3);
+  const [autoAudience, setAutoAudience] = useState(true);
+  const [targetLanguage, setTargetLanguage] = useState<string>(lang);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  async function create() {
+    if (objective === "game_clicks" && !gameUrl.trim()) {
+      toast.error(t("studioCampaignGameUrlRequired"));
+      return;
+    }
+    setCreating(true);
+    try {
+      const { error } = await supabase.rpc("create_ad_campaign", {
+        _video: videoId,
+        _objective: objective,
+        _game_url: objective === "game_clicks" ? gameUrl.trim() : "",
+        _budget: budget,
+        _duration_days: durationDays,
+        _target_language: autoAudience ? "" : targetLanguage,
+        _target_categories: [],
+      });
+      if (error) throw error;
+      toast.success(t("studioCampaignCreated"));
+      onClose();
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message.includes("insufficient_balance")
+          ? t("studioBoostInsufficientBalance")
+          : t("errorGeneric"),
+      );
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-t-3xl border border-border bg-background p-5 sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-lg font-black">📢 {t("studioCreateCampaign")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("studioCampaignDescription")}</p>
+
+        <p className="mt-4 text-xs font-black uppercase tracking-wide text-muted-foreground">
+          {t("studioCampaignObjective")}
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {AD_OBJECTIVES.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => setObjective(o.value)}
+              className={cn(
+                "rounded-2xl border px-3 py-2.5 text-left text-xs font-bold",
+                objective === o.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground",
+              )}
+            >
+              {o.emoji} {t(`studioCampaignObjective_${o.value}`)}
+            </button>
+          ))}
+        </div>
+        {objective === "game_clicks" ? (
+          <Input
+            value={gameUrl}
+            onChange={(e) => setGameUrl(e.target.value)}
+            placeholder="https://www.roblox.com/games/…"
+            className="mt-2"
+          />
+        ) : null}
+
+        <p className="mt-4 text-xs font-black uppercase tracking-wide text-muted-foreground">
+          {t("studioCampaignBudget")}
+        </p>
+        <input
+          type="range"
+          min={100}
+          max={10000}
+          step={100}
+          value={budget}
+          onChange={(e) => setBudget(Number(e.target.value))}
+          className="mt-2 w-full accent-primary"
+        />
+        <p className="text-sm font-bold text-primary">{budget.toLocaleString()} Blox</p>
+
+        <p className="mt-4 text-xs font-black uppercase tracking-wide text-muted-foreground">
+          {t("studioCampaignDuration")}
+        </p>
+        <div className="mt-2 flex gap-1.5">
+          {[1, 2, 3, 5, 7].map((d) => (
+            <button
+              key={d}
+              onClick={() => setDurationDays(d)}
+              className={cn(
+                "flex-1 rounded-xl border py-2 text-xs font-bold",
+                durationDays === d
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground",
+              )}
+            >
+              {d}j
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-4 text-xs font-black uppercase tracking-wide text-muted-foreground">
+          {t("studioCampaignAudience")}
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setAutoAudience(true)}
+            className={cn(
+              "rounded-xl border px-3 py-2 text-xs font-bold",
+              autoAudience
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            {t("studioCampaignAudienceAuto")}
+          </button>
+          <button
+            onClick={() => setAutoAudience(false)}
+            className={cn(
+              "rounded-xl border px-3 py-2 text-xs font-bold",
+              !autoAudience
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            {t("studioCampaignAudienceTargeted")}
+          </button>
+        </div>
+        {!autoAudience ? (
+          <Select
+            value={targetLanguage}
+            onChange={(e) => setTargetLanguage(e.target.value)}
+            className="mt-2"
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.flag} {l.label}
+              </option>
+            ))}
+          </Select>
+        ) : null}
+
+        <label className="mt-4 flex items-start gap-2.5 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+          />
+          <span>
+            {t("boostTermsAccept")}{" "}
+            <button
+              type="button"
+              onClick={() => setTermsOpen(true)}
+              className="font-bold text-primary underline"
+            >
+              {t("boostTermsLink")}
+            </button>
+          </span>
+        </label>
+
+        <Button
+          className="mt-4 w-full"
+          disabled={creating || !termsAccepted}
+          onClick={() => void create()}
+        >
+          {creating ? t("studioPublishing") : t("studioCampaignLaunch")}
+        </Button>
+        <button
+          onClick={onClose}
+          className="mt-2 w-full rounded-2xl border border-border py-3 text-sm font-bold text-muted-foreground"
+        >
+          {t("cancel")}
+        </button>
+      </div>
+      {termsOpen ? (
+        <div
+          className="fixed inset-0 z-[95] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
+          onClick={() => setTermsOpen(false)}
+        >
+          <div
+            className="max-h-[80dvh] w-full max-w-sm overflow-y-auto rounded-t-3xl border border-border bg-background p-5 sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-lg font-black">{t("boostTermsTitle")}</p>
+            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              {t("boostTermsBody")}
+            </p>
+            <button
+              onClick={() => setTermsOpen(false)}
+              className="mt-4 w-full rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground"
+            >
+              {t("cancel")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Active sponsored campaigns, with real spend progress (ad_campaigns.spent_blox,
+ * driven by real feed impressions - see charge_ad_impression) and a stop
+ * button that refunds whatever's left immediately. */
+function MyCampaigns() {
+  const { t } = useI18n();
+  const { user } = useSession();
+  const qc = useQueryClient();
+  const [stopping, setStopping] = useState<string | null>(null);
+
+  const campaigns = useQuery({
+    queryKey: ["my-ad-campaigns", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      await supabase.rpc("close_my_expired_ad_campaigns");
+      const { data } = await supabase
+        .from("ad_campaigns")
+        .select("id,video_id,objective,budget_blox,spent_blox,ends_at,status")
+        .eq("user_id", user!.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  async function stop(id: string) {
+    setStopping(id);
+    try {
+      await supabase.rpc("stop_ad_campaign", { _campaign: id });
+      await qc.invalidateQueries({ queryKey: ["my-ad-campaigns"] });
+      await qc.invalidateQueries({ queryKey: ["blox-balance"] });
+      toast.success(t("studioCampaignStopped"));
+    } catch {
+      toast.error(t("errorGeneric"));
+    } finally {
+      setStopping(null);
+    }
+  }
+
+  if (!campaigns.data?.length) return null;
+
+  return (
+    <div className="mb-4 space-y-2">
+      <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+        {t("studioMyCampaigns")}
+      </p>
+      {campaigns.data.map((c) => (
+        <Card key={c.id} className="p-3">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span>{t(`studioCampaignObjective_${c.objective}`)}</span>
+            <span className="text-muted-foreground">
+              {c.spent_blox.toLocaleString()} / {c.budget_blox.toLocaleString()} Blox
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${Math.min(100, (c.spent_blox / c.budget_blox) * 100)}%` }}
+            />
+          </div>
+          <button
+            onClick={() => void stop(c.id)}
+            disabled={stopping === c.id}
+            className="mt-2 text-xs font-bold text-destructive disabled:opacity-50"
+          >
+            {t("studioCampaignStop")}
+          </button>
+        </Card>
+      ))}
     </div>
   );
 }

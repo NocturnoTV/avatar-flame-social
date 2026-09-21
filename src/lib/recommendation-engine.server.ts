@@ -224,7 +224,7 @@ export type Candidate = {
   recommendation_eligible: boolean;
   boosted_until: string | null;
   categories: TopicCategory[];
-  source: "following" | "topic" | "popular" | "recent" | "exploration";
+  source: "following" | "topic" | "popular" | "recent" | "exploration" | "sponsored";
 };
 
 const VIDEO_COLUMNS =
@@ -343,6 +343,105 @@ export async function getCandidateVideos(userId: string): Promise<Candidate[]> {
 }
 
 // ---------------------------------------------------------------------------
+// 2b. getSponsoredCandidate - budget-based ad campaigns (ad_campaigns)
+// ---------------------------------------------------------------------------
+
+/**
+ * Picks the single best-fit active ad campaign for this viewer, if any -
+ * this app shows at most one sponsored slot per feed fetch (interleaved a
+ * handful of videos in, see generatePersonalizedFeed), not a whole
+ * marketplace of competing placements. "Best fit" blends real quality
+ * signals (the same watch/completion/topic-affinity math as organic
+ * scoring) with a pacing factor so a campaign behind on spending its
+ * budget within its remaining days gets a boost - a good video on a small
+ * budget can still beat a mediocre one on a bigger budget, since quality
+ * carries more weight than pacing below.
+ */
+export async function getSponsoredCandidate(
+  userId: string,
+  excludeVideoIds: Set<string>,
+): Promise<ScoredVideo | null> {
+  const nowIso = new Date().toISOString();
+  const [{ data: campaigns }, viewerRes, topicProfile] = await Promise.all([
+    supabaseAdmin
+      .from("ad_campaigns")
+      .select(
+        "id,video_id,user_id,budget_blox,spent_blox,duration_days,created_at,ends_at,target_language,game_url",
+      )
+      .eq("status", "active")
+      .gt("ends_at", nowIso)
+      .neq("user_id", userId),
+    supabaseAdmin.from("profiles").select("language").eq("id", userId).maybeSingle(),
+    getUserInterestProfile(userId),
+  ]);
+  const viewerLanguage = viewerRes.data?.language ?? null;
+  const eligible = (campaigns ?? []).filter(
+    (c) => !excludeVideoIds.has(c.video_id) && (!c.target_language || c.target_language === viewerLanguage),
+  );
+  if (!eligible.length) return null;
+
+  const { data: videoRows } = await supabaseAdmin
+    .from("videos")
+    .select(VIDEO_COLUMNS)
+    .in(
+      "id",
+      eligible.map((c) => c.video_id),
+    )
+    .eq("visibility", "public")
+    .eq("moderation_status", "approved");
+  const videosById = new Map((videoRows ?? []).map((v) => [v.id, v]));
+  const withCategories = await attachCategories([...videosById.values()]);
+  const categoriesByVideo = new Map(withCategories.map((v) => [v.id, v.categories]));
+  const stats = await getVideoStats([...videosById.keys()]);
+
+  let best: (ScoredVideo & { pacingScore: number }) | null = null;
+  for (const c of eligible) {
+    const video = videosById.get(c.video_id);
+    if (!video) continue;
+    const categories = categoriesByVideo.get(c.video_id) ?? [];
+    const s = stats.get(c.video_id) ?? {
+      watchRatio: 0.4,
+      completionRate: 0.25,
+      likeRatio: 0,
+      commentRatio: 0,
+      shareRatio: 0,
+    };
+    const topicAffinity = categories.length
+      ? categories.reduce((sum, cat) => sum + (topicProfile[cat] ?? DEFAULT_AFFINITY), 0) /
+        categories.length
+      : NEUTRAL_AFFINITY;
+    const quality = clamp01(0.5 * s.completionRate + 0.3 * s.watchRatio + 0.2 * topicAffinity);
+
+    const remainingDays = Math.max(
+      (new Date(c.ends_at).getTime() - Date.now()) / 86_400_000,
+      0.05,
+    );
+    const expectedSpendRatio = clamp01(1 - remainingDays / Math.max(c.duration_days, 1));
+    const actualSpendRatio = clamp01(c.spent_blox / Math.max(c.budget_blox, 1));
+    // Behind pace (spent less than expected for how much time has passed) ->
+    // higher pacing score, so the campaign catches up before it expires.
+    const pacingScore = clamp01(0.5 + (expectedSpendRatio - actualSpendRatio));
+
+    const score = 0.65 * quality + 0.35 * pacingScore;
+    if (!best || score > best.score) {
+      best = {
+        ...(video as any),
+        categories,
+        source: "sponsored",
+        reason: "sponsored",
+        campaignId: c.id,
+        campaignGameUrl: c.game_url ?? null,
+        score,
+        pacingScore,
+      };
+    }
+  }
+  if (!best) return null;
+  const { pacingScore: _drop, ...scored } = best;
+  return scored;
+}
+
+// ---------------------------------------------------------------------------
 // 3. filterIneligibleVideos - section 11 & 13
 // ---------------------------------------------------------------------------
 
@@ -421,7 +520,9 @@ async function getVideoStats(videoIds: string[]): Promise<Map<string, VideoStats
 
 export type ScoredVideo = Candidate & {
   score: number;
-  reason: "following" | "creator" | "topic" | "popular" | "fresh" | "exploration";
+  reason: "following" | "creator" | "topic" | "popular" | "fresh" | "exploration" | "sponsored";
+  campaignId?: string;
+  campaignGameUrl?: string | null;
 };
 
 export async function calculateVideoScore(
@@ -637,7 +738,17 @@ export async function rankVideos(userId: string, candidates: Candidate[], limit:
 export async function generatePersonalizedFeed(userId: string, limit = 30) {
   const candidates = await getCandidateVideos(userId);
   const eligible = await filterIneligibleVideos(userId, candidates);
-  return rankVideos(userId, eligible, limit);
+  const ranked = await rankVideos(userId, eligible, limit);
+
+  // At most one sponsored slot per fetch, interleaved every 8-12 organic
+  // videos (never as the very first thing shown) - see getSponsoredCandidate
+  // for how it's picked.
+  const sponsored = await getSponsoredCandidate(userId, new Set(ranked.map((v) => v.id)));
+  if (sponsored) {
+    const insertAt = Math.min(8 + Math.floor(Math.random() * 5), ranked.length);
+    ranked.splice(insertAt, 0, sponsored);
+  }
+  return ranked;
 }
 
 // ---------------------------------------------------------------------------
