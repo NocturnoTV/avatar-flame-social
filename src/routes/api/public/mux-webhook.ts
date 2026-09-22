@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
- * Public webhook receiver for Mux Video events. No Supabase/Lovable JWT
- * check - Mux calls this directly, server to server, and authenticates
- * itself via the mux-signature header instead. Idempotent via
- * mux_webhook_events (keyed on Mux's own event id), and never regresses a
- * "ready" video or overwrites a valid playback id, since Mux can deliver
+ * Public webhook receiver for Mux Video events, covering both Feed video
+ * attachments (post_videos) and Discover videos (videos.mux_* columns). No
+ * Supabase/Lovable JWT check - Mux calls this directly, server to server,
+ * and authenticates itself via the mux-signature header instead. Idempotent
+ * via mux_webhook_events (keyed on Mux's own event id), and never regresses
+ * a "ready" video or overwrites a valid playback id, since Mux can deliver
  * webhooks late or out of order.
  */
 
@@ -63,99 +64,164 @@ type MuxEvent = {
   };
 };
 
-async function handleUploadAssetCreated(supabaseAdmin: any, data: MuxEvent["data"]) {
-  if (!data.id || !data.asset_id) return;
-  const { data: row } = await supabaseAdmin
+/** A resolved row to update - either a Feed video attachment (post_videos,
+ * status/error_message) or a Discover video (videos, mux_status/
+ * mux_error_message columns on the shared table, no aspect_ratio column
+ * there since Discover is always vertical). */
+type VideoTarget =
+  | { table: "post_videos"; id: string; currentStatus: string | null }
+  | { table: "videos"; id: string; currentStatus: string | null };
+
+function parsePassthrough(passthrough: string | undefined): { table: VideoTarget["table"]; id: string } | null {
+  if (!passthrough) return null;
+  const sep = passthrough.indexOf(":");
+  if (sep < 0) return null;
+  const prefix = passthrough.slice(0, sep);
+  const id = passthrough.slice(sep + 1);
+  if (!id) return null;
+  if (prefix === "feed") return { table: "post_videos", id };
+  if (prefix === "discover") return { table: "videos", id };
+  return null;
+}
+
+async function findTargetByUploadId(supabaseAdmin: any, uploadId: string): Promise<VideoTarget | null> {
+  const { data: feedRow } = await supabaseAdmin
     .from("post_videos")
     .select("id,status")
-    .eq("mux_upload_id", data.id)
+    .eq("mux_upload_id", uploadId)
     .maybeSingle();
-  if (!row) return;
-  await supabaseAdmin
-    .from("post_videos")
-    .update({
-      mux_asset_id: data.asset_id,
-      // Never regress an already-ready video back to processing - webhooks
-      // can arrive out of order.
-      ...(row.status === "ready" ? {} : { status: "processing" }),
-    })
-    .eq("id", row.id);
+  if (feedRow) return { table: "post_videos", id: feedRow.id, currentStatus: feedRow.status };
+
+  const { data: discoverRow } = await supabaseAdmin
+    .from("videos")
+    .select("id,mux_status")
+    .eq("mux_upload_id", uploadId)
+    .maybeSingle();
+  if (discoverRow) return { table: "videos", id: discoverRow.id, currentStatus: discoverRow.mux_status };
+
+  return null;
 }
 
-async function handleUploadErrored(supabaseAdmin: any, data: MuxEvent["data"]) {
-  if (!data.id) return;
-  await supabaseAdmin
-    .from("post_videos")
-    .update({ status: "failed", error_message: GENERIC_UPLOAD_ERROR })
-    .eq("mux_upload_id", data.id)
-    .neq("status", "ready");
-}
-
-async function handleUploadCancelled(supabaseAdmin: any, data: MuxEvent["data"]) {
-  if (!data.id) return;
-  await supabaseAdmin
-    .from("post_videos")
-    .update({ status: "failed", error_message: GENERIC_UPLOAD_ERROR })
-    .eq("mux_upload_id", data.id)
-    .neq("status", "ready");
-}
-
-async function findVideoRowForAsset(supabaseAdmin: any, data: MuxEvent["data"]) {
-  if (data.passthrough) {
-    const { data: byPassthrough } = await supabaseAdmin
-      .from("post_videos")
-      .select("id,status,mux_playback_id")
-      .eq("id", data.passthrough)
+async function findTargetForAsset(supabaseAdmin: any, data: MuxEvent["data"]): Promise<VideoTarget | null> {
+  const fromPassthrough = parsePassthrough(data.passthrough);
+  if (fromPassthrough) {
+    const statusColumn = fromPassthrough.table === "post_videos" ? "status" : "mux_status";
+    const { data: row } = await supabaseAdmin
+      .from(fromPassthrough.table)
+      .select(`id,${statusColumn}`)
+      .eq("id", fromPassthrough.id)
       .maybeSingle();
-    if (byPassthrough) return byPassthrough;
+    if (row) return { table: fromPassthrough.table, id: row.id, currentStatus: row[statusColumn] } as VideoTarget;
   }
   if (data.id) {
-    const { data: byAssetId } = await supabaseAdmin
+    const { data: feedRow } = await supabaseAdmin
       .from("post_videos")
-      .select("id,status,mux_playback_id")
+      .select("id,status")
       .eq("mux_asset_id", data.id)
       .maybeSingle();
-    if (byAssetId) return byAssetId;
+    if (feedRow) return { table: "post_videos", id: feedRow.id, currentStatus: feedRow.status };
+
+    const { data: discoverRow } = await supabaseAdmin
+      .from("videos")
+      .select("id,mux_status")
+      .eq("mux_asset_id", data.id)
+      .maybeSingle();
+    if (discoverRow) return { table: "videos", id: discoverRow.id, currentStatus: discoverRow.mux_status };
   }
   return null;
 }
 
+function statusUpdate(target: VideoTarget, value: Record<string, unknown>): Record<string, unknown> {
+  if (target.table === "post_videos") {
+    const { status, error_message, ...rest } = value as {
+      status?: unknown;
+      error_message?: unknown;
+      [key: string]: unknown;
+    };
+    return { ...rest, ...(status !== undefined ? { status } : {}), ...(error_message !== undefined ? { error_message } : {}) };
+  }
+  const { status, error_message, ...rest } = value as {
+    status?: unknown;
+    error_message?: unknown;
+    [key: string]: unknown;
+  };
+  return {
+    ...rest,
+    ...(status !== undefined ? { mux_status: status } : {}),
+    ...(error_message !== undefined ? { mux_error_message: error_message } : {}),
+  };
+}
+
+async function handleUploadAssetCreated(supabaseAdmin: any, data: MuxEvent["data"]) {
+  if (!data.id || !data.asset_id) return;
+  const target = await findTargetByUploadId(supabaseAdmin, data.id);
+  if (!target) return;
+  await supabaseAdmin
+    .from(target.table)
+    .update(
+      statusUpdate(target, {
+        mux_asset_id: data.asset_id,
+        // Never regress an already-ready video back to processing -
+        // webhooks can arrive out of order.
+        ...(target.currentStatus === "ready" ? {} : { status: "processing" }),
+      }),
+    )
+    .eq("id", target.id);
+}
+
+async function handleUploadErrored(supabaseAdmin: any, data: MuxEvent["data"]) {
+  if (!data.id) return;
+  const target = await findTargetByUploadId(supabaseAdmin, data.id);
+  if (!target || target.currentStatus === "ready") return;
+  await supabaseAdmin
+    .from(target.table)
+    .update(statusUpdate(target, { status: "failed", error_message: GENERIC_UPLOAD_ERROR }))
+    .eq("id", target.id);
+}
+
+async function handleUploadCancelled(supabaseAdmin: any, data: MuxEvent["data"]) {
+  if (!data.id) return;
+  const target = await findTargetByUploadId(supabaseAdmin, data.id);
+  if (!target || target.currentStatus === "ready") return;
+  await supabaseAdmin
+    .from(target.table)
+    .update(statusUpdate(target, { status: "failed", error_message: GENERIC_UPLOAD_ERROR }))
+    .eq("id", target.id);
+}
+
 async function handleAssetReady(supabaseAdmin: any, data: MuxEvent["data"]) {
-  const row = await findVideoRowForAsset(supabaseAdmin, data);
-  if (!row) return;
+  const target = await findTargetForAsset(supabaseAdmin, data);
+  if (!target) return;
 
   const publicPlaybackId = data.playback_ids?.find((p) => p.policy === "public")?.id;
 
-  const update: Record<string, unknown> = {
-    status: "ready",
-    error_message: null,
-  };
+  const update: Record<string, unknown> = { status: "ready", error_message: null };
   if (data.id) update["mux_asset_id"] = data.id;
   if (typeof data.duration === "number") update["duration_seconds"] = data.duration;
-  if (data.aspect_ratio) update["aspect_ratio"] = data.aspect_ratio;
+  if (data.aspect_ratio && target.table === "post_videos") update["aspect_ratio"] = data.aspect_ratio;
   // Only ever set a playback id we actually found - never overwrite an
   // existing valid one with null.
   if (publicPlaybackId) update["mux_playback_id"] = publicPlaybackId;
 
-  await supabaseAdmin.from("post_videos").update(update).eq("id", row.id);
+  await supabaseAdmin.from(target.table).update(statusUpdate(target, update)).eq("id", target.id);
 }
 
 async function handleAssetErrored(supabaseAdmin: any, data: MuxEvent["data"]) {
-  const row = await findVideoRowForAsset(supabaseAdmin, data);
-  if (!row) return;
+  const target = await findTargetForAsset(supabaseAdmin, data);
+  if (!target) return;
   await supabaseAdmin
-    .from("post_videos")
-    .update({ status: "failed", error_message: GENERIC_ASSET_ERROR })
-    .eq("id", row.id);
+    .from(target.table)
+    .update(statusUpdate(target, { status: "failed", error_message: GENERIC_ASSET_ERROR }))
+    .eq("id", target.id);
 }
 
 async function handleAssetDeleted(supabaseAdmin: any, data: MuxEvent["data"]) {
-  const row = await findVideoRowForAsset(supabaseAdmin, data);
-  if (!row) return;
+  const target = await findTargetForAsset(supabaseAdmin, data);
+  if (!target) return;
   await supabaseAdmin
-    .from("post_videos")
-    .update({ status: "deleted", mux_playback_id: null })
-    .eq("id", row.id);
+    .from(target.table)
+    .update(statusUpdate(target, { status: "deleted", mux_playback_id: null }))
+    .eq("id", target.id);
 }
 
 async function processEvent(supabaseAdmin: any, event: MuxEvent) {

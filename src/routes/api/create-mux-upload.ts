@@ -3,8 +3,9 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 /**
- * Mints a Mux direct-upload URL for a video attachment on a Feed post.
- * Authenticated (verifies the caller's Supabase JWT itself, the same way
+ * Mints a Mux direct-upload URL for either a Feed post's video attachment
+ * (post_videos) or a Discover video (videos.mux_* columns). Authenticated
+ * (verifies the caller's Supabase JWT itself, the same way
  * requireSupabaseAuth does for createServerFn's), since this needs to be a
  * plain HTTP endpoint - the eventual upload widget POSTs bytes straight to
  * the Mux URL this returns, never through our own server.
@@ -80,7 +81,14 @@ export const Route = createFileRoute("/api/create-mux-upload")({
           return Response.json({ error: "unauthorized" }, { status: 401, headers });
         }
 
-        let body: { fileName?: unknown; fileSize?: unknown; mimeType?: unknown; postId?: unknown };
+        let body: {
+          fileName?: unknown;
+          fileSize?: unknown;
+          mimeType?: unknown;
+          postId?: unknown;
+          target?: unknown;
+          targetId?: unknown;
+        };
         try {
           body = await request.json();
         } catch {
@@ -91,6 +99,8 @@ export const Route = createFileRoute("/api/create-mux-upload")({
         const fileSize = typeof body.fileSize === "number" ? body.fileSize : null;
         const mimeType = typeof body.mimeType === "string" ? body.mimeType : null;
         const postId = typeof body.postId === "string" ? body.postId : null;
+        const target = body.target === "discover" ? "discover" : "feed";
+        const targetId = typeof body.targetId === "string" ? body.targetId : null;
 
         if (!fileName || !mimeType?.startsWith("video/")) {
           return Response.json({ error: "invalid_file_type" }, { status: 400, headers });
@@ -98,39 +108,78 @@ export const Route = createFileRoute("/api/create-mux-upload")({
         if (fileSize === null || fileSize <= 0 || fileSize > MAX_FILE_SIZE) {
           return Response.json({ error: "file_too_large" }, { status: 400, headers });
         }
+        if (target === "discover" && !targetId) {
+          return Response.json({ error: "target_id_required" }, { status: 400, headers });
+        }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        // A postId is only honored once we've confirmed it really belongs to
-        // this caller - never trust a foreign key handed in by the client.
-        let verifiedPostId: string | null = null;
-        if (postId) {
-          const { data: postRow } = await supabaseAdmin
-            .from("feed_posts")
-            .select("id,user_id")
-            .eq("id", postId)
-            .maybeSingle();
-          if (postRow && postRow.user_id === userId) verifiedPostId = postRow.id;
-        }
+        let passthrough: string;
+        let onMuxUploadIdKnown: (uploadId: string) => Promise<void>;
+        let onMuxInitFailed: () => Promise<void>;
 
-        const { data: videoRow, error: insertError } = await supabaseAdmin
-          .from("post_videos")
-          .insert({ user_id: userId, post_id: verifiedPostId, status: "uploading" })
-          .select("id")
-          .single();
-        if (insertError || !videoRow) {
-          console.error("post_videos insert failed:", insertError?.message);
-          return Response.json({ error: "internal_error" }, { status: 500, headers });
+        if (target === "discover") {
+          // The video row already exists (Discover's studio wizard creates
+          // it with all its metadata up front) - never trust a foreign key
+          // handed in by the client, confirm it's really this caller's row.
+          const { data: videoRow } = await supabaseAdmin
+            .from("videos")
+            .select("id,user_id")
+            .eq("id", targetId!)
+            .maybeSingle();
+          if (!videoRow || videoRow.user_id !== userId) {
+            return Response.json({ error: "not_found" }, { status: 404, headers });
+          }
+          passthrough = `discover:${videoRow.id}`;
+          onMuxUploadIdKnown = async (uploadId) => {
+            await supabaseAdmin.from("videos").update({ mux_upload_id: uploadId }).eq("id", videoRow.id);
+          };
+          onMuxInitFailed = async () => {
+            await supabaseAdmin
+              .from("videos")
+              .update({ mux_status: "failed", mux_error_message: "Could not start the video upload." })
+              .eq("id", videoRow.id);
+          };
+        } else {
+          // A postId is only honored once we've confirmed it really belongs
+          // to this caller - never trust a foreign key handed in by the
+          // client.
+          let verifiedPostId: string | null = null;
+          if (postId) {
+            const { data: postRow } = await supabaseAdmin
+              .from("feed_posts")
+              .select("id,user_id")
+              .eq("id", postId)
+              .maybeSingle();
+            if (postRow && postRow.user_id === userId) verifiedPostId = postRow.id;
+          }
+
+          const { data: videoRow, error: insertError } = await supabaseAdmin
+            .from("post_videos")
+            .insert({ user_id: userId, post_id: verifiedPostId, status: "uploading" })
+            .select("id")
+            .single();
+          if (insertError || !videoRow) {
+            console.error("post_videos insert failed:", insertError?.message);
+            return Response.json({ error: "internal_error" }, { status: 500, headers });
+          }
+          passthrough = `feed:${videoRow.id}`;
+          onMuxUploadIdKnown = async (uploadId) => {
+            await supabaseAdmin.from("post_videos").update({ mux_upload_id: uploadId }).eq("id", videoRow.id);
+          };
+          onMuxInitFailed = async () => {
+            await supabaseAdmin
+              .from("post_videos")
+              .update({ status: "failed", error_message: "Could not start the video upload." })
+              .eq("id", videoRow.id);
+          };
         }
 
         const MUX_TOKEN_ID = process.env["MUX_TOKEN_ID"];
         const MUX_TOKEN_SECRET = process.env["MUX_TOKEN_SECRET"];
         if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET) {
           console.error("Mux credentials are not configured");
-          await supabaseAdmin
-            .from("post_videos")
-            .update({ status: "failed", error_message: "Upload service unavailable." })
-            .eq("id", videoRow.id);
+          await onMuxInitFailed();
           return Response.json({ error: "internal_error" }, { status: 500, headers });
         }
 
@@ -149,36 +198,27 @@ export const Route = createFileRoute("/api/create-mux-upload")({
               new_asset_settings: {
                 playback_policies: ["public"],
                 video_quality: "basic",
-                passthrough: videoRow.id,
+                passthrough,
               },
             }),
           });
 
           if (!muxResponse.ok) {
             console.error("Mux upload creation failed:", muxResponse.status);
-            await supabaseAdmin
-              .from("post_videos")
-              .update({ status: "failed", error_message: "Could not start the video upload." })
-              .eq("id", videoRow.id);
+            await onMuxInitFailed();
             return Response.json({ error: "mux_error" }, { status: 502, headers });
           }
 
           const muxData = (await muxResponse.json()) as { data: { id: string; url: string } };
-          await supabaseAdmin
-            .from("post_videos")
-            .update({ mux_upload_id: muxData.data.id })
-            .eq("id", videoRow.id);
+          await onMuxUploadIdKnown(muxData.data.id);
 
           return Response.json(
-            { videoId: videoRow.id, uploadId: muxData.data.id, uploadUrl: muxData.data.url },
+            { videoId: targetId ?? passthrough.split(":")[1], uploadId: muxData.data.id, uploadUrl: muxData.data.url },
             { headers },
           );
         } catch (err) {
           console.error("Mux upload creation threw:", err instanceof Error ? err.message : err);
-          await supabaseAdmin
-            .from("post_videos")
-            .update({ status: "failed", error_message: "Could not start the video upload." })
-            .eq("id", videoRow.id);
+          await onMuxInitFailed();
           return Response.json({ error: "internal_error" }, { status: 500, headers });
         }
       },
