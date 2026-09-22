@@ -2150,16 +2150,37 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     >
       <div
         className={cn(
-          "app-background relative flex w-full max-w-2xl flex-col overflow-hidden rounded-t-[2.25rem] border border-b-0 border-border shadow-2xl bx-comments-enter transition-[height] duration-300 ease-out sm:rounded-[2.25rem] sm:border-b",
-          expanded ? "h-[94dvh] sm:h-[92dvh]" : "h-[58dvh] sm:h-[62dvh]",
+          "app-background relative flex w-full max-w-2xl flex-col overflow-hidden border border-b-0 border-border shadow-2xl bx-comments-enter transition-[height,border-radius] duration-300 ease-out sm:border-b",
+          expanded
+            ? "h-[100dvh] rounded-t-none sm:h-[96dvh] sm:rounded-[2.25rem]"
+            : "h-[58dvh] rounded-t-[2.25rem] sm:h-[62dvh] sm:rounded-[2.25rem]",
         )}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
+          onPointerDown={(e) => {
+            const startY = e.clientY;
+            const startExpanded = expanded;
+            const handlePointerUp = (upEvent: PointerEvent) => {
+              const delta = upEvent.clientY - startY;
+              // Dragged up more than ~50px -> expand; down more than ~50px
+              // -> collapse. A small movement is treated as a tap (handled
+              // by the button's own onClick above).
+              if (delta < -50 && !startExpanded) setExpanded(true);
+              else if (delta > 50 && startExpanded) setExpanded(false);
+              window.removeEventListener("pointermove", handlePointerMove);
+              window.removeEventListener("pointerup", handlePointerUp);
+            };
+            const handlePointerMove = (moveEvent: PointerEvent) => {
+              moveEvent.preventDefault();
+            };
+            window.addEventListener("pointermove", handlePointerMove, { passive: false });
+            window.addEventListener("pointerup", handlePointerUp);
+          }}
           aria-label={expanded ? t("collapseComments") : t("expandComments")}
-          className="mx-auto mt-2 flex h-6 w-16 items-center justify-center active:scale-90"
+          className="mx-auto mt-2 flex h-6 w-16 shrink-0 items-center justify-center active:scale-90"
         >
           <span className="h-1 w-11 rounded-full bg-foreground/25" />
         </button>
