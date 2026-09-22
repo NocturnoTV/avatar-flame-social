@@ -636,3 +636,88 @@ export const adminBroadcastNotification = createServerFn({ method: "POST" })
 
     return { sentTo: recipientIds.length };
   });
+
+const migrateVideosSchema = z.object({ limit: z.number().int().min(1).max(20).default(10) });
+
+/** Backfills already-published Discover videos onto Mux, a batch at a time
+ * (admin-triggered - there's no cron/background-job runner in this stack,
+ * and one call per batch keeps each request well under any platform
+ * timeout). Ingests directly from a signed Supabase Storage URL via Mux's
+ * asset-creation endpoint (no upload step needed, unlike a fresh upload),
+ * then lets the existing webhook (video.asset.ready/errored) finish the job
+ * via the same "discover:<id>" passthrough used for new uploads. */
+export const adminMigrateVideosToMux = createServerFn({ method: "POST" })
+  .validator(migrateVideosSchema)
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await requireStaff(context.userId, true);
+
+    const { count: remainingBefore } = await supabaseAdmin
+      .from("videos")
+      .select("id", { count: "exact", head: true })
+      .not("storage_path", "is", null)
+      .is("mux_status", null);
+
+    const { data: candidates, error } = await supabaseAdmin
+      .from("videos")
+      .select("id,storage_path")
+      .not("storage_path", "is", null)
+      .is("mux_status", null)
+      .order("created_at", { ascending: true })
+      .limit(data.limit);
+    if (error) throw error;
+
+    const MUX_TOKEN_ID = process.env["MUX_TOKEN_ID"];
+    const MUX_TOKEN_SECRET = process.env["MUX_TOKEN_SECRET"];
+    if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET) throw new Error("mux_not_configured");
+    const basicAuth = Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString("base64");
+
+    let migrated = 0;
+    const errors: { videoId: string; message: string }[] = [];
+
+    for (const video of candidates ?? []) {
+      const storagePath = video.storage_path;
+      if (!storagePath) continue;
+      try {
+        const slash = storagePath.indexOf("/");
+        const bucket = storagePath.slice(0, slash);
+        const path = storagePath.slice(slash + 1);
+        const { data: signed, error: signError } = await supabaseAdmin.storage
+          .from(bucket)
+          .createSignedUrl(path, 3600);
+        if (signError || !signed) throw new Error(signError?.message ?? "sign_failed");
+
+        const muxRes = await fetch("https://api.mux.com/video/v1/assets", {
+          method: "POST",
+          headers: { Authorization: `Basic ${basicAuth}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input: [{ url: signed.signedUrl }],
+            playback_policy: ["public"],
+            video_quality: "basic",
+            passthrough: `discover:${video.id}`,
+          }),
+        });
+        if (!muxRes.ok) throw new Error(`mux_error_${muxRes.status}`);
+        const muxData = (await muxRes.json()) as { data: { id: string } };
+
+        await supabaseAdmin
+          .from("videos")
+          .update({ mux_asset_id: muxData.data.id, mux_status: "processing" })
+          .eq("id", video.id);
+        migrated++;
+      } catch (err) {
+        errors.push({ videoId: video.id, message: err instanceof Error ? err.message : "unknown" });
+        await supabaseAdmin
+          .from("videos")
+          .update({ mux_status: "failed", mux_error_message: "Backfill ingestion failed." })
+          .eq("id", video.id);
+      }
+    }
+
+    return {
+      migrated,
+      attempted: candidates?.length ?? 0,
+      remaining: Math.max(0, (remainingBefore ?? 0) - migrated),
+      errors,
+    };
+  });

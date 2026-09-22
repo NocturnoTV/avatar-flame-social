@@ -57,6 +57,7 @@ import {
   adminImpersonate,
   adminListMembers,
   adminManageMember,
+  adminMigrateVideosToMux,
   adminReviewDispute,
 } from "@/lib/admin.functions";
 import { adminListCommunities, adminManageCommunity } from "@/lib/admin-communities.functions";
@@ -3573,8 +3574,90 @@ function ReportedFeedPosts() {
   );
 }
 
+/** Backfills the existing Discover video library onto Mux, a batch at a
+ * time - there's no cron/background-job runner in this stack, so a staff
+ * member triggers each batch by hand and can watch it drain. */
+function MuxMigrationPanel() {
+  const [running, setRunning] = useState(false);
+  const [log, setLog] = useState<string[]>([]);
+
+  const remaining = useQuery({
+    queryKey: ["admin-mux-migration-remaining"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("videos")
+        .select("id", { count: "exact", head: true })
+        .not("storage_path", "is", null)
+        .is("mux_status", null);
+      return count ?? 0;
+    },
+  });
+  const failed = useQuery({
+    queryKey: ["admin-mux-migration-failed"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("videos")
+        .select("id", { count: "exact", head: true })
+        .eq("mux_status", "failed");
+      return count ?? 0;
+    },
+  });
+
+  async function runBatch() {
+    setRunning(true);
+    try {
+      const result = await adminMigrateVideosToMux({ data: { limit: 10 } });
+      setLog((current) => [
+        `${new Date().toLocaleTimeString()} — ${result.migrated}/${result.attempted} envoyées à Mux, ${result.errors.length} échec(s), ${result.remaining} restantes`,
+        ...current,
+      ]);
+      void remaining.refetch();
+      void failed.refetch();
+    } catch (err) {
+      toast.error(errorMessage(err, "Échec de la migration"));
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-3xl border border-border bg-card p-5">
+        <p className="text-sm text-muted-foreground">
+          Ré-ingère les vidéos Discover déjà publiées (stockées sur Supabase Storage) dans Mux,
+          par lots de 10. Chaque lot appelle l'API Mux directement depuis une URL signée - le
+          traitement de chaque vidéo se termine ensuite en arrière-plan via le webhook Mux.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          <span className="rounded-full bg-surface-2 px-3 py-1 text-sm font-bold">
+            {remaining.data ?? "…"} vidéos restantes
+          </span>
+          {failed.data ? (
+            <span className="rounded-full bg-red-500/15 px-3 py-1 text-sm font-bold text-red-500">
+              {failed.data} échec(s) Mux
+            </span>
+          ) : null}
+          <Button onClick={() => void runBatch()} disabled={running || remaining.data === 0}>
+            {running ? "Migration en cours…" : "Migrer 10 vidéos"}
+          </Button>
+        </div>
+      </div>
+
+      {log.length ? (
+        <div className="space-y-1.5 rounded-3xl border border-border bg-card p-5">
+          {log.map((line, i) => (
+            <p key={i} className="text-xs text-muted-foreground">
+              {line}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function Content() {
-  const [contentTab, setContentTab] = useState<"search" | "pending" | "posts">("search");
+  const [contentTab, setContentTab] = useState<"search" | "pending" | "posts" | "mux">("search");
   const [query, setQuery] = useState("");
   const [openVideo, setOpenVideo] = useState<string | null>(null);
 
@@ -3663,12 +3746,23 @@ function Content() {
             </span>
           ) : null}
         </button>
+        <button
+          onClick={() => setContentTab("mux")}
+          className={cn(
+            "flex-1 rounded-xl py-2 text-sm font-bold transition",
+            contentTab === "mux" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+          )}
+        >
+          Migration Mux
+        </button>
       </div>
 
       {contentTab === "pending" ? (
         <PendingVideosReview />
       ) : contentTab === "posts" ? (
         <ReportedFeedPosts />
+      ) : contentTab === "mux" ? (
+        <MuxMigrationPanel />
       ) : (
         <>
           <div className="relative">
