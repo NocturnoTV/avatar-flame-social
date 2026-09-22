@@ -1672,7 +1672,6 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
-  const [showExtras, setShowExtras] = useState(false);
   const [gifUrl, setGifUrl] = useState("");
   const [media, setMedia] = useState<{
     url: string;
@@ -1686,7 +1685,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   >([]);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [reactionTab, setReactionTab] = useState<"emoji" | "stickers">("emoji");
+  const [reactionTab, setReactionTab] = useState<"emoji" | "stickers" | "media">("emoji");
   const [menuFor, setMenuFor] = useState<RichComment | null>(null);
   const [deletingComment, setDeletingComment] = useState<RichComment | null>(null);
   const [reportingComment, setReportingComment] = useState<RichComment | null>(null);
@@ -1993,7 +1992,6 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     setText("");
     setReplyingTo(null);
     setMedia(null);
-    setShowExtras(false);
     setEmojiOpen(false);
     setGifUrl("");
     void logPositiveAction({ data: { videoId: video.id, action: "comment" } });
@@ -2054,7 +2052,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
       const ext = file.name.split(".").pop() || "jpg";
       const path = await uploadFile("comment-images", user.id, file, ext);
       setMedia({ url: path, type: "image" });
-      setShowExtras(false);
+      setEmojiOpen(false);
     } catch {
       toast.error(t("errorGeneric"));
     } finally {
@@ -2131,32 +2129,31 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
     >
       <div
         className={cn(
-          "app-background relative flex w-full max-w-2xl flex-col overflow-hidden rounded-t-[2.25rem] border border-b-0 border-primary/20 shadow-[0_-30px_100px_-25px_rgba(124,58,237,.65)] bx-comments-enter transition-[height] duration-300 ease-out sm:rounded-[2.25rem] sm:border-b",
+          "app-background relative flex w-full max-w-2xl flex-col overflow-hidden rounded-t-[2.25rem] border border-b-0 border-border shadow-2xl bx-comments-enter transition-[height] duration-300 ease-out sm:rounded-[2.25rem] sm:border-b",
           expanded ? "h-[94dvh] sm:h-[92dvh]" : "h-[58dvh] sm:h-[62dvh]",
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-primary/10 to-transparent" />
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-label={expanded ? t("collapseComments") : t("expandComments")}
           className="mx-auto mt-2 flex h-6 w-16 items-center justify-center active:scale-90"
         >
-          <span className="h-1 w-11 rounded-full bg-primary/35" />
+          <span className="h-1 w-11 rounded-full bg-foreground/25" />
         </button>
-        <label className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-purple-400/30 bg-purple-500/15 px-4 py-2.5 text-sm shadow-[0_10px_30px_-20px_rgba(168,85,247,.8)] focus-within:border-purple-500">
-          <Search className="h-4 w-4 shrink-0 text-purple-500" />
+        <label className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-border bg-surface-2 px-4 py-2.5 text-sm focus-within:border-foreground/40">
+          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="sr-only">{t("commentSearchTopic")}</span>
           <input
             value={commentSearch}
             onChange={(event) => setCommentSearch(event.target.value)}
             placeholder={video.caption || t("search")}
-            className="min-w-0 flex-1 bg-transparent font-semibold text-purple-600 outline-none placeholder:text-purple-500/75 dark:text-purple-300"
+            className="min-w-0 flex-1 bg-transparent font-semibold text-foreground outline-none placeholder:text-muted-foreground"
           />
           {commentSearch ? (
             <button type="button" onClick={() => setCommentSearch("")} aria-label={t("cancel")}>
-              <X className="h-4 w-4 text-purple-500" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </button>
           ) : null}
         </label>
@@ -2226,46 +2223,6 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
         </div>
         {commentsAllowed.data === false ? null : (
         <>
-        {showExtras ? (
-          <div className="border-t border-border bg-card/95 px-4 py-3 backdrop-blur-xl">
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) void pickCommentImage(file);
-              }}
-            />
-            <button
-              type="button"
-              disabled={uploadingImage}
-              onClick={() => imageInputRef.current?.click()}
-              className="mb-3 flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-input py-2.5 text-sm font-semibold text-primary disabled:opacity-50"
-            >
-              <ImagePlus className="h-4 w-4" />
-              {uploadingImage ? t("loading") : t("commentPickImage")}
-            </button>
-            <div className="flex gap-2">
-              <input
-                value={gifUrl}
-                onChange={(e) => setGifUrl(e.target.value)}
-                placeholder="Colle le lien d’un GIF"
-                className="h-10 min-w-0 flex-1 rounded-full border border-input bg-background px-4 text-sm outline-none focus:border-primary"
-              />
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (gifUrl.trim()) setMedia({ url: gifUrl.trim(), type: "gif" });
-                }}
-              >
-                Ajouter
-              </Button>
-            </div>
-          </div>
-        ) : null}
         {emojiOpen ? (
           <div className="border-t border-border bg-card/95 backdrop-blur-xl">
             <div className="flex gap-1 px-4 pt-3">
@@ -2275,7 +2232,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 className={cn(
                   "flex-1 rounded-full py-1.5 text-xs font-bold transition",
                   reactionTab === "emoji"
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-foreground text-background"
                     : "text-muted-foreground",
                 )}
               >
@@ -2287,11 +2244,23 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 className={cn(
                   "flex-1 rounded-full py-1.5 text-xs font-bold transition",
                   reactionTab === "stickers"
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-foreground text-background"
                     : "text-muted-foreground",
                 )}
               >
                 {t("stickersTab")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReactionTab("media")}
+                className={cn(
+                  "flex-1 rounded-full py-1.5 text-xs font-bold transition",
+                  reactionTab === "media"
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground",
+                )}
+              >
+                {t("commentAttachButton")}
               </button>
             </div>
             {reactionTab === "emoji" ? (
@@ -2306,30 +2275,71 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                   </button>
                 ))}
               </div>
-            ) : (myStickers.data ?? []).length > 0 ? (
-              <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3">
-                {myStickers.data!.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setMedia({ url: s.storage_path, type: "custom_sticker" });
-                      setEmojiOpen(false);
-                    }}
-                    className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-surface-2 p-1 transition active:scale-90"
-                  >
-                    <CommentStickerThumb path={s.storage_path} />
-                  </button>
-                ))}
-              </div>
+            ) : reactionTab === "stickers" ? (
+              (myStickers.data ?? []).length > 0 ? (
+                <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3">
+                  {myStickers.data!.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setMedia({ url: s.storage_path, type: "custom_sticker" });
+                        setEmojiOpen(false);
+                      }}
+                      className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-surface-2 p-1 transition active:scale-90"
+                    >
+                      <CommentStickerThumb path={s.storage_path} />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+                  {t("noStickers")}
+                </p>
+              )
             ) : (
-              <p className="px-4 py-6 text-center text-xs text-muted-foreground">
-                {t("noStickers")}
-              </p>
+              <div className="px-4 py-3">
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file) void pickCommentImage(file);
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={uploadingImage}
+                  onClick={() => imageInputRef.current?.click()}
+                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-input py-2.5 text-sm font-semibold text-foreground disabled:opacity-50"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  {uploadingImage ? t("loading") : t("commentPickImage")}
+                </button>
+                <div className="flex gap-2">
+                  <input
+                    value={gifUrl}
+                    onChange={(e) => setGifUrl(e.target.value)}
+                    placeholder="Colle le lien d’un GIF"
+                    className="h-10 min-w-0 flex-1 rounded-full border border-input bg-background px-4 text-sm outline-none focus:border-foreground/40"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (gifUrl.trim()) setMedia({ url: gifUrl.trim(), type: "gif" });
+                    }}
+                  >
+                    Ajouter
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         ) : null}
         {replyingTo || media ? (
-          <div className="flex items-center justify-between border-t border-border bg-primary/10 px-4 py-2 text-xs">
+          <div className="flex items-center justify-between border-t border-border bg-foreground/10 px-4 py-2 text-xs">
             <span className="flex items-center gap-2">
               {media?.type === "image" ? (
                 <CommentStickerThumb path={media.url} className="h-9 w-9 rounded-lg object-cover" />
@@ -2370,7 +2380,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
                 />
                 <span className="min-w-0 flex-1 truncate text-sm font-bold">@{m.username}</span>
                 {m.isFriend ? (
-                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  <span className="shrink-0 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-bold text-foreground">
                     {t("mentionFriendBadge")}
                   </span>
                 ) : null}
@@ -2378,73 +2388,61 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
             ))}
           </div>
         ) : null}
-        <div className="relative flex items-center gap-2 border-t border-primary/15 bg-card/90 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-15px_40px_-25px_rgba(124,58,237,.7)] backdrop-blur-2xl">
+        <div className="relative flex items-start gap-2.5 border-t border-border bg-card/90 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-2xl">
           <StoredImage
             path={myProfile.data?.avatar_url}
             alt={myProfile.data?.username ?? ""}
             fallback={myProfile.data?.username?.[0]?.toUpperCase() ?? "?"}
             className="h-10 w-10 shrink-0 rounded-full"
           />
-          <div className="flex min-w-0 flex-1 items-center gap-0.5 rounded-full bg-surface-2 pl-3.5 pr-1">
+          <div className="min-w-0 flex-1 rounded-3xl bg-surface-2 px-3.5 py-2">
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder={t("addComment")}
-              className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none"
+              className="h-8 w-full bg-transparent text-sm outline-none"
             />
-            <button
-              type="button"
-              onClick={() => setText((v) => (v.endsWith("@") || !v ? v + "@" : `${v} @`))}
-              className="shrink-0 p-1.5 text-muted-foreground"
-              aria-label={t("commentMentionButton")}
-            >
-              <AtSign className="h-4.5 w-4.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEmojiOpen((v) => !v);
-                setShowExtras(false);
-              }}
-              className="shrink-0 p-1.5 text-muted-foreground"
-              aria-label={t("commentEmojiButton")}
-            >
-              <Smile className="h-4.5 w-4.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowExtras((v) => !v);
-                setEmojiOpen(false);
-              }}
-              className="shrink-0 p-1.5 text-muted-foreground"
-              aria-label={t("commentAttachButton")}
-            >
-              <ImagePlus className="h-4.5 w-4.5" />
-            </button>
-            {user?.id !== video.user_id ? (
+            <div className="mt-1 flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => setGiftingCreator(true)}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white"
-                aria-label={t("giftTo", {
-                  username: videoCreator.data?.username ?? "creator",
-                })}
+                onClick={() => setEmojiOpen((v) => !v)}
+                className="shrink-0 p-1.5 text-muted-foreground"
+                aria-label={t("commentEmojiButton")}
               >
-                <Gift className="h-4 w-4" />
+                <Smile className="h-4.5 w-4.5" />
               </button>
-            ) : null}
+              <button
+                type="button"
+                onClick={() => setText((v) => (v.endsWith("@") || !v ? v + "@" : `${v} @`))}
+                className="shrink-0 p-1.5 text-muted-foreground"
+                aria-label={t("commentMentionButton")}
+              >
+                <AtSign className="h-4.5 w-4.5" />
+              </button>
+              {user?.id !== video.user_id ? (
+                <button
+                  type="button"
+                  onClick={() => setGiftingCreator(true)}
+                  className="shrink-0 p-1.5 text-muted-foreground"
+                  aria-label={t("giftTo", {
+                    username: videoCreator.data?.username ?? "creator",
+                  })}
+                >
+                  <Gift className="h-4.5 w-4.5" />
+                </button>
+              ) : null}
+              <Button
+                size="icon"
+                onClick={send}
+                aria-label={t("send")}
+                disabled={(!text.trim() && !media) || pending?.status === "sending"}
+                className="ml-auto h-8 w-8 shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <Button
-            size="icon"
-            onClick={send}
-            aria-label={t("send")}
-            disabled={(!text.trim() && !media) || pending?.status === "sending"}
-            className="shrink-0"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
         </div>
         </>
         )}
@@ -2606,7 +2604,7 @@ function PendingCommentRow({
         ) : (
           <div className="mt-1 flex items-center gap-3 text-xs font-bold">
             <span className="text-destructive">{t("commentSendFailed")}</span>
-            <button onClick={onRetry} className="text-primary hover:underline">
+            <button onClick={onRetry} className="text-foreground hover:underline">
               {t("retryAction")}
             </button>
             <button onClick={onDiscard} className="text-muted-foreground hover:underline">
@@ -2647,7 +2645,7 @@ function CommentItem({
   const { t } = useI18n();
   const [likeBurst, setLikeBurst] = useState(0);
   return (
-    <div className="space-y-2 rounded-3xl px-2 py-3 transition-colors hover:bg-primary/[0.035]">
+    <div className="space-y-2 rounded-3xl px-2 py-3 transition-colors hover:bg-foreground/[0.035]">
       <div className="flex gap-3">
         <Link to="/users/$id" params={{ id: comment.username || comment.user_id }}>
           <StoredImage
@@ -2661,25 +2659,25 @@ function CommentItem({
           <Link
             to="/users/$id"
             params={{ id: comment.username || comment.user_id }}
-            className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"
+            className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground"
           >
             @{comment.username}
             {comment.verified ? <Verified className="h-3.5 w-3.5 shrink-0" /> : null}
           </Link>
           {isPinned ? (
-            <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold text-primary">
+            <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold text-foreground">
               <Pin className="h-3 w-3" />
               {t("commentPinnedBadge")}
             </span>
           ) : null}
           {comment.media_type === "gift" ? (
-            <div className="mt-1 overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-500 p-[1px] shadow-[0_10px_30px_-15px_rgba(217,70,239,.9)] bx-gift-comment">
-              <div className="flex items-center gap-3 rounded-[calc(1rem-1px)] bg-black/20 px-3 py-2.5 text-white backdrop-blur-sm">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/20 text-xl shadow-inner">
+            <div className="mt-1 overflow-hidden rounded-2xl border border-border bg-foreground p-[1px] bx-gift-comment">
+              <div className="flex items-center gap-3 rounded-[calc(1rem-1px)] bg-foreground px-3 py-2.5 text-background">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-background/15 text-xl shadow-inner">
                   🎁
                 </span>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[.16em] text-white/75">
+                  <p className="text-[11px] font-bold uppercase tracking-[.16em] text-background/70">
                     Cadeau au créateur
                   </p>
                   <p className="text-base font-black">
@@ -2716,7 +2714,7 @@ function CommentItem({
             <span>{formatRelativeTime(comment.created_at, t)}</span>
             <button
               onClick={() => onReply(comment.id, comment.username)}
-              className="hover:text-primary"
+              className="hover:text-foreground"
             >
               {t("reply")}
             </button>
@@ -2768,7 +2766,7 @@ function CommentItem({
       {replies.length > 0 ? (
         <button
           onClick={onToggleExpand}
-          className="ml-12 flex items-center gap-1 pl-3 text-xs font-bold text-muted-foreground hover:text-primary"
+          className="ml-12 flex items-center gap-1 pl-3 text-xs font-bold text-muted-foreground hover:text-foreground"
         >
           {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           {expanded ? t("hideReplies") : t("showRepliesCount", { count: replies.length })}
@@ -2815,7 +2813,7 @@ function CommentItem({
               <span>{formatRelativeTime(r.created_at, t)}</span>
               <button
                 onClick={() => onReply(comment.id, r.username)}
-                className="hover:text-primary"
+                className="hover:text-foreground"
               >
                 {t("reply")}
               </button>
