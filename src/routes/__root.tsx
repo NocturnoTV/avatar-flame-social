@@ -95,6 +95,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "robots", content: "index, follow" },
       { name: "theme-color", content: "#7c3aed" },
+      {
+        name: "google-site-verification",
+        content: "z3oICy7PyMy7k8sGT-s29Lqctt4bU_FLp85jMR3CMd8",
+      },
       { property: "og:site_name", content: "BloxSpark" },
       { property: "og:title", content: "BloxSpark - the social network for Roblox players" },
       {
@@ -127,8 +131,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
       },
-      { rel: "icon", type: "image/png", href: "/bloxspark-logo.png?v=4" },
-      { rel: "apple-touch-icon", href: "/bloxspark-logo.png?v=4" },
+      { rel: "icon", type: "image/png", href: "/favicon.png?v=5" },
+      { rel: "apple-touch-icon", href: "/favicon.png?v=5" },
       { rel: "manifest", href: "/site.webmanifest" },
     ],
   }),

@@ -28,7 +28,13 @@ export async function sendEmailToUsers(
     .filter((e): e is string => !!e);
   if (!emails.length) return;
 
-  const html = `<p>${message.body.replace(/\n/g, "<br>")}</p>`;
+  // Escape first: the body is operator-supplied text, never markup.
+  const escaped = message.body.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[c]!,
+  );
+  const html = `<p>${escaped.replace(/\n/g, "<br>")}</p>`;
   const CHUNK = 100; // Resend caps recipients per call
   for (let i = 0; i < emails.length; i += CHUNK) {
     await fetch("https://api.resend.com/emails", {
