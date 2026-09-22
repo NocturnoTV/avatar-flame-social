@@ -26,18 +26,22 @@ const REPLY_OPTIONS: { value: ReplyPermission; icon: typeof Globe2 }[] = [
 export function PostComposer({
   replyTo,
   quoting,
+  editing,
   onClose,
   onPublished,
 }: {
   replyTo?: { id: string; content: string; username: string; avatarUrl: string | null } | null;
   quoting?: { id: string; content: string; username: string; avatarUrl: string | null } | null;
+  /** Editing an existing post - only the text can change, not attachments,
+   * and it stamps edited_at instead of creating a new post. */
+  editing?: { id: string; content: string } | null;
   onClose: () => void;
   onPublished: (postId: string) => void;
 }) {
   const { t } = useI18n();
   const { user } = useSession();
   const qc = useQueryClient();
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(editing?.content ?? "");
   const [images, setImages] = useState<{ file: File; preview: string }[]>([]);
   const [replyPermission, setReplyPermission] = useState<ReplyPermission>("everyone");
   const [permissionOpen, setPermissionOpen] = useState(false);
@@ -74,6 +78,18 @@ export function PostComposer({
     if (!user || !canPublish) return;
     setPublishing(true);
     try {
+      if (editing) {
+        const { error } = await supabase
+          .from("feed_posts")
+          .update({ content: content.trim(), edited_at: new Date().toISOString() })
+          .eq("id", editing.id);
+        if (error) throw error;
+        void qc.invalidateQueries({ queryKey: ["feed-posts"] });
+        void qc.invalidateQueries({ queryKey: ["feed-post-thread", editing.id] });
+        toast.success(t("feedPostUpdated"));
+        onPublished(editing.id);
+        return;
+      }
       const media = await Promise.all(
         images.map(async (img) => {
           const ext = img.file.name.split(".").pop() || "jpg";
@@ -116,7 +132,12 @@ export function PostComposer({
         >
           {t("cancel")}
         </button>
-        <PublishButton canPublish={canPublish} publishing={publishing} onClick={() => void publish()} />
+        <PublishButton
+          canPublish={canPublish}
+          publishing={publishing}
+          label={editing ? t("save") : undefined}
+          onClick={() => void publish()}
+        />
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -165,7 +186,7 @@ export function PostComposer({
                 ))}
               </div>
             ) : null}
-            {!replyTo ? (
+            {!replyTo && !editing ? (
               <button
                 type="button"
                 onClick={() => setPermissionOpen((v) => !v)}
@@ -211,15 +232,19 @@ export function PostComposer({
             e.target.value = "";
           }}
         />
-        <button
-          type="button"
-          disabled={images.length >= MAX_IMAGES}
-          onClick={() => fileRef.current?.click()}
-          className="p-1.5 text-primary disabled:opacity-40"
-          aria-label={t("commentPickImage")}
-        >
-          <ImageIcon className="h-5 w-5" />
-        </button>
+        {!editing ? (
+          <button
+            type="button"
+            disabled={images.length >= MAX_IMAGES}
+            onClick={() => fileRef.current?.click()}
+            className="p-1.5 text-primary disabled:opacity-40"
+            aria-label={t("commentPickImage")}
+          >
+            <ImageIcon className="h-5 w-5" />
+          </button>
+        ) : (
+          <span />
+        )}
         <span
           className={cn(
             "text-xs font-bold",
@@ -261,10 +286,12 @@ export function PostComposer({
 function PublishButton({
   canPublish,
   publishing,
+  label,
   onClick,
 }: {
   canPublish: boolean;
   publishing: boolean;
+  label?: string | undefined;
   onClick: () => void;
 }) {
   const { t } = useI18n();
@@ -274,7 +301,7 @@ function PublishButton({
       disabled={!canPublish}
       className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-40"
     >
-      {publishing ? t("loading") : t("feedPublish")}
+      {publishing ? t("loading") : (label ?? t("feedPublish"))}
     </button>
   );
 }

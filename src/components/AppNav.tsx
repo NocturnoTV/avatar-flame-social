@@ -87,7 +87,6 @@ function useItems() {
   return [
     { to: "/home", icon: Home, label: t("home") },
     { to: "/discover", icon: Compass, label: t("discover") },
-    { to: "/feed", icon: Rss, label: t("feedTitle") },
     { to: "/sparks", icon: Sparkles, label: t("sparks") },
     { to: "/messages", icon: Send, label: t("messages") },
     { to: "/profile", icon: User, label: t("profile") },

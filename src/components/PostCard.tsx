@@ -1,7 +1,7 @@
 import { useState, Fragment } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Repeat2, Bookmark, Share, MoreHorizontal, Flag, Trash2, Link2, EyeOff } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Bookmark, Share, MoreHorizontal, Flag, Trash2, Link2, EyeOff, Pin, PinOff, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
@@ -58,6 +58,8 @@ export function PostCard({
   onReply,
   onRepostMenu,
   onDeleted,
+  onEdit,
+  pinned,
 }: {
   post: PostRow;
   author: PostAuthor | undefined;
@@ -65,6 +67,11 @@ export function PostCard({
   onReply: () => void;
   onRepostMenu: () => void;
   onDeleted?: () => void;
+  /** Own posts only - opens the composer pre-filled for editing. */
+  onEdit?: () => void;
+  /** Shown as a "Pinned post" badge - the caller (profile page) decides
+   * this by comparing post.id to the profile's pinned_feed_post_id. */
+  pinned?: boolean;
 }) {
   const { user } = useSession();
   const { t } = useI18n();
@@ -73,6 +80,17 @@ export function PostCard({
   const username = author?.username ?? "?";
   const [menuOpen, setMenuOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const canStillEdit = isMine && Date.now() - new Date(post.created_at).getTime() < 30 * 60 * 1000;
+
+  const myPin = useQuery({
+    queryKey: ["my-pinned-post", user?.id],
+    enabled: isMine,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("pinned_feed_post_id").eq("id", user!.id).maybeSingle();
+      return data?.pinned_feed_post_id ?? null;
+    },
+  });
+  const isPinnedByMe = myPin.data === post.id;
 
   async function copyLink() {
     await navigator.clipboard.writeText(`${window.location.origin}/feed/${post.id}`);
@@ -89,6 +107,18 @@ export function PostCard({
     }
     void qc.invalidateQueries({ queryKey: ["feed-posts"] });
     onDeleted?.();
+  }
+
+  async function togglePin() {
+    if (!user) return;
+    const nextId = isPinnedByMe ? null : post.id;
+    const { error } = await supabase.from("profiles").update({ pinned_feed_post_id: nextId }).eq("id", user.id);
+    setMenuOpen(false);
+    if (error) {
+      toast.error(t("errorGeneric"));
+      return;
+    }
+    void qc.invalidateQueries({ queryKey: ["my-pinned-post", user.id] });
   }
 
   async function submitReport(reason: string) {
@@ -172,6 +202,11 @@ export function PostCard({
       onClick={onOpenThread}
       className="cursor-pointer border-b border-border px-4 py-3 transition hover:bg-surface-2/60"
     >
+      {pinned ? (
+        <p className="mb-2 flex items-center gap-1.5 pl-14 text-xs font-bold text-muted-foreground">
+          <Pin className="h-3.5 w-3.5" /> {t("feedPinnedBadge")}
+        </p>
+      ) : null}
       <div className="flex gap-3">
         <Link to="/users/$id" params={{ id: username }} onClick={(e) => e.stopPropagation()}>
           <StoredImage
@@ -195,6 +230,9 @@ export function PostCard({
             <span className="shrink-0 text-muted-foreground">@{username}</span>
             <span className="shrink-0 text-muted-foreground">·</span>
             <span className="shrink-0 text-muted-foreground">{formatRelativeTime(post.created_at, t)}</span>
+            {post.edited_at ? (
+              <span className="shrink-0 text-muted-foreground">· {t("feedEdited")}</span>
+            ) : null}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -308,6 +346,26 @@ export function PostCard({
         </div>
       ) : (
         <div className="space-y-1">
+          {isMine && canStillEdit ? (
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                onEdit?.();
+              }}
+              className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+            >
+              <Pencil className="h-4 w-4" /> {t("feedEditPost")}
+            </button>
+          ) : null}
+          {isMine ? (
+            <button
+              onClick={() => void togglePin()}
+              className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+            >
+              {isPinnedByMe ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+              {isPinnedByMe ? t("feedUnpinPost") : t("feedPinPost")}
+            </button>
+          ) : null}
           {isMine ? (
             <button
               onClick={() => void deletePost()}

@@ -2462,6 +2462,7 @@ export type Database = {
           last_ad_reward_at: string | null
           link_url: string | null
           onboarding_completed: boolean
+          pinned_feed_post_id: string | null
           profile_font: string
           profile_glow: string
           roblox_avatar_url: string | null
@@ -2511,6 +2512,7 @@ export type Database = {
           last_ad_reward_at?: string | null
           link_url?: string | null
           onboarding_completed?: boolean
+          pinned_feed_post_id?: string | null
           profile_font?: string
           profile_glow?: string
           roblox_avatar_url?: string | null
@@ -2560,6 +2562,7 @@ export type Database = {
           last_ad_reward_at?: string | null
           link_url?: string | null
           onboarding_completed?: boolean
+          pinned_feed_post_id?: string | null
           profile_font?: string
           profile_glow?: string
           roblox_avatar_url?: string | null

@@ -38,6 +38,7 @@ function FeedPage() {
     avatarUrl: string | null;
   } | null>(null);
   const [quoteTarget, setQuoteTarget] = useState<typeof replyTarget>(null);
+  const [editingPost, setEditingPost] = useState<{ id: string; content: string } | null>(null);
   const [repostMenuFor, setRepostMenuFor] = useState<PostRow | null>(null);
   const [seenAt, setSeenAt] = useState(() => new Date().toISOString());
   const listRef = useRef<HTMLDivElement>(null);
@@ -171,6 +172,7 @@ function FeedPage() {
                 })
               }
               onRepostMenu={() => setRepostMenuFor(post)}
+              onEdit={() => setEditingPost({ id: post.id, content: post.content })}
             />
           ))
         ) : tab === "following" ? (
@@ -226,6 +228,14 @@ function FeedPage() {
             setQuoteTarget(null);
             void navigate({ to: "/feed/$id", params: { id } });
           }}
+        />
+      ) : null}
+
+      {editingPost ? (
+        <PostComposer
+          editing={editingPost}
+          onClose={() => setEditingPost(null)}
+          onPublished={() => setEditingPost(null)}
         />
       ) : null}
 
