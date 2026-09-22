@@ -1834,15 +1834,15 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "feed_posts_reply_to_id_fkey"
-            columns: ["reply_to_id"]
+            foreignKeyName: "feed_posts_quote_post_id_fkey"
+            columns: ["quote_post_id"]
             isOneToOne: false
             referencedRelation: "feed_posts"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "feed_posts_quote_post_id_fkey"
-            columns: ["quote_post_id"]
+            foreignKeyName: "feed_posts_reply_to_id_fkey"
+            columns: ["reply_to_id"]
             isOneToOne: false
             referencedRelation: "feed_posts"
             referencedColumns: ["id"]
@@ -2407,30 +2407,6 @@ export type Database = {
           },
         ]
       }
-      profile_photos: {
-        Row: {
-          created_at: string
-          id: string
-          position: number
-          url: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          position?: number
-          url: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          position?: number
-          url?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       post_videos: {
         Row: {
           aspect_ratio: string | null
@@ -2483,6 +2459,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profile_photos: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profile_visits: {
         Row: {
@@ -2671,7 +2671,15 @@ export type Database = {
           watch_history_enabled?: boolean
           welcomed_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_pinned_feed_post_id_fkey"
+            columns: ["pinned_feed_post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles_private: {
         Row: {
@@ -4230,6 +4238,10 @@ export type Database = {
       }
       can_read_community_object: { Args: { _name: string }; Returns: boolean }
       can_read_voice_object: { Args: { _name: string }; Returns: boolean }
+      can_reply_to_post: {
+        Args: { _post_id: string; _replier: string }
+        Returns: boolean
+      }
       can_view_community: { Args: { _community: string }; Returns: boolean }
       charge_ad_impression: { Args: { _campaign: string }; Returns: undefined }
       claim_ad_reward: { Args: never; Returns: number }
@@ -4505,6 +4517,7 @@ export type Database = {
           last_ad_reward_at: string | null
           link_url: string | null
           onboarding_completed: boolean
+          pinned_feed_post_id: string | null
           profile_font: string
           profile_glow: string
           roblox_avatar_url: string | null
