@@ -42,7 +42,7 @@ function SoundDetailPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("videos")
-        .select("id,storage_path,thumbnail_path,caption,views_count")
+        .select("id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,views_count")
         .eq("sound_id", id)
         .eq("moderation_status", "approved")
         .in("visibility", ["public", "sparks"])
@@ -133,6 +133,7 @@ function SoundDetailPage() {
             <VideoThumb
               storagePath={v.storage_path}
               thumbnailPath={v.thumbnail_path}
+              muxPlaybackId={v.mux_status === "ready" ? v.mux_playback_id : null}
               className="aspect-[9/16] w-full rounded-xl"
             />
           </Link>

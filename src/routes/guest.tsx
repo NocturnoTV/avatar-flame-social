@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Compass, Heart, MessageCircle, Settings, UserPlus, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Ref } from "react";
+import MuxPlayer from "@mux/mux-player-react";
+import type MuxPlayerElement from "@mux/mux-player";
 import { LogoWordmark } from "@/components/Logo";
 import { StoredImage, useSignedUrl } from "@/components/Media";
 import { Button, Select } from "@/components/ui-kit";
@@ -40,6 +42,8 @@ type GuestVideo = {
   id: string;
   user_id: string;
   storage_path: string | null;
+  mux_playback_id: string | null;
+  mux_status: string | null;
   caption: string | null;
   likes_count: number;
   comments_count: number;
@@ -73,7 +77,7 @@ function GuestPage() {
     queryFn: async (): Promise<GuestVideo[]> => {
       const { data: rows, error } = await supabase
         .from("videos")
-        .select("id,user_id,storage_path,caption,likes_count,comments_count")
+        .select("id,user_id,storage_path,mux_playback_id,mux_status,caption,likes_count,comments_count")
         .eq("visibility", "public")
         .order("views_count", { ascending: false })
         .limit(30);
@@ -234,8 +238,9 @@ function GuestVideoCard({
   onSeen: () => void;
   onLockedAction: () => void;
 }) {
-  const url = useSignedUrl(video.storage_path);
-  const ref = useRef<HTMLVideoElement>(null);
+  const isMuxReady = video.mux_status === "ready" && !!video.mux_playback_id;
+  const url = useSignedUrl(isMuxReady ? null : video.storage_path);
+  const ref = useRef<HTMLVideoElement | MuxPlayerElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const seen = useRef(false);
 
@@ -264,14 +269,38 @@ function GuestVideoCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const muxPosterUrl = isMuxReady
+    ? `https://image.mux.com/${video.mux_playback_id}/thumbnail.jpg?width=720`
+    : null;
+
   return (
     <div
       ref={containerRef}
       className="flex min-h-[calc(100dvh-9rem)] snap-start items-center justify-center bg-black px-0 py-0"
     >
       <div className="relative aspect-[9/16] h-full max-h-full w-full max-w-full overflow-hidden bg-black sm:max-w-md sm:rounded-2xl">
-        {url ? (
-          <video ref={ref} src={url} loop muted playsInline className="h-full w-full object-cover" />
+        {isMuxReady ? (
+          <MuxPlayer
+            ref={ref as Ref<MuxPlayerElement>}
+            playbackId={video.mux_playback_id!}
+            streamType="on-demand"
+            {...(muxPosterUrl ? { poster: muxPosterUrl } : {})}
+            loop
+            muted
+            playsInline
+            nohotkeys
+            metadata={{ video_id: video.id }}
+            className="h-full w-full object-cover"
+          />
+        ) : url ? (
+          <video
+            ref={ref as Ref<HTMLVideoElement>}
+            src={url}
+            loop
+            muted
+            playsInline
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="grid h-full w-full place-items-center text-white/50">…</div>
         )}

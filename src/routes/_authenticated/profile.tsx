@@ -167,7 +167,7 @@ function ProfilePage() {
       if (!ids.length) return [];
       const { data: videosData } = await supabase
         .from("videos")
-        .select("id,storage_path,thumbnail_path,caption,views_count")
+        .select("id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,views_count")
         .in("id", ids);
       return ids
         .map((id) => videosData?.find((v) => v.id === id))
@@ -189,7 +189,7 @@ function ProfilePage() {
       if (!ids.length) return [];
       const { data: videosData } = await supabase
         .from("videos")
-        .select("id,storage_path,thumbnail_path,caption,views_count")
+        .select("id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,views_count")
         .in("id", ids);
       return ids
         .map((id) => videosData?.find((v) => v.id === id))
@@ -255,7 +255,7 @@ function ProfilePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("videos")
-        .select("id,storage_path,thumbnail_path,caption,views_count")
+        .select("id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,views_count")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       return (data ?? []) as TabVideo[];
@@ -275,7 +275,7 @@ function ProfilePage() {
       if (!ids.length) return [] as TabVideo[];
       const { data: vids } = await supabase
         .from("videos")
-        .select("id,storage_path,thumbnail_path,caption,views_count")
+        .select("id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,views_count")
         .in("id", ids);
       const byId = new Map((vids ?? []).map((v) => [v.id, v]));
       return ids.map((id) => byId.get(id)).filter((v): v is TabVideo => Boolean(v));

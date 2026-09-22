@@ -67,7 +67,7 @@ function RecentPage() {
       if (!ids.length) return [];
       const { data: videos } = await supabase
         .from("videos")
-        .select("id,storage_path,thumbnail_path,caption,user_id,views_count")
+        .select("id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,user_id,views_count")
         .in("id", ids);
       const creatorIds = [...new Set((videos ?? []).map((v) => v.user_id))];
       const { data: creators } = creatorIds.length
@@ -188,6 +188,8 @@ function RecentRow({
   video: {
     id: string;
     storage_path: string | null;
+    mux_playback_id: string | null;
+    mux_status: string | null;
     thumbnail_path: string | null;
     caption: string | null;
     watched_at: string;
@@ -206,6 +208,7 @@ function RecentRow({
         <VideoThumb
           storagePath={video.storage_path}
           thumbnailPath={video.thumbnail_path}
+          muxPlaybackId={video.mux_status === "ready" ? video.mux_playback_id : null}
           className="h-full w-full"
         />
       </div>

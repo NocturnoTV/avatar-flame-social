@@ -22,7 +22,9 @@ export const Route = createFileRoute("/_authenticated/saved")({
 
 type SavedVideo = {
   id: string;
-  storage_path: string;
+  storage_path: string | null;
+  mux_playback_id: string | null;
+  mux_status: string | null;
   thumbnail_path: string | null;
   caption: string | null;
   views_count: number;
@@ -45,7 +47,7 @@ function SavedVideosPage() {
       if (!ids.length) return [];
       const { data } = await supabase
         .from("videos")
-        .select("id,storage_path,thumbnail_path,caption,views_count")
+        .select("id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,views_count")
         .in("id", ids);
       const byId = new Map((data ?? []).map((v) => [v.id, v as SavedVideo]));
       return ids.map((id) => byId.get(id)).filter((v): v is SavedVideo => !!v);
@@ -80,6 +82,7 @@ function SavedVideosPage() {
             <SavedVideoThumb
               storagePath={v.storage_path}
               thumbnailPath={v.thumbnail_path}
+              muxPlaybackId={v.mux_status === "ready" ? v.mux_playback_id : null}
               views={v.views_count}
               caption={v.caption}
             />
@@ -93,11 +96,13 @@ function SavedVideosPage() {
 function SavedVideoThumb({
   storagePath,
   thumbnailPath,
+  muxPlaybackId,
   views,
   caption,
 }: {
-  storagePath: string;
+  storagePath: string | null;
   thumbnailPath: string | null;
+  muxPlaybackId: string | null;
   views: number;
   caption: string | null;
 }) {
@@ -106,6 +111,7 @@ function SavedVideoThumb({
       <VideoThumb
         storagePath={storagePath}
         thumbnailPath={thumbnailPath}
+        muxPlaybackId={muxPlaybackId}
         className="h-full w-full transition duration-300 group-hover:scale-105"
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-1.5 text-white">

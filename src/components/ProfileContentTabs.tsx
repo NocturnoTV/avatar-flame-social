@@ -27,7 +27,8 @@ export type TabVideo = {
   id: string;
   storage_path: string | null;
   thumbnail_path: string | null;
-  mux_playback_id?: string | null;
+  mux_playback_id: string | null;
+  mux_status: string | null;
   caption: string | null;
   views_count: number;
 };
@@ -442,7 +443,7 @@ function VideoThumb({ video }: { video: TabVideo }) {
       <SharedVideoThumb
         storagePath={video.storage_path}
         thumbnailPath={video.thumbnail_path}
-        muxPlaybackId={video.mux_playback_id}
+        muxPlaybackId={video.mux_status === "ready" ? video.mux_playback_id : null}
         className="h-full w-full"
       />
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white">

@@ -135,7 +135,7 @@ function PublicProfile() {
             .order("position"),
           supabase
             .from("videos")
-            .select("id,storage_path,thumbnail_path,caption,views_count")
+            .select("id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,views_count")
             .eq("user_id", id!)
             .in("visibility", ["public", "sparks"])
             .eq("moderation_status", "approved")
@@ -226,7 +226,7 @@ function PublicProfile() {
       if (!ids.length) return [] as TabVideo[];
       const { data: vids } = await supabase
         .from("videos")
-        .select("id,storage_path,thumbnail_path,caption,views_count")
+        .select("id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,views_count")
         .in("id", ids)
         .in("visibility", ["public", "sparks"])
         .eq("moderation_status", "approved");
