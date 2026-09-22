@@ -59,6 +59,7 @@ import { Route as AuthenticatedShopBillingRouteImport } from './routes/_authenti
 import { Route as AuthenticatedSoundsIdRouteImport } from './routes/_authenticated/sounds.$id'
 import { Route as AuthenticatedStoriesArchiveRouteImport } from './routes/_authenticated/stories.archive'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users.$id'
+import { Route as ApiPublicMuxWebhookRouteImport } from './routes/api/public/mux-webhook'
 import { Route as AuthRobloxCallbackRouteImport } from './routes/auth.roblox.callback'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -321,6 +322,11 @@ const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
   path: '/users/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicMuxWebhookRoute = ApiPublicMuxWebhookRouteImport.update({
+  id: '/api/public/mux-webhook',
+  path: '/api/public/mux-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRobloxCallbackRoute = AuthRobloxCallbackRouteImport.update({
   id: '/roblox/callback',
   path: '/roblox/callback',
@@ -389,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/sounds/$id': typeof AuthenticatedSoundsIdRoute
   '/stories/archive': typeof AuthenticatedStoriesArchiveRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
+  '/api/public/mux-webhook': typeof ApiPublicMuxWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities/': typeof AuthenticatedCommunitiesIndexRoute
   '/discover/': typeof AuthenticatedDiscoverIndexRoute
@@ -444,6 +451,7 @@ export interface FileRoutesByTo {
   '/sounds/$id': typeof AuthenticatedSoundsIdRoute
   '/stories/archive': typeof AuthenticatedStoriesArchiveRoute
   '/users/$id': typeof AuthenticatedUsersIdRoute
+  '/api/public/mux-webhook': typeof ApiPublicMuxWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities': typeof AuthenticatedCommunitiesIndexRoute
   '/discover': typeof AuthenticatedDiscoverIndexRoute
@@ -501,6 +509,7 @@ export interface FileRoutesById {
   '/_authenticated/sounds/$id': typeof AuthenticatedSoundsIdRoute
   '/_authenticated/stories/archive': typeof AuthenticatedStoriesArchiveRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRoute
+  '/api/public/mux-webhook': typeof ApiPublicMuxWebhookRoute
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/_authenticated/communities/': typeof AuthenticatedCommunitiesIndexRoute
   '/_authenticated/discover/': typeof AuthenticatedDiscoverIndexRoute
@@ -558,6 +567,7 @@ export interface FileRouteTypes {
     | '/sounds/$id'
     | '/stories/archive'
     | '/users/$id'
+    | '/api/public/mux-webhook'
     | '/auth/roblox/callback'
     | '/communities/'
     | '/discover/'
@@ -613,6 +623,7 @@ export interface FileRouteTypes {
     | '/sounds/$id'
     | '/stories/archive'
     | '/users/$id'
+    | '/api/public/mux-webhook'
     | '/auth/roblox/callback'
     | '/communities'
     | '/discover'
@@ -669,6 +680,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sounds/$id'
     | '/_authenticated/stories/archive'
     | '/_authenticated/users/$id'
+    | '/api/public/mux-webhook'
     | '/auth/roblox/callback'
     | '/_authenticated/communities/'
     | '/_authenticated/discover/'
@@ -700,6 +712,7 @@ export interface RootRouteChildren {
   DecouvrirStudioRoute: typeof DecouvrirStudioRoute
   LinkTokenRoute: typeof LinkTokenRoute
   DecouvrirIndexRoute: typeof DecouvrirIndexRoute
+  ApiPublicMuxWebhookRoute: typeof ApiPublicMuxWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -1057,6 +1070,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/mux-webhook': {
+      id: '/api/public/mux-webhook'
+      path: '/api/public/mux-webhook'
+      fullPath: '/api/public/mux-webhook'
+      preLoaderRoute: typeof ApiPublicMuxWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/roblox/callback': {
       id: '/auth/roblox/callback'
       path: '/roblox/callback'
@@ -1188,6 +1208,7 @@ const rootRouteChildren: RootRouteChildren = {
   DecouvrirStudioRoute: DecouvrirStudioRoute,
   LinkTokenRoute: LinkTokenRoute,
   DecouvrirIndexRoute: DecouvrirIndexRoute,
+  ApiPublicMuxWebhookRoute: ApiPublicMuxWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,

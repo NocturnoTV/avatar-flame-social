@@ -2115,6 +2115,33 @@ export type Database = {
           },
         ]
       }
+      mux_webhook_events: {
+        Row: {
+          event_type: string
+          id: string
+          mux_event_id: string
+          object_id: string | null
+          payload: Json
+          processed_at: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          mux_event_id: string
+          object_id?: string | null
+          payload: Json
+          processed_at?: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          mux_event_id?: string
+          object_id?: string | null
+          payload?: Json
+          processed_at?: string
+        }
+        Relationships: []
+      }
       news: {
         Row: {
           author_id: string | null
