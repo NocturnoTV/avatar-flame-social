@@ -647,6 +647,7 @@ function VideoSlide({
   const posterUrl = useSignedUrl(nearViewport ? video.thumbnail_path : null);
   const [viewCount, setViewCount] = useState(video.views_count);
   const [sharing, setSharing] = useState(false);
+  const [reposting, setReposting] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewed = useRef(false);
@@ -1070,6 +1071,7 @@ function VideoSlide({
             activeClass="fill-red-500 text-red-500"
             count={video.likes_count}
             onClick={() => toggle("video_likes", !!state.data?.liked)}
+            onLongPress={() => setReposting(true)}
             label="J'aime"
           />
           <RailButton
@@ -1087,14 +1089,6 @@ function VideoSlide({
             label={t("favorites")}
           />
           <RailButton
-            icon={Repeat2}
-            active={state.data?.reposted}
-            activeClass="text-sky-400"
-            count={video.reposts_count}
-            onClick={() => toggle("video_reposts", !!state.data?.reposted)}
-            label={t("repost")}
-          />
-          <RailButton
             icon={Send}
             count={video.shares_count}
             onClick={() => setSharing(true)}
@@ -1106,16 +1100,25 @@ function VideoSlide({
       {sharing ? (
         <ShareSheet video={video} username={username} onClose={() => setSharing(false)} />
       ) : null}
+      {reposting ? (
+        <RepostSheet
+          video={video}
+          alreadyReposted={!!state.data?.reposted}
+          onClose={() => setReposting(false)}
+          onReposted={() => void qc.invalidateQueries({ queryKey: ["video-state", video.id] })}
+        />
+      ) : null}
       <VideoContextMenu
         open={contextMenuOpen}
         onClose={() => setContextMenuOpen(false)}
-        videoId={video.id}
+        video={video}
         speed={speed}
         onSpeedChange={onSpeedChange}
         autoScroll={autoScroll}
         onToggleAutoScroll={onToggleAutoScroll}
         onRestart={restart}
         onNotInterested={onNotInterested}
+        onShare={() => setSharing(true)}
       />
     </div>
   );
@@ -1127,28 +1130,31 @@ function VideoSlide({
 function VideoContextMenu({
   open,
   onClose,
-  videoId,
+  video,
   speed,
   onSpeedChange,
   autoScroll,
   onToggleAutoScroll,
   onRestart,
   onNotInterested,
+  onShare,
 }: {
   open: boolean;
   onClose: () => void;
-  videoId: string;
+  video: VideoRow;
   speed: number;
   onSpeedChange: (speed: number) => void;
   autoScroll: boolean;
   onToggleAutoScroll: () => void;
   onRestart: () => void;
   onNotInterested: () => void;
+  onShare: () => void;
 }) {
   const { t } = useI18n();
   const { user } = useSession();
   const [reporting, setReporting] = useState(false);
   const [sendingReport, setSendingReport] = useState(false);
+  const [addingToStory, setAddingToStory] = useState(false);
 
   useEffect(() => {
     if (!open) setReporting(false);
@@ -1161,13 +1167,35 @@ function VideoContextMenu({
     setSendingReport(true);
     const { error } = await supabase
       .from("reports")
-      .insert({ reporter_id: user.id, video_id: videoId, reason });
+      .insert({ reporter_id: user.id, video_id: video.id, reason });
     setSendingReport(false);
     if (error) {
       toast.error(errorMessage(error, t("errorGeneric")));
       return;
     }
     toast.success(t("reportSubmitted"));
+    onClose();
+  }
+
+  async function addToStory() {
+    if (!user || addingToStory) return;
+    setAddingToStory(true);
+    const { error } = await supabase.from("stories").insert({
+      user_id: user.id,
+      media_url: video.storage_path,
+      media_type: "video",
+      thumbnail_path: video.thumbnail_path,
+      visibility: "followers",
+      status: "published",
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      metadata: { shared_video_id: video.id },
+    });
+    setAddingToStory(false);
+    if (error) {
+      toast.error(errorMessage(error, t("errorGeneric")));
+      return;
+    }
+    toast.success(t("storyPublished"));
     onClose();
   }
 
@@ -1261,6 +1289,24 @@ function VideoContextMenu({
           >
             <HeartCrack className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold">{t("notInterested")}</span>
+          </button>
+          <button
+            onClick={() => {
+              onShare();
+              onClose();
+            }}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+          >
+            <Send className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">{t("share")}</span>
+          </button>
+          <button
+            disabled={addingToStory}
+            onClick={() => void addToStory()}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2 disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">{t("addToStory")}</span>
           </button>
           <button
             onClick={() => setReporting(true)}
@@ -1426,10 +1472,13 @@ function ShareSheet({
   );
 }
 
+const RAIL_LONG_PRESS_MS = 450;
+
 function RailButton({
   icon: Icon,
   count,
   onClick,
+  onLongPress,
   active,
   activeClass,
   label,
@@ -1437,17 +1486,47 @@ function RailButton({
   icon: ComponentType<{ className?: string }>;
   count: number;
   onClick: () => void;
+  onLongPress?: () => void;
   active?: boolean | undefined;
   activeClass?: string | undefined;
   label: string;
 }) {
   const [burst, setBurst] = useState(0);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firedLongPress = useRef(false);
+
+  function startPress() {
+    if (!onLongPress) return;
+    firedLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      firedLongPress.current = true;
+      onLongPress();
+    }, RAIL_LONG_PRESS_MS);
+  }
+  function cancelPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
   return (
     <button
       onClick={() => {
+        if (firedLongPress.current) {
+          firedLongPress.current = false;
+          return;
+        }
         setBurst((value) => value + 1);
         onClick();
       }}
+      onContextMenu={(e) => onLongPress && e.preventDefault()}
+      onTouchStart={startPress}
+      onTouchEnd={cancelPress}
+      onTouchMove={cancelPress}
+      onMouseDown={startPress}
+      onMouseUp={cancelPress}
+      onMouseLeave={cancelPress}
       aria-label={label}
       className="group relative flex flex-col items-center gap-0.5 transition active:scale-90"
     >
@@ -1460,7 +1539,7 @@ function RailButton({
       ) : null}
       <Icon
         className={cn(
-          "h-[26px] w-[26px] text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.5)] transition-transform duration-200",
+          "h-[26px] w-[26px] fill-white text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.5)] transition-transform duration-200",
           active && activeClass,
           active && "scale-110 bx-reaction-pop",
         )}
@@ -1500,6 +1579,90 @@ function RailOverflow({ onNotInterested }: { onNotInterested: () => void }) {
         </>
       ) : null}
     </div>
+  );
+}
+
+/** Long-pressing Like opens this - repost with an optional note (a la
+ * TikTok's quote-repost), or undo an existing repost. */
+function RepostSheet({
+  video,
+  alreadyReposted,
+  onClose,
+  onReposted,
+}: {
+  video: VideoRow;
+  alreadyReposted: boolean;
+  onClose: () => void;
+  onReposted: () => void;
+}) {
+  const { t } = useI18n();
+  const { user } = useSession();
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!user || busy) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("video_reposts")
+      .upsert(
+        { video_id: video.id, user_id: user.id, note: note.trim() || null },
+        { onConflict: "video_id,user_id" },
+      );
+    setBusy(false);
+    if (error) {
+      toast.error(errorMessage(error, t("errorGeneric")));
+      return;
+    }
+    void logPositiveAction({ data: { videoId: video.id, action: "share" } });
+    toast.success(t("repostSuccess"));
+    onReposted();
+    onClose();
+  }
+
+  async function undo() {
+    if (!user || busy) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("video_reposts")
+      .delete()
+      .eq("video_id", video.id)
+      .eq("user_id", user.id);
+    setBusy(false);
+    if (error) {
+      toast.error(errorMessage(error, t("errorGeneric")));
+      return;
+    }
+    onReposted();
+    onClose();
+  }
+
+  return (
+    <Sheet open onClose={onClose} title={t("repost")}>
+      {alreadyReposted ? (
+        <button
+          onClick={() => void undo()}
+          disabled={busy}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface-2 px-4 py-3 text-sm font-bold text-destructive disabled:opacity-50"
+        >
+          <Repeat2 className="h-4 w-4" /> {t("undoRepost")}
+        </button>
+      ) : (
+        <>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value.slice(0, 200))}
+            placeholder={t("repostNotePlaceholder")}
+            rows={3}
+            className="w-full resize-none rounded-2xl border border-border bg-surface-2 p-3 text-sm outline-none placeholder:text-muted-foreground"
+          />
+          <p className="mt-1 text-right text-[11px] text-muted-foreground">{note.length}/200</p>
+          <Button className="mt-2 w-full" onClick={() => void submit()} disabled={busy}>
+            <Repeat2 className="mr-1.5 h-4 w-4" /> {t("repost")}
+          </Button>
+        </>
+      )}
+    </Sheet>
   );
 }
 

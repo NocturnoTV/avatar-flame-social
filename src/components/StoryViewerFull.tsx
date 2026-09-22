@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MoreHorizontal, Send, Trash2, Volume2, VolumeX, X } from "lucide-react";
+import { MoreHorizontal, Play, Send, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
@@ -53,6 +53,9 @@ export type StoryRow = {
     drawing_path?: string | null;
     filter?: "normal" | "vintage" | "warm" | "cool" | "bw" | "glow" | "blur";
     fitMode?: "cover" | "contain";
+    /** Set when this story is a repost of a Discover video - tapping the
+     * "view original" chip takes the viewer straight to it. */
+    shared_video_id?: string | null;
   } | null;
 };
 export type StoryUserGroup = {
@@ -496,6 +499,17 @@ export function StoryViewerFull({
             className="absolute bottom-24 left-4 flex items-center gap-1.5 text-xs font-bold text-white/80"
           >
             👁 {t("storyViewersCount", { count: viewersCount.data ?? 0 })}
+          </button>
+        ) : null}
+
+        {story.metadata?.shared_video_id ? (
+          <button
+            onClick={() =>
+              void navigate({ to: "/discover", search: { v: story.metadata!.shared_video_id! } })
+            }
+            className="absolute bottom-24 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/50 px-3.5 py-2 text-xs font-bold text-white backdrop-blur"
+          >
+            <Play className="h-3.5 w-3.5 fill-white" /> {t("storyViewOriginalVideo")}
           </button>
         ) : null}
 

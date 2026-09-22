@@ -31,7 +31,6 @@ import {
   Square,
   Trash2,
   X,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,15 +110,6 @@ const REPORT_REASONS = [
   { id: "impersonation", labelKey: "reportImpersonation" },
 ] as const;
 
-const QUICK_REPLIES = [
-  "😂",
-  "👍 Ok",
-  "On se capte quand ?",
-  "Trop bien !",
-  "😍",
-  "Envoie une photo",
-];
-
 function formatLastSeen(value: string, lang: string) {
   const elapsed = new Date(value).getTime() - Date.now();
   const absolute = Math.abs(elapsed);
@@ -150,7 +140,6 @@ function Conversation() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTab, setPickerTab] = useState<"emojis" | "stickers">("emojis");
   const [streakSheetOpen, setStreakSheetOpen] = useState(false);
-  const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [recording, setRecording] = useState(false);
   const [pendingVoice, setPendingVoice] = useState<{ blob: Blob; url: string } | null>(null);
   const [info, setInfo] = useState(false);
@@ -508,7 +497,6 @@ function Conversation() {
       return;
     }
     if (kind === "text") setText("");
-    setShowQuickReplies(false);
     void messages.refetch();
     void notifyNewMessage({
       data: { conversationId: id, kind, content: kind === "text" ? text.trim() : null },
@@ -1017,35 +1005,7 @@ function Conversation() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Réponses rapides */}
       <div className="border-t border-border bg-background px-3 pt-2">
-        {showQuickReplies ? (
-          <div className="no-scrollbar mb-2 flex gap-2 overflow-x-auto">
-            {QUICK_REPLIES.map((q) => (
-              <button
-                key={q}
-                onClick={() => {
-                  setText(q);
-                  setShowQuickReplies(false);
-                }}
-                className="shrink-0 rounded-full bg-[#F5F5F5] px-3.5 py-2 text-sm font-medium text-[#050505] dark:bg-[#1c1c1e] dark:text-white"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowQuickReplies(true)}
-            className="mb-2 flex items-center gap-2 rounded-full bg-[#F5F5F5] px-3.5 py-2 text-sm text-[#929292] dark:bg-[#1c1c1e]"
-          >
-            <span className="grid h-5 w-5 place-items-center rounded-full bg-[#A855F7] text-white">
-              <Zap className="h-3 w-3 fill-white" />
-            </span>
-            {t("quickReplies")}
-          </button>
-        )}
-
         {/* Barre de composition */}
         {pendingVoice ? (
           <div className="flex items-center gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
