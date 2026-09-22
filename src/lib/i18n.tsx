@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const LANGUAGES = [
   { code: "fr", flag: "🇫🇷", label: "Français" },
@@ -8171,6 +8172,35 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = window.localStorage.getItem("bloxspark-lang") as LangCode | null;
     if (stored && stored in DICTS) setLangState(stored);
+  }, []);
+
+  // The account's saved language (set at signup, or in Settings - both of
+  // which already write profiles.language) is the real source of truth for
+  // a signed-in user. Without this, a fresh browser/device with no local
+  // storage entry silently fell back to English instead of the language the
+  // user actually chose for their account.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("language")
+        .eq("id", userId)
+        .maybeSingle();
+      const accountLang = data?.language as LangCode | undefined;
+      if (!cancelled && accountLang && accountLang in DICTS) {
+        setLangState(accountLang);
+        window.localStorage.setItem("bloxspark-lang", accountLang);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const value = useMemo<I18nValue>(() => {
