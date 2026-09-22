@@ -4075,6 +4075,11 @@ export type Database = {
           id: string
           likes_count: number
           moderation_status: string
+          mux_asset_id: string | null
+          mux_error_message: string | null
+          mux_playback_id: string | null
+          mux_status: string | null
+          mux_upload_id: string | null
           pinned_comment_id: string | null
           recommendation_eligible: boolean
           reposts_count: number
@@ -4082,7 +4087,7 @@ export type Database = {
           shares_count: number
           sound_id: string | null
           sound_name: string | null
-          storage_path: string
+          storage_path: string | null
           thumbnail_path: string | null
           updated_at: string
           user_id: string
@@ -4106,6 +4111,11 @@ export type Database = {
           id?: string
           likes_count?: number
           moderation_status?: string
+          mux_asset_id?: string | null
+          mux_error_message?: string | null
+          mux_playback_id?: string | null
+          mux_status?: string | null
+          mux_upload_id?: string | null
           pinned_comment_id?: string | null
           recommendation_eligible?: boolean
           reposts_count?: number
@@ -4113,7 +4123,7 @@ export type Database = {
           shares_count?: number
           sound_id?: string | null
           sound_name?: string | null
-          storage_path: string
+          storage_path?: string | null
           thumbnail_path?: string | null
           updated_at?: string
           user_id: string
@@ -4137,6 +4147,11 @@ export type Database = {
           id?: string
           likes_count?: number
           moderation_status?: string
+          mux_asset_id?: string | null
+          mux_error_message?: string | null
+          mux_playback_id?: string | null
+          mux_status?: string | null
+          mux_upload_id?: string | null
           pinned_comment_id?: string | null
           recommendation_eligible?: boolean
           reposts_count?: number
@@ -4144,7 +4159,7 @@ export type Database = {
           shares_count?: number
           sound_id?: string | null
           sound_name?: string | null
-          storage_path?: string
+          storage_path?: string | null
           thumbnail_path?: string | null
           updated_at?: string
           user_id?: string

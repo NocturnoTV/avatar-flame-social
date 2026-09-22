@@ -3322,7 +3322,7 @@ function AdminVideoPlayer({ storagePath }: { storagePath: string | null }) {
  *  the same adminManageMember action used for every other moderation tool. */
 function PendingVideosReview() {
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [watching, setWatching] = useState<{ id: string; storage_path: string; caption: string | null } | null>(
+  const [watching, setWatching] = useState<{ id: string; storage_path: string | null; caption: string | null } | null>(
     null,
   );
 

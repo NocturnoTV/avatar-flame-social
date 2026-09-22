@@ -52,16 +52,30 @@ export function StoredImage({
 export function VideoThumb({
   storagePath,
   thumbnailPath,
+  muxPlaybackId,
   className,
   seek = 2,
 }: {
   storagePath: string | null | undefined;
   thumbnailPath?: string | null;
+  /** Mux-hosted video (see the videos.mux_* columns) - its own thumbnail
+   * endpoint is public and reliable, so it's preferred over everything
+   * else when present. */
+  muxPlaybackId?: string | null | undefined;
   className?: string;
   seek?: number;
 }) {
-  const thumbUrl = useSignedUrl(thumbnailPath ?? null);
-  const videoUrl = useSignedUrl(thumbnailPath ? null : storagePath);
+  const thumbUrl = useSignedUrl(muxPlaybackId ? null : (thumbnailPath ?? null));
+  const videoUrl = useSignedUrl(muxPlaybackId || thumbnailPath ? null : storagePath);
+  if (muxPlaybackId) {
+    return (
+      <img
+        src={`https://image.mux.com/${muxPlaybackId}/thumbnail.jpg?width=480`}
+        alt=""
+        className={cn("object-cover", className)}
+      />
+    );
+  }
   if (thumbUrl) return <img src={thumbUrl} alt="" className={cn("object-cover", className)} />;
   if (videoUrl)
     return (

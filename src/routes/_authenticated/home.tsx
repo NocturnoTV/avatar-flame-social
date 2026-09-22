@@ -327,7 +327,7 @@ function HomePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("videos")
-        .select("id,caption,storage_path,thumbnail_path,views_count,likes_count")
+        .select("id,caption,storage_path,thumbnail_path,mux_playback_id,mux_status,views_count,likes_count")
         .eq("visibility", "public")
         .eq("moderation_status", "approved")
         .order("views_count", { ascending: false })
@@ -614,6 +614,7 @@ function HomePage() {
                   id={v.id}
                   storagePath={v.storage_path}
                   thumbnailPath={v.thumbnail_path}
+                  muxPlaybackId={v.mux_status === "ready" ? v.mux_playback_id : null}
                   views={v.views_count}
                 />
               ))}
@@ -765,11 +766,13 @@ function VideoThumb({
   id,
   storagePath,
   thumbnailPath,
+  muxPlaybackId,
   views,
 }: {
   id: string;
-  storagePath: string;
+  storagePath: string | null;
   thumbnailPath: string | null;
+  muxPlaybackId?: string | null;
   views: number;
 }) {
   return (
@@ -781,6 +784,7 @@ function VideoThumb({
       <VideoTilePreview
         storagePath={storagePath}
         thumbnailPath={thumbnailPath}
+        muxPlaybackId={muxPlaybackId}
         className="aspect-[9/16] w-full transition duration-300 group-hover:scale-105"
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/80 to-transparent" />

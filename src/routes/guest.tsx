@@ -39,7 +39,7 @@ function formatCount(n: number) {
 type GuestVideo = {
   id: string;
   user_id: string;
-  storage_path: string;
+  storage_path: string | null;
   caption: string | null;
   likes_count: number;
   comments_count: number;

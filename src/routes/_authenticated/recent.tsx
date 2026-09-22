@@ -187,7 +187,7 @@ function RecentRow({
 }: {
   video: {
     id: string;
-    storage_path: string;
+    storage_path: string | null;
     thumbnail_path: string | null;
     caption: string | null;
     watched_at: string;

@@ -202,7 +202,9 @@ export function ConversationInfoSheet({
         videoItems = videoRefs
           .map((ref): MediaItem | null => {
             const v = byId.get(ref.videoId);
-            if (!v) return null;
+            // Mux-backed videos (no storage_path) aren't shareable through
+            // this legacy Supabase-Storage media viewer yet.
+            if (!v || !v.storage_path) return null;
             return {
               id: ref.id,
               type: "video",

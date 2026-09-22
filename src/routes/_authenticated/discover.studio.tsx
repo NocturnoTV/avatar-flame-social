@@ -515,8 +515,10 @@ function VideoCard({
 }: {
   video: {
     id: string;
-    storage_path: string;
+    storage_path: string | null;
     thumbnail_path: string | null;
+    mux_playback_id?: string | null;
+    mux_status?: string | null;
     caption: string | null;
     hashtags: string[] | null;
     views_count: number;
@@ -530,6 +532,7 @@ function VideoCard({
   const { t } = useI18n();
   const { user } = useSession();
   const url = useSignedUrl(video.storage_path);
+  const isMuxVideo = video.mux_status != null;
   const [busy, setBusy] = useState(false);
   const [campaignOpen, setCampaignOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -542,7 +545,9 @@ function VideoCard({
   // scale. Backfill the missing thumbnail quietly the next time the owner
   // opens their own Studio page.
   useEffect(() => {
-    if (!url || !user || video.thumbnail_path) return;
+    // Mux generates its own thumbnails - this storage-frame-capture fallback
+    // only applies to legacy Supabase-Storage-backed videos.
+    if (!url || !user || video.thumbnail_path || isMuxVideo) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -575,7 +580,19 @@ function VideoCard({
   }
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-black">
-      {url ? (
+      {isMuxVideo ? (
+        video.mux_status === "ready" && video.mux_playback_id ? (
+          <VideoThumb storagePath={null} muxPlaybackId={video.mux_playback_id} className="aspect-[9/16] w-full" />
+        ) : video.mux_status === "failed" ? (
+          <div className="grid aspect-[9/16] w-full place-items-center bg-surface-2 text-center text-[11px] text-muted-foreground">
+            {t("postVideoFailed")}
+          </div>
+        ) : (
+          <div className="grid aspect-[9/16] w-full animate-pulse place-items-center bg-surface-2 text-center text-[11px] text-muted-foreground">
+            {t("postVideoProcessing")}
+          </div>
+        )
+      ) : url ? (
         <VideoThumb
           storagePath={video.storage_path}
           thumbnailPath={video.thumbnail_path}
@@ -625,10 +642,10 @@ function VideoCard({
       {campaignOpen ? (
         <CampaignSheet videoId={video.id} onClose={() => setCampaignOpen(false)} />
       ) : null}
-      {editing && url ? (
+      {editing && (url || isMuxVideo) ? (
         <EditVideoSheet
           video={video}
-          videoUrl={url}
+          videoUrl={url ?? null}
           onClose={() => setEditing(false)}
           onSaved={() => {
             setEditing(false);
@@ -652,7 +669,10 @@ function EditVideoSheet({
     hashtags: string[] | null;
     visibility: string;
   };
-  videoUrl: string;
+  /** Null for a Mux-backed video - no signed Supabase Storage URL exists,
+   * so the manual thumbnail-frame picker below is skipped (Mux generates
+   * its own thumbnail); metadata editing still works either way. */
+  videoUrl: string | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -795,10 +815,12 @@ function EditVideoSheet({
             </div>
           </div>
 
-          <div>
-            <Label>{t("thumbnailTitle")}</Label>
-            <ThumbnailPicker source={videoUrl} onPick={setThumbnailBlob} />
-          </div>
+          {videoUrl ? (
+            <div>
+              <Label>{t("thumbnailTitle")}</Label>
+              <ThumbnailPicker source={videoUrl} onPick={setThumbnailBlob} />
+            </div>
+          ) : null}
 
           <Button className="w-full" size="lg" disabled={saving} onClick={() => void save()}>
             {saving ? t("studioPublishing") : t("save")}
