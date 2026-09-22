@@ -175,10 +175,11 @@ function Conversation() {
     },
   });
   const hasPlus = isSparkPlusActive(myPlus.data);
-  // Custom wallpaper/bubble is a Spark Plus perk - a non-Plus viewer (or one
-  // whose Plus lapsed) always sees the classic default, even if a custom
-  // choice is still saved locally from before.
-  const wallpaper = hasPlus ? wallpaperChoice : WALLPAPERS[0]!;
+  // Preset wallpapers are free for everyone; a custom uploaded photo and the
+  // chat bubble color are Spark Plus perks - a non-Plus viewer (or one whose
+  // Plus lapsed) falls back to the default even if a custom choice is still
+  // saved locally from before.
+  const wallpaper = !hasPlus && wallpaperChoice.id === "custom" ? WALLPAPERS[0]! : wallpaperChoice;
   const bubble = hasPlus ? bubbleChoice : BUBBLE_THEMES[0]!;
   const wallpaperCss = resolveWallpaperCss(wallpaper, theme);
   const bubbleGradient = `linear-gradient(90deg, ${bubble.from} 0%, ${bubble.to} 100%)`;
@@ -820,8 +821,8 @@ function Conversation() {
 
       {/* Liste défilante */}
       <div
-        className="flex-1 space-y-1 overflow-y-auto px-3 py-4"
-        style={{ background: wallpaperCss }}
+        className="flex-1 space-y-1 overflow-y-auto bg-cover bg-center px-3 py-4"
+        style={{ background: wallpaperCss, backgroundSize: "cover", backgroundPosition: "center" }}
       >
         {header.data?.isMatch ? (
           <div className="mx-auto mb-3 max-w-sm rounded-2xl border border-primary/20 bg-primary/5 p-4 text-center">

@@ -396,6 +396,15 @@ function Onboarding() {
               >
                 {t("continue")}
               </Button>
+              {!robloxProfile.data?.roblox_user_id ? (
+                <button
+                  type="button"
+                  onClick={() => goToStep(1)}
+                  className="w-full text-center text-sm font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  {t("robloxConnectMaybeLater")}
+                </button>
+              ) : null}
             </>
           )}
 

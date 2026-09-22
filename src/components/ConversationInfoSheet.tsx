@@ -36,14 +36,9 @@ import { useSession } from "@/lib/session";
 import { cn, errorMessage } from "@/lib/utils";
 import { isSparkPlusActive } from "@/lib/sparkPlus";
 import { extinguishDeadline, hoursUntil, restoreDeadline, streakStatus } from "@/lib/streaks";
-import {
-  BUBBLE_THEMES,
-  WALLPAPERS,
-  getBubbleTheme,
-  getWallpaper,
-  setBubbleTheme,
-  setWallpaper,
-} from "@/lib/chatTheme";
+import { useTheme } from "@/lib/theme";
+import { BUBBLE_THEMES, getBubbleTheme, getWallpaper, setBubbleTheme } from "@/lib/chatTheme";
+import { WallpaperPickerSheet } from "@/components/WallpaperPicker";
 
 type MediaItem = {
   id: string;
@@ -105,6 +100,7 @@ export function ConversationInfoSheet({
   const { t } = useI18n();
   const { user } = useSession();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{ id: string; content: string | null }[]>([]);
@@ -726,41 +722,31 @@ export function ConversationInfoSheet({
           <Row
             icon={Paintbrush}
             label={t("chatWallpaper")}
-            onClick={() => (hasPlus ? setPickingWallpaper((v) => !v) : navigate({ to: "/shop" }))}
+            onClick={() => setPickingWallpaper(true)}
             right={
-              hasPlus ? (
-                <span
-                  className="h-6 w-6 shrink-0 rounded-full border border-black/10 dark:border-white/20"
-                  style={{ background: wallpaper.css }}
-                />
-              ) : (
-                <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
-                  Plus
-                </span>
-              )
+              <span
+                className="h-6 w-6 shrink-0 rounded-full border border-black/10 bg-cover bg-center dark:border-white/20"
+                style={{
+                  background: wallpaper.image ? `url(${wallpaper.image})` : wallpaper.css,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              />
             }
             chevron
           />
-          {pickingWallpaper && hasPlus ? (
-            <div className="flex flex-wrap gap-3 rounded-2xl bg-[#F5F5F5] p-3 dark:bg-[#1c1c1e]">
-              {WALLPAPERS.map((w) => (
-                <button
-                  key={w.id}
-                  onClick={() => {
-                    setWallpaper(conversationId, w.id);
-                    setWallpaperState(w);
-                    onChanged();
-                  }}
-                  aria-label={w.label}
-                  className={cn(
-                    "h-9 w-9 rounded-full border border-black/10 ring-offset-2 dark:border-white/20",
-                    wallpaper.id === w.id && "ring-2 ring-[#050505] dark:ring-white",
-                  )}
-                  style={{ background: w.css }}
-                />
-              ))}
-            </div>
-          ) : null}
+          <WallpaperPickerSheet
+            open={pickingWallpaper}
+            onClose={() => setPickingWallpaper(false)}
+            conversationId={conversationId}
+            hasPlus={hasPlus}
+            appTheme={theme}
+            current={wallpaper}
+            onSaved={(w) => {
+              setWallpaperState(w);
+              onChanged();
+            }}
+          />
 
           <Row
             icon={BellOff}
