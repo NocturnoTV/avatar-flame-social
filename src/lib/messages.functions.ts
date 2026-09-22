@@ -104,6 +104,16 @@ export const notifyNewMessage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // The caller may only trigger pushes for a conversation they belong to,
+    // otherwise anyone could spam arbitrary members with chosen text.
+    const { data: membership } = await supabaseAdmin
+      .from("conversation_participants")
+      .select("user_id")
+      .eq("conversation_id", data.conversationId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!membership) return { sentTo: 0 };
+
     const [{ data: participants }, { data: sender }] = await Promise.all([
       supabaseAdmin
         .from("conversation_participants")
