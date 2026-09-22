@@ -317,6 +317,41 @@ export type Database = {
         }
         Relationships: []
       }
+      call_participants: {
+        Row: {
+          call_id: string
+          id: string
+          joined_at: string | null
+          left_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calls: {
         Row: {
           answered_at: string | null
@@ -360,41 +395,6 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      call_participants: {
-        Row: {
-          call_id: string
-          id: string
-          joined_at: string | null
-          left_at: string | null
-          status: string
-          user_id: string
-        }
-        Insert: {
-          call_id: string
-          id?: string
-          joined_at?: string | null
-          left_at?: string | null
-          status?: string
-          user_id: string
-        }
-        Update: {
-          call_id?: string
-          id?: string
-          joined_at?: string | null
-          left_at?: string | null
-          status?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "call_participants_call_id_fkey"
-            columns: ["call_id"]
-            isOneToOne: false
-            referencedRelation: "calls"
             referencedColumns: ["id"]
           },
         ]
@@ -1673,6 +1673,32 @@ export type Database = {
         }
         Relationships: []
       }
+      feed_post_bookmarks: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_post_bookmarks_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feed_post_likes: {
         Row: {
           created_at: string
@@ -1761,34 +1787,67 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_at: string | null
+          edited_at: string | null
           id: string
           image_url: string | null
           likes_count: number
+          media: Json
+          quote_post_id: string | null
           replies_count: number
+          reply_permission: string
+          reply_to_id: string | null
           reposts_count: number
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           image_url?: string | null
           likes_count?: number
+          media?: Json
+          quote_post_id?: string | null
           replies_count?: number
+          reply_permission?: string
+          reply_to_id?: string | null
           reposts_count?: number
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           image_url?: string | null
           likes_count?: number
+          media?: Json
+          quote_post_id?: string | null
           replies_count?: number
+          reply_permission?: string
+          reply_to_id?: string | null
           reposts_count?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "feed_posts_quote_post_id_fkey"
+            columns: ["quote_post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_posts_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       follows: {
         Row: {
@@ -4054,6 +4113,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ad_cost_per_impression: { Args: never; Returns: number }
       award_community_xp: {
         Args: {
           _amount: number
@@ -4081,19 +4141,11 @@ export type Database = {
       charge_ad_impression: { Args: { _campaign: string }; Returns: undefined }
       claim_ad_reward: { Args: never; Returns: number }
       claim_daily_quest: { Args: { _quest_id: string }; Returns: undefined }
-      close_my_expired_ad_campaigns: { Args: never; Returns: undefined }
-      create_ad_campaign: {
-        Args: {
-          _budget: number
-          _duration_days: number
-          _game_url: string
-          _objective: string
-          _target_categories: string[]
-          _target_language: string
-          _video: string
-        }
-        Returns: string
+      close_ad_campaign: {
+        Args: { _campaign: string; _reason: string; _status: string }
+        Returns: undefined
       }
+      close_my_expired_ad_campaigns: { Args: never; Returns: undefined }
       community_add_affiliate: {
         Args: { _affiliate: string; _community: string }
         Returns: undefined
@@ -4207,6 +4259,18 @@ export type Database = {
           _role: string
         }
         Returns: undefined
+      }
+      create_ad_campaign: {
+        Args: {
+          _budget: number
+          _duration_days: number
+          _game_url: string
+          _objective: string
+          _target_categories: string[]
+          _target_language: string
+          _video: string
+        }
+        Returns: string
       }
       create_group: {
         Args: { _members: string[]; _name: string }
@@ -4384,7 +4448,6 @@ export type Database = {
         }
       }
       start_direct_message: { Args: { _target: string }; Returns: string }
-      stop_ad_campaign: { Args: { _campaign: string }; Returns: undefined }
       status_report_series: {
         Args: never
         Returns: {
@@ -4392,6 +4455,7 @@ export type Database = {
           report_count: number
         }[]
       }
+      stop_ad_campaign: { Args: { _campaign: string }; Returns: undefined }
       toggle_badge_equipped: {
         Args: { _badge: string; _equipped: boolean }
         Returns: undefined
