@@ -95,6 +95,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "robots", content: "index, follow" },
       { name: "theme-color", content: "#7c3aed" },
+      {
+        name: "google-site-verification",
+        content: "z3oICy7PyMy7k8sGT-s29Lqctt4bU_FLp85jMR3CMd8",
+      },
       { property: "og:site_name", content: "BloxSpark" },
       { property: "og:title", content: "BloxSpark - the social network for Roblox players" },
       {
