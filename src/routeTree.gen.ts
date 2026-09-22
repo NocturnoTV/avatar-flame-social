@@ -39,6 +39,7 @@ import { Route as AuthenticatedSparksRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedStoreRouteImport } from './routes/_authenticated/store'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedWikiRouteImport } from './routes/_authenticated/wiki'
+import { Route as ApiCreateMuxUploadRouteImport } from './routes/api/create-mux-upload'
 import { Route as DecouvrirIndexRouteImport } from './routes/decouvrir.index'
 import { Route as DecouvrirStudioRouteImport } from './routes/decouvrir.studio'
 import { Route as LinkTokenRouteImport } from './routes/link.$token'
@@ -212,6 +213,11 @@ const AuthenticatedWikiRoute = AuthenticatedWikiRouteImport.update({
   path: '/wiki',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiCreateMuxUploadRoute = ApiCreateMuxUploadRouteImport.update({
+  id: '/api/create-mux-upload',
+  path: '/api/create-mux-upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DecouvrirIndexRoute = DecouvrirIndexRouteImport.update({
   id: '/decouvrir/',
   path: '/decouvrir/',
@@ -367,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
   '/wiki': typeof AuthenticatedWikiRoute
+  '/api/create-mux-upload': typeof ApiCreateMuxUploadRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/link/$token': typeof LinkTokenRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
@@ -421,6 +428,7 @@ export interface FileRoutesByTo {
   '/store': typeof AuthenticatedStoreRoute
   '/support': typeof AuthenticatedSupportRoute
   '/wiki': typeof AuthenticatedWikiRoute
+  '/api/create-mux-upload': typeof ApiCreateMuxUploadRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/link/$token': typeof LinkTokenRoute
   '/decouvrir': typeof DecouvrirIndexRoute
@@ -477,6 +485,7 @@ export interface FileRoutesById {
   '/_authenticated/store': typeof AuthenticatedStoreRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/wiki': typeof AuthenticatedWikiRoute
+  '/api/create-mux-upload': typeof ApiCreateMuxUploadRoute
   '/decouvrir/studio': typeof DecouvrirStudioRoute
   '/link/$token': typeof LinkTokenRoute
   '/decouvrir/': typeof DecouvrirIndexRoute
@@ -533,6 +542,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/support'
     | '/wiki'
+    | '/api/create-mux-upload'
     | '/decouvrir/studio'
     | '/link/$token'
     | '/decouvrir/'
@@ -587,6 +597,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/support'
     | '/wiki'
+    | '/api/create-mux-upload'
     | '/decouvrir/studio'
     | '/link/$token'
     | '/decouvrir'
@@ -642,6 +653,7 @@ export interface FileRouteTypes {
     | '/_authenticated/store'
     | '/_authenticated/support'
     | '/_authenticated/wiki'
+    | '/api/create-mux-upload'
     | '/decouvrir/studio'
     | '/link/$token'
     | '/decouvrir/'
@@ -684,6 +696,7 @@ export interface RootRouteChildren {
   ShopTermsRoute: typeof ShopTermsRoute
   SoundRightsRoute: typeof SoundRightsRoute
   TermsRoute: typeof TermsRoute
+  ApiCreateMuxUploadRoute: typeof ApiCreateMuxUploadRoute
   DecouvrirStudioRoute: typeof DecouvrirStudioRoute
   LinkTokenRoute: typeof LinkTokenRoute
   DecouvrirIndexRoute: typeof DecouvrirIndexRoute
@@ -903,6 +916,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/wiki'
       preLoaderRoute: typeof AuthenticatedWikiRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/create-mux-upload': {
+      id: '/api/create-mux-upload'
+      path: '/api/create-mux-upload'
+      fullPath: '/api/create-mux-upload'
+      preLoaderRoute: typeof ApiCreateMuxUploadRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/decouvrir/': {
       id: '/decouvrir/'
@@ -1164,6 +1184,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopTermsRoute: ShopTermsRoute,
   SoundRightsRoute: SoundRightsRoute,
   TermsRoute: TermsRoute,
+  ApiCreateMuxUploadRoute: ApiCreateMuxUploadRoute,
   DecouvrirStudioRoute: DecouvrirStudioRoute,
   LinkTokenRoute: LinkTokenRoute,
   DecouvrirIndexRoute: DecouvrirIndexRoute,

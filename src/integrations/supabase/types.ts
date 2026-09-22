@@ -2404,6 +2404,59 @@ export type Database = {
         }
         Relationships: []
       }
+      post_videos: {
+        Row: {
+          aspect_ratio: string | null
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          id: string
+          mux_asset_id: string | null
+          mux_playback_id: string | null
+          mux_upload_id: string | null
+          post_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          mux_asset_id?: string | null
+          mux_playback_id?: string | null
+          mux_upload_id?: string | null
+          post_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aspect_ratio?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          mux_asset_id?: string | null
+          mux_playback_id?: string | null
+          mux_upload_id?: string | null
+          post_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_videos_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_visits: {
         Row: {
           created_at: string
