@@ -57,8 +57,8 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const { t, setLang } = useI18n();
-  const { theme, setTheme } = useTheme();
+  const { t } = useI18n();
+  const { theme } = useTheme();
   const { mode, addAccount, provider } = Route.useSearch();
   const navigate = useNavigate();
   const { session } = useSession();
@@ -355,11 +355,11 @@ function AuthPage() {
   }
 
   function continueAsGuest() {
+    // Guests get real (read-only) access to the actual app now, not a
+    // separate mini feed - language and theme stay whatever they already
+    // had picked on this device instead of being forced to English/dark.
     window.localStorage.setItem("bloxspark-guest", "true");
-    window.localStorage.removeItem("bloxspark-guest-gate-seen");
-    setLang("en");
-    setTheme("dark");
-    navigate({ to: "/guest" });
+    navigate({ to: "/home" });
   }
 
   return (

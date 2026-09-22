@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
+import { useGuestGate } from "@/lib/guestGate";
+import { GuestGateSheet } from "@/components/GuestGateSheet";
 import { StoredImage } from "@/components/Media";
 import { PostCard, RepostMenuSheet } from "@/components/PostCard";
 import { PostComposer } from "@/components/PostComposer";
@@ -29,6 +31,7 @@ function FeedPage() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { requireAuth, promptOpen, closePrompt } = useGuestGate();
   const [tab, setTab] = useState<"foryou" | "following">("foryou");
   const [composerOpen, setComposerOpen] = useState(false);
   const [replyTarget, setReplyTarget] = useState<{
@@ -165,6 +168,7 @@ function FeedPage() {
               video={feed.data.videos[post.id]}
               onOpenThread={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
               onReply={() =>
+                requireAuth() &&
                 setReplyTarget({
                   id: post.id,
                   content: post.content,
@@ -193,7 +197,7 @@ function FeedPage() {
       </div>
 
       <button
-        onClick={() => setComposerOpen(true)}
+        onClick={() => requireAuth() && setComposerOpen(true)}
         aria-label={t("feedComposerOpen")}
         className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-30 grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 active:scale-95 lg:right-[max(2rem,calc(50%-360px))]"
       >
@@ -256,6 +260,7 @@ function FeedPage() {
           }}
         />
       ) : null}
+      <GuestGateSheet open={promptOpen} onClose={closePrompt} />
     </div>
   );
 }

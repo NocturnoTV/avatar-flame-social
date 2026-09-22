@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Trash2,
   Users,
+  UserPlus,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -477,6 +478,25 @@ function ProfilePage() {
     p?.spark_plus_active &&
     (!p.spark_plus_expires_at || new Date(p.spark_plus_expires_at).getTime() > Date.now()),
   );
+
+  // A guest has no profile of their own to show - point them at creating
+  // one instead of rendering an empty shell of every section below.
+  if (!user) {
+    return (
+      <div className="mx-auto flex w-full max-w-xl flex-col items-center px-4 pt-24 pb-40 text-center lg:pb-28">
+        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/15 text-primary">
+          <UserPlus className="h-7 w-7" />
+        </span>
+        <h1 className="mt-4 text-xl font-extrabold">{t("guestGateTitle")}</h1>
+        <p className="mt-2 max-w-xs text-sm text-muted-foreground">{t("guestGateBody")}</p>
+        <Link to="/auth" search={{ mode: "signup" }} className="mt-6 block w-full max-w-xs">
+          <Button className="w-full" size="lg">
+            {t("createAccount")}
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 pt-5 pb-40 lg:pb-28">

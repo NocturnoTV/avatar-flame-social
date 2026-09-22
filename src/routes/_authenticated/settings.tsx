@@ -558,6 +558,65 @@ function SettingsPage() {
     navigate({ to: "/", replace: true });
   }
 
+  // Guests get a stripped-down settings page - just language and theme, the
+  // only two preferences that make sense without an account. Everything
+  // else here (security, billing, notifications, data export...) needs a
+  // real profile row to attach to.
+  if (!user) {
+    return (
+      <div className="mx-auto w-full max-w-xl px-4 pt-5 pb-10">
+        <header className="flex items-center gap-3">
+          <Link to="/home" aria-label={t("back")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-2xl font-bold">{t("settings")}</h1>
+        </header>
+
+        <Section
+          id="appearance"
+          icon={Palette}
+          title={t("appearanceTitle")}
+          description={t("appearanceDesc")}
+        >
+          <div>
+            <Label>{t("theme")}</Label>
+            <div className="flex gap-3">
+              {(["dark", "light"] as const).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setTheme(option)}
+                  className={`flex-1 rounded-2xl border p-3 text-sm font-semibold ${
+                    theme === option ? "border-primary ring-2 ring-primary/30" : "border-border"
+                  }`}
+                >
+                  {option === "dark" ? `🌙 ${t("dark")}` : `☀️ ${t("light")}`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label>{t("language")}</Label>
+            <Select value={lang} onChange={(e) => setLang(e.target.value as LangCode)}>
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.flag} {l.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </Section>
+
+        <div className="mt-5 rounded-3xl border border-primary/30 bg-card p-5 text-center">
+          <p className="font-bold">{t("guestGateTitle")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("guestGateBody")}</p>
+          <Link to="/auth" search={{ mode: "signup" }} className="mt-4 block">
+            <Button className="w-full">{t("createAccount")}</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-xl px-4 pt-5 pb-10">
       <header className="flex items-center gap-3">

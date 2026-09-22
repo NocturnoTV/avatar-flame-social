@@ -16,6 +16,8 @@ import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
 import { fetchUserPosts } from "@/lib/feedPosts";
 import { useSession } from "@/lib/session";
+import { useGuestGate } from "@/lib/guestGate";
+import { GuestGateSheet } from "@/components/GuestGateSheet";
 import { errorMessage } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
 import { RobloxGameIcon } from "@/components/RobloxGameIcon";
@@ -67,6 +69,7 @@ function PublicProfile() {
   const { id: param } = Route.useParams();
   const { t } = useI18n();
   const { user } = useSession();
+  const { requireAuth, promptOpen, closePrompt } = useGuestGate();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [messaging, setMessaging] = useState(false);
@@ -274,6 +277,7 @@ function PublicProfile() {
   });
 
   async function toggleFollow() {
+    if (!requireAuth()) return;
     if (!user || isMe || !id) return;
     if (relation.data?.following) {
       await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", id);
@@ -285,6 +289,7 @@ function PublicProfile() {
   }
 
   async function message() {
+    if (!requireAuth()) return;
     if (!user || isMe || messaging || !id) return;
     setMessaging(true);
     try {
@@ -474,6 +479,7 @@ function PublicProfile() {
           onChanged={() => void activeStories.refetch()}
         />
       ) : null}
+      <GuestGateSheet open={promptOpen} onClose={closePrompt} />
     </div>
   );
 }

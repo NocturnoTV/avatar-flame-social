@@ -8,6 +8,8 @@ import { StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { Sheet } from "@/components/ui-kit";
 import { useSession } from "@/lib/session";
+import { useGuestGate } from "@/lib/guestGate";
+import { GuestGateSheet } from "@/components/GuestGateSheet";
 import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { formatCount } from "@/routes/_authenticated/discover.index";
@@ -79,6 +81,7 @@ export function PostCard({
   const { user } = useSession();
   const { t } = useI18n();
   const qc = useQueryClient();
+  const { requireAuth, promptOpen, closePrompt } = useGuestGate();
   const isMine = user?.id === post.user_id;
   const username = author?.username ?? "?";
   const [menuOpen, setMenuOpen] = useState(false);
@@ -157,6 +160,7 @@ export function PostCard({
   }
 
   async function toggleLike() {
+    if (!requireAuth()) return;
     if (!user) return;
     const on = !!state.data?.liked;
     qc.setQueryData(["feed-post-state", post.id, user.id], (old: typeof state.data) => (old ? { ...old, liked: !on } : old));
@@ -172,6 +176,7 @@ export function PostCard({
   }
 
   async function toggleBookmark() {
+    if (!requireAuth()) return;
     if (!user) return;
     const on = !!state.data?.bookmarked;
     qc.setQueryData(["feed-post-state", post.id, user.id], (old: typeof state.data) => (old ? { ...old, bookmarked: !on } : old));
@@ -407,6 +412,7 @@ export function PostCard({
         </div>
       )}
     </Sheet>
+    <GuestGateSheet open={promptOpen} onClose={closePrompt} />
     </>
   );
 }
@@ -426,8 +432,10 @@ export function RepostMenuSheet({
   const { t } = useI18n();
   const { user } = useSession();
   const qc = useQueryClient();
+  const { requireAuth, promptOpen, closePrompt } = useGuestGate();
 
   async function toggleRepost() {
+    if (!requireAuth()) return;
     if (!user) return;
     const result = alreadyReposted
       ? await supabase.from("feed_post_reposts").delete().eq("post_id", post.id).eq("user_id", user.id)
@@ -443,27 +451,30 @@ export function RepostMenuSheet({
   }
 
   return (
-    <Sheet open onClose={onClose}>
-      <div className="space-y-1">
-        <button
-          onClick={() => void toggleRepost()}
-          className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
-        >
-          <Repeat2 className="h-4 w-4" />
-          <span className="text-sm font-semibold">
-            {alreadyReposted ? t("undoRepost") : t("repost")}
-          </span>
-        </button>
-        {!alreadyReposted ? (
+    <>
+      <Sheet open onClose={onClose}>
+        <div className="space-y-1">
           <button
-            onClick={onQuote}
+            onClick={() => void toggleRepost()}
             className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
           >
-            <MessageCircle className="h-4 w-4" />
-            <span className="text-sm font-semibold">{t("feedQuote")}</span>
+            <Repeat2 className="h-4 w-4" />
+            <span className="text-sm font-semibold">
+              {alreadyReposted ? t("undoRepost") : t("repost")}
+            </span>
           </button>
-        ) : null}
-      </div>
-    </Sheet>
+          {!alreadyReposted ? (
+            <button
+              onClick={onQuote}
+              className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span className="text-sm font-semibold">{t("feedQuote")}</span>
+            </button>
+          ) : null}
+        </div>
+      </Sheet>
+      <GuestGateSheet open={promptOpen} onClose={closePrompt} />
+    </>
   );
 }

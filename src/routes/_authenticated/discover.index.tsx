@@ -53,6 +53,8 @@ import { cn, errorMessage } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { discoverFeedKey, fetchDiscoverFeed, type VideoRow } from "@/lib/discover-feed";
+import { useGuestGate } from "@/lib/guestGate";
+import { GuestGateSheet } from "@/components/GuestGateSheet";
 import { uploadFile } from "@/lib/media";
 import { notifyNewMessage } from "@/lib/messages.functions";
 import { openExternal } from "@/lib/native";
@@ -623,6 +625,7 @@ function VideoSlide({
   const { user } = useSession();
   const { t } = useI18n();
   const qc = useQueryClient();
+  const { requireAuth, promptOpen, closePrompt } = useGuestGate();
   // A Mux player element isn't a real HTMLVideoElement, but exposes the same
   // play/pause/currentTime/duration/muted/playbackRate surface this
   // component drives imperatively - one ref covers both.
@@ -896,6 +899,7 @@ function VideoSlide({
   }
 
   async function toggle(table: "video_likes" | "video_favorites" | "video_reposts", on: boolean) {
+    if (!requireAuth()) return;
     if (!user) return;
     applyOptimistic(table, !on, on ? -1 : 1);
     const result = on
@@ -927,6 +931,7 @@ function VideoSlide({
   }
 
   async function toggleFollow() {
+    if (!requireAuth()) return;
     if (!user || isMine) return;
     const wasFollowing = !!state.data?.following;
     qc.setQueryData(["video-state", video.id, user.id], (old: typeof state.data) =>
@@ -1103,7 +1108,7 @@ function VideoSlide({
             activeClass="fill-red-500 text-red-500"
             count={video.likes_count}
             onClick={() => toggle("video_likes", !!state.data?.liked)}
-            onLongPress={() => setReposting(true)}
+            onLongPress={() => requireAuth() && setReposting(true)}
             label="J'aime"
           />
           <RailButton
@@ -1151,8 +1156,9 @@ function VideoSlide({
         onRestart={restart}
         onNotInterested={onNotInterested}
         onShare={() => setSharing(true)}
-        onRepost={() => setReposting(true)}
+        onRepost={() => requireAuth() && setReposting(true)}
       />
+      <GuestGateSheet open={promptOpen} onClose={closePrompt} />
     </div>
   );
 }
@@ -1730,6 +1736,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
   const { user } = useSession();
   const { t } = useI18n();
   const qc = useQueryClient();
+  const { requireAuth, promptOpen, closePrompt } = useGuestGate();
   const [text, setText] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
   const [gifUrl, setGifUrl] = useState("");
@@ -2065,7 +2072,9 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
 
   function send() {
     const content = text.trim();
-    if ((!content && !media) || !user || pending?.status === "sending") return;
+    if ((!content && !media) || pending?.status === "sending") return;
+    if (!requireAuth()) return;
+    if (!user) return;
     void postComment({
       id: `pending-${Date.now()}`,
       user_id: user.id,
@@ -2621,6 +2630,7 @@ function CommentsSheet({ video, onClose }: { video: VideoRow; onClose: () => voi
           </div>
         </Sheet>
       ) : null}
+      <GuestGateSheet open={promptOpen} onClose={closePrompt} />
     </div>
   );
 }

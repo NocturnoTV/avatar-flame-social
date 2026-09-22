@@ -26,7 +26,11 @@ export const Route = createFileRoute("/_authenticated")({
     // with a raw "Auth session missing" error screen.
     try {
       const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user) throw redirect({ to: "/auth" });
+      // Guests get real (read-only) access to the app shell instead of
+      // being bounced to /auth - individual pages/actions decide what to
+      // do with a null user (usually: render public content, gate writes).
+      // Onboarding only applies to real accounts, so skip it entirely here.
+      if (error || !data.user) return { user: null };
       if (data.user.user_metadata["onboarding_completed"] !== true) {
         const { data: profile } = await supabase
           .from("profiles")
