@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { StoredImage } from "@/components/Media";
 import { Verified } from "@/components/Verified";
 import { PostCard, RepostMenuSheet } from "@/components/PostCard";
+import { PostVideoPlayer } from "@/components/PostVideoPlayer";
 import { PostComposer } from "@/components/PostComposer";
 import { Sheet } from "@/components/ui-kit";
 import { useSession } from "@/lib/session";
@@ -75,7 +76,7 @@ function PostThreadPage() {
     );
   }
 
-  const { post, quoted, replies, authors } = thread.data;
+  const { post, quoted, replies, authors, videos } = thread.data;
   const author = authors[post.user_id];
   const username = author?.username ?? "?";
 
@@ -125,6 +126,12 @@ function PostThreadPage() {
           </div>
         ) : null}
 
+        {videos[post.id] ? (
+          <div className="mt-3">
+            <PostVideoPlayer video={videos[post.id]!} className="w-full" />
+          </div>
+        ) : null}
+
         {quoted ? (
           <QuotedCard post={quoted} username={authors[quoted.user_id]?.username ?? "?"} avatarUrl={authors[quoted.user_id]?.avatar_url ?? null} />
         ) : null}
@@ -161,6 +168,7 @@ function PostThreadPage() {
           key={reply.id}
           post={reply}
           author={authors[reply.user_id]}
+          video={videos[reply.id]}
           onOpenThread={() => void navigate({ to: "/feed/$id", params: { id: reply.id } })}
           onReply={() =>
             setReplyTarget({

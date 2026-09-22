@@ -22,8 +22,36 @@ export type PostRow = {
 export type PostAuthor = { username: string | null; avatar_url: string | null; verified: boolean | null };
 export type PostAuthors = Record<string, PostAuthor>;
 
+export type PostVideoStatus = "uploading" | "processing" | "ready" | "failed" | "deleted";
+export type PostVideo = {
+  id: string;
+  status: PostVideoStatus;
+  mux_playback_id: string | null;
+  duration_seconds: number | null;
+  aspect_ratio: string | null;
+  error_message: string | null;
+};
+export type PostVideos = Record<string, PostVideo>;
+
 export const POST_COLUMNS =
   "id,user_id,content,media,reply_to_id,quote_post_id,reply_permission,likes_count,replies_count,reposts_count,created_at,edited_at,deleted_at";
+
+/** Attached Mux video per post, keyed by post_id - a post has at most one
+ * (video attachments are exclusive with image media, same as X). */
+export async function fetchVideosForPosts(postIds: string[]): Promise<PostVideos> {
+  const ids = [...new Set(postIds)];
+  if (!ids.length) return {};
+  const { data } = await supabase
+    .from("post_videos")
+    .select("id,post_id,status,mux_playback_id,duration_seconds,aspect_ratio,error_message")
+    .in("post_id", ids)
+    .neq("status", "deleted");
+  const videos: PostVideos = {};
+  for (const row of data ?? []) {
+    if (row.post_id) videos[row.post_id] = { ...row, status: row.status as PostVideoStatus };
+  }
+  return videos;
+}
 
 /** Same "candidates -> heuristic score -> rank" shape as the video
  * recommendation engine, just much simpler: engagement + recency decay,
@@ -64,7 +92,7 @@ export async function fetchFeed({
   userId: string;
   tab: "foryou" | "following";
   followingIds: string[];
-}): Promise<{ posts: PostRow[]; authors: PostAuthors }> {
+}): Promise<{ posts: PostRow[]; authors: PostAuthors; videos: PostVideos }> {
   let posts: PostRow[];
   if (tab === "following") {
     const ids = [...new Set([userId, ...followingIds])];
@@ -89,11 +117,16 @@ export async function fetchFeed({
     if (error) throw error;
     posts = rankForYou((data ?? []) as PostRow[], followingIds).slice(0, 30);
   }
-  const authors = await fetchAuthors(posts.map((p) => p.user_id));
-  return { posts, authors };
+  const [authors, videos] = await Promise.all([
+    fetchAuthors(posts.map((p) => p.user_id)),
+    fetchVideosForPosts(posts.map((p) => p.id)),
+  ]);
+  return { posts, authors, videos };
 }
 
-export async function fetchTrendingPostsToday(limit = 4): Promise<{ posts: PostRow[]; authors: PostAuthors }> {
+export async function fetchTrendingPostsToday(
+  limit = 4,
+): Promise<{ posts: PostRow[]; authors: PostAuthors; videos: PostVideos }> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("feed_posts")
@@ -113,11 +146,16 @@ export async function fetchTrendingPostsToday(limit = 4): Promise<{ posts: PostR
     .sort((a, b) => b.score - a.score)
     .map((x) => x.post)
     .slice(0, limit);
-  const authors = await fetchAuthors(posts.map((p) => p.user_id));
-  return { posts, authors };
+  const [authors, videos] = await Promise.all([
+    fetchAuthors(posts.map((p) => p.user_id)),
+    fetchVideosForPosts(posts.map((p) => p.id)),
+  ]);
+  return { posts, authors, videos };
 }
 
-export async function fetchUserPosts(userId: string): Promise<{ posts: PostRow[]; authors: PostAuthors }> {
+export async function fetchUserPosts(
+  userId: string,
+): Promise<{ posts: PostRow[]; authors: PostAuthors; videos: PostVideos }> {
   const { data, error } = await supabase
     .from("feed_posts")
     .select(POST_COLUMNS)
@@ -127,8 +165,11 @@ export async function fetchUserPosts(userId: string): Promise<{ posts: PostRow[]
     .order("created_at", { ascending: false });
   if (error) throw error;
   const posts = (data ?? []) as PostRow[];
-  const authors = await fetchAuthors(posts.map((p) => p.user_id));
-  return { posts, authors };
+  const [authors, videos] = await Promise.all([
+    fetchAuthors(posts.map((p) => p.user_id)),
+    fetchVideosForPosts(posts.map((p) => p.id)),
+  ]);
+  return { posts, authors, videos };
 }
 
 export async function fetchPostThread(postId: string): Promise<{
@@ -136,9 +177,10 @@ export async function fetchPostThread(postId: string): Promise<{
   quoted: PostRow | null;
   replies: PostRow[];
   authors: PostAuthors;
+  videos: PostVideos;
 }> {
   const { data: post } = await supabase.from("feed_posts").select(POST_COLUMNS).eq("id", postId).maybeSingle();
-  if (!post) return { post: null, quoted: null, replies: [], authors: {} };
+  if (!post) return { post: null, quoted: null, replies: [], authors: {}, videos: {} };
   const [{ data: quoted }, { data: replyRows }] = await Promise.all([
     (post as PostRow).quote_post_id
       ? supabase.from("feed_posts").select(POST_COLUMNS).eq("id", (post as PostRow).quote_post_id!).maybeSingle()
@@ -156,6 +198,7 @@ export async function fetchPostThread(postId: string): Promise<{
     ...(quoted ? [(quoted as PostRow).user_id] : []),
     ...replies.map((r) => r.user_id),
   ];
-  const authors = await fetchAuthors(allUserIds);
-  return { post: post as PostRow, quoted: quoted as PostRow | null, replies, authors };
+  const allPostIds = [post.id, ...(quoted ? [(quoted as PostRow).id] : []), ...replies.map((r) => r.id)];
+  const [authors, videos] = await Promise.all([fetchAuthors(allUserIds), fetchVideosForPosts(allPostIds)]);
+  return { post: post as PostRow, quoted: quoted as PostRow | null, replies, authors, videos };
 }

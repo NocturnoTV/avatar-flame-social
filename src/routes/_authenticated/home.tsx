@@ -642,6 +642,7 @@ function HomePage() {
                   key={post.id}
                   post={post}
                   author={trendingPosts.data.authors[post.user_id]}
+                  video={trendingPosts.data.videos[post.id]}
                   onOpenThread={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
                   onReply={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
                   onRepostMenu={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, Image as ImageIcon, Globe2, Users, AtSign, Ban } from "lucide-react";
+import { X, Image as ImageIcon, Video as VideoIcon, Globe2, Users, AtSign, Ban, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
@@ -12,6 +12,51 @@ import type { PostRow, ReplyPermission } from "@/lib/feedPosts";
 
 const MAX_CHARS = 500;
 const MAX_IMAGES = 4;
+const MAX_VIDEO_SIZE = 250 * 1024 * 1024;
+
+type VideoAttachment = {
+  file: File;
+  preview: string;
+  videoRowId: string | null;
+  uploading: boolean;
+  progress: number;
+  error: string | null;
+};
+
+/** Mints a Mux upload URL via our own API route, then PUTs the file bytes
+ * straight to Mux (never through our server) with progress tracking - fetch
+ * has no upload-progress event, hence plain XHR here. */
+async function uploadVideoToMux(
+  file: File,
+  onProgress: (pct: number) => void,
+): Promise<{ videoRowId: string }> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("not_authenticated");
+
+  const res = await fetch("/api/create-mux-upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ fileName: file.name, fileSize: file.size, mimeType: file.type }),
+  });
+  if (!res.ok) throw new Error("mux_upload_init_failed");
+  const { videoId, uploadUrl } = (await res.json()) as { videoId: string; uploadUrl: string };
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("upload_failed")));
+    xhr.onerror = () => reject(new Error("upload_failed"));
+    xhr.send(file);
+  });
+
+  return { videoRowId: videoId };
+}
 
 const REPLY_OPTIONS: { value: ReplyPermission; icon: typeof Globe2 }[] = [
   { value: "everyone", icon: Globe2 },
@@ -43,14 +88,50 @@ export function PostComposer({
   const qc = useQueryClient();
   const [content, setContent] = useState(editing?.content ?? "");
   const [images, setImages] = useState<{ file: File; preview: string }[]>([]);
+  const [video, setVideo] = useState<VideoAttachment | null>(null);
   const [replyPermission, setReplyPermission] = useState<ReplyPermission>("everyone");
   const [permissionOpen, setPermissionOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
 
   const remaining = MAX_CHARS - content.length;
-  const canPublish = (content.trim().length > 0 || images.length > 0) && remaining >= 0 && !publishing;
+  const canPublish =
+    (content.trim().length > 0 || images.length > 0 || !!video) &&
+    remaining >= 0 &&
+    !publishing &&
+    !video?.uploading &&
+    !video?.error;
+
+  function pickVideo(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("video/")) {
+      toast.error(t("postVideoInvalidType"));
+      return;
+    }
+    if (file.size > MAX_VIDEO_SIZE) {
+      toast.error(t("postVideoTooLarge"));
+      return;
+    }
+    const attachment: VideoAttachment = {
+      file,
+      preview: URL.createObjectURL(file),
+      videoRowId: null,
+      uploading: true,
+      progress: 0,
+      error: null,
+    };
+    setVideo(attachment);
+    setImages([]);
+    void uploadVideoToMux(file, (pct) =>
+      setVideo((v) => (v && v.file === file ? { ...v, progress: pct } : v)),
+    )
+      .then(({ videoRowId }) => setVideo((v) => (v && v.file === file ? { ...v, videoRowId, uploading: false } : v)))
+      .catch(() =>
+        setVideo((v) => (v && v.file === file ? { ...v, uploading: false, error: t("postVideoUploadFailed") } : v)),
+      );
+  }
 
   function addImages(files: FileList | null) {
     if (!files) return;
@@ -60,14 +141,19 @@ export function PostComposer({
       next.push({ file, preview: URL.createObjectURL(file) });
     }
     setImages(next);
+    setVideo(null);
   }
 
   function removeImage(index: number) {
     setImages((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function removeVideo() {
+    setVideo(null);
+  }
+
   function requestClose() {
-    if (content.trim() || images.length) {
+    if (content.trim() || images.length || video) {
       setConfirmDiscard(true);
       return;
     }
@@ -110,6 +196,13 @@ export function PostComposer({
         .select("id")
         .single();
       if (error) throw error;
+      if (video?.videoRowId) {
+        await supabase
+          .from("post_videos")
+          .update({ post_id: data.id })
+          .eq("id", video.videoRowId)
+          .eq("user_id", user.id);
+      }
       void qc.invalidateQueries({ queryKey: ["feed-posts"] });
       if (replyTo) void qc.invalidateQueries({ queryKey: ["feed-post-thread", replyTo.id] });
       toast.success(replyTo ? t("feedReplyPublished") : t("feedPostPublished"));
@@ -186,6 +279,28 @@ export function PostComposer({
                 ))}
               </div>
             ) : null}
+            {video ? (
+              <div className="relative mt-3 overflow-hidden rounded-2xl bg-black">
+                <video src={video.preview} className="max-h-72 w-full" muted playsInline controls={!video.uploading} />
+                <button
+                  onClick={removeVideo}
+                  className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                {video.uploading ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 text-white">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <p className="text-xs font-bold">{t("postVideoUploading", { percent: video.progress })}</p>
+                  </div>
+                ) : null}
+                {video.error ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-center text-xs font-bold text-white">
+                    {video.error}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             {!replyTo && !editing ? (
               <button
                 type="button"
@@ -233,15 +348,36 @@ export function PostComposer({
           }}
         />
         {!editing ? (
-          <button
-            type="button"
-            disabled={images.length >= MAX_IMAGES}
-            onClick={() => fileRef.current?.click()}
-            className="p-1.5 text-primary disabled:opacity-40"
-            aria-label={t("commentPickImage")}
-          >
-            <ImageIcon className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={images.length >= MAX_IMAGES || !!video}
+              onClick={() => fileRef.current?.click()}
+              className="p-1.5 text-primary disabled:opacity-40"
+              aria-label={t("commentPickImage")}
+            >
+              <ImageIcon className="h-5 w-5" />
+            </button>
+            <input
+              ref={videoFileRef}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={(e) => {
+                pickVideo(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              disabled={images.length > 0 || !!video}
+              onClick={() => videoFileRef.current?.click()}
+              className="p-1.5 text-primary disabled:opacity-40"
+              aria-label={t("postAttachVideo")}
+            >
+              <VideoIcon className="h-5 w-5" />
+            </button>
+          </div>
         ) : (
           <span />
         )}

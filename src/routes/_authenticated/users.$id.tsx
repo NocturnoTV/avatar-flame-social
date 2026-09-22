@@ -452,6 +452,7 @@ function PublicProfile() {
           videos={profile.data?.videos ?? []}
           feedPosts={feedPosts.data?.posts ?? []}
           feedAuthors={feedPosts.data?.authors ?? {}}
+          feedVideos={feedPosts.data?.videos ?? {}}
           reposts={reposts.data ?? []}
           photos={profile.data?.photos ?? []}
           stickers={profile.data?.stickers ?? []}

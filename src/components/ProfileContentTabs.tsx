@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { StoredImage, useSignedUrl, VideoThumb as SharedVideoThumb } from "@/components/Media";
 import { PostCard } from "@/components/PostCard";
-import type { PostAuthors, PostRow } from "@/lib/feedPosts";
+import type { PostAuthors, PostRow, PostVideos } from "@/lib/feedPosts";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +54,7 @@ export function ProfileContentTabs({
   videos,
   feedPosts,
   feedAuthors,
+  feedVideos,
   reposts,
   photos,
   stickers = [],
@@ -80,6 +81,7 @@ export function ProfileContentTabs({
    * it, hiding the tab entirely rather than showing an always-empty one. */
   feedPosts?: PostRow[];
   feedAuthors?: PostAuthors;
+  feedVideos?: PostVideos;
   reposts: TabVideo[];
   photos: TabPhoto[];
   stickers?: TabSticker[];
@@ -171,6 +173,7 @@ export function ProfileContentTabs({
                 key={post.id}
                 post={post}
                 author={feedAuthors?.[post.user_id]}
+                video={feedVideos?.[post.id]}
                 onOpenThread={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
                 onReply={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
                 onRepostMenu={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}

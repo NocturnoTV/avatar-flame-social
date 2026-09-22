@@ -990,6 +990,7 @@ function ProfilePage() {
         videos={videos.data ?? []}
         feedPosts={myFeedPosts.data?.posts ?? []}
         feedAuthors={myFeedPosts.data?.authors ?? {}}
+        feedVideos={myFeedPosts.data?.videos ?? {}}
         reposts={reposts.data ?? []}
         photos={photos.data ?? []}
         photosEditable

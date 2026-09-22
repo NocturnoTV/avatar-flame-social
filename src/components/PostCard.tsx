@@ -12,7 +12,8 @@ import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { formatCount } from "@/routes/_authenticated/discover.index";
 import { cn } from "@/lib/utils";
-import type { PostAuthor, PostRow } from "@/lib/feedPosts";
+import { PostVideoPlayer } from "@/components/PostVideoPlayer";
+import type { PostAuthor, PostRow, PostVideo } from "@/lib/feedPosts";
 
 function PostText({ content }: { content: string }) {
   const parts = content.split(/(@[a-zA-Z0-9_]+|#[a-zA-Z0-9_]+)/g);
@@ -54,6 +55,7 @@ function mediaGridClass(count: number) {
 export function PostCard({
   post,
   author,
+  video,
   onOpenThread,
   onReply,
   onRepostMenu,
@@ -63,6 +65,7 @@ export function PostCard({
 }: {
   post: PostRow;
   author: PostAuthor | undefined;
+  video?: PostVideo | undefined;
   onOpenThread: () => void;
   onReply: () => void;
   onRepostMenu: () => void;
@@ -257,6 +260,12 @@ export function PostCard({
                   className="h-full max-h-72 w-full object-cover"
                 />
               ))}
+            </div>
+          ) : null}
+
+          {video ? (
+            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+              <PostVideoPlayer video={video} compact className="max-h-96 w-full" />
             </div>
           ) : null}
 

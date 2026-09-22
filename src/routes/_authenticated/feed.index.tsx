@@ -162,6 +162,7 @@ function FeedPage() {
               key={post.id}
               post={post}
               author={feed.data.authors[post.user_id]}
+              video={feed.data.videos[post.id]}
               onOpenThread={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
               onReply={() =>
                 setReplyTarget({
