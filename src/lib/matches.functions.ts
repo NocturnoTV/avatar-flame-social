@@ -28,6 +28,18 @@ export const notifyNewMatch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Only the other side of a real match may be notified - without this
+    // check any signed-in user could push "new match" alerts to anyone.
+    const { data: match } = await supabaseAdmin
+      .from("matches")
+      .select("id")
+      .or(
+        `and(user_a.eq.${context.userId},user_b.eq.${data.targetUserId}),and(user_a.eq.${data.targetUserId},user_b.eq.${context.userId})`,
+      )
+      .limit(1)
+      .maybeSingle();
+    if (!match) return { sent: false };
+
     const [{ data: prefsRow }, { data: langRow }, { data: sender }] = await Promise.all([
       supabaseAdmin
         .from("profiles_private")
