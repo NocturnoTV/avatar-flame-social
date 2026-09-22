@@ -1119,6 +1119,7 @@ function VideoSlide({
         onRestart={restart}
         onNotInterested={onNotInterested}
         onShare={() => setSharing(true)}
+        onRepost={() => setReposting(true)}
       />
     </div>
   );
@@ -1138,6 +1139,7 @@ function VideoContextMenu({
   onRestart,
   onNotInterested,
   onShare,
+  onRepost,
 }: {
   open: boolean;
   onClose: () => void;
@@ -1149,6 +1151,7 @@ function VideoContextMenu({
   onRestart: () => void;
   onNotInterested: () => void;
   onShare: () => void;
+  onRepost: () => void;
 }) {
   const { t } = useI18n();
   const { user } = useSession();
@@ -1279,6 +1282,16 @@ function VideoContextMenu({
           >
             <RotateCcw className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold">{t("videoMenuRestart")}</span>
+          </button>
+          <button
+            onClick={() => {
+              onRepost();
+              onClose();
+            }}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2"
+          >
+            <Repeat2 className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold">{t("repost")}</span>
           </button>
           <button
             onClick={() => {
@@ -1492,7 +1505,9 @@ function RailButton({
   label: string;
 }) {
   const [burst, setBurst] = useState(0);
+  const [longPressBurst, setLongPressBurst] = useState(0);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressAnimTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firedLongPress = useRef(false);
 
   function startPress() {
@@ -1500,7 +1515,10 @@ function RailButton({
     firedLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
       firedLongPress.current = true;
-      onLongPress();
+      // Play the charge animation first, then trigger the actual action a
+      // beat later so the feedback is visible before the sheet takes over.
+      setLongPressBurst((v) => v + 1);
+      longPressAnimTimer.current = setTimeout(() => onLongPress(), 260);
     }, RAIL_LONG_PRESS_MS);
   }
   function cancelPress() {
@@ -1536,6 +1554,9 @@ function RailButton({
             <i key={index} style={{ "--burst-index": index } as React.CSSProperties} />
           ))}
         </span>
+      ) : null}
+      {onLongPress && longPressBurst > 0 ? (
+        <span key={longPressBurst} className="pointer-events-none absolute top-3 bx-repost-charge" />
       ) : null}
       <Icon
         className={cn(

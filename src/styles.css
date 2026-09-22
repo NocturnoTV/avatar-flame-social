@@ -484,6 +484,26 @@
   animation: bx-heart-ring 0.5s ease-out both;
 }
 
+/* Plays on the Like icon the instant a long-press is recognized, giving
+   visible feedback before the repost sheet actually opens a beat later. */
+@keyframes bx-repost-charge {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.bx-repost-charge {
+  position: absolute;
+  inset: -8px;
+  border: 3px solid rgb(56 189 248 / 0.85);
+  border-radius: 999px;
+  animation: bx-repost-charge 0.34s ease-out both;
+}
+
 @keyframes bx-landing-reveal {
   from {
     opacity: 1;
