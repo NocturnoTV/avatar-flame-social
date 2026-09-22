@@ -22,6 +22,8 @@ export const getPersonalizedFeed = createServerFn({ method: "GET" })
       id: v.id,
       user_id: v.user_id,
       storage_path: v.storage_path,
+      mux_playback_id: v.mux_playback_id,
+      mux_status: v.mux_status,
       caption: v.caption,
       sound_name: v.sound_name,
       likes_count: v.likes_count,

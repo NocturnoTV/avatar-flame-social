@@ -4,7 +4,9 @@ import { getPersonalizedFeed } from "@/lib/recommendation.functions";
 export type VideoRow = {
   id: string;
   user_id: string;
-  storage_path: string;
+  storage_path: string | null;
+  mux_playback_id?: string | null;
+  mux_status?: string | null;
   thumbnail_path: string | null;
   caption: string | null;
   sound_name: string | null;
@@ -21,7 +23,7 @@ export type VideoRow = {
 };
 
 const VIDEO_COLUMNS =
-  "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until";
+  "id,user_id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until";
 
 /** Shared between the Discover page's own query and the bottom nav's
  * prefetch-on-hover, so both hit the exact same cache entry - the whole

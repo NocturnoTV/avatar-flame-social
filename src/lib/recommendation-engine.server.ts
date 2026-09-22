@@ -194,7 +194,9 @@ export async function getCreatorLanguages(creatorIds: string[]): Promise<Map<str
 export type Candidate = {
   id: string;
   user_id: string;
-  storage_path: string;
+  storage_path: string | null;
+  mux_playback_id: string | null;
+  mux_status: string | null;
   caption: string | null;
   sound_name: string | null;
   created_at: string;
@@ -211,7 +213,7 @@ export type Candidate = {
 };
 
 const VIDEO_COLUMNS =
-  "id,user_id,storage_path,caption,sound_name,created_at,views_count,likes_count,comments_count,favorites_count,reposts_count,shares_count,recommendation_eligible,visibility,boosted_until";
+  "id,user_id,storage_path,mux_playback_id,mux_status,caption,sound_name,created_at,views_count,likes_count,comments_count,favorites_count,reposts_count,shares_count,recommendation_eligible,visibility,boosted_until";
 
 async function attachCategories(rows: any[]): Promise<Candidate[]> {
   const ids = rows.map((r) => r.id);

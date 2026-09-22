@@ -30,7 +30,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Button, Card, Input, Label, Select, Sheet } from "@/components/ui-kit";
-import { captureVideoThumbnail, uploadFile } from "@/lib/media";
+import { captureVideoThumbnail, uploadFile, uploadVideoToMux } from "@/lib/media";
 import { StoredImage, useSignedUrl, VideoThumb } from "@/components/Media";
 import { ThumbnailPicker, VideoMontageEditor } from "@/components/VideoMontageEditor";
 import { SoundPicker, type PickedSound } from "@/components/SoundPicker";
@@ -1234,6 +1234,7 @@ function UploadWizard({
   );
   const [containsAiContent, setContainsAiContent] = useState(draft?.contains_ai_content ?? false);
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [draftPromptOpen, setDraftPromptOpen] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   // The video's metadata (duration, dimensions) loads asynchronously after
@@ -1333,6 +1334,7 @@ function UploadWizard({
   async function publish() {
     if (!file || !user || !title.trim()) return;
     setBusy(true);
+    setUploadProgress(0);
     try {
       // New accounts' very first video is held for review (server-enforced,
       // see the enforce_first_video_moderation trigger - this count is only
@@ -1344,11 +1346,11 @@ function UploadWizard({
       // A montage edit (trim/text/sound) replaces the original file with a
       // re-encoded WebM - otherwise the original file goes up untouched.
       const uploadSource: Blob = editedBlob ?? file;
-      const ext = editedBlob ? "webm" : file.name.split(".").pop() || "mp4";
-      const path = await uploadFile("videos", user.id, uploadSource, ext);
+      const fileName = editedBlob ? "montage.webm" : file.name;
       // No hand-picked thumbnail: capture one from the video itself, or the
       // feed tile stays black in the native app (WebViews don't paint
-      // preload="metadata" frames).
+      // preload="metadata" frames) - kept even for Mux videos since it shows
+      // immediately, before Mux has finished processing its own thumbnail.
       const effectiveThumbnail =
         thumbnailBlob ?? (await captureVideoThumbnail(uploadSource));
       const thumbnailPath = effectiveThumbnail
@@ -1358,7 +1360,7 @@ function UploadWizard({
         .from("videos")
         .insert({
           user_id: user.id,
-          storage_path: path,
+          storage_path: null,
           thumbnail_path: thumbnailPath,
           caption: title.trim(),
           sound_id: sound?.id ?? null,
@@ -1372,11 +1374,16 @@ function UploadWizard({
           sensitive_content: sensitiveContent,
           contains_paid_promotion: containsPaidPromotion,
           contains_ai_content: containsAiContent,
+          mux_status: "uploading",
         })
         .select("id")
         .single();
       if (error) throw error;
       if (inserted) {
+        await uploadVideoToMux(uploadSource, fileName, setUploadProgress, {
+          kind: "discover",
+          videoId: inserted.id,
+        });
         void supabase.rpc("bump_quest_progress", {
           _metric_key: "creator",
           _entity_id: inserted.id,
@@ -1401,6 +1408,7 @@ function UploadWizard({
       }
     } finally {
       setBusy(false);
+      setUploadProgress(null);
     }
   }
 
@@ -1832,7 +1840,11 @@ function UploadWizard({
               </Button>
             ) : (
               <Button className="w-full" size="lg" disabled={busy} onClick={publish}>
-                {busy ? t("studioPublishing") : t("publishVideo")}
+                {busy
+                  ? uploadProgress !== null
+                    ? `${t("studioPublishing")} ${uploadProgress}%`
+                    : t("studioPublishing")
+                  : t("publishVideo")}
               </Button>
             )}
           </footer>

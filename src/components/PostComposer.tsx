@@ -4,7 +4,7 @@ import { X, Image as ImageIcon, Video as VideoIcon, Globe2, Users, AtSign, Ban, 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StoredImage } from "@/components/Media";
-import { uploadFile } from "@/lib/media";
+import { uploadFile, uploadVideoToMux } from "@/lib/media";
 import { useSession } from "@/lib/session";
 import { useI18n } from "@/lib/i18n";
 import { cn, errorMessage } from "@/lib/utils";
@@ -22,41 +22,6 @@ type VideoAttachment = {
   progress: number;
   error: string | null;
 };
-
-/** Mints a Mux upload URL via our own API route, then PUTs the file bytes
- * straight to Mux (never through our server) with progress tracking - fetch
- * has no upload-progress event, hence plain XHR here. */
-async function uploadVideoToMux(
-  file: File,
-  onProgress: (pct: number) => void,
-): Promise<{ videoRowId: string }> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  if (!token) throw new Error("not_authenticated");
-
-  const res = await fetch("/api/create-mux-upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ fileName: file.name, fileSize: file.size, mimeType: file.type }),
-  });
-  if (!res.ok) throw new Error("mux_upload_init_failed");
-  const { videoId, uploadUrl } = (await res.json()) as { videoId: string; uploadUrl: string };
-
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", uploadUrl);
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("upload_failed")));
-    xhr.onerror = () => reject(new Error("upload_failed"));
-    xhr.send(file);
-  });
-
-  return { videoRowId: videoId };
-}
 
 const REPLY_OPTIONS: { value: ReplyPermission; icon: typeof Globe2 }[] = [
   { value: "everyone", icon: Globe2 },
@@ -124,8 +89,11 @@ export function PostComposer({
     };
     setVideo(attachment);
     setImages([]);
-    void uploadVideoToMux(file, (pct) =>
-      setVideo((v) => (v && v.file === file ? { ...v, progress: pct } : v)),
+    void uploadVideoToMux(
+      file,
+      file.name,
+      (pct) => setVideo((v) => (v && v.file === file ? { ...v, progress: pct } : v)),
+      { kind: "feed" },
     )
       .then(({ videoRowId }) => setVideo((v) => (v && v.file === file ? { ...v, videoRowId, uploading: false } : v)))
       .catch(() =>

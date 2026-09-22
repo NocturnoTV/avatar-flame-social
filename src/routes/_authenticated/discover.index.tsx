@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType, type Ref } from "react";
 import {
   Bookmark,
   AtSign,
@@ -41,6 +41,8 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import MuxPlayer from "@mux/mux-player-react";
+import type MuxPlayerElement from "@mux/mux-player";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { useSignedUrl, StoredImage, VideoThumb } from "@/components/Media";
@@ -226,7 +228,7 @@ function DiscoverPage() {
         supabase
           .from("videos")
           .select(
-            "id,user_id,storage_path,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
+            "id,user_id,storage_path,mux_playback_id,mux_status,thumbnail_path,caption,sound_name,likes_count,comments_count,favorites_count,reposts_count,shares_count,views_count,boosted_until",
           )
           .eq("visibility", "public")
           .eq("moderation_status", "approved")
@@ -581,6 +583,7 @@ function SearchVideoThumb({ video }: { video: VideoRow }) {
       <VideoThumb
         storagePath={video.storage_path}
         thumbnailPath={video.thumbnail_path}
+        muxPlaybackId={video.mux_status === "ready" ? video.mux_playback_id : null}
         className="h-full w-full"
       />
       <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-bold text-white">
@@ -620,8 +623,12 @@ function VideoSlide({
   const { user } = useSession();
   const { t } = useI18n();
   const qc = useQueryClient();
-  const ref = useRef<HTMLVideoElement>(null);
+  // A Mux player element isn't a real HTMLVideoElement, but exposes the same
+  // play/pause/currentTime/duration/muted/playbackRate surface this
+  // component drives imperatively - one ref covers both.
+  const ref = useRef<HTMLVideoElement | MuxPlayerElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMuxReady = video.mux_status === "ready" && !!video.mux_playback_id;
   const [visible, setVisible] = useState(false);
   // Every slide in the feed mounts at once (needed for scroll-snap), but
   // only the ones actually near the screen should fetch anything - without
@@ -643,8 +650,9 @@ function VideoSlide({
     obs.observe(el);
     return () => obs.disconnect();
   }, [nearViewport]);
-  const url = useSignedUrl(nearViewport ? video.storage_path : null);
-  const posterUrl = useSignedUrl(nearViewport ? video.thumbnail_path : null);
+  const url = useSignedUrl(nearViewport && !isMuxReady ? video.storage_path : null);
+  const posterUrl = useSignedUrl(nearViewport && !isMuxReady ? video.thumbnail_path : null);
+  const muxPosterUrl = isMuxReady ? `https://image.mux.com/${video.mux_playback_id}/thumbnail.jpg?width=720` : null;
   const [viewCount, setViewCount] = useState(video.views_count);
   const [sharing, setSharing] = useState(false);
   const [reposting, setReposting] = useState(false);
@@ -806,7 +814,7 @@ function VideoSlide({
       flushWatch();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, muted, url, user, video.id]);
+  }, [visible, muted, url, isMuxReady, user, video.id]);
 
   // Full loop = a completed watch; keep counting subsequent loops as replays.
   // When auto-scroll is on the video doesn't loop - it advances to the next
@@ -826,7 +834,7 @@ function VideoSlide({
     };
     el.addEventListener("ended", onEnded);
     return () => el.removeEventListener("ended", onEnded);
-  }, [url, autoScroll]);
+  }, [url, isMuxReady, autoScroll]);
 
   // Playback speed set from the long-press/right-click video menu - applies
   // immediately, and re-applies whenever the <video> src (re)loads since the
@@ -834,7 +842,7 @@ function VideoSlide({
   useEffect(() => {
     const el = ref.current;
     if (el) el.playbackRate = speed;
-  }, [speed, url]);
+  }, [speed, url, isMuxReady]);
 
   // Flush any in-progress watch session when the slide unmounts entirely.
   useEffect(() => {
@@ -961,9 +969,33 @@ function VideoSlide({
         onTouchMove={cancelLongPress}
         onTouchCancel={cancelLongPress}
       >
-        {url ? (
+        {isMuxReady ? (
+          <div
+            className="h-full w-full"
+            onClick={() => {
+              const el = ref.current;
+              if (!el) return;
+              if (el.paused) void el.play();
+              else el.pause();
+            }}
+          >
+            <MuxPlayer
+              ref={ref as Ref<MuxPlayerElement>}
+              playbackId={video.mux_playback_id!}
+              streamType="on-demand"
+              {...(muxPosterUrl ? { poster: muxPosterUrl } : {})}
+              autoPlay
+              loop={!autoScroll}
+              playsInline
+              muted={muted}
+              nohotkeys
+              metadata={{ video_id: video.id }}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        ) : url ? (
           <video
-            ref={ref}
+            ref={ref as Ref<HTMLVideoElement>}
             src={url}
             poster={posterUrl || undefined}
             autoPlay
@@ -1182,6 +1214,13 @@ function VideoContextMenu({
 
   async function addToStory() {
     if (!user || addingToStory) return;
+    if (!video.storage_path) {
+      // Mux-hosted videos don't have a Supabase Storage path to point a
+      // story at yet - this repost-into-story path only handles the legacy
+      // storage-backed videos for now.
+      toast.error(t("errorGeneric"));
+      return;
+    }
     setAddingToStory(true);
     const { error } = await supabase.from("stories").insert({
       user_id: user.id,

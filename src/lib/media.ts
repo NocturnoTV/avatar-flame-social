@@ -274,6 +274,50 @@ export async function captureVideoThumbnail(source: Blob): Promise<Blob | null> 
   }
 }
 
+/** Mints a Mux upload URL via our own API route, then PUTs the file bytes
+ * straight to Mux (never through our server) with progress tracking - fetch
+ * has no upload-progress event, hence plain XHR here. Shared between the
+ * Feed composer (target "feed", creates a post_videos row) and Discover's
+ * studio (target "discover", updates an existing videos row by id). */
+export async function uploadVideoToMux(
+  file: Blob,
+  fileName: string,
+  onProgress: (pct: number) => void,
+  target: { kind: "feed" } | { kind: "discover"; videoId: string },
+): Promise<{ videoRowId: string }> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("not_authenticated");
+
+  const res = await fetch("/api/create-mux-upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      fileName,
+      fileSize: file.size,
+      mimeType: file.type,
+      ...(target.kind === "discover" ? { target: "discover", targetId: target.videoId } : {}),
+    }),
+  });
+  if (!res.ok) throw new Error("mux_upload_init_failed");
+  const { videoId, uploadUrl } = (await res.json()) as { videoId: string; uploadUrl: string };
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("upload_failed")));
+    xhr.onerror = () => reject(new Error("upload_failed"));
+    xhr.send(file);
+  });
+
+  return { videoRowId: videoId };
+}
+
 export async function uploadFile(bucket: string, userId: string, file: Blob, ext: string) {
   const safeExt = ext.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
   const path = `${userId}/${crypto.randomUUID()}.${safeExt}`;
