@@ -293,7 +293,12 @@ function Landing() {
                     className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/5 to-black/20" />
-                  <div className="relative flex h-full flex-col justify-between">
+                  {/* This overlay used to sit flush against the frame's rounded
+                      edges (no padding) - on narrower cards the "FOR YOU" badge
+                      and caption text got visually clipped by the border-radius
+                      itself. The padding keeps everything inside the visible,
+                      unclipped area at every width. */}
+                  <div className="relative flex h-full flex-col justify-between p-4 sm:p-5">
                     <span className="w-fit rounded-full bg-black/30 px-3 py-1.5 text-[10px] font-black backdrop-blur">
                       FOR YOU
                     </span>
