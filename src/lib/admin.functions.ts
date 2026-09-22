@@ -260,6 +260,7 @@ const actionSchema = z.object({
     "delete_video",
     "approve_video",
     "reject_video",
+    "delete_post",
     "grant_spark_plus",
     "revoke_spark_plus",
     "grant_blox",
@@ -477,6 +478,16 @@ export const adminManageMember = createServerFn({ method: "POST" })
         body: data.action === "approve_video" ? "video_approved" : "video_rejected",
         video_id: data.targetId,
       });
+    }
+
+    if (data.action === "delete_post") {
+      if (!data.targetId) throw new Error("post_required");
+      const { error } = await supabaseAdmin
+        .from("feed_posts")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", data.targetId)
+        .eq("user_id", data.userId);
+      if (error) throw error;
     }
 
     const { error: auditError } = await supabaseAdmin.from("admin_audit_log").insert({

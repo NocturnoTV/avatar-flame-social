@@ -3429,8 +3429,152 @@ function PendingVideosReview() {
   );
 }
 
+/** Moderation queue for Feed posts (BloxSpark's X-style feed) - unlike
+ * videos, posts publish instantly with no pre-approval step, so the queue
+ * here is driven by user reports (reports.post_id) rather than a pending
+ * moderation_status. */
+function ReportedFeedPosts() {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<{ id: string; content: string; username: string } | null>(
+    null,
+  );
+
+  const reported = useQuery({
+    queryKey: ["admin-reported-feed-posts"],
+    queryFn: async () => {
+      const { data: reportRows, error } = await supabase
+        .from("reports")
+        .select("id,post_id,reason,details,created_at,reporter_id")
+        .not("post_id", "is", null)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const postIds = [...new Set((reportRows ?? []).map((r) => r.post_id!))];
+      if (!postIds.length) return [];
+      const { data: posts } = await supabase
+        .from("feed_posts")
+        .select("id,content,user_id,created_at,deleted_at")
+        .in("id", postIds);
+      const postById = new Map((posts ?? []).map((p) => [p.id, p]));
+      const authorIds = [...new Set((posts ?? []).map((p) => p.user_id))];
+      const { data: authors } = authorIds.length
+        ? await supabase.from("profiles").select("id,username,avatar_url").in("id", authorIds)
+        : { data: [] as { id: string; username: string | null; avatar_url: string | null }[] };
+      const authorById = new Map((authors ?? []).map((a) => [a.id, a]));
+      // Group reports by post - several reports can target the same post.
+      const byPost = new Map<string, typeof reportRows>();
+      for (const r of reportRows ?? []) {
+        const list = byPost.get(r.post_id!) ?? [];
+        list.push(r);
+        byPost.set(r.post_id!, list);
+      }
+      return [...byPost.entries()]
+        .map(([postId, reasons]) => {
+          const post = postById.get(postId);
+          if (!post) return null;
+          return {
+            post,
+            author: authorById.get(post.user_id) ?? null,
+            reports: reasons,
+          };
+        })
+        .filter((x): x is NonNullable<typeof x> => Boolean(x));
+    },
+  });
+
+  async function dismiss(reportIds: string[]) {
+    await supabase.from("reports").update({ status: "dismissed", handled_at: new Date().toISOString() }).in("id", reportIds);
+    void reported.refetch();
+  }
+
+  async function removePost(post: { id: string; user_id: string }, reportIds: string[]) {
+    setBusyId(post.id);
+    try {
+      await adminManageMember({
+        data: { action: "delete_post", userId: post.user_id, targetId: post.id },
+      });
+      await supabase
+        .from("reports")
+        .update({ status: "sanctioned", handled_at: new Date().toISOString() })
+        .in("id", reportIds);
+      toast.success("Post supprimé");
+      void reported.refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-4">
+      <p className="flex items-center gap-2 font-black text-amber-600 dark:text-amber-400">
+        <AlertTriangle className="h-4 w-4" /> Posts du Feed signalés ({reported.data?.length ?? 0})
+      </p>
+      {reported.isLoading ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Chargement…</p>
+      ) : !reported.data?.length ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          Aucun post signalé pour l'instant.
+        </p>
+      ) : (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {reported.data.map(({ post, author, reports }) => {
+            const reportIds = reports!.map((r) => r.id);
+            const deleted = !!post.deleted_at;
+            return (
+              <div key={post.id} className="rounded-2xl border border-border bg-card p-3">
+                <p className="truncate text-sm font-bold">@{author?.username ?? "inconnu"}</p>
+                <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">
+                  {post.content || "(média uniquement)"}
+                </p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {reports!.length} signalement{reports!.length > 1 ? "s" : ""} ·{" "}
+                  {[...new Set(reports!.map((r) => r.reason))].join(", ")}
+                  {deleted ? " · déjà supprimé" : ""}
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setViewing({ id: post.id, content: post.content, username: author?.username ?? "?" })
+                    }
+                  >
+                    <Eye className="mr-1 h-3.5 w-3.5" /> Voir
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => void dismiss(reportIds)}>
+                    Ignorer
+                  </Button>
+                  {!deleted ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === post.id}
+                      className="flex-1 text-destructive"
+                      onClick={() => void removePost(post, reportIds)}
+                    >
+                      <Trash2 className="mr-1 h-3.5 w-3.5" /> Supprimer
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Sheet open={!!viewing} onClose={() => setViewing(null)} title={viewing ? `@${viewing.username}` : "Post"}>
+        {viewing ? (
+          <p className="whitespace-pre-wrap break-words text-sm">{viewing.content}</p>
+        ) : null}
+      </Sheet>
+    </div>
+  );
+}
+
 function Content() {
-  const [contentTab, setContentTab] = useState<"search" | "pending">("search");
+  const [contentTab, setContentTab] = useState<"search" | "pending" | "posts">("search");
   const [query, setQuery] = useState("");
   const [openVideo, setOpenVideo] = useState<string | null>(null);
 
@@ -3447,6 +3591,18 @@ function Content() {
         .from("videos")
         .select("id", { count: "exact", head: true })
         .eq("moderation_status", "pending");
+      return count ?? 0;
+    },
+  });
+
+  const reportedPostsCount = useQuery({
+    queryKey: ["admin-reported-posts-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("reports")
+        .select("id", { count: "exact", head: true })
+        .not("post_id", "is", null)
+        .eq("status", "pending");
       return count ?? 0;
     },
   });
@@ -3488,10 +3644,31 @@ function Content() {
             </span>
           ) : null}
         </button>
+        <button
+          onClick={() => setContentTab("posts")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold transition",
+            contentTab === "posts" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+          )}
+        >
+          Posts du Feed
+          {reportedPostsCount.data ? (
+            <span
+              className={cn(
+                "grid h-5 min-w-5 place-items-center rounded-full px-1 text-[10px]",
+                contentTab === "posts" ? "bg-white/20" : "bg-amber-500 text-white",
+              )}
+            >
+              {reportedPostsCount.data}
+            </span>
+          ) : null}
+        </button>
       </div>
 
       {contentTab === "pending" ? (
         <PendingVideosReview />
+      ) : contentTab === "posts" ? (
+        <ReportedFeedPosts />
       ) : (
         <>
           <div className="relative">
