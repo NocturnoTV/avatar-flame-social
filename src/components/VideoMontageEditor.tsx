@@ -53,15 +53,30 @@ function pickSupportedMimeType(): string | null {
   return null;
 }
 
-/** True only when every API this editor depends on is actually available. */
+/** True only when every API this editor depends on is actually available -
+ * including actually being able to PLAY BACK the WebM this editor produces,
+ * not just record one. Safari/iOS (and some Android WebViews) can often
+ * technically encode WebM via MediaRecorder but can never decode it back -
+ * and both this editor's own live preview right after editing and the
+ * thumbnail picker right after that need to play the freshly-encoded file
+ * back immediately, so recording capability alone isn't enough to promise a
+ * working montage step. */
 export function isMontageSupported() {
-  return (
-    typeof MediaRecorder !== "undefined" &&
-    typeof HTMLCanvasElement.prototype.captureStream === "function" &&
+  if (
+    typeof MediaRecorder === "undefined" ||
+    typeof HTMLCanvasElement.prototype.captureStream !== "function" ||
     typeof (
       window.AudioContext ||
       (window as unknown as { webkitAudioContext?: unknown }).webkitAudioContext
-    ) !== "undefined"
+    ) === "undefined"
+  ) {
+    return false;
+  }
+  const probe = document.createElement("video");
+  return (
+    probe.canPlayType('video/webm; codecs="vp9,opus"') !== "" ||
+    probe.canPlayType('video/webm; codecs="vp8,opus"') !== "" ||
+    probe.canPlayType("video/webm") !== ""
   );
 }
 
@@ -97,6 +112,22 @@ export function VideoMontageEditor({
   const dragHandle = useRef<"start" | "end" | null>(null);
   const soundTimelineRef = useRef<HTMLDivElement>(null);
   const draggingSoundStart = useRef(false);
+
+  // Every edit here (even a plain trim) goes through the same canvas ->
+  // MediaRecorder -> WebM pipeline, and this screen's own live preview plays
+  // that WebM back immediately - so a device that can't play WebM back
+  // can't usefully use any part of this editor, not just the fancier
+  // text/sound tools. Skip straight past it with one clear toast instead of
+  // letting someone trim/add text/pick a sound only to hit a dead end at
+  // "Apply" (or worse, an already-broken preview that looks like nothing
+  // was saved). The original file still gets published untouched.
+  useEffect(() => {
+    if (!isMontageSupported()) {
+      toast.error(t("montageUnsupported"));
+      onSkip();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => () => URL.revokeObjectURL(objectUrl.current), []);
   useEffect(() => () => filmstrip?.forEach((f) => URL.revokeObjectURL(f)), [filmstrip]);
@@ -373,18 +404,25 @@ export function VideoMontageEditor({
                   className="pointer-events-none absolute inset-y-0 right-0 bg-black/65"
                   style={{ width: `${100 - (trimEnd / duration) * 100}%` }}
                 />
+                {/* The visible pill is deliberately slim, but a finger needs a much
+                    bigger target than that to grab reliably - each handle sits inside
+                    a much wider invisible touch area, centered on the same position. */}
                 <div
                   onMouseDown={() => (dragHandle.current = "start")}
                   onTouchStart={() => (dragHandle.current = "start")}
                   style={{ left: `${(trimStart / duration) * 100}%` }}
-                  className="absolute inset-y-0 w-3 -translate-x-1/2 cursor-ew-resize rounded-full bg-primary shadow-[0_0_0_2px_white]"
-                />
+                  className="absolute inset-y-0 z-10 flex w-11 -translate-x-1/2 touch-none items-center justify-center cursor-ew-resize"
+                >
+                  <div className="h-full w-3 rounded-full bg-primary shadow-[0_0_0_2px_white]" />
+                </div>
                 <div
                   onMouseDown={() => (dragHandle.current = "end")}
                   onTouchStart={() => (dragHandle.current = "end")}
                   style={{ left: `${(trimEnd / duration) * 100}%` }}
-                  className="absolute inset-y-0 w-3 -translate-x-1/2 cursor-ew-resize rounded-full bg-primary shadow-[0_0_0_2px_white]"
-                />
+                  className="absolute inset-y-0 z-10 flex w-11 -translate-x-1/2 touch-none items-center justify-center cursor-ew-resize"
+                >
+                  <div className="h-full w-3 rounded-full bg-primary shadow-[0_0_0_2px_white]" />
+                </div>
               </>
             ) : null}
           </div>
