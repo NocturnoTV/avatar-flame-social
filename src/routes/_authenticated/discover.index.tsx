@@ -52,7 +52,7 @@ import { Button, Sheet } from "@/components/ui-kit";
 import { cn, errorMessage } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/relative-time";
-import { discoverFeedKey, fetchDiscoverFeed, type VideoRow } from "@/lib/discover-feed";
+import { discoverFeedKey, fetchDiscoverFeed, fetchGuestDiscoverFeed, type VideoRow } from "@/lib/discover-feed";
 import { useGuestGate } from "@/lib/guestGate";
 import { GuestGateSheet } from "@/components/GuestGateSheet";
 import { uploadFile } from "@/lib/media";
@@ -176,8 +176,8 @@ function DiscoverPage() {
   });
 
   const feed = useQuery({
-    queryKey: discoverFeedKey(user?.id, tab, following.data, pinnedVideoId),
-    enabled: !!user && following.isFetched,
+    queryKey: user ? discoverFeedKey(user.id, tab, following.data, pinnedVideoId) : ["feed", "guest", pinnedVideoId],
+    enabled: user ? following.isFetched : true,
     // Cached feed renders instantly when coming back to Discover instead of
     // showing a spinner every time - it still refreshes quietly in the
     // background once this goes stale. Shares fetchDiscoverFeed with the
@@ -185,12 +185,17 @@ function DiscoverPage() {
     // the Discover tab often lands on already-warm cache.
     staleTime: 30_000,
     queryFn: () =>
-      fetchDiscoverFeed({
-        userId: user!.id,
-        tab,
-        followingIds: following.data ?? [],
-        ...(pinnedVideoId ? { pinnedVideoId } : {}),
-      }),
+      user
+        ? fetchDiscoverFeed({
+            userId: user.id,
+            tab,
+            followingIds: following.data ?? [],
+            ...(pinnedVideoId ? { pinnedVideoId } : {}),
+          })
+        // No session, so no personalized engine and no follow graph - a
+        // guest always gets the plain public/trending feed regardless of
+        // which tab is selected (the Following tab is hidden for them).
+        : fetchGuestDiscoverFeed(pinnedVideoId ? { pinnedVideoId } : {}),
   });
 
   async function resetAlgorithm() {
@@ -293,7 +298,11 @@ function DiscoverPage() {
         <div className="pointer-events-auto flex items-center gap-5">
           {(
             [
-              ["following", t("following")],
+              // A guest has no follow graph, and the feed always falls back
+              // to the plain public/trending list for them regardless of
+              // tab (see the `feed` query above) - showing "Following" would
+              // just be misleading, so it's hidden entirely.
+              ...(user ? ([["following", t("following")]] as const) : []),
               ["foryou", t("forYou")],
             ] as const
           ).map(([value, label]) => (

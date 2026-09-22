@@ -77,59 +77,90 @@ export async function fetchDiscoverFeed({
     videos = (data ?? []) as VideoRow[];
   }
 
-  if (pinnedVideoId && !videos.some((v) => v.id === pinnedVideoId)) {
+  videos = await applyPinnedVideo(videos, pinnedVideoId);
+  const profiles = await resolveProfiles(videos);
+  videos = await sortByBoost(videos);
+  return { videos, profiles };
+}
+
+async function applyPinnedVideo(videos: VideoRow[], pinnedVideoId: string | undefined) {
+  if (!pinnedVideoId) return videos;
+  if (!videos.some((v) => v.id === pinnedVideoId)) {
     const { data: pinned } = await supabase
       .from("videos")
       .select(VIDEO_COLUMNS)
       .eq("id", pinnedVideoId)
       .eq("moderation_status", "approved")
       .maybeSingle();
-    if (pinned) videos = [pinned as VideoRow, ...videos];
-  } else if (pinnedVideoId) {
-    videos = [
-      videos.find((v) => v.id === pinnedVideoId)!,
-      ...videos.filter((v) => v.id !== pinnedVideoId),
-    ];
+    return pinned ? [pinned as VideoRow, ...videos] : videos;
   }
+  return [videos.find((v) => v.id === pinnedVideoId)!, ...videos.filter((v) => v.id !== pinnedVideoId)];
+}
 
+type ProfileInfo = { username: string | null; avatar_url: string | null; verified: boolean | null };
+
+async function resolveProfiles(videos: VideoRow[]): Promise<Record<string, ProfileInfo>> {
   const ids = [...new Set(videos.map((v) => v.user_id))];
-  const profiles: Record<
-    string,
-    { username: string | null; avatar_url: string | null; verified: boolean | null }
-  > = {};
-  if (ids.length) {
-    const { data: p } = await supabase
-      .from("profiles")
-      .select("id,username,avatar_url,verified")
-      .in("id", ids);
-    for (const row of p ?? [])
-      profiles[row.id] = {
-        username: row.username,
-        avatar_url: row.avatar_url,
-        verified: row.verified,
-      };
-    const { data: plusProfiles } = await supabase
-      .from("profiles")
-      .select("id,spark_plus_active,spark_plus_expires_at")
-      .in("id", ids);
-    const boosted = new Set(
-      (plusProfiles ?? [])
-        .filter(
-          (profile) =>
-            profile.spark_plus_active &&
-            (!profile.spark_plus_expires_at ||
-              new Date(profile.spark_plus_expires_at).getTime() > Date.now()),
-        )
-        .map((profile) => profile.id),
-    );
-    videos = videos
-      .map((video, index) => ({ video, index }))
-      .sort((a, b) => {
-        const boostDifference =
-          Number(boosted.has(b.video.user_id)) - Number(boosted.has(a.video.user_id));
-        return boostDifference || a.index - b.index;
-      })
-      .map(({ video }) => video);
-  }
+  const profiles: Record<string, ProfileInfo> = {};
+  if (!ids.length) return profiles;
+  const { data: p } = await supabase.from("profiles").select("id,username,avatar_url,verified").in("id", ids);
+  for (const row of p ?? [])
+    profiles[row.id] = { username: row.username, avatar_url: row.avatar_url, verified: row.verified };
+  return profiles;
+}
+
+/** Spark Plus creators' videos float to the top of whatever order the feed
+ * already came in - shared by every feed variant (personalized, following,
+ * guest) so the perk behaves identically everywhere. */
+async function sortByBoost(videos: VideoRow[]): Promise<VideoRow[]> {
+  const ids = [...new Set(videos.map((v) => v.user_id))];
+  if (!ids.length) return videos;
+  const { data: plusProfiles } = await supabase
+    .from("profiles")
+    .select("id,spark_plus_active,spark_plus_expires_at")
+    .in("id", ids);
+  const boosted = new Set(
+    (plusProfiles ?? [])
+      .filter(
+        (profile) =>
+          profile.spark_plus_active &&
+          (!profile.spark_plus_expires_at || new Date(profile.spark_plus_expires_at).getTime() > Date.now()),
+      )
+      .map((profile) => profile.id),
+  );
+  return videos
+    .map((video, index) => ({ video, index }))
+    .sort((a, b) => {
+      const boostDifference = Number(boosted.has(b.video.user_id)) - Number(boosted.has(a.video.user_id));
+      return boostDifference || a.index - b.index;
+    })
+    .map(({ video }) => video);
+}
+
+/** A guest has no session, so the personalized engine (auth-gated server
+ * function) and the Following tab (needs a follow graph) are both off the
+ * table - this is a plain, unpersonalized "trending" feed: public, approved
+ * videos ordered by views. Still resolves creator profiles and honors a
+ * shared-link pinned video the same way the real feed does. */
+export async function fetchGuestDiscoverFeed({
+  pinnedVideoId,
+}: {
+  pinnedVideoId?: string;
+} = {}): Promise<{
+  videos: VideoRow[];
+  profiles: Record<string, ProfileInfo>;
+}> {
+  const { data, error } = await supabase
+    .from("videos")
+    .select(VIDEO_COLUMNS)
+    .eq("visibility", "public")
+    .eq("moderation_status", "approved")
+    .order("views_count", { ascending: false })
+    .limit(30);
+  if (error) throw error;
+  let videos = (data ?? []) as VideoRow[];
+  videos = await applyPinnedVideo(videos, pinnedVideoId);
+  const profiles = await resolveProfiles(videos);
+  videos = await sortByBoost(videos);
   return { videos, profiles };
 }

@@ -323,7 +323,8 @@ function HomePage() {
 
   const latest = useQuery({
     queryKey: ["home-latest-videos"],
-    enabled: !!user,
+    // Public/approved videos - no session needed, so this works for guests
+    // too (unlike the other Home queries here, which are personal).
     queryFn: async () => {
       const { data } = await supabase
         .from("videos")
@@ -338,7 +339,7 @@ function HomePage() {
 
   const trendingPosts = useQuery({
     queryKey: ["home-trending-posts"],
-    enabled: !!user,
+    // Public feed posts - no session needed, works for guests too.
     queryFn: () => fetchTrendingPostsToday(4),
   });
 
