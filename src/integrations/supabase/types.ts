@@ -2721,6 +2721,7 @@ export type Database = {
           id: string
           message_id: string | null
           moderator_note: string | null
+          post_id: string | null
           reason: string
           reporter_id: string
           status: string
@@ -2736,6 +2737,7 @@ export type Database = {
           id?: string
           message_id?: string | null
           moderator_note?: string | null
+          post_id?: string | null
           reason: string
           reporter_id: string
           status?: string
@@ -2751,6 +2753,7 @@ export type Database = {
           id?: string
           message_id?: string | null
           moderator_note?: string | null
+          post_id?: string | null
           reason?: string
           reporter_id?: string
           status?: string
@@ -2770,6 +2773,13 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
             referencedColumns: ["id"]
           },
           {
