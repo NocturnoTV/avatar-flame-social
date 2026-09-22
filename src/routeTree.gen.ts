@@ -47,6 +47,8 @@ import { Route as AuthenticatedCommunitiesHandleRouteImport } from './routes/_au
 import { Route as AuthenticatedCommunitiesCreateRouteImport } from './routes/_authenticated/communities.create'
 import { Route as AuthenticatedDiscoverIndexRouteImport } from './routes/_authenticated/discover.index'
 import { Route as AuthenticatedDiscoverStudioRouteImport } from './routes/_authenticated/discover.studio'
+import { Route as AuthenticatedFeedIndexRouteImport } from './routes/_authenticated/feed.index'
+import { Route as AuthenticatedFeedIdRouteImport } from './routes/_authenticated/feed.$id'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesIdRouteImport } from './routes/_authenticated/messages.$id'
 import { Route as AuthenticatedNewsSlugRouteImport } from './routes/_authenticated/news_.$slug'
@@ -255,6 +257,16 @@ const AuthenticatedDiscoverStudioRoute =
     path: '/discover/studio',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFeedIndexRoute = AuthenticatedFeedIndexRouteImport.update({
+  id: '/feed/',
+  path: '/feed/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFeedIdRoute = AuthenticatedFeedIdRouteImport.update({
+  id: '/feed/$id',
+  path: '/feed/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMessagesIndexRoute =
   AuthenticatedMessagesIndexRouteImport.update({
     id: '/messages/',
@@ -361,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
   '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
+  '/feed/$id': typeof AuthenticatedFeedIdRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/news/$slug': typeof AuthenticatedNewsSlugRoute
   '/news/all': typeof AuthenticatedNewsAllRoute
@@ -372,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities/': typeof AuthenticatedCommunitiesIndexRoute
   '/discover/': typeof AuthenticatedDiscoverIndexRoute
+  '/feed/': typeof AuthenticatedFeedIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -413,6 +427,7 @@ export interface FileRoutesByTo {
   '/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
   '/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/discover/studio': typeof AuthenticatedDiscoverStudioRoute
+  '/feed/$id': typeof AuthenticatedFeedIdRoute
   '/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/news/$slug': typeof AuthenticatedNewsSlugRoute
   '/news/all': typeof AuthenticatedNewsAllRoute
@@ -424,6 +439,7 @@ export interface FileRoutesByTo {
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/communities': typeof AuthenticatedCommunitiesIndexRoute
   '/discover': typeof AuthenticatedDiscoverIndexRoute
+  '/feed': typeof AuthenticatedFeedIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -467,6 +483,7 @@ export interface FileRoutesById {
   '/_authenticated/communities/$handle': typeof AuthenticatedCommunitiesHandleRoute
   '/_authenticated/communities/create': typeof AuthenticatedCommunitiesCreateRoute
   '/_authenticated/discover/studio': typeof AuthenticatedDiscoverStudioRoute
+  '/_authenticated/feed/$id': typeof AuthenticatedFeedIdRoute
   '/_authenticated/messages/$id': typeof AuthenticatedMessagesIdRoute
   '/_authenticated/news_/$slug': typeof AuthenticatedNewsSlugRoute
   '/_authenticated/news_/all': typeof AuthenticatedNewsAllRoute
@@ -478,6 +495,7 @@ export interface FileRoutesById {
   '/auth/roblox/callback': typeof AuthRobloxCallbackRoute
   '/_authenticated/communities/': typeof AuthenticatedCommunitiesIndexRoute
   '/_authenticated/discover/': typeof AuthenticatedDiscoverIndexRoute
+  '/_authenticated/feed/': typeof AuthenticatedFeedIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -521,6 +539,7 @@ export interface FileRouteTypes {
     | '/communities/$handle'
     | '/communities/create'
     | '/discover/studio'
+    | '/feed/$id'
     | '/messages/$id'
     | '/news/$slug'
     | '/news/all'
@@ -532,6 +551,7 @@ export interface FileRouteTypes {
     | '/auth/roblox/callback'
     | '/communities/'
     | '/discover/'
+    | '/feed/'
     | '/messages/'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -573,6 +593,7 @@ export interface FileRouteTypes {
     | '/communities/$handle'
     | '/communities/create'
     | '/discover/studio'
+    | '/feed/$id'
     | '/messages/$id'
     | '/news/$slug'
     | '/news/all'
@@ -584,6 +605,7 @@ export interface FileRouteTypes {
     | '/auth/roblox/callback'
     | '/communities'
     | '/discover'
+    | '/feed'
     | '/messages'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -626,6 +648,7 @@ export interface FileRouteTypes {
     | '/_authenticated/communities/$handle'
     | '/_authenticated/communities/create'
     | '/_authenticated/discover/studio'
+    | '/_authenticated/feed/$id'
     | '/_authenticated/messages/$id'
     | '/_authenticated/news_/$slug'
     | '/_authenticated/news_/all'
@@ -637,6 +660,7 @@ export interface FileRouteTypes {
     | '/auth/roblox/callback'
     | '/_authenticated/communities/'
     | '/_authenticated/discover/'
+    | '/_authenticated/feed/'
     | '/_authenticated/messages/'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -936,6 +960,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDiscoverStudioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/feed/': {
+      id: '/_authenticated/feed/'
+      path: '/feed'
+      fullPath: '/feed/'
+      preLoaderRoute: typeof AuthenticatedFeedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/feed/$id': {
+      id: '/_authenticated/feed/$id'
+      path: '/feed/$id'
+      fullPath: '/feed/$id'
+      preLoaderRoute: typeof AuthenticatedFeedIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/messages/': {
       id: '/_authenticated/messages/'
       path: '/messages'
@@ -1048,6 +1086,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCommunitiesHandleRoute: typeof AuthenticatedCommunitiesHandleRoute
   AuthenticatedCommunitiesCreateRoute: typeof AuthenticatedCommunitiesCreateRoute
   AuthenticatedDiscoverStudioRoute: typeof AuthenticatedDiscoverStudioRoute
+  AuthenticatedFeedIdRoute: typeof AuthenticatedFeedIdRoute
   AuthenticatedMessagesIdRoute: typeof AuthenticatedMessagesIdRoute
   AuthenticatedNewsSlugRoute: typeof AuthenticatedNewsSlugRoute
   AuthenticatedNewsAllRoute: typeof AuthenticatedNewsAllRoute
@@ -1058,6 +1097,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRoute
   AuthenticatedCommunitiesIndexRoute: typeof AuthenticatedCommunitiesIndexRoute
   AuthenticatedDiscoverIndexRoute: typeof AuthenticatedDiscoverIndexRoute
+  AuthenticatedFeedIndexRoute: typeof AuthenticatedFeedIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
 }
 
@@ -1079,6 +1119,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCommunitiesHandleRoute: AuthenticatedCommunitiesHandleRoute,
   AuthenticatedCommunitiesCreateRoute: AuthenticatedCommunitiesCreateRoute,
   AuthenticatedDiscoverStudioRoute: AuthenticatedDiscoverStudioRoute,
+  AuthenticatedFeedIdRoute: AuthenticatedFeedIdRoute,
   AuthenticatedMessagesIdRoute: AuthenticatedMessagesIdRoute,
   AuthenticatedNewsSlugRoute: AuthenticatedNewsSlugRoute,
   AuthenticatedNewsAllRoute: AuthenticatedNewsAllRoute,
@@ -1089,6 +1130,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsersIdRoute: AuthenticatedUsersIdRoute,
   AuthenticatedCommunitiesIndexRoute: AuthenticatedCommunitiesIndexRoute,
   AuthenticatedDiscoverIndexRoute: AuthenticatedDiscoverIndexRoute,
+  AuthenticatedFeedIndexRoute: AuthenticatedFeedIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
 }
 

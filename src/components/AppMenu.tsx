@@ -19,6 +19,7 @@ import {
   Plus,
   Receipt,
   Repeat,
+  Rss,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -302,6 +303,13 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
           label={t("sparks")}
           to="/sparks"
           active={isActive("/sparks")}
+          onClick={onClose}
+        />
+        <Row
+          icon={Rss}
+          label={t("feedTitle")}
+          to="/feed"
+          active={isActive("/feed")}
           onClick={onClose}
         />
         <Row

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -26,6 +26,8 @@ import { ThreeBackground } from "@/components/landing/ThreeBackground";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import heroAsset from "@/assets/onboarding-hero.png.asset.json";
+import { PostCard } from "@/components/PostCard";
+import { fetchTrendingPostsToday } from "@/lib/feedPosts";
 
 // `/_authenticated` is `ssr: false`, so importing GSAP at module scope
 // wouldn't crash SSR here the way it did on `/` — but we still load it
@@ -58,7 +60,7 @@ function SectionHeader({
 }: {
   emoji: string;
   title: string;
-  action?: { to: "/discover" | "/sparks" | "/messages"; label: string };
+  action?: { to: "/discover" | "/sparks" | "/messages" | "/feed"; label: string };
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
@@ -221,6 +223,7 @@ function NewsSection() {
 function HomePage() {
   const { user } = useSession();
   const { t } = useI18n();
+  const navigate = useNavigate();
   const hour = new Date().getHours();
   const hello =
     hour >= 5 && hour < 12
@@ -331,6 +334,12 @@ function HomePage() {
         .limit(6);
       return data ?? [];
     },
+  });
+
+  const trendingPosts = useQuery({
+    queryKey: ["home-trending-posts"],
+    enabled: !!user,
+    queryFn: () => fetchTrendingPostsToday(4),
   });
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -618,6 +627,29 @@ function HomePage() {
             </Card>
           )}
         </section>
+
+        {/* 1b. Posts tendance du Feed */}
+        {trendingPosts.data?.posts.length ? (
+          <section>
+            <SectionHeader
+              emoji="💬"
+              title={t("feedTrendingTitle")}
+              action={{ to: "/feed", label: t("seeAll") }}
+            />
+            <div className="-mx-4 divide-y divide-border border-y border-border">
+              {trendingPosts.data.posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  author={trendingPosts.data.authors[post.user_id]}
+                  onOpenThread={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
+                  onReply={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
+                  onRepostMenu={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {/* 2. Amis / Abonnements */}
         <section ref={friendsRef}>

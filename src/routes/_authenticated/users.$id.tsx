@@ -14,6 +14,7 @@ import { StoryHighlightsRow } from "@/components/StoryHighlightsRow";
 import { StoryViewerFull, type StoryRow } from "@/components/StoryViewerFull";
 import { Button } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
+import { fetchUserPosts } from "@/lib/feedPosts";
 import { useSession } from "@/lib/session";
 import { errorMessage } from "@/lib/utils";
 import { RobloxIdentity } from "@/components/RobloxIdentity";
@@ -234,6 +235,12 @@ function PublicProfile() {
     },
   });
 
+  const feedPosts = useQuery({
+    queryKey: ["public-feed-posts", id],
+    enabled: !!id,
+    queryFn: () => fetchUserPosts(id!),
+  });
+
   const counts = useQuery({
     queryKey: ["profile-counts", id],
     enabled: !!id,
@@ -443,6 +450,8 @@ function PublicProfile() {
 
         <ProfileContentTabs
           videos={profile.data?.videos ?? []}
+          feedPosts={feedPosts.data?.posts ?? []}
+          feedAuthors={feedPosts.data?.authors ?? {}}
           reposts={reposts.data ?? []}
           photos={profile.data?.photos ?? []}
           stickers={profile.data?.stickers ?? []}

@@ -38,6 +38,7 @@ import { AddSoundSheet } from "@/components/AddSoundSheet";
 import { StoryHighlightsRow } from "@/components/StoryHighlightsRow";
 import { StoryViewerFull, type StoryRow } from "@/components/StoryViewerFull";
 import { uploadFile } from "@/lib/media";
+import { fetchUserPosts } from "@/lib/feedPosts";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { EquippedBadges } from "@/components/Blox";
@@ -279,6 +280,12 @@ function ProfilePage() {
       const byId = new Map((vids ?? []).map((v) => [v.id, v]));
       return ids.map((id) => byId.get(id)).filter((v): v is TabVideo => Boolean(v));
     },
+  });
+
+  const myFeedPosts = useQuery({
+    queryKey: ["my-feed-posts", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchUserPosts(user!.id),
   });
 
   // "Statistiques avancées" (Spark Plus perk) - computed on the server,
@@ -981,6 +988,8 @@ function ProfilePage() {
 
       <ProfileContentTabs
         videos={videos.data ?? []}
+        feedPosts={myFeedPosts.data?.posts ?? []}
+        feedAuthors={myFeedPosts.data?.authors ?? {}}
         reposts={reposts.data ?? []}
         photos={photos.data ?? []}
         photosEditable

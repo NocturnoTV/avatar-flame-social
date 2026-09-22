@@ -14,6 +14,7 @@ import {
   Newspaper,
   Play,
   Receipt,
+  Rss,
   Send,
   Settings,
   Sparkles,
@@ -86,6 +87,7 @@ function useItems() {
   return [
     { to: "/home", icon: Home, label: t("home") },
     { to: "/discover", icon: Compass, label: t("discover") },
+    { to: "/feed", icon: Rss, label: t("feedTitle") },
     { to: "/sparks", icon: Sparkles, label: t("sparks") },
     { to: "/messages", icon: Send, label: t("messages") },
     { to: "/profile", icon: User, label: t("profile") },
@@ -124,6 +126,7 @@ export function SideNav() {
     { to: "/home", icon: Home, label: t("home") },
     { to: "/discover", icon: Compass, label: t("discover") },
     { to: "/discover", icon: Play, label: t("menuVideos") },
+    { to: "/feed", icon: Rss, label: t("feedTitle") },
     { to: "/sparks", icon: Sparkles, label: t("sparks"), featured: true },
     { to: "/communities", icon: Users, label: t("menuCommunities") },
     { to: "/news", icon: Newspaper, label: t("newsFeedTitle") },

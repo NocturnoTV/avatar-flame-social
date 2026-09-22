@@ -1761,34 +1761,93 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_at: string | null
+          edited_at: string | null
           id: string
           image_url: string | null
           likes_count: number
+          media: Json
           replies_count: number
+          reply_permission: string
+          reply_to_id: string | null
           reposts_count: number
+          quote_post_id: string | null
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           image_url?: string | null
           likes_count?: number
+          media?: Json
           replies_count?: number
+          reply_permission?: string
+          reply_to_id?: string | null
           reposts_count?: number
+          quote_post_id?: string | null
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           image_url?: string | null
           likes_count?: number
+          media?: Json
           replies_count?: number
+          reply_permission?: string
+          reply_to_id?: string | null
           reposts_count?: number
+          quote_post_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "feed_posts_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_posts_quote_post_id_fkey"
+            columns: ["quote_post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_post_bookmarks: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_post_bookmarks_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       follows: {
         Row: {
@@ -2662,6 +2721,7 @@ export type Database = {
           id: string
           message_id: string | null
           moderator_note: string | null
+          post_id: string | null
           reason: string
           reporter_id: string
           status: string
@@ -2677,6 +2737,7 @@ export type Database = {
           id?: string
           message_id?: string | null
           moderator_note?: string | null
+          post_id?: string | null
           reason: string
           reporter_id: string
           status?: string
@@ -2692,6 +2753,7 @@ export type Database = {
           id?: string
           message_id?: string | null
           moderator_note?: string | null
+          post_id?: string | null
           reason?: string
           reporter_id?: string
           status?: string

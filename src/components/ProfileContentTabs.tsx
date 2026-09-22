@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
   Heart,
   ImagePlus,
   Lock,
+  MessageSquareText,
   Music2,
   Pause,
   Play,
@@ -17,6 +18,8 @@ import {
   X,
 } from "lucide-react";
 import { StoredImage, useSignedUrl, VideoThumb as SharedVideoThumb } from "@/components/Media";
+import { PostCard } from "@/components/PostCard";
+import type { PostAuthors, PostRow } from "@/lib/feedPosts";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +40,7 @@ export type TabSound = {
   visibility: "public" | "private";
   usage_count: number;
 };
-type Tab = "videos" | "reposts" | "photos" | "stickers" | "sounds" | "liked" | "favorites";
+type Tab = "videos" | "posts" | "reposts" | "photos" | "stickers" | "sounds" | "liked" | "favorites";
 type LightboxTarget = { list: TabPhoto[]; index: number };
 
 /**
@@ -49,6 +52,8 @@ type LightboxTarget = { list: TabPhoto[]; index: number };
  */
 export function ProfileContentTabs({
   videos,
+  feedPosts,
+  feedAuthors,
   reposts,
   photos,
   stickers = [],
@@ -70,6 +75,11 @@ export function ProfileContentTabs({
   onToggleSoundVisibility,
 }: {
   videos: TabVideo[];
+  /** Feed posts (BloxSpark's X-style feed) - optional since this component
+   * is shared and callers that haven't wired the Feed query yet just omit
+   * it, hiding the tab entirely rather than showing an always-empty one. */
+  feedPosts?: PostRow[];
+  feedAuthors?: PostAuthors;
   reposts: TabVideo[];
   photos: TabPhoto[];
   stickers?: TabSticker[];
@@ -93,11 +103,15 @@ export function ProfileContentTabs({
   onToggleSoundVisibility?: (id: string, visibility: "public" | "private") => void;
 }) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("videos");
   const [lightbox, setLightbox] = useState<LightboxTarget | null>(null);
 
   const tabs: { id: Tab; label: string; icon: typeof Video; count: number }[] = [
     { id: "videos", label: t("videosTab"), icon: Video, count: videos.length },
+    ...(feedPosts
+      ? [{ id: "posts" as const, label: t("feedProfileTab"), icon: MessageSquareText, count: feedPosts.length }]
+      : []),
     { id: "reposts", label: t("repostsTab"), icon: Repeat2, count: reposts.length },
     { id: "photos", label: t("photosTab"), icon: ImagePlus, count: photos.length },
     { id: "stickers", label: t("stickersTab"), icon: Smile, count: stickers.length },
@@ -147,6 +161,22 @@ export function ProfileContentTabs({
               </Link>
             ))}
             {!videos.length ? <EmptyState label={t("noProfileVideos")} /> : null}
+          </div>
+        ) : null}
+
+        {tab === "posts" ? (
+          <div className="-mx-4">
+            {(feedPosts ?? []).map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                author={feedAuthors?.[post.user_id]}
+                onOpenThread={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
+                onReply={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
+                onRepostMenu={() => void navigate({ to: "/feed/$id", params: { id: post.id } })}
+              />
+            ))}
+            {!feedPosts?.length ? <EmptyState label={t("feedNoPosts")} /> : null}
           </div>
         ) : null}
 
