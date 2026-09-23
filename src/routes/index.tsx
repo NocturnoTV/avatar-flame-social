@@ -160,6 +160,17 @@ function Landing() {
 
             <div className="relative mx-auto -mt-5 max-w-5xl rounded-[1.8rem] border border-fuchsia-200/15 bg-[#160828]/88 px-5 py-8 text-center shadow-[0_30px_100px_rgba(0,0,0,.55),0_0_70px_rgba(168,85,247,.14)] backdrop-blur-2xl sm:-mt-16 sm:px-10 sm:py-12">
               <div className="pointer-events-none absolute inset-x-16 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-300/80 to-transparent" />
+              {/* A floating Roblox avatar breaking out of the card's top edge -
+                  hidden on the smallest screens where there's no room for it
+                  without crowding the headline. */}
+              <div className="bx-landing-reveal bx-delay-1 pointer-events-none absolute -top-16 right-4 hidden sm:block lg:-top-20 lg:right-10">
+                <div className="bx-float absolute inset-0 -z-10 rounded-full bg-fuchsia-500/30 blur-3xl" />
+                <img
+                  src="/landing/hero-avatar-1.webp"
+                  alt=""
+                  className="bx-float h-28 w-28 object-contain drop-shadow-[0_18px_40px_rgba(168,85,247,.55)] lg:h-36 lg:w-36"
+                />
+              </div>
               <span className="bx-landing-reveal bx-delay-1 inline-flex items-center gap-2 rounded-full border border-fuchsia-300/35 bg-purple-500/20 px-4 py-2 text-[10px] font-extrabold uppercase tracking-[.2em] text-purple-100 sm:text-xs">
                 <Sparkles className="h-4 w-4 text-fuchsia-300" /> {t("landingEyebrow")}
               </span>

@@ -254,6 +254,16 @@ function Onboarding() {
               <LogoWordmark className="absolute bottom-4 left-1/2 h-24 -translate-x-1/2 bx-float drop-shadow-[0_0_48px_rgba(0,0,0,0.6)] sm:h-28" />
             </div>
           </div>
+          {/* Same floating-avatar accent as the landing page hero, breaking
+              out of the card's top-right corner. */}
+          <div className="bx-pop pointer-events-none absolute -top-8 right-2 hidden sm:block">
+            <div className="bx-float absolute inset-0 -z-10 rounded-full bg-primary/30 blur-3xl" />
+            <img
+              src="/landing/hero-avatar-1.webp"
+              alt=""
+              className="bx-float h-24 w-24 object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,.5)]"
+            />
+          </div>
 
           <h1 className="bx-rise bx-delay-1 mt-8 text-center text-4xl font-black leading-tight">
             Bienvenue sur <span className="spark-text">Bloxspark</span>
